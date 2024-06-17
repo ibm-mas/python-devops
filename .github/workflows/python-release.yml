@@ -29,8 +29,8 @@ jobs:
 
       - name: Build the Python package
         run: |
-          sed -i "s#__version__ = \"100.0.0\"#__version__ = \"${{ env.VERSION_NOPREREL }}\"#g" ${GITHUB_WORKSPACE}/python/src/mas/devops/__init__.py
-          cat ${GITHUB_WORKSPACE}/python/src/mas/devops/__init__.py
+          sed -i "s#__version__ = \"100.0.0\"#__version__ = \"${{ env.VERSION_NOPREREL }}\"#g" ${GITHUB_WORKSPACE}/src/mas/devops/__init__.py
+          cat ${GITHUB_WORKSPACE}/src/mas/devops/__init__.py
           python -m pip install --upgrade pip
           pip install .[dev]
           # There are no tests yet
