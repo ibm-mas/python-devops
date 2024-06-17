@@ -25,7 +25,7 @@ installOpenShiftPipelines(dynamicClient)
 
 # Create the pipelines namespace and install the MAS tekton definitions
 createNamespace(dynamicClient, pipelinesNamespace)
-updateTektonDefinitions(pipelinesNamespace)
+updateTektonDefinitions(pipelinesNamespace, "/mascli/templates/ibm-mas-tekton.yaml")
 
 # Launch the upgrade pipeline and print the URL to view the pipeline run
 pipelineURL = launchUpgradePipeline(self.dynamicClient, instanceId)

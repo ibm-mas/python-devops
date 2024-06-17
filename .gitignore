@@ -7,13 +7,11 @@ __pycache__/
 dist
 *.egg-info
 pandoc-*-amd64.deb
+pandoc-*-windows-x86_64.msi
 README.rst
 
-# PyInstaller
-*.manifest
-*.spec
-
 # Environments
+.venv/
 venv/
 
 # Other
