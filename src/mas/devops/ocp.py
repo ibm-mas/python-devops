@@ -9,12 +9,15 @@
 # *****************************************************************************
 
 import logging
+from time import sleep
+
 from kubeconfig import KubeConfig
 from kubeconfig.exceptions import KubectlNotFoundError
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
+
 
 def connect(server: str, token: str) -> bool:
     """
@@ -59,7 +62,7 @@ def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
     try:
         namespaceAPI.get(name=namespace)
         logger.debug(f"Namespace {namespace} already exists")
-    except NotFoundError as e:
+    except NotFoundError:
         nsObj = {
             "apiVersion": "v1",
             "kind": "Namespace",
@@ -70,6 +73,30 @@ def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
         namespaceAPI.create(body=nsObj)
         logger.debug(f"Created namespace {namespace}")
     return True
+
+
+def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
+    crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
+    maxRetries = 100
+    foundReadyCRD = False
+    retries = 0
+    while not foundReadyCRD and retries < maxRetries:
+        retries += 1
+        try:
+            tasksCRD = crdAPI.get(name=crdName)
+            conditions = tasksCRD.status.conditions
+            for condition in conditions:
+                if condition.type == "Established":
+                    if condition.status == "True":
+                        foundReadyCRD = True
+                    else:
+                        logger.debug("Waiting 5s for tasks.tekton.dev CRD to be ready before checking again ...")
+                        sleep(5)
+                        continue
+        except NotFoundError:
+            logger.debug("Waiting 5s for tasks.tekton.dev CRD to be installed before checking again ...")
+            sleep(5)
+    return foundReadyCRD
 
 
 def getConsoleURL(dynClient: DynamicClient) -> str:

@@ -13,7 +13,6 @@ import yaml
 
 from datetime import datetime
 from os import path
-from time import sleep
 
 from kubeconfig import kubectl
 from kubeconfig.exceptions import KubectlCommandError
@@ -23,7 +22,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 from jinja2 import Environment, FileSystemLoader
 from jinja2.exceptions import TemplateNotFound
 
-from .ocp import getConsoleURL
+from .ocp import getConsoleURL, waitForCRD
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,6 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
     """
     packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
-    crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
 
     # Create the Operator Subscription
     try:
@@ -62,30 +60,18 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
         subscription = yaml.safe_load(renderedTemplate)
         subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")
 
-    except NotFoundError as e:
+    except NotFoundError:
         logger.warning("Error: Couldn't find package manifest for Red Hat Openshift Pipelines Operator")
-    except UnprocessibleEntityError as e:
+    except UnprocessibleEntityError:
         logger.warning("Error: Couldn't create/update OpenShift Pipelines Operator Subscription")
 
-    foundReadyCRD = False
-    while not foundReadyCRD:
-        try:
-            tasksCRD = crdAPI.get(name="tasks.tekton.dev")
-            conditions = tasksCRD.status.conditions
-            for condition in conditions:
-                if condition.type == "Established":
-                    if condition.status == "True":
-                        foundReadyCRD = True
-                    else:
-                        logger.debug("Waiting 5s for tasks.tekton.dev CRD to be ready before checking again ...")
-                        sleep(5)
-                        continue
-        except NotFoundError as e:
-            logger.debug("Waiting 5s for tasks.tekton.dev CRD to be installed before checking again ...")
-            sleep(5)
-
-    logger.info("OpenShift Pipelines Operator is installed and ready")
-    return True
+    foundReadyCRD = waitForCRD(dynClient, "tasks.tekton.dev")
+    if foundReadyCRD:
+        logger.info("OpenShift Pipelines Operator is installed and ready")
+        return True
+    else:
+        logger.error("OpenShift Pipelines Operator is NOT installed and ready")
+        return False
 
 
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> bool:
@@ -95,7 +81,6 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> bool:
     Unfortunately there's no API equivalent of what the kubectl CLI gives us with the ability to just apply a file containing a mix of
     """
     # https://github.com/gtaylor/kubeconfig-python/blob/master/kubeconfig/kubectl.py
-    thisDir = path.abspath(path.dirname(__file__))
     try:
         result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
         for line in result.split("\n"):
@@ -108,7 +93,7 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> bool:
 
 def launchUpgradePipeline(dynClient: DynamicClient,
                           instanceId: str,
-                          masChannel: str="") -> str:
+                          masChannel: str = "") -> str:
     """
     Create a PipelineRun to upgrade the chosen MAS instance
     """
@@ -127,9 +112,9 @@ def launchUpgradePipeline(dynClient: DynamicClient,
             logger.warning(f"Could not find pipelinerun template in {templateDir}: {e}")
             return None
         renderedTemplate = template.render(
-            timestamp = timestamp,
-            mas_instance_id = instanceId,
-            mas_channel = masChannel
+            timestamp=timestamp,
+            mas_instance_id=instanceId,
+            mas_channel=masChannel
         )
         pipelineRun = yaml.safe_load(renderedTemplate)
         pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
@@ -142,16 +127,17 @@ def launchUpgradePipeline(dynClient: DynamicClient,
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-upgrade-{timestamp}"
     return pipelineURL
 
+
 def launchUninstallPipeline(dynClient: DynamicClient,
                             instanceId: str,
-                            certManagerProvider: str="redhat",
-                            uninstallCertManager: bool=False,
-                            uninstallGrafana: bool=False,
-                            uninstallCatalog: bool=False,
-                            uninstallCommonServices: bool=False,
-                            uninstallUDS: bool=False,
-                            uninstallMongoDb: bool=False,
-                            uninstallSLS: bool=False) -> str:
+                            certManagerProvider: str = "redhat",
+                            uninstallCertManager: bool = False,
+                            uninstallGrafana: bool = False,
+                            uninstallCatalog: bool = False,
+                            uninstallCommonServices: bool = False,
+                            uninstallUDS: bool = False,
+                            uninstallMongoDb: bool = False,
+                            uninstallSLS: bool = False) -> str:
     """
     Create a PipelineRun to uninstall the chosen MAS instance (and selected dependencies)
     """
@@ -180,16 +166,16 @@ def launchUninstallPipeline(dynClient: DynamicClient,
 
         # Render the pipelineRun
         renderedTemplate = template.render(
-            timestamp = timestamp,
-            mas_instance_id = instanceId,
-            grafana_action = grafanaAction,
-            cert_manager_provider = certManagerProvider,
-            cert_manager_action = certManagerAction,
-            common_services_action = commonServicesAction,
-            ibm_catalogs_action = ibmCatalogAction,
-            mongodb_action = mongoDbAction,
-            sls_action = slsAction,
-            uds_action = udsAction
+            timestamp=timestamp,
+            mas_instance_id=instanceId,
+            grafana_action=grafanaAction,
+            cert_manager_provider=certManagerProvider,
+            cert_manager_action=certManagerAction,
+            common_services_action=commonServicesAction,
+            ibm_catalogs_action=ibmCatalogAction,
+            mongodb_action=mongoDbAction,
+            sls_action=slsAction,
+            uds_action=udsAction
         )
         pipelineRun = yaml.safe_load(renderedTemplate)
         pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)

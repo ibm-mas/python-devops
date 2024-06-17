@@ -1,4 +1,4 @@
-.PHONY: install build pyinstaller clean
+.PHONY: install build lint pyinstaller clean
 
 venv:
 	python3 -m venv venv
@@ -12,6 +12,10 @@ install: venv
 build: venv
 	rm -f README.rst
 	. venv/bin/activate && python -m build
+
+lint: venv
+	rm -f README.rst
+	. venv/bin/activate && flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics && flake8 src --count --exit-zero --max-complexity=10 --max-line-length=200 --statistics
 
 pyinstaller: venv
 	rm -f README.rst
