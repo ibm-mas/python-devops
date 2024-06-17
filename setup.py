@@ -49,17 +49,11 @@ setup(
         'mas.devops.templates'
     ]),
     include_package_data=True,
-    scripts=[
-        'src/mas-upgrade',
-        'src/mas-uninstall'
-    ],
-    url='https://github.com/ibm-mas/cli',
+    url='https://github.com/ibm-mas/python-devops',
     license='Eclipse Public License - v1.0',
-    description='Python SDK for Maximo Application Suite',
+    description='Python for Maximo Application Suite Dev/Ops',
     long_description=long_description,
     install_requires=[
-        'halo',           # MIT License
-        'prompt_toolkit', # BSD License
         'pyyaml',         # MIT License
         'openshift',      # Apache Software License
         'kubernetes',     # Apache Software License
@@ -70,8 +64,7 @@ setup(
         'dev': [
             'build',       # MIT License
             'flake8',      # MIT License
-            'pytest',      # MIT License
-            'pyinstaller', # GPL, https://pyinstaller.org/en/stable/license.html & https://github.com/pyinstaller/pyinstaller/wiki/FAQ#license
+            'pytest'      # MIT License
         ]
     },
     classifiers=[
