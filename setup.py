@@ -69,6 +69,7 @@ setup(
     extras_require={
         'dev': [
             'build',       # MIT License
+            'flake8',      # MIT License
             'pytest',      # MIT License
             'pyinstaller', # GPL, https://pyinstaller.org/en/stable/license.html & https://github.com/pyinstaller/pyinstaller/wiki/FAQ#license
         ]
