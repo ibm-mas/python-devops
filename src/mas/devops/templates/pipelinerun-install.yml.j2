@@ -1,0 +1,540 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: "{{mas_instance_id}}-install-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: mas-install
+spec:
+  pipelineRef:
+    name: mas-install
+
+  serviceAccountName: pipeline
+  timeouts:
+    pipeline: "24h"
+
+  params:
+    # Pipeline config
+    # -------------------------------------------------------------------------
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+
+{% if ocp_ingress_tls_secret_name is not None %}
+    # Cluster config
+    # -------------------------------------------------------------------------
+    - name: ocp_ingress_tls_secret_name
+      value: "{{ ocp_ingress_tls_secret_name }}"
+{% endif %}
+
+{% if artifactory_username is not None and artifactory_token is not None %}
+    # Enable development catalogs
+    # -------------------------------------------------------------------------
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+{% endif %}
+
+    # IBM Entitlement Key
+    # -------------------------------------------------------------------------
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+
+{% if ibmcloud_apikey is not None and ibmcloud_resourcegroup is not None %}
+    # IBM Cloud
+    # -------------------------------------------------------------------------
+    - name: ibmcloud_apikey
+      value: "{{ ibmcloud_apikey }}"
+    - name: ibmcloud_resourcegroup
+      value: "{{ ibmcloud_resourcegroup }}"
+{% endif %}
+
+    # Storage Classes
+    # -------------------------------------------------------------------------
+    - name: storage_class_rwx
+      value: "{{ storage_class_rwx }}"
+    - name: storage_class_rwo
+      value: "{{ storage_class_rwo }}"
+
+{% if turbonomic_server_url is not None %}
+    # Dependencies - Turbonomic
+    # -------------------------------------------------------------------------
+    - name: turbonomic_server_url
+      value: "{{ turbonomic_server_url }}"
+    - name: turbonomic_server_version
+      value: "{{ turbonomic_server_version }}"
+    - name: turbonomic_target_name
+      value: "{{ turbonomic_target_name }}"
+    - name: turbonomic_username
+      value: "{{ turbonomic_username }}"
+    - name: turbonomic_password
+      value: "{{ turbonomic_password }}"
+{% endif %}
+
+{% if db2_action_system == "install" or db2_action_manage == "install" %}
+    # Dependencies - Db2 - Actions
+    # -------------------------------------------------------------------------
+    - name: db2_action_system
+      value: "{{ db2_action_system }}"
+    - name: db2_action_manage
+      value: "{{ db2_action_manage }}"
+
+    # Dependencies - Db2u Operator
+    # -------------------------------------------------------------------------
+    - name: db2_namespace
+      value: "{{ db2_namespace }}"
+    - name: db2_channel
+      value: "{{ db2_channel }}"
+    - name: db2_type
+      value: "{{ db2_type }}"
+    - name: db2_timezone
+      value: "{{ db2_timezone }}"
+
+    # Dependencies - Db2 - Access Mode
+    # -------------------------------------------------------------------------
+    - name: db2_meta_storage_accessmode
+      value: "{{ db2_meta_storage_accessmode }}"
+    - name: db2_backup_storage_accessmode
+      value: "{{ db2_backup_storage_accessmode }}"
+    - name: db2_logs_storage_accessmode
+      value: "{{ db2_logs_storage_accessmode }}"
+    - name: db2_temp_storage_accessmode
+      value: "{{ db2_temp_storage_accessmode }}"
+    - name: db2_data_storage_accessmode
+      value: "{{ db2_data_storage_accessmode }}"
+
+    # Dependencies - Db2 - Node Scheduling
+    # -------------------------------------------------------------------------
+    - name: db2_affinity_key
+      value: "{{ db2_affinity_key }}"
+    - name: db2_affinity_value
+      value: "{{ db2_affinity_value }}"
+
+    - name: db2_tolerate_key
+      value: "{{ db2_tolerate_key }}"
+    - name: db2_tolerate_value
+      value: "{{ db2_tolerate_value }}"
+    - name: db2_tolerate_effect
+      value: "{{ db2_tolerate_effect }}"
+
+    # Dependencies - Db2 - CPU Resources
+    # -------------------------------------------------------------------------
+    - name: db2_cpu_requests
+      value: "{{ db2_cpu_requests }}"
+    - name: db2_cpu_limits
+      value: "{{ db2_cpu_limits }}"
+
+    # Dependencies - Db2 - Memory Resources
+    # -------------------------------------------------------------------------
+    - name: db2_memory_requests
+      value: "{{ db2_memory_requests }}"
+    - name: db2_memory_limits
+      value: "{{ db2_memory_limits }}"
+
+    # Dependencies - Db2 - Storage Capacity
+    # -------------------------------------------------------------------------
+    - name: db2_meta_storage_class
+      value: "{{ db2_meta_storage_class }}"
+    - name: db2_meta_storage_size
+      value: "{{ db2_meta_storage_size }}"
+    - name: db2_backup_storage_class
+      value: "{{ db2_backup_storage_class }}"
+    - name: db2_backup_storage_size
+      value: "{{ db2_backup_storage_size }}"
+    - name: db2_logs_storage_class
+      value: "{{ db2_logs_storage_class }}"
+    - name: db2_logs_storage_size
+      value: "{{ db2_logs_storage_size }}"
+    - name: db2_temp_storage_class
+      value: "{{ db2_temp_storage_class }}"
+    - name: db2_temp_storage_size
+      value: "{{ db2_temp_storage_size }}"
+    - name: db2_data_storage_class
+      value: "{{ db2_data_storage_class }}"
+    - name: db2_data_storage_size
+      value: "{{ db2_data_storage_size }}"
+{% endif %}
+
+    # Dependencies - MongoDb
+    # -------------------------------------------------------------------------
+    - name: mongodb_namespace
+      value: "{{ mongodb_namespace }}"
+    - name: mongodb_replicas
+      value: "{{ mongodb_replicas }}"
+    - name: mongodb_cpu_requests
+      value: "{{ mongodb_cpu_requests }}"
+    - name: mongodb_provider
+      value: "{{ mongodb_provider }}"
+    - name: mongodb_version
+      value: "{{ mongodb_version }}"
+    - name: mongodb_action
+      value: "{{ mongodb_action }}"
+
+{% if mongodb_provider == "ibm" %}
+    # Dependencies - IBM Cloud MongoDb
+    # -------------------------------------------------------------------------
+    - name: ibm_mongo_name
+      value: "{{ ibm_mongo_name }}"
+    - name: ibm_mongo_resourcegroup
+      value: "{{ ibm_mongo_resourcegroup }}"
+    - name: ibm_mongo_region
+      value: "{{ ibm_mongo_region }}"
+    - name: ibm_mongo_admin_password
+      value: "{{ ibm_mongo_admin_password }}"
+{% endif %}
+
+{% if kafka_action_system == "install" %}
+    # Dependencies - Kafka
+    # -------------------------------------------------------------------------
+    - name: kafka_action_system
+      value: "{{ kafka_action_system }}"
+    - name: kafka_provider
+      value: "{{ kafka_provider }}"
+    - name: kafka_namespace
+      value: "{{ kafka_namespace }}"
+    - name: kafka_version
+      value: "{{ kafka_version }}"
+
+    # Dependencies - AWS MSK
+    # -------------------------------------------------------------------------
+    - name: vpc_id
+      value: "{{ vpc_id }}"
+    - name: aws_kafka_user_name
+      value: "{{ aws_kafka_user_name }}"
+    - name: aws_kafka_user_password
+      value: "{{ aws_kafka_user_password }}"
+    - name: aws_msk_instance_type
+      value: "{{ aws_msk_instance_type }}"
+    - name: aws_msk_instance_number
+      value: "{{ aws_msk_instance_number }}"
+    - name: aws_msk_volume_size
+      value: "{{ aws_msk_volume_size }}"
+    - name: aws_msk_cidr_az1
+      value: "{{ aws_msk_cidr_az1 }}"
+    - name: aws_msk_cidr_az2
+      value: "{{ aws_msk_cidr_az2 }}"
+    - name: aws_msk_cidr_az3
+      value: "{{ aws_msk_cidr_az3 }}"
+    - name: aws_msk_ingress_cidr
+      value: "{{ aws_msk_ingress_cidr }}"
+    - name: aws_msk_egress_cidr
+      value: "{{ aws_msk_egress_cidr }}"
+
+    # Dependencies - IBM Cloud Event Streams
+    # -------------------------------------------------------------------------
+    - name: eventstreams_resourcegroup
+      value: "{{ eventstreams_resourcegroup }}"
+    - name: eventstreams_name
+      value: "{{ eventstreams_name }}"
+    - name: eventstreams_location
+      value: "{{ eventstreams_location }}"
+    - name: eventstreams_retention
+      value: "{{ eventstreams_retention }}"
+    - name: eventstreams_create_manage_jms_topics
+      value: "{{ eventstreams_create_manage_jms_topics }}"
+{% endif %}
+
+    # Dependencies - CP4D
+    # -------------------------------------------------------------------------
+    - name: cpd_product_version
+      value: "{{ cpd_product_version }}"
+    - name: cpd_install_spss
+      value: "{{ cpd_install_spss }}"
+    - name: cpd_install_openscale
+      value: "{{ cpd_install_openscale }}"
+    - name: cpd_install_cognos
+      value: "{{ cpd_install_cognos }}"
+
+    # Dependencies - SLS
+    # -------------------------------------------------------------------------
+    - name: sls_namespace
+      value: "{{ sls_namespace }}"
+    - name: sls_entitlement_file
+      value: "{{ sls_entitlement_file }}"
+    - name: sls_channel
+      value: '3.x'
+    - name: sls_icr_cpopen
+      value: "{{ sls_icr_cpopen }}"
+
+    # Dependencies - UDS/DRO (Required, no defaults)
+    # -------------------------------------------------------------------------
+    - name: uds_contact_email
+      value: "{{ uds_contact_email }}"
+    - name: uds_contact_firstname
+      value: "{{ uds_contact_firstname }}"
+    - name: uds_contact_lastname
+      value: "{{ uds_contact_lastname }}"
+    - name: uds_action
+      value: "{{ uds_action }}"
+    - name: dro_namespace
+      value: "{{ dro_namespace }}"
+
+    # Dependencies - COS
+    # -------------------------------------------------------------------------
+    - name: cos_type
+      value: "{{ cos_type }}"
+    - name: ibmcos_resourcegroup
+      value: "{{ ibmcos_resourcegroup }}"
+    - name: ibmcos_instance_name
+      value: "{{ ibmcos_instance_name }}"
+    - name: cos_action
+      value: "{{ cos_action }}"
+
+    # MAS Catalog
+    # -------------------------------------------------------------------------
+    - name: mas_channel
+      value: "{{ mas_channel }}"
+    - name: mas_catalog_version
+      value: "{{ mas_catalog_version }}"
+    - name: mas_catalog_digest
+      value: "{{ mas_catalog_digest }}"
+
+    # Dependencies - Certificate Manager
+    # -------------------------------------------------------------------------
+    - name: cert_manager_provider
+      value: "{{ cert_manager_provider }}"
+    - name: cert_manager_action
+      value: "{{ cert_manager_action }}"
+
+    # MAS DNS Integrations - General
+    # -------------------------------------------------------------------------
+    - name: dns_provider
+      value: "{{ dns_provider }}"
+
+    # MAS DNS Integrations - Cloudflare Support
+    # -------------------------------------------------------------------------
+    - name: cloudflare_email
+      value: "{{ cloudflare_email }}"
+    - name: cloudflare_apitoken
+      value: "{{ cloudflare_apitoken }}"
+    - name: cloudflare_zone
+      value: "{{ cloudflare_zone }}"
+    - name: cloudflare_subdomain
+      value: "{{ cloudflare_subdomain }}"
+
+    # MAS DNS Integrations - CIS Support
+    # -------------------------------------------------------------------------
+    - name: cis_email
+      value: "{{ cis_email }}"
+    - name: cis_apikey
+      value: "{{ cis_apikey }}"
+    - name: cis_crn
+      value: "{{ cis_crn }}"
+    - name: cis_subdomain
+      value: "{{ cis_subdomain }}"
+
+    # MAS DNS Integrations - CIS Security Enhancement Support
+    # -------------------------------------------------------------------------
+    - name: cis_service_name
+      value: "{{ cis_service_name }}"
+    - name: cis_enhanced_security
+      value: "{{ cis_enhanced_security }}"
+    - name: override_edge_certs
+      value: "{{ override_edge_certs }}"
+    - name: cis_proxy
+      value: "{{ cis_proxy }}"
+
+    # AWS basic info
+    # -------------------------------------------------------------------------
+    - name: aws_access_key_id
+      value: "{{ aws_access_key_id }}"
+    - name: aws_secret_access_key
+      value: "{{ aws_secret_access_key }}"
+    - name: aws_region
+      value: "{{ aws_region }}"
+
+    # MAS DNS Integrations - AWS Route 53
+    # -------------------------------------------------------------------------
+    - name: route53_hosted_zone_name
+      value: "{{ route53_hosted_zone_name }}"
+    - name: route53_hosted_zone_region
+      value: "{{ route53_hosted_zone_region }}"
+    - name: route53_email
+      value: "{{ route53_email }}"
+    - name: route53_subdomain
+      value: "{{ route53_subdomain }}"
+
+    # Data Dictionary
+    # -------------------------------------------------------------------------
+    - name: mas_add_catalog
+      value: "{{ mas_add_catalog }}"
+    - name: mas_add_channel
+      value: "{{ mas_add_channel }}"
+
+    # MAS Core
+    # -------------------------------------------------------------------------
+    - name: mas_instance_id
+      value: "{{ mas_instance_id }}"
+    - name: mas_wipe_mongo_data
+      value: "{{ mas_wipe_mongo_data }}"
+    - name: mas_domain
+      value: "{{ mas_domain }}"
+    - name: mas_cluster_issuer
+      value: "{{ mas_cluster_issuer }}"
+    - name: mas_annotations
+      value: "{{ mas_annotations }}"
+    - name: mas_icr_cp
+      value: "{{ mas_icr_cp }}"
+    - name: mas_icr_cpopen
+      value: "{{ mas_icr_cpopen }}"
+    - name: mas_trust_default_cas
+      value: "{{ mas_trust_default_cas }}"
+    - name: enable_ipv6
+      value: "{{ enable_ipv6 }}"
+
+    # MAS Workspace
+    # -------------------------------------------------------------------------
+    - name: mas_workspace_id
+      value: "{{ mas_workspace_id }}"
+    - name: mas_workspace_name
+      value: "{{ mas_workspace_name }}"
+
+    # IoT Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_iot
+      value: "{{ mas_app_channel_iot }}"
+    - name: mas_app_settings_iot_deployment_size
+      value: "{{ mas_app_settings_iot_deployment_size }}"
+    - name: mas_app_settings_iot_fpl_pvc_storage_class
+      value: "{{ mas_app_settings_iot_fpl_pvc_storage_class }}"
+    - name: mas_app_settings_iot_mqttbroker_pvc_storage_class
+      value: "{{ mas_app_settings_iot_mqttbroker_pvc_storage_class }}"
+
+    # Manage Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_manage
+      value: "{{ mas_app_channel_manage }}"
+    - name: mas_appws_components
+      value: "{{ mas_appws_components }}"
+
+    - name: mas_appws_bindings_health_wsl_flag
+      value: "{{ mas_appws_bindings_health_wsl_flag }}"
+    - name: mas_app_settings_aio_flag
+      value: "{{ mas_app_settings_aio_flag }}"
+    - name: mas_app_settings_demodata
+      value: "{{ mas_app_settings_demodata }}"
+    - name: mas_appws_bindings_jdbc_manage
+      value: "{{ mas_appws_bindings_jdbc_manage }}"
+    - name: mas_app_settings_persistent_volumes_flag
+      value: "{{ mas_app_settings_persistent_volumes_flag }}"
+    - name: mas_app_settings_jms_queue_pvc_storage_class
+      value: "{{ mas_app_settings_jms_queue_pvc_storage_class }}"
+    - name: mas_app_settings_jms_queue_pvc_accessmode
+      value: "{{ mas_app_settings_jms_queue_pvc_accessmode }}"
+    - name: mas_app_settings_bim_pvc_storage_class
+      value: "{{ mas_app_settings_bim_pvc_storage_class }}"
+    - name: mas_app_settings_bim_pvc_accessmode
+      value: "{{ mas_app_settings_bim_pvc_accessmode }}"
+    - name: mas_app_settings_doclinks_pvc_storage_class
+      value: "{{ mas_app_settings_doclinks_pvc_storage_class }}"
+    - name: mas_app_settings_doclinks_pvc_accessmode
+      value: "{{ mas_app_settings_doclinks_pvc_accessmode }}"
+    - name: mas_app_settings_server_bundles_size
+      value: "{{ mas_app_settings_server_bundles_size }}"
+    - name: mas_app_settings_base_language
+      value: "{{ mas_app_settings_base_language }}"
+    - name: mas_app_settings_server_timezone
+      value: "{{ mas_app_settings_server_timezone }}"
+    - name: mas_app_settings_secondary_languages
+      value: "{{ mas_app_settings_secondary_languages }}"
+    - name: mas_app_settings_tablespace
+      value: "{{ mas_app_settings_tablespace }}"
+    - name: mas_app_settings_indexspace
+      value: "{{ mas_app_settings_indexspace }}"
+    - name: mas_app_settings_db2_schema
+      value: "{{ mas_app_settings_db2_schema }}"
+    - name: mas_app_settings_customization_archive_url
+      value: "{{ mas_app_settings_customization_archive_url }}"
+    - name: mas_app_settings_customization_archive_name
+      value: "{{ mas_app_settings_customization_archive_name }}"
+    - name: mas_app_settings_customization_archive_username
+      value: "{{ mas_app_settings_customization_archive_username }}"
+    - name: mas_app_settings_customization_archive_password
+      value: "{{ mas_app_settings_customization_archive_password }}"
+    - name: mas_app_settings_crypto_key
+      value: "{{ mas_app_settings_crypto_key }}"
+    - name: mas_app_settings_cryptox_key
+      value: "{{ mas_app_settings_cryptox_key }}"
+    - name: mas_app_settings_old_crypto_key
+      value: "{{ mas_app_settings_old_crypto_key }}"
+    - name: mas_app_settings_old_cryptox_key
+      value: "{{ mas_app_settings_old_cryptox_key }}"
+    - name: mas_app_settings_override_encryption_secrets_flag
+      value: "{{ mas_app_settings_override_encryption_secrets_flag }}"
+    - name: mas_app_settings_default_jms
+      value: "{{ mas_app_settings_default_jms }}"
+
+    # Monitor Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_monitor
+      value: "{{ mas_app_channel_monitor }}"
+
+    # Optimizer Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_optimizer
+      value: "{{ mas_app_channel_optimizer }}"
+    - name: mas_app_plan_optimizer
+      value: "{{ mas_app_plan_optimizer }}"
+
+    # Predict Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_predict
+      value: "{{ mas_app_channel_predict }}"
+
+    # Assist Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_assist
+      value: "{{ mas_app_channel_assist }}"
+
+    # MVI Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_visualinspection
+      value: "{{ mas_app_channel_visualinspection }}"
+
+    # Grafana
+    # -------------------------------------------------------------------------
+    - name: grafana_action
+      value: "{{ grafana_action }}"
+    - name: grafana_namespace
+      value: "{{ grafana_namespace }}"
+    - name: grafana_instance_storage_class
+      value: "{{ grafana_instance_storage_class }}"
+    - name: grafana_instance_storage_size
+      value: "{{ grafana_instance_storage_size }}"
+    - name: grafana_major_version
+      value: "{{ grafana_major_version }}"
+
+  workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+    - name: shared-configs
+      persistentVolumeClaim:
+        claimName: config-pvc
+
+    # User-provided configurations
+    # -------------------------------------------------------------------------
+    # Any pre-generated configs that will be copied into the
+    # shared-config during install-suite
+    - name: shared-additional-configs
+      secret:
+        secretName: pipeline-additional-configs
+
+    # SLS entitlement
+    # -------------------------------------------------------------------------
+    # The SLS entitlement key file that will be installed
+    # during install-sls
+    - name: shared-entitlement
+      secret:
+        secretName: pipeline-sls-entitlement
+
+    # PodTemplates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-pod-templates
+      secret:
+        secretName: pipeline-pod-templates
+
+    # Certificates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-certificates
+      secret:
+        secretName: pipeline-certificates
