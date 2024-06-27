@@ -16,3 +16,4 @@ venv/
 
 # Other
 kubectl.exe
+/build
