@@ -103,3 +103,30 @@ def getConsoleURL(dynClient: DynamicClient) -> str:
     routesAPI = dynClient.resources.get(api_version="route.openshift.io/v1", kind="Route")
     consoleRoute = routesAPI.get(name="console", namespace="openshift-console")
     return f"https://{consoleRoute.spec.host}"
+
+
+def getNodes(dynClient: DynamicClient) -> str:
+    try:
+        nodesAPI = dynClient.resources.get(api_version="v1", kind="Node")
+        nodes = nodesAPI.get().to_dict()['items']
+        return nodes
+    except Exception as e:
+        logger.error(f"Error: Unable to get nodes: {e}")
+        return []
+
+def getStorageClass(dynClient: DynamicClient, name: str) -> str:
+    try:
+        storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
+        storageclass = storageClassAPI.get(name=name)
+        return storageclass
+    except NotFoundError:
+        return None
+
+def getStorageClasses(dynClient: DynamicClient) -> list:
+    storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
+    storageClasses = storageClassAPI.get().items
+    return storageClasses
+
+
+def isSNO(dynClient: DynamicClient) -> bool:
+    return len(getNodes(dynClient)) == 1

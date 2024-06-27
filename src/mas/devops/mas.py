@@ -16,6 +16,15 @@ from openshift.dynamic.exceptions import NotFoundError, UnauthorizedError
 logger = logging.getLogger(__name__)
 
 
+def isAirgapInstall(dynClient: DynamicClient) -> bool:
+    try:
+        ICSPApi = dynClient.resources.get(api_version="operator.openshift.io/v1alpha1", kind="ImageContentSourcePolicy")
+        ICSPApi.get(name="ibm-mas-and-dependencies")
+        return True
+    except NotFoundError:
+        return False
+
+
 def listMasInstances(dynClient: DynamicClient) -> list:
     """
     Get a list of MAS instances on the cluster
