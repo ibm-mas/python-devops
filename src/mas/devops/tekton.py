@@ -264,8 +264,8 @@ def launchUpgradePipeline(dynClient: DynamicClient,
             mas_instance_id=instanceId,
             mas_channel=masChannel
         )
-        # pipelineRun = yaml.safe_load(renderedTemplate)
-        # pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
+        pipelineRun = yaml.safe_load(renderedTemplate)
+        pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
 
     except Exception as e:
         logger.warning(f"Error: An unexpected error occured: {e}")
