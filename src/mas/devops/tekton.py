@@ -134,29 +134,18 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str=None, st
                 logger.debug(configPVC)
                 sleep(15)
 
-def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str, additionalConfigs: dict=None, podTemplatesDir: str=None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str, additionalConfigs: dict=None, podTemplates: str=None) -> None:
     namespace=f"mas-{instanceId}-pipelines"
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
-    # Clean up existing secrets
+    # 1. Secret/pipeline-additional-configs
+    # -------------------------------------------------------------------------
+    # Must exist, but can be empty
     try:
         secretsAPI.delete(name="pipeline-additional-configs", namespace=namespace)
     except NotFoundError:
         pass
-    try:
-        secretsAPI.delete(name="pipeline-sls-entitlement", namespace=namespace)
-    except NotFoundError:
-        pass
-    try:
-        secretsAPI.delete(name="pipeline-pod-templates", namespace=namespace)
-    except NotFoundError:
-        pass
-    try:
-        secretsAPI.delete(name="pipeline-certificates", namespace=namespace)
-    except NotFoundError:
-        pass
 
-    # Create new secrets
     if additionalConfigs is None:
         additionalConfigs={
             "apiVersion": "v1",
@@ -166,63 +155,57 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
                 "name": "pipeline-additional-configs"
             }
         }
-    # pipeline-additional-configs must exist (otherwise the suite-install step will hang), but can be empty
     secretsAPI.create(body=additionalConfigs, namespace=namespace)
 
+    # 2. Secret/pipeline-sls-entitlement
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-sls-entitlement", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    # TODO: Convert this to using secretsAPI.create()
     result = kubectl.run(subcmd_args=['-n', namespace, 'create', 'secret', 'generic', 'pipeline-sls-entitlement', '--from-file', slsLicenseFile])
     for line in result.split("\n"):
         logger.debug(line)
 
-    # pipeline-certificates must exist. It could be an empty secret at the first place before customer configure it
-    result = kubectl.run(subcmd_args=['-n', namespace, 'create', 'secret', 'generic', 'pipeline-certificates'])
-    for line in result.split("\n"):
-        logger.debug(line)
+    # 3. Secret/pipeline-certificates
+    # -------------------------------------------------------------------------
+    # Must exist. It could be an empty secret at the first place before customer configure it
+    try:
+        secretsAPI.delete(name="pipeline-certificates", namespace=namespace)
+    except NotFoundError:
+        pass
 
-    if podTemplatesDir is not None:
-        podTemplatesCmd = [
-            '-n', namespace, 'create', 'secret', 'generic', 'pipeline-pod-templates',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-bascfg.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-pushnotificationcfg.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-scimcfg.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-slscfg.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-smtpcfg.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-coreidp.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-suite.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-data-dictionary-assetdatadictionary.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-actions.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-auth.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-datapower.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-devops.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-dm.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-dsc.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-edgeconfig.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-fpl.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-guardian.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-iot.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-mbgx.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-mfgx.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-monitor.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-orgmgmt.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-provision.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-registry.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-state.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-iot-webui.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-manage-manageapp.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-manage-manageworkspace.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-manage-imagestitching.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-manage-manageaccelerators.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-manage-healthextaccelerator.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-manage-slackproxy.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-mas-manage-healthextworkspace.yml',
-            '--from-file', f'{podTemplatesDir}:{podTemplatesDir}/ibm-sls-licenseservice.yml',
-        ]
-        result = kubectl.run(subcmd_args=podTemplatesCmd)
-        for line in result.split("\n"):
-            logger.debug(line)
-    else:
-        result = kubectl.run(subcmd_args=['-n', namespace, 'create', 'secret', 'generic', 'pipeline-pod-templates'])
-        for line in result.split("\n"):
-            logger.debug(line)
+    certs={
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "type": "Opaque",
+        "metadata": {
+            "name": "pipeline-certificates"
+        }
+    }
+    secretsAPI.create(body=certs, namespace=namespace)
+
+    # 4. Secret/pipeline-pod-templates
+    # -------------------------------------------------------------------------
+    # Must exist, but can be empty
+    try:
+        secretsAPI.delete(name="pipeline-pod-templates", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if podTemplates is None:
+        podTemplates={
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-pod-templates"
+            }
+        }
+    secretsAPI.create(body=podTemplates, namespace=namespace)
+
 
 def testCLI() -> None:
     pass
