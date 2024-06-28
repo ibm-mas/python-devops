@@ -63,6 +63,24 @@ spec:
     # -------------------------------------------------------------------------
     - name: eck_action
       value: "{{ eck_action }}"
+
+    - name: eck_enable_elasticsearch
+      value: "{{ eck_enable_elasticsearch }}"
+    - name: eck_enable_kibana
+      value: "{{ eck_enable_kibana }}"
+    - name: eck_enable_logstash
+      value: "{{ eck_enable_logstash }}"
+    - name: eck_enable_filebeat
+      value: "{{ eck_enable_filebeat }}"
+
+{%- if eck_remote_es_hosts is defined %}
+    - name: eck_remote_es_hosts
+      value: "{{ eck_remote_es_hosts }}"
+    - name: eck_remote_es_username
+      value: "{{ eck_remote_es_username }}"
+    - name: eck_remote_es_password
+      value: "{{ eck_remote_es_password }}"
+{%- endif %}
 {%- endif %}
 {%- if turbonomic_server_url is defined %}
 
@@ -420,6 +438,12 @@ spec:
 {%- if enable_ipv6 is defined %}
     - name: enable_ipv6
       value: "{{ enable_ipv6 }}"
+{%- endif %}
+{%- if mas_superuser_username is defined and mas_superuser_password is defined %}
+    - name: mas_superuser_username
+      value: "{{ mas_superuser_username }}"
+    - name: mas_superuser_password
+      value: "{{ mas_superuser_password }}"
 {%- endif %}
 
     # MAS Workspace

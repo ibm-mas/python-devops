@@ -44,10 +44,7 @@ setup(
     author='David Parker',
     author_email='parkerda@uk.ibm.com',
     package_dir={'': 'src'},
-    packages=find_namespace_packages(where='src', include=[
-        'mas.devops',
-        'mas.devops.templates'
-    ]),
+    packages=find_namespace_packages(where='src'),
     include_package_data=True,
     url='https://github.com/ibm-mas/python-devops',
     license='Eclipse Public License - v1.0',
