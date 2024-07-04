@@ -32,7 +32,7 @@ spec:
     - name: ocp_ingress_tls_secret_name
       value: "{{ ocp_ingress_tls_secret_name }}"
 {%- endif %}
-{%- if artifactory_username is defined and artifactory_token is not None %}
+{%- if artifactory_username is defined and artifactory_token != "" %}
 
     # Enable development catalogs
     # -------------------------------------------------------------------------
@@ -41,7 +41,7 @@ spec:
     - name: artifactory_token
       value: "{{ artifactory_token }}"
 {%- endif %}
-{%- if ibmcloud_apikey is defined and ibmcloud_resourcegroup is not None %}
+{%- if ibmcloud_apikey is defined and ibmcloud_resourcegroup != "" %}
 
     # IBM Cloud
     # -------------------------------------------------------------------------
