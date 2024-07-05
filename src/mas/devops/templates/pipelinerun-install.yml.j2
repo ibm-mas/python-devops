@@ -435,6 +435,10 @@ spec:
     - name: mas_trust_default_cas
       value: "{{ mas_trust_default_cas }}"
 {%- endif %}
+{%- if mas_manual_cert_mgmt is defined %}
+    - name: mas_manual_cert_mgmt
+      value: "{{ mas_manual_cert_mgmt }}"
+{%- endif %}
 {%- if enable_ipv6 is defined %}
     - name: enable_ipv6
       value: "{{ enable_ipv6 }}"
