@@ -261,6 +261,7 @@ def launchUpgradePipeline(dynClient: DynamicClient,
         skip_pre_check=skipPreCheck,
         mas_channel=masChannel
     )
+    logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
     pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
 
@@ -311,6 +312,7 @@ def launchUninstallPipeline(dynClient: DynamicClient,
         sls_action=slsAction,
         uds_action=udsAction
     )
+    logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
     pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
 
