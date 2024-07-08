@@ -17,12 +17,10 @@ from os import path
 from time import sleep
 
 from kubeconfig import kubectl
-from kubeconfig.exceptions import KubectlCommandError
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
-from jinja2.exceptions import TemplateNotFound
 
 from .ocp import getConsoleURL, waitForCRD
 
@@ -72,21 +70,21 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
         return False
 
 
-def updateTektonDefinitions(namespace: str, yamlFile: str) -> bool:
+def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
     """
     Install/update the MAS tekton pipeline and task definitions
 
-    Unfortunately there's no API equivalent of what the kubectl CLI gives us with the ability to just apply a file containing a mix of
+    Unfortunately there's no API equivalent of what the kubectl CLI gives
+    us with the ability to just apply a file containing a mix of resource types
+
+    https://github.com/gtaylor/kubeconfig-python/
+
+    Throws:
+    - kubeconfig.exceptions.KubectlCommandError
     """
-    # https://github.com/gtaylor/kubeconfig-python/blob/master/kubeconfig/kubectl.py
-    try:
-        result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
-        for line in result.split("\n"):
-            logger.debug(line)
-        return True
-    except KubectlCommandError as e:
-        logger.warning(f"Error: Unable to install/update Tekton definitions: {e}")
-        return False
+    result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
+    for line in result.split("\n"):
+        logger.debug(line)
 
 
 def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str=None, storageClass: str=None, accessMode: str=None, waitForBind: bool=True):
