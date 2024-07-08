@@ -435,6 +435,10 @@ spec:
     - name: mas_trust_default_cas
       value: "{{ mas_trust_default_cas }}"
 {%- endif %}
+{%- if mas_config_dir is defined %}
+    - name: mas_config_dir
+      value: "{{ mas_config_dir }}"
+{%- endif %}
 {%- if mas_manual_cert_mgmt is defined %}
     - name: mas_manual_cert_mgmt
       value: "{{ mas_manual_cert_mgmt }}"
