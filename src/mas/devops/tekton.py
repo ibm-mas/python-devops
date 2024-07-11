@@ -69,7 +69,6 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
         logger.error("OpenShift Pipelines Operator is NOT installed and ready")
         return False
 
-
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
     """
     Install/update the MAS tekton pipeline and task definitions
@@ -85,7 +84,6 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
     result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
     for line in result.split("\n"):
         logger.debug(line)
-
 
 def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str=None, storageClass: str=None, accessMode: str=None, waitForBind: bool=True):
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
@@ -204,7 +202,6 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
         }
     secretsAPI.create(body=podTemplates, namespace=namespace)
 
-
 def testCLI() -> None:
     pass
     # echo -n "Testing availability of $CLI_IMAGE in cluster ..."
@@ -318,23 +315,15 @@ def launchUninstallPipeline(dynClient: DynamicClient,
     return pipelineURL
 
 
-def launchInstallPipeline(dynClient: DynamicClient,
-                          params: dict) -> str:
-    """
-    Create a PipelineRun to install the chosen MAS instance (and selected dependencies)
-    """
-
-    instanceId = params["mas_instance_id"]
-
+def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: str, params: dict) -> str:
     pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
-    namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir)
     )
-    template = env.get_template("pipelinerun-install.yml.j2")
+    template = env.get_template(f"{templateName}.yml.j2")
 
     # Render the pipelineRun
     renderedTemplate = template.render(
@@ -344,6 +333,25 @@ def launchInstallPipeline(dynClient: DynamicClient,
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
     pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
+    return timestamp
+
+def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to install the chosen MAS instance (and selected dependencies)
+    """
+    instanceId = params["mas_instance_id"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-install", params)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
+    return pipelineURL
+
+def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to update the Maximo Operator Catalog
+    """
+    namespace = f"mas-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-update", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-update-{timestamp}"
     return pipelineURL
