@@ -1,0 +1,137 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: "mas-update-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: mas-update
+spec:
+  pipelineRef:
+    name: mas-update
+
+  serviceAccountName: pipeline
+  timeouts:
+    pipeline: "0"
+
+  params:
+    # Catalog version
+    # -------------------------------------------------------------------------
+    - name: mas_catalog_version
+      value: "{{ mas_catalog_version }}"
+
+{%- if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
+    # TODO: What even uses this, nothing in the update pipeline should be using this
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+{%- endif %}
+
+{%- if skip_pre_check is defined and skip_pre_check != "" %}
+    # Skip pre-check
+    # -------------------------------------------------------------------------
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+{%- endif %}
+{%- if db2_namespace is defined and db2_namespace != "" %}
+
+    # Db2 Update
+    # -------------------------------------------------------------------------
+    - name: db2_namespace
+      value: "{{ db2_namespace }}"
+{%- endif %}
+{%- if mongodb_namespace is defined and mongodb_namespace != "" %}
+
+    # MongoDb CE update
+    # -------------------------------------------------------------------------
+    - name: mongodb_namespace
+      value: "{{ mongodb_namespace }}"
+    - name: mongodb_version
+      value: "{{ mongodb_version }}"
+    - name: mongodb_replicas
+      value: "{{ mongodb_replicas }}"
+{%- if mongodb_v5_upgrade is defined and mongodb_v5_upgrade != "" %}
+    - name: mongodb_v5_upgrade
+      value: "{{ mongodb_v5_upgrade }}"
+{%- endif %}
+{%- if mongodb_v6_upgrade is defined and mongodb_v6_upgrade != "" %}
+    - name: mongodb_v6_upgrade
+      value: "{{ mongodb_v6_upgrade }}"
+{%- endif %}
+{%- endif %}
+{%- if kafka_namespace is defined and kafka_namespace != "" %}
+
+    # Kafka update
+    # -------------------------------------------------------------------------
+    - name: kafka_namespace
+      value: "{{ kafka_namespace }}"
+    - name: kafka_provider
+      value: "{{ kafka_provider }}"
+{%- endif %}
+{%- if cert_manager_action is defined and cert_manager_action != "" %}
+
+    # Cert-Manager migration
+    # -------------------------------------------------------------------------
+    - name: cert_manager_provider
+      value: "{{ cert_manager_provider }}"
+    - name: cert_manager_action
+      value: "{{ cert_manager_action }}"
+{%- endif %}
+{%- if dro_migration is defined and dro_migration != "" %}
+
+    # UDS to DRO migration
+    # -------------------------------------------------------------------------
+    - name: dro_migration
+      value: "{{ dro_migration }}"
+    - name: uds_storage_class
+      value: "{{ dro_storage_class }}"
+    - name: uds_action
+      value: "{{ uds_action }}"
+    - name: dro_namespace
+      value: "{{ dro_namespace }}"
+{%- endif %}
+{%- if grafana_v5_upgrade is defined and grafana_v5_upgrade != "" %}
+
+    # Grafana
+    # -------------------------------------------------------------------------
+    - name: grafana_v5_upgrade
+      value: "{{ grafana_v5_upgrade }}"
+{%- endif %}
+{%- if cpd_product_version is defined and cpd_product_version != "" %}
+
+    # CP4D
+    # -------------------------------------------------------------------------
+    # Target version
+    - name: cpd_product_version
+      value: "{{ cpd_product_version }}"
+
+    - name: cp4d_update
+      value: "{{ cp4d_update }}"
+
+    - name: cp4d_update_ws
+      value: "{{ cp4d_update_ws }}"
+    - name: cp4d_update_wml
+      value: "{{ cp4d_update_wml }}"
+    - name: cp4d_update_wos
+      value: "{{ cp4d_update_wos }}"
+    - name: cp4d_update_spark
+      value: "{{ cp4d_update_spark }}"
+    - name: cp4d_update_spss
+      value: "{{ cp4d_update_spss }}"
+    - name: cp4d_update_cognos
+      value: "{{ cp4d_update_cognos }}"
+
+    # Storage Classes
+    # To update CP4D we need to pass in the names of the same storage
+    # classes used when it was first installed
+    #
+    # TODO: Have the ansible collection handle this, we shouldn't need to
+    # pass this in via the pipelinerun parameters
+    - name: storage_class_rwx
+      value: "{{ storage_class_rwx }}"
+    - name: storage_class_rwo
+      value: "{{ storage_class_rwo }}"
+
+    # TODO: There should be a better way to handle this in the Ansible code
+    # without needing to pass this flag in
+    - name: skip_entitlement_key_flag
+      value: "{{ skip_entitlement_key_flag }}"
+{%- endif %}
