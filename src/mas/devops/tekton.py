@@ -17,12 +17,10 @@ from os import path
 from time import sleep
 
 from kubeconfig import kubectl
-from kubeconfig.exceptions import KubectlCommandError
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
-from jinja2.exceptions import TemplateNotFound
 
 from .ocp import getConsoleURL, waitForCRD
 
@@ -72,21 +70,21 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
         return False
 
 
-def updateTektonDefinitions(namespace: str, yamlFile: str) -> bool:
+def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
     """
     Install/update the MAS tekton pipeline and task definitions
 
-    Unfortunately there's no API equivalent of what the kubectl CLI gives us with the ability to just apply a file containing a mix of
+    Unfortunately there's no API equivalent of what the kubectl CLI gives
+    us with the ability to just apply a file containing a mix of resource types
+
+    https://github.com/gtaylor/kubeconfig-python/
+
+    Throws:
+    - kubeconfig.exceptions.KubectlCommandError
     """
-    # https://github.com/gtaylor/kubeconfig-python/blob/master/kubeconfig/kubectl.py
-    try:
-        result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
-        for line in result.split("\n"):
-            logger.debug(line)
-        return True
-    except KubectlCommandError as e:
-        logger.warning(f"Error: Unable to install/update Tekton definitions: {e}")
-        return False
+    result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
+    for line in result.split("\n"):
+        logger.debug(line)
 
 
 def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str=None, storageClass: str=None, accessMode: str=None, waitForBind: bool=True):
@@ -242,6 +240,7 @@ def testCLI() -> None:
 
 def launchUpgradePipeline(dynClient: DynamicClient,
                           instanceId: str,
+                          skipPreCheck: bool = False,
                           masChannel: str = "") -> str:
     """
     Create a PipelineRun to upgrade the chosen MAS instance
@@ -250,28 +249,20 @@ def launchUpgradePipeline(dynClient: DynamicClient,
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
-    try:
-        templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-        env = Environment(
-            loader=FileSystemLoader(searchpath=templateDir)
-        )
-        try:
-            template = env.get_template("pipelinerun-upgrade.yml.j2")
-        except TemplateNotFound as e:
-            logger.warning(f"Could not find pipelinerun template in {templateDir}: {e}")
-            return None
-        renderedTemplate = template.render(
-            timestamp=timestamp,
-            mas_instance_id=instanceId,
-            mas_channel=masChannel
-        )
-        pipelineRun = yaml.safe_load(renderedTemplate)
-        pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
-
-    except Exception as e:
-        logger.warning(f"Error: An unexpected error occured: {e}")
-        logger.debug(renderedTemplate)
-        return None
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    env = Environment(
+        loader=FileSystemLoader(searchpath=templateDir)
+    )
+    template = env.get_template("pipelinerun-upgrade.yml.j2")
+    renderedTemplate = template.render(
+        timestamp=timestamp,
+        mas_instance_id=instanceId,
+        skip_pre_check=skipPreCheck,
+        mas_channel=masChannel
+    )
+    logger.debug(renderedTemplate)
+    pipelineRun = yaml.safe_load(renderedTemplate)
+    pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-upgrade-{timestamp}"
     return pipelineURL
@@ -293,48 +284,40 @@ def launchUninstallPipeline(dynClient: DynamicClient,
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
-    try:
-        templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-        env = Environment(
-            loader=FileSystemLoader(searchpath=templateDir)
-        )
-        try:
-            template = env.get_template("pipelinerun-uninstall.yml.j2")
-        except TemplateNotFound as e:
-            logger.warning(f"Could not find pipelinerun template in {templateDir}: {e}")
-            return None
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    env = Environment(
+        loader=FileSystemLoader(searchpath=templateDir)
+    )
+    template = env.get_template("pipelinerun-uninstall.yml.j2")
 
-        grafanaAction = "uninstall" if uninstallGrafana else "none"
-        certManagerAction = "uninstall" if uninstallCertManager else "none"
-        commonServicesAction = "uninstall" if uninstallCommonServices else "none"
-        ibmCatalogAction = "uninstall" if uninstallCatalog else "none"
-        mongoDbAction = "uninstall" if uninstallMongoDb else "none"
-        slsAction = "uninstall" if uninstallSLS else "none"
-        udsAction = "uninstall" if uninstallUDS else "none"
+    grafanaAction = "uninstall" if uninstallGrafana else "none"
+    certManagerAction = "uninstall" if uninstallCertManager else "none"
+    commonServicesAction = "uninstall" if uninstallCommonServices else "none"
+    ibmCatalogAction = "uninstall" if uninstallCatalog else "none"
+    mongoDbAction = "uninstall" if uninstallMongoDb else "none"
+    slsAction = "uninstall" if uninstallSLS else "none"
+    udsAction = "uninstall" if uninstallUDS else "none"
 
-        # Render the pipelineRun
-        renderedTemplate = template.render(
-            timestamp=timestamp,
-            mas_instance_id=instanceId,
-            grafana_action=grafanaAction,
-            cert_manager_provider=certManagerProvider,
-            cert_manager_action=certManagerAction,
-            common_services_action=commonServicesAction,
-            ibm_catalogs_action=ibmCatalogAction,
-            mongodb_action=mongoDbAction,
-            sls_action=slsAction,
-            uds_action=udsAction
-        )
-        pipelineRun = yaml.safe_load(renderedTemplate)
-        pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
-
-    except Exception as e:
-        logger.warning(f"Error: An unexpected error occured: {e}")
-        logger.debug(renderedTemplate)
-        return None
+    # Render the pipelineRun
+    renderedTemplate = template.render(
+        timestamp=timestamp,
+        mas_instance_id=instanceId,
+        grafana_action=grafanaAction,
+        cert_manager_provider=certManagerProvider,
+        cert_manager_action=certManagerAction,
+        common_services_action=commonServicesAction,
+        ibm_catalogs_action=ibmCatalogAction,
+        mongodb_action=mongoDbAction,
+        sls_action=slsAction,
+        uds_action=udsAction
+    )
+    logger.debug(renderedTemplate)
+    pipelineRun = yaml.safe_load(renderedTemplate)
+    pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-uninstall-{timestamp}"
     return pipelineURL
+
 
 def launchInstallPipeline(dynClient: DynamicClient,
                           params: dict) -> str:
@@ -348,29 +331,20 @@ def launchInstallPipeline(dynClient: DynamicClient,
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
-    try:
-        templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-        env = Environment(
-            loader=FileSystemLoader(searchpath=templateDir)
-        )
-        try:
-            template = env.get_template("pipelinerun-install.yml.j2")
-        except TemplateNotFound as e:
-            logger.warning(f"Could not find pipelinerun template in {templateDir}: {e}")
-            return None
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    env = Environment(
+        loader=FileSystemLoader(searchpath=templateDir)
+    )
+    template = env.get_template("pipelinerun-install.yml.j2")
 
-        # Render the pipelineRun
-        renderedTemplate = template.render(
-            timestamp=timestamp,
-            **params
-        )
-        logger.debug(renderedTemplate)
-        pipelineRun = yaml.safe_load(renderedTemplate)
-        pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
-
-    except Exception as e:
-        logger.warning(f"Error: An unexpected error occured: {e}")
-        return None
+    # Render the pipelineRun
+    renderedTemplate = template.render(
+        timestamp=timestamp,
+        **params
+    )
+    logger.debug(renderedTemplate)
+    pipelineRun = yaml.safe_load(renderedTemplate)
+    pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
     return pipelineURL

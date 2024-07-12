@@ -18,21 +18,21 @@ spec:
     # -------------------------------------------------------------------------
     - name: ibm_entitlement_key
       value: "{{ ibm_entitlement_key }}"
-{%- if skip_pre_check is defined %}
+{%- if skip_pre_check is defined and skip_pre_check != "" %}
 
     # Pipeline config
     # -------------------------------------------------------------------------
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
-{%- if ocp_ingress_tls_secret_name is defined %}
+{%- if ocp_ingress_tls_secret_name is defined and ocp_ingress_tls_secret_name != "" %}
 
     # Cluster config
     # -------------------------------------------------------------------------
     - name: ocp_ingress_tls_secret_name
       value: "{{ ocp_ingress_tls_secret_name }}"
 {%- endif %}
-{%- if artifactory_username is defined and artifactory_token is not None %}
+{%- if artifactory_username is defined and artifactory_token != "" %}
 
     # Enable development catalogs
     # -------------------------------------------------------------------------
@@ -41,7 +41,7 @@ spec:
     - name: artifactory_token
       value: "{{ artifactory_token }}"
 {%- endif %}
-{%- if ibmcloud_apikey is defined and ibmcloud_resourcegroup is not None %}
+{%- if ibmcloud_apikey is defined and ibmcloud_resourcegroup != "" %}
 
     # IBM Cloud
     # -------------------------------------------------------------------------
@@ -57,7 +57,7 @@ spec:
       value: "{{ storage_class_rwx }}"
     - name: storage_class_rwo
       value: "{{ storage_class_rwo }}"
-{%- if eck_action is defined %}
+{%- if eck_action is defined and eck_action != "" %}
 
     # Dependencies - ECK
     # -------------------------------------------------------------------------
@@ -73,16 +73,16 @@ spec:
     - name: eck_enable_filebeat
       value: "{{ eck_enable_filebeat }}"
 
-{%- if eck_remote_es_hosts is defined %}
+  {%- if eck_remote_es_hosts is defined and eck_remote_es_hosts != "" %}
     - name: eck_remote_es_hosts
       value: "{{ eck_remote_es_hosts }}"
     - name: eck_remote_es_username
       value: "{{ eck_remote_es_username }}"
     - name: eck_remote_es_password
       value: "{{ eck_remote_es_password }}"
+  {%- endif %}
 {%- endif %}
-{%- endif %}
-{%- if turbonomic_server_url is defined %}
+{%- if turbonomic_server_url is defined and turbonomic_server_url != "" %}
 
     # Dependencies - Turbonomic
     # -------------------------------------------------------------------------
@@ -105,6 +105,7 @@ spec:
       value: "{{ db2_action_system }}"
     - name: db2_action_manage
       value: "{{ db2_action_manage }}"
+
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
     - name: db2_namespace
@@ -115,6 +116,8 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
+  {%- if db2_meta_storage_accessmode is defined and db2_meta_storage_accessmode != "" %}
+
     # Dependencies - Db2 - Access Mode
     # -------------------------------------------------------------------------
     - name: db2_meta_storage_accessmode
@@ -127,6 +130,9 @@ spec:
       value: "{{ db2_temp_storage_accessmode }}"
     - name: db2_data_storage_accessmode
       value: "{{ db2_data_storage_accessmode }}"
+  {%- endif %}
+  {%- if db2_affinity_key is defined and db2_affinity_key != "" %}
+
     # Dependencies - Db2 - Node Scheduling
     # -------------------------------------------------------------------------
     - name: db2_affinity_key
@@ -139,42 +145,37 @@ spec:
       value: "{{ db2_tolerate_value }}"
     - name: db2_tolerate_effect
       value: "{{ db2_tolerate_effect }}"
-    # Dependencies - Db2 - CPU Resources
+  {%- endif %}
+  {%- if db2_cpu_requests is defined and db2_cpu_requests != "" %}
+
+    # Dependencies - Db2 - Memory & CPU Resources
     # -------------------------------------------------------------------------
     - name: db2_cpu_requests
       value: "{{ db2_cpu_requests }}"
     - name: db2_cpu_limits
       value: "{{ db2_cpu_limits }}"
-    # Dependencies - Db2 - Memory Resources
-    # -------------------------------------------------------------------------
     - name: db2_memory_requests
       value: "{{ db2_memory_requests }}"
     - name: db2_memory_limits
       value: "{{ db2_memory_limits }}"
+  {%- endif %}
+  {%- if db2_meta_storage_size is defined and db2_meta_storage_size != "" %}
+
     # Dependencies - Db2 - Storage Capacity
     # -------------------------------------------------------------------------
-    - name: db2_meta_storage_class
-      value: "{{ db2_meta_storage_class }}"
     - name: db2_meta_storage_size
       value: "{{ db2_meta_storage_size }}"
-    - name: db2_backup_storage_class
-      value: "{{ db2_backup_storage_class }}"
     - name: db2_backup_storage_size
       value: "{{ db2_backup_storage_size }}"
-    - name: db2_logs_storage_class
-      value: "{{ db2_logs_storage_class }}"
     - name: db2_logs_storage_size
       value: "{{ db2_logs_storage_size }}"
-    - name: db2_temp_storage_class
-      value: "{{ db2_temp_storage_class }}"
     - name: db2_temp_storage_size
       value: "{{ db2_temp_storage_size }}"
-    - name: db2_data_storage_class
-      value: "{{ db2_data_storage_class }}"
     - name: db2_data_storage_size
       value: "{{ db2_data_storage_size }}"
+  {%- endif %}
 {%- endif %}
-{%- if mongodb_action is defined or mongodb_namespace is defined or mongodb_replicas is defined or mongodb_cpu_requests is defined or mongodb_provider is defined or mongodb_version is defined%}
+{%- if mongodb_action is defined and mongodb_action != "" %}
 
     # Dependencies - MongoDb
     # -------------------------------------------------------------------------
@@ -190,8 +191,7 @@ spec:
       value: "{{ mongodb_provider }}"
     - name: mongodb_version
       value: "{{ mongodb_version }}"
-{%- endif %}
-{%- if mongodb_provider == "ibm" %}
+  {%- if mongodb_provider == "ibm" %}
 
     # Dependencies - IBM Cloud MongoDb
     # -------------------------------------------------------------------------
@@ -203,6 +203,7 @@ spec:
       value: "{{ ibm_mongo_region }}"
     - name: ibm_mongo_admin_password
       value: "{{ ibm_mongo_admin_password }}"
+  {%- endif %}
 {%- endif %}
 {%- if kafka_action_system == "install" %}
 
@@ -216,7 +217,7 @@ spec:
       value: "{{ kafka_namespace }}"
     - name: kafka_version
       value: "{{ kafka_version }}"
-{%- if kafka_provider == "aws" %}
+  {%- if kafka_provider == "aws" %}
 
     # Dependencies - AWS MSK
     # -------------------------------------------------------------------------
@@ -242,8 +243,7 @@ spec:
       value: "{{ aws_msk_ingress_cidr }}"
     - name: aws_msk_egress_cidr
       value: "{{ aws_msk_egress_cidr }}"
-{%- endif %}
-{%- if kafka_provider == "ibm" %}
+  {%- elif kafka_provider == "ibm" %}
 
     # Dependencies - IBM Cloud Event Streams
     # -------------------------------------------------------------------------
@@ -257,9 +257,9 @@ spec:
       value: "{{ eventstreams_retention }}"
     - name: eventstreams_create_manage_jms_topics
       value: "{{ eventstreams_create_manage_jms_topics }}"
+  {%- endif %}
 {%- endif %}
-{%- endif %}
-{%- if cpd_product_version is defined %}
+{%- if cpd_product_version is defined and cpd_product_version != "" %}
 
     # Dependencies - CP4D
     # -------------------------------------------------------------------------
@@ -279,11 +279,11 @@ spec:
       value: '3.x'
     - name: sls_entitlement_file
       value: "{{ sls_entitlement_file }}"
-{%- if sls_namespace is defined %}
+{%- if sls_namespace is defined and sls_namespace != "" %}
     - name: sls_namespace
       value: "{{ sls_namespace }}"
 {%- endif %}
-{%- if sls_icr_cpopen is defined %}
+{%- if sls_icr_cpopen is defined and sls_icr_cpopen != "" %}
     - name: sls_icr_cpopen
       value: "{{ sls_icr_cpopen }}"
 {%- endif %}
@@ -298,11 +298,11 @@ spec:
       value: "{{ uds_contact_firstname }}"
     - name: uds_contact_lastname
       value: "{{ uds_contact_lastname }}"
-{%- if dro_namespace is defined %}
+{%- if dro_namespace is defined and dro_namespace != "" %}
     - name: dro_namespace
       value: "{{ dro_namespace }}"
 {%- endif %}
-{%- if cos_type is defined %}
+{%- if cos_type is defined and cos_type != "" %}
 
     # Dependencies - COS
     # -------------------------------------------------------------------------
@@ -322,7 +322,7 @@ spec:
       value: "{{ mas_channel }}"
     - name: mas_catalog_version
       value: "{{ mas_catalog_version }}"
-{%- if mas_catalog_digest is defined %}
+{%- if mas_catalog_digest is defined and mas_catalog_digest != "" %}
     - name: mas_catalog_digest
       value: "{{ mas_catalog_digest }}"
 {%- endif %}
@@ -333,7 +333,7 @@ spec:
       value: "{{ cert_manager_provider }}"
     - name: cert_manager_action
       value: "{{ cert_manager_action }}"
-{%- if dns_provider is defined %}
+{%- if dns_provider is defined and dns_provider != "" %}
 
     # MAS DNS Integrations - General
     # -------------------------------------------------------------------------
@@ -373,7 +373,7 @@ spec:
     - name: cis_proxy
       value: "{{ cis_proxy }}"
 {%- endif %}
-{%- if aws_access_key_id is defined %}
+{%- if aws_access_key_id is defined and aws_access_key_id != "" %}
 
     # AWS basic info
     # -------------------------------------------------------------------------
@@ -384,7 +384,7 @@ spec:
     - name: aws_region
       value: "{{ aws_region }}"
 {%- endif %}
-{%- if route53_hosted_zone_name is defined %}
+{%- if route53_hosted_zone_name is defined and route53_hosted_zone_name != "" %}
 
     # MAS DNS Integrations - AWS Route 53
     # -------------------------------------------------------------------------
@@ -397,7 +397,7 @@ spec:
     - name: route53_subdomain
       value: "{{ route53_subdomain }}"
 {%- endif %}
-{%- if mas_add_catalog is defined %}
+{%- if mas_add_catalog is defined and mas_add_catalog != "" %}
 
     # Data Dictionary
     # -------------------------------------------------------------------------
@@ -411,19 +411,19 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_instance_id
       value: "{{ mas_instance_id }}"
-{%- if mas_wipe_mongo_data is defined %}
+{%- if mas_wipe_mongo_data is defined and mas_wipe_mongo_data != "" %}
     - name: mas_wipe_mongo_data
       value: "{{ mas_wipe_mongo_data }}"
 {%- endif %}
-{%- if mas_domain is defined %}
+{%- if mas_domain is defined and mas_domain != "" %}
     - name: mas_domain
       value: "{{ mas_domain }}"
 {%- endif %}
-{%- if mas_cluster_issuer is defined %}
+{%- if mas_cluster_issuer is defined and mas_cluster_issuer != "" %}
     - name: mas_cluster_issuer
       value: "{{ mas_cluster_issuer }}"
 {%- endif %}
-{%- if mas_annotations is defined %}
+{%- if mas_annotations is defined and mas_annotations != "" %}
     - name: mas_annotations
       value: "{{ mas_annotations }}"
 {%- endif %}
@@ -431,7 +431,7 @@ spec:
       value: "{{ mas_icr_cp }}"
     - name: mas_icr_cpopen
       value: "{{ mas_icr_cpopen }}"
-{%- if mas_trust_default_cas is defined %}
+{%- if mas_trust_default_cas is defined and mas_trust_default_cas != "" %}
     - name: mas_trust_default_cas
       value: "{{ mas_trust_default_cas }}"
 {%- endif %}
@@ -439,11 +439,11 @@ spec:
     - name: mas_manual_cert_mgmt
       value: "{{ mas_manual_cert_mgmt }}"
 {%- endif %}
-{%- if enable_ipv6 is defined %}
+{%- if enable_ipv6 is defined and enable_ipv6 != "" %}
     - name: enable_ipv6
       value: "{{ enable_ipv6 }}"
 {%- endif %}
-{%- if mas_superuser_username is defined and mas_superuser_password is defined %}
+{%- if mas_superuser_username is defined and mas_superuser_username != "" %}
     - name: mas_superuser_username
       value: "{{ mas_superuser_username }}"
     - name: mas_superuser_password
@@ -456,23 +456,22 @@ spec:
       value: "{{ mas_workspace_id }}"
     - name: mas_workspace_name
       value: "{{ mas_workspace_name }}"
-{%- if mas_app_channel_iot is defined %}
+{%- if mas_app_channel_iot is defined and mas_app_channel_iot != "" %}
 
     # IoT Application
     # -------------------------------------------------------------------------
     - name: mas_app_channel_iot
       value: "{{ mas_app_channel_iot }}"
-{%- if mas_app_settings_iot_deployment_size is defined %}
+  {%- if mas_app_settings_iot_deployment_size is defined and mas_app_settings_iot_deployment_size != "" %}
     - name: mas_app_settings_iot_deployment_size
       value: "{{ mas_app_settings_iot_deployment_size }}"
-{%- endif %}
+  {%- endif %}
     - name: mas_app_settings_iot_fpl_pvc_storage_class
       value: "{{ mas_app_settings_iot_fpl_pvc_storage_class }}"
     - name: mas_app_settings_iot_mqttbroker_pvc_storage_class
       value: "{{ mas_app_settings_iot_mqttbroker_pvc_storage_class }}"
 {%- endif %}
-{%- if mas_app_channel_manage is defined %}
-{%- if install_arcgis is defined %}
+{%- if install_arcgis is defined and install_arcgis != "" %}
 
     # IBM Maximo Location Services for Esri (arcgis)
     # -------------------------------------------------------------------------
@@ -481,6 +480,7 @@ spec:
     - name: mas_arcgis_channel
       value: "{{ mas_arcgis_channel }}"
 {%- endif %}
+{%- if mas_app_channel_manage is defined and mas_app_channel_manage != "" %}
 
     # Manage Application
     # -------------------------------------------------------------------------
@@ -488,79 +488,79 @@ spec:
       value: "{{ mas_app_channel_manage }}"
     - name: mas_appws_components
       value: "{{ mas_appws_components }}"
-{%- if mas_appws_bindings_health_wsl_flag is defined %}
+  {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
     - name: mas_appws_bindings_health_wsl_flag
       value: "{{ mas_appws_bindings_health_wsl_flag }}"
-{%- endif %}
-{%- if mas_app_settings_aio_flag is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_aio_flag is defined and mas_app_settings_aio_flag != "" %}
     - name: mas_app_settings_aio_flag
       value: "{{ mas_app_settings_aio_flag }}"
-{%- endif %}
-{%- if mas_app_settings_demodata is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_demodata is defined and mas_app_settings_demodata != "" %}
     - name: mas_app_settings_demodata
       value: "{{ mas_app_settings_demodata }}"
-{%- endif %}
-{%- if mas_appws_bindings_jdbc_manage is defined %}
+  {%- endif %}
+  {%- if mas_appws_bindings_jdbc_manage is defined and mas_appws_bindings_jdbc_manage != "" %}
     - name: mas_appws_bindings_jdbc_manage
       value: "{{ mas_appws_bindings_jdbc_manage }}"
-{%- endif %}
-{%- if mas_app_settings_persistent_volumes_flag is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_persistent_volumes_flag is defined and mas_app_settings_persistent_volumes_flag != "" %}
     - name: mas_app_settings_persistent_volumes_flag
       value: "{{ mas_app_settings_persistent_volumes_flag }}"
-{%- endif %}
-{%- if mas_app_settings_jms_queue_pvc_storage_class is defined or mas_app_settings_jms_queue_pvc_accessmode is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_jms_queue_pvc_storage_class is defined and mas_app_settings_jms_queue_pvc_storage_class != "" %}
     - name: mas_app_settings_jms_queue_pvc_storage_class
       value: "{{ mas_app_settings_jms_queue_pvc_storage_class }}"
     - name: mas_app_settings_jms_queue_pvc_accessmode
       value: "{{ mas_app_settings_jms_queue_pvc_accessmode }}"
-{%- endif %}
-{%- if mas_app_settings_bim_pvc_storage_class is defined or mas_app_settings_bim_pvc_accessmode is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_bim_pvc_storage_class is defined and mas_app_settings_bim_pvc_storage_class != "" %}
     - name: mas_app_settings_bim_pvc_storage_class
       value: "{{ mas_app_settings_bim_pvc_storage_class }}"
     - name: mas_app_settings_bim_pvc_accessmode
       value: "{{ mas_app_settings_bim_pvc_accessmode }}"
-{%- endif %}
-{%- if mas_app_settings_doclinks_pvc_storage_class is defined or mas_app_settings_doclinks_pvc_accessmode is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_doclinks_pvc_storage_class is defined or mas_app_settings_doclinks_pvc_storage_class != "" %}
     - name: mas_app_settings_doclinks_pvc_storage_class
       value: "{{ mas_app_settings_doclinks_pvc_storage_class }}"
     - name: mas_app_settings_doclinks_pvc_accessmode
       value: "{{ mas_app_settings_doclinks_pvc_accessmode }}"
-{%- endif %}
-{%- if mas_app_settings_server_bundles_size is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_server_bundles_size is defined and mas_app_settings_server_bundles_size != "" %}
     - name: mas_app_settings_server_bundles_size
       value: "{{ mas_app_settings_server_bundles_size }}"
-{%- endif %}
-{%- if mas_app_settings_base_language is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_base_language is defined and mas_app_settings_base_language != "" %}
     - name: mas_app_settings_base_language
       value: "{{ mas_app_settings_base_language }}"
     - name: mas_app_settings_secondary_languages
       value: "{{ mas_app_settings_secondary_languages }}"
-{%- endif %}
-{%- if mas_app_settings_server_timezone is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_server_timezone is defined and mas_app_settings_server_timezone != "" %}
     - name: mas_app_settings_server_timezone
       value: "{{ mas_app_settings_server_timezone }}"
-{%- endif %}
-{%- if mas_app_settings_tablespace is defined or mas_app_settings_indexspace is defined or mas_app_settings_db2_schema is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_tablespace is defined and mas_app_settings_tablespace != "" %}
     - name: mas_app_settings_tablespace
       value: "{{ mas_app_settings_tablespace }}"
     - name: mas_app_settings_indexspace
       value: "{{ mas_app_settings_indexspace }}"
     - name: mas_app_settings_db2_schema
       value: "{{ mas_app_settings_db2_schema }}"
-{%- endif %}
-{%- if mas_app_settings_customization_archive_url is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_customization_archive_url is defined and mas_app_settings_customization_archive_url != "" %}
     - name: mas_app_settings_customization_archive_url
       value: "{{ mas_app_settings_customization_archive_url }}"
     - name: mas_app_settings_customization_archive_name
       value: "{{ mas_app_settings_customization_archive_name }}"
-{%- if mas_app_settings_customization_archive_username is defined %}
+    {%- if mas_app_settings_customization_archive_username is defined and mas_app_settings_customization_archive_username != "" %}
     - name: mas_app_settings_customization_archive_username
       value: "{{ mas_app_settings_customization_archive_username }}"
     - name: mas_app_settings_customization_archive_password
       value: "{{ mas_app_settings_customization_archive_password }}"
-{%- endif %}
-{%- endif %}
-{%- if mas_app_settings_crypto_key is defined or mas_app_settings_cryptox_key is defined or mas_app_settings_old_crypto_key is defined or mas_app_settings_old_cryptox_key is defined %}
+    {%- endif %}
+  {%- endif %}
+  {%- if mas_app_settings_crypto_key is defined and mas_app_settings_crypto_key != "" %}
     - name: mas_app_settings_crypto_key
       value: "{{ mas_app_settings_crypto_key }}"
     - name: mas_app_settings_cryptox_key
@@ -569,24 +569,24 @@ spec:
       value: "{{ mas_app_settings_old_crypto_key }}"
     - name: mas_app_settings_old_cryptox_key
       value: "{{ mas_app_settings_old_cryptox_key }}"
-{%- endif %}
-{%- if mas_app_settings_override_encryption_secrets_flag is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_override_encryption_secrets_flag is defined and mas_app_settings_override_encryption_secrets_flag != "" %}
     - name: mas_app_settings_override_encryption_secrets_flag
       value: "{{ mas_app_settings_override_encryption_secrets_flag }}"
-{%- endif %}
-{%- if mas_app_settings_default_jms is defined %}
+  {%- endif %}
+  {%- if mas_app_settings_default_jms is defined and mas_app_settings_default_jms != "" %}
     - name: mas_app_settings_default_jms
       value: "{{ mas_app_settings_default_jms }}"
+  {%- endif %}
 {%- endif %}
-{%- endif %}
-{%- if mas_app_channel_monitor is defined %}
+{%- if mas_app_channel_monitor is defined and mas_app_channel_monitor != "" %}
 
     # Monitor Application
     # -------------------------------------------------------------------------
     - name: mas_app_channel_monitor
       value: "{{ mas_app_channel_monitor }}"
 {%- endif %}
-{%- if mas_app_channel_optimizer is defined %}
+{%- if mas_app_channel_optimizer is defined and mas_app_channel_optimizer != "" %}
 
     # Optimizer Application
     # -------------------------------------------------------------------------
@@ -595,41 +595,37 @@ spec:
     - name: mas_app_plan_optimizer
       value: "{{ mas_app_plan_optimizer }}"
 {%- endif %}
-{%- if mas_app_channel_predict is defined %}
+{%- if mas_app_channel_predict is defined and mas_app_channel_predict != "" %}
 
     # Predict Application
     # -------------------------------------------------------------------------
     - name: mas_app_channel_predict
       value: "{{ mas_app_channel_predict }}"
 {%- endif %}
-{%- if mas_app_channel_assist is defined %}
+{%- if mas_app_channel_assist is defined and mas_app_channel_assist != "" %}
 
     # Assist Application
     # -------------------------------------------------------------------------
     - name: mas_app_channel_assist
       value: "{{ mas_app_channel_assist }}"
 {%- endif %}
-{%- if mas_app_channel_visualinspection is defined %}
+{%- if mas_app_channel_visualinspection is defined and mas_app_channel_visualinspection != "" %}
 
     # MVI Application
     # -------------------------------------------------------------------------
     - name: mas_app_channel_visualinspection
       value: "{{ mas_app_channel_visualinspection }}"
 {%- endif %}
-{%- if grafana_action is defined %}
+{%- if grafana_action is defined and grafana_action != "" %}
 
     # Grafana
     # -------------------------------------------------------------------------
     - name: grafana_action
       value: "{{ grafana_action }}"
-    - name: grafana_namespace
-      value: "{{ grafana_namespace }}"
-    - name: grafana_instance_storage_class
-      value: "{{ grafana_instance_storage_class }}"
+    - name: grafana_v5_namespace
+      value: "{{ grafana_v5_namespace }}"
     - name: grafana_instance_storage_size
       value: "{{ grafana_instance_storage_size }}"
-    - name: grafana_major_version
-      value: "{{ grafana_major_version }}"
 {%- endif %}
 
   workspaces:
