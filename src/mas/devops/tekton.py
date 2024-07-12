@@ -130,7 +130,7 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str=None, st
                 logger.debug(configPVC)
                 sleep(15)
 
-def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str, additionalConfigs: dict=None, podTemplates: str=None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str, additionalConfigs: dict=None, certs: str=None, podTemplates: str=None) -> None:
     namespace=f"mas-{instanceId}-pipelines"
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
@@ -173,14 +173,15 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
     except NotFoundError:
         pass
 
-    certs={
-        "apiVersion": "v1",
-        "kind": "Secret",
-        "type": "Opaque",
-        "metadata": {
-            "name": "pipeline-certificates"
+    if certs is None:
+        certs={
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-certificates"
+            }
         }
-    }
     secretsAPI.create(body=certs, namespace=namespace)
 
     # 4. Secret/pipeline-pod-templates

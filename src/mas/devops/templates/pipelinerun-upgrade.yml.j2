@@ -14,7 +14,16 @@ spec:
     pipeline: "0"
 
   params:
+    # Target MAS Instance
+    # -------------------------------------------------------------------------
     - name: mas_instance_id
       value: "{{ mas_instance_id }}"
     - name: mas_channel
       value: "{{ mas_channel }}"
+
+{%- if skip_pre_check is defined and skip_pre_check != "" %}
+    # Skip pre-check
+    # -------------------------------------------------------------------------
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+{%- endif %}
