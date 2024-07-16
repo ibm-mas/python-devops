@@ -409,6 +409,18 @@ spec:
 
     # MAS Core
     # -------------------------------------------------------------------------
+    - name: idle_timeout
+      value: "{{ idle_timeout }}"
+    - name: idp_session_timeout
+      value: "{{ idp_session_timeout }}"
+    - name: access_token_timeout
+      value: "{{ access_token_timeout }}"
+    - name: refresh_token_timeout
+      value: "{{ refresh_token_timeout }}"
+    - name: default_idp
+      value: "{{ default_idp }}"
+    - name: seamless_login
+      value: "{{ seamless_login }}"
     - name: mas_instance_id
       value: "{{ mas_instance_id }}"
 {%- if mas_wipe_mongo_data is defined and mas_wipe_mongo_data != "" %}
