@@ -25,6 +25,13 @@ spec:
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
 {%- if ocp_ingress_tls_secret_name is defined and ocp_ingress_tls_secret_name != "" %}
 
     # Cluster config
@@ -32,7 +39,7 @@ spec:
     - name: ocp_ingress_tls_secret_name
       value: "{{ ocp_ingress_tls_secret_name }}"
 {%- endif %}
-{%- if artifactory_username is defined and artifactory_token != "" %}
+{%- if artifactory_username is defined and artifactory_username != "" %}
 
     # Enable development catalogs
     # -------------------------------------------------------------------------

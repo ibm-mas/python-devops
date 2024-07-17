@@ -22,7 +22,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment
 
 logger = logging.getLogger(__name__)
 
@@ -61,12 +61,23 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
     except UnprocessibleEntityError:
         logger.warning("Error: Couldn't create/update OpenShift Pipelines Operator Subscription")
 
+    # Wait for the CRD to be available
+    logger.debug("Waiting for tasks.tekton.dev CRD to be available")
     foundReadyCRD = waitForCRD(dynClient, "tasks.tekton.dev")
     if foundReadyCRD:
         logger.info("OpenShift Pipelines Operator is installed and ready")
-        return True
     else:
         logger.error("OpenShift Pipelines Operator is NOT installed and ready")
+        return False
+
+    # Wait for the webhook to be ready
+    logger.debug("Waiting for tekton-pipelines-webhook Deployment to be ready")
+    foundReadyWebhook = waitForDeployment(dynClient, namespace="openshift-pipelines", name="tekton-pipelines-webhook")
+    if foundReadyWebhook:
+        logger.info("OpenShift Pipelines Webhook is installed and ready")
+        return True
+    else:
+        logger.error("OpenShift Pipelines Webhook is NOT installed and ready")
         return False
 
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
@@ -143,7 +154,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
         pass
 
     if additionalConfigs is None:
-        additionalConfigs={
+        additionalConfigs = {
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
@@ -174,7 +185,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
         pass
 
     if certs is None:
-        certs={
+        certs = {
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
@@ -193,7 +204,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
         pass
 
     if podTemplates is None:
-        podTemplates={
+        podTemplates = {
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
@@ -314,7 +325,6 @@ def launchUninstallPipeline(dynClient: DynamicClient,
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-uninstall-{timestamp}"
     return pipelineURL
-
 
 def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: str, params: dict) -> str:
     pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
