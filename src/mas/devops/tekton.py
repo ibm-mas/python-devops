@@ -72,7 +72,7 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
 
     # Wait for the webhook to be ready
     logger.debug("Waiting for tekton-pipelines-webhook Deployment to be ready")
-    foundReadyWebhook = waitForDeployment(dynClient, namespace="openshift-pipelines", name="tekton-pipelines-webhook")
+    foundReadyWebhook = waitForDeployment(dynClient, namespace="openshift-pipelines", deploymentName="tekton-pipelines-webhook")
     if foundReadyWebhook:
         logger.info("OpenShift Pipelines Webhook is installed and ready")
         return True
