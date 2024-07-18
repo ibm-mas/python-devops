@@ -83,20 +83,39 @@ def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
     while not foundReadyCRD and retries < maxRetries:
         retries += 1
         try:
-            tasksCRD = crdAPI.get(name=crdName)
-            conditions = tasksCRD.status.conditions
+            crd = crdAPI.get(name=crdName)
+            conditions = crd.status.conditions
             for condition in conditions:
                 if condition.type == "Established":
                     if condition.status == "True":
                         foundReadyCRD = True
                     else:
-                        logger.debug("Waiting 5s for tasks.tekton.dev CRD to be ready before checking again ...")
+                        logger.debug(f"Waiting 5s for {crdName} CRD to be ready before checking again ...")
                         sleep(5)
                         continue
         except NotFoundError:
-            logger.debug("Waiting 5s for tasks.tekton.dev CRD to be installed before checking again ...")
+            logger.debug(f"Waiting 5s for {crdName} CRD to be installed before checking again ...")
             sleep(5)
     return foundReadyCRD
+
+def waitForDeployment(dynClient: DynamicClient, namespace: str, deploymentName: str) -> bool:
+    deploymentAPI = dynClient.resources.get(api_version="apps/v1", kind="Deployment")
+    maxRetries = 100
+    foundReadyDeployment = False
+    retries = 0
+    while not foundReadyDeployment and retries < maxRetries:
+        retries += 1
+        try:
+            deployment = deploymentAPI.get(name=deploymentName, namespace=namespace)
+            if deployment.status.readyReplicas > 0:
+                foundReadyDeployment = True
+            else:
+                logger.debug("Waiting 5s for deployment {deploymentName} to be ready before checking again ...")
+                sleep(5)
+        except NotFoundError:
+            logger.debug("Waiting 5s for deployment {deploymentName} to be created before checking again ...")
+            sleep(5)
+    return foundReadyDeployment
 
 
 def getConsoleURL(dynClient: DynamicClient) -> str:
