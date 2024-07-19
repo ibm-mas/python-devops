@@ -107,7 +107,10 @@ def waitForDeployment(dynClient: DynamicClient, namespace: str, deploymentName: 
         retries += 1
         try:
             deployment = deploymentAPI.get(name=deploymentName, namespace=namespace)
-            if deployment.status.readyReplicas > 0:
+            if deployment.status.readyReplicas is not None and deployment.status.readyReplicas > 0:
+                # Depending on how early we are checking the deployment the status subresource may not
+                # have even been initialized yet, hence the check for "is not None" to avoid a
+                # NoneType and int comparison TypeError
                 foundReadyDeployment = True
             else:
                 logger.debug("Waiting 5s for deployment {deploymentName} to be ready before checking again ...")
