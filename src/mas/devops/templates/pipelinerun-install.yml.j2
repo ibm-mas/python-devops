@@ -428,6 +428,16 @@ spec:
       value: "{{ default_idp }}"
     - name: seamless_login
       value: "{{ seamless_login }}"
+    - name: sso_cookie_name
+      value: "{{ sso_cookie_name }}"
+    - name: allow_default_sso_cookie_name
+      value: "{{ allow_default_sso_cookie_name }}"
+    - name: use_only_custom_cookie_name
+      value: "{{ use_only_custom_cookie_name }}"
+    - name: disable_ldap_cookie
+      value: "{{ disable_ldap_cookie }}"
+    - name: allow_custom_cache_key
+      value: "{{ allow_custom_cache_key }}"
     - name: mas_instance_id
       value: "{{ mas_instance_id }}"
 {%- if mas_wipe_mongo_data is defined and mas_wipe_mongo_data != "" %}
