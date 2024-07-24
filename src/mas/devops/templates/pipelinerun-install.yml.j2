@@ -416,18 +416,6 @@ spec:
 
     # MAS Core
     # -------------------------------------------------------------------------
-    - name: idle_timeout
-      value: "{{ idle_timeout }}"
-    - name: idp_session_timeout
-      value: "{{ idp_session_timeout }}"
-    - name: access_token_timeout
-      value: "{{ access_token_timeout }}"
-    - name: refresh_token_timeout
-      value: "{{ refresh_token_timeout }}"
-    - name: default_idp
-      value: "{{ default_idp }}"
-    - name: seamless_login
-      value: "{{ seamless_login }}"
     - name: mas_instance_id
       value: "{{ mas_instance_id }}"
 {%- if mas_wipe_mongo_data is defined and mas_wipe_mongo_data != "" %}
@@ -441,6 +429,50 @@ spec:
 {%- if mas_cluster_issuer is defined and mas_cluster_issuer != "" %}
     - name: mas_cluster_issuer
       value: "{{ mas_cluster_issuer }}"
+{%- endif %}
+{%- if idle_timeout is defined and idle_timeout != "" %}
+    - name: idle_timeout
+      value: "{{ idle_timeout }}"
+{%- endif %}
+{%- if idp_session_timeout is defined and idp_session_timeout != "" %}
+    - name: idp_session_timeout
+      value: "{{ idp_session_timeout }}"
+{%- endif %}
+{%- if access_token_timeout is defined and access_token_timeout != "" %}
+    - name: access_token_timeout
+      value: "{{ access_token_timeout }}"
+{%- endif %}
+{%- if refresh_token_timeout is defined and refresh_token_timeout != "" %}
+    - name: refresh_token_timeout
+      value: "{{ refresh_token_timeout }}"
+{%- endif %}
+{%- if default_idp is defined and default_idp != "" %}
+    - name: default_idp
+      value: "{{ default_idp }}"
+{%- endif %}
+{%- if seamless_login is defined and seamless_login != "" %}
+    - name: seamless_login
+      value: "{{ seamless_login }}"
+{%- endif %}
+{%- if sso_cookie_name is defined and sso_cookie_name != "" %}
+    - name: sso_cookie_name
+      value: "{{ sso_cookie_name }}"
+{%- endif %}
+{%- if allow_default_sso_cookie_name is defined and allow_default_sso_cookie_name != "" %}
+    - name: allow_default_sso_cookie_name
+      value: "{{ allow_default_sso_cookie_name }}"
+{%- endif %}
+{%- if use_only_custom_cookie_name is defined and use_only_custom_cookie_name != "" %}
+    - name: use_only_custom_cookie_name
+      value: "{{ use_only_custom_cookie_name }}"
+{%- endif %}
+{%- if disable_ldap_cookie is defined and disable_ldap_cookie != "" %}
+    - name: disable_ldap_cookie
+      value: "{{ disable_ldap_cookie }}"
+{%- endif %}
+{%- if allow_custom_cache_key is defined and allow_custom_cache_key != "" %}
+    - name: allow_custom_cache_key
+      value: "{{ allow_custom_cache_key }}"
 {%- endif %}
 {%- if mas_annotations is defined and mas_annotations != "" %}
     - name: mas_annotations
