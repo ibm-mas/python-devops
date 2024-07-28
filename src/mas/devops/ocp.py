@@ -19,7 +19,7 @@ from openshift.dynamic.exceptions import NotFoundError
 logger = logging.getLogger(__name__)
 
 
-def connect(server: str, token: str) -> bool:
+def connect(server: str, token: str, skipVerify: bool=False) -> bool:
     """
     Connect to target OCP
     """
@@ -40,7 +40,8 @@ def connect(server: str, token: str) -> bool:
     )
     conf.set_cluster(
         name='my-cluster',
-        server=server
+        server=server,
+        insecure_skip_tls_verify=skipVerify
     )
     conf.set_context(
         name='my-context',
