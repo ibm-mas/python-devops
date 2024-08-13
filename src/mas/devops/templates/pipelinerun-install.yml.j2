@@ -714,6 +714,16 @@ spec:
       secret:
         secretName: pipeline-certificates
 
+{%- if install_aibroker is defined and install_aibroker != "" %}
+
+    # IBM Maximo Location Services for Esri (arcgis)
+    # -------------------------------------------------------------------------
+    - name: install_aibroker
+      value: "{{ install_aibroker }}"
+    - name: mas_aibroker_channel
+      value: "{{ mas_aibroker_channel }}"
+{%- endif %}
+
 {%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider!= "" %}
     # AI Broker - opendata hub storage dependencies
     # -------------------------------------------------------------------------
