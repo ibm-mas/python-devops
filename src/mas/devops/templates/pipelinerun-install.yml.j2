@@ -679,6 +679,12 @@ spec:
       value: "{{ grafana_instance_storage_size }}"
 {%- endif %}
 
+    # Certificates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-certificates
+      secret:
+        secretName: pipeline-certificates
+
   workspaces:
     # The generated configuration files
     # -------------------------------------------------------------------------
@@ -708,12 +714,6 @@ spec:
       secret:
         secretName: pipeline-pod-templates
 
-    # Certificates configurations
-    # -------------------------------------------------------------------------
-    - name: shared-certificates
-      secret:
-        secretName: pipeline-certificates
-
 {%- if install_aibroker is defined and install_aibroker != "" %}
 
     # IBM Maximo Location Services for Esri (arcgis)
@@ -723,8 +723,8 @@ spec:
     - name: mas_aibroker_channel
       value: "{{ mas_aibroker_channel }}"
 {%- endif %}
-
 {%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider!= "" %}
+    
     # AI Broker - opendata hub storage dependencies
     # -------------------------------------------------------------------------
     - name: mas_aibroker_storage_provider
@@ -750,8 +750,8 @@ spec:
     - name: mas_aibroker_tenant_name
       value: "{{ mas_aibroker_tenant_name }}"
 {%- endif %}
-
 {%- if mas_aibroker_controller_tag is defined and mas_aibroker_controller_tag!= "" %}
+
     # AI Broker - kmodels apps tags dependencies
     # -------------------------------------------------------------------------
     - name: mas_aibroker_controller_tag
@@ -765,8 +765,8 @@ spec:
     - name: mas_aibroker_pipeline_steps_tag
       value: "{{ mas_aibroker_pipeline_steps_tag }}"
 {%- endif %}
-
 {%- if mas_aibroker_watsonxai_apikey is defined and mas_aibroker_watsonxai_apikey!= "" %}
+
     # AI Broker - aibroker app watsonX dependencies
     # -------------------------------------------------------------------------
     - name: mas_aibroker_watsonxai_apikey
@@ -778,8 +778,8 @@ spec:
     - name: mas_aibroker_watsonx_action
       value: "{{ mas_aibroker_watsonx_action }}"
 {%- endif %}
-
 {%- if mas_aibroker_s3_action is defined and mas_aibroker_s3_action!= "" %}
+
     # AI Broker - aibroker app secret create actions
     # -------------------------------------------------------------------------  
     - name: mas_aibroker_s3_action
@@ -787,8 +787,8 @@ spec:
     - name: mas_aibroker_apikey_action
       value: "{{ mas_aibroker_apikey_action }}"
 {%- endif %}
-
 {%- if mas_aibroker_db_host is defined and mas_aibroker_db_host!= "" %}
+
     # AI Broker - mariaDB details for DataSciencePipelinesApplication dependencies
     # -------------------------------------------------------------------------
     - name: mas_aibroker_db_host
