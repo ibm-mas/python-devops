@@ -687,7 +687,7 @@ spec:
     - name: mas_aibroker_channel
       value: "{{ mas_aibroker_channel }}"
 {%- endif %}
-{%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider!= "" %}
+{%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider != "" %}
     
     # AI Broker - OpenData Hub Storage
     # -------------------------------------------------------------------------
@@ -714,7 +714,7 @@ spec:
     - name: mas_aibroker_tenant_name
       value: "{{ mas_aibroker_tenant_name }}"
 {%- endif %}
-{%- if mas_aibroker_controller_tag is defined and mas_aibroker_controller_tag!= "" %}
+{%- if mas_aibroker_controller_tag is defined and mas_aibroker_controller_tag != "" %}
 
     # AI Broker - KModels Tags
     # -------------------------------------------------------------------------
@@ -729,7 +729,7 @@ spec:
     - name: mas_aibroker_pipeline_steps_tag
       value: "{{ mas_aibroker_pipeline_steps_tag }}"
 {%- endif %}
-{%- if mas_aibroker_watsonxai_apikey is defined and mas_aibroker_watsonxai_apikey!= "" %}
+{%- if mas_aibroker_watsonxai_apikey is defined and mas_aibroker_watsonxai_apikey != "" %}
 
     # AI Broker - watsonX
     # -------------------------------------------------------------------------
@@ -742,7 +742,7 @@ spec:
     - name: mas_aibroker_watsonx_action
       value: "{{ mas_aibroker_watsonx_action }}"
 {%- endif %}
-{%- if mas_aibroker_s3_action is defined and mas_aibroker_s3_action!= "" %}
+{%- if mas_aibroker_s3_action is defined and mas_aibroker_s3_action != "" %}
 
     # AI Broker - S3
     # -------------------------------------------------------------------------  
@@ -751,7 +751,7 @@ spec:
     - name: mas_aibroker_apikey_action
       value: "{{ mas_aibroker_apikey_action }}"
 {%- endif %}
-{%- if mas_aibroker_db_host is defined and mas_aibroker_db_host!= "" %}
+{%- if mas_aibroker_db_host is defined and mas_aibroker_db_host != "" %}
 
     # AI Broker - Database (DataSciencePipelinesApplication)
     # -------------------------------------------------------------------------
