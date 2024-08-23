@@ -500,6 +500,10 @@ spec:
     - name: mas_superuser_password
       value: "{{ mas_superuser_password }}"
 {%- endif %}
+{%- if mas_enable_walkme is defined and mas_enable_walkme != "" %}
+    - name: mas_enable_walkme
+      value: "{{ mas_enable_walkme }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
