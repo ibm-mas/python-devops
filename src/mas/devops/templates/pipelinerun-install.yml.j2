@@ -426,6 +426,10 @@ spec:
     - name: mas_domain
       value: "{{ mas_domain }}"
 {%- endif %}
+{%- if mas_special_characters is defined and mas_special_characters != "" %}
+    - name: mas_special_characters
+      value: "{{ mas_special_characters }}"
+{%- endif %}
 {%- if mas_cluster_issuer is defined and mas_cluster_issuer != "" %}
     - name: mas_cluster_issuer
       value: "{{ mas_cluster_issuer }}"
