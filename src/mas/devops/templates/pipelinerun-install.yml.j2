@@ -772,12 +772,6 @@ spec:
 {%- endif %}
 
   workspaces:
-    # Certificates configurations
-    # -------------------------------------------------------------------------
-    - name: shared-certificates
-      secret:
-        secretName: pipeline-certificates
-
     # The generated configuration files
     # -------------------------------------------------------------------------
     - name: shared-configs
@@ -805,3 +799,9 @@ spec:
     - name: shared-pod-templates
       secret:
         secretName: pipeline-pod-templates
+
+    # Certificates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-certificates
+      secret:
+        secretName: pipeline-certificates
