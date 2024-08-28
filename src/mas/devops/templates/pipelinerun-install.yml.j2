@@ -589,11 +589,11 @@ spec:
     - name: mas_app_settings_server_bundles_size
       value: "{{ mas_app_settings_server_bundles_size }}"
   {%- endif %}
-  {%- if mas_app_settings_base_language is defined and mas_app_settings_base_language != "" %}
-    - name: mas_app_settings_base_language
-      value: "{{ mas_app_settings_base_language }}"
-    - name: mas_app_settings_secondary_languages
-      value: "{{ mas_app_settings_secondary_languages }}"
+  {%- if mas_app_settings_base_lang is defined and mas_app_settings_base_lang != "" %}
+    - name: mas_app_settings_base_lang
+      value: "{{ mas_app_settings_base_lang }}"
+    - name: mas_app_settings_secondary_langs
+      value: "{{ mas_app_settings_secondary_langs }}"
   {%- endif %}
   {%- if mas_app_settings_server_timezone is defined and mas_app_settings_server_timezone != "" %}
     - name: mas_app_settings_server_timezone
