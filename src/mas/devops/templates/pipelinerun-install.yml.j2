@@ -686,7 +686,7 @@ spec:
     - name: grafana_instance_storage_size
       value: "{{ grafana_instance_storage_size }}"
 {%- endif %}
-{%- if install_aibroker is defined and install_aibroker != "" %}
+{%- if mas_app_channel_aibroker is defined and mas_app_channel_aibroker != "" %}
 
     # AI Broker
     # -------------------------------------------------------------------------
