@@ -36,11 +36,10 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
 
     # Create the Operator Subscription
     try:
-        existingSubscriptions=subscriptionsAPI.get(name="openshift-pipelines-operator-rh",namespace="openshift-operators")
-        print(len(existingSubscriptions))
-        print(existingSubscriptions)
-
-        if len(existingSubscriptions) > 0:
+        try:
+            subscriptionsAPI.get(name="openshift-pipelines-operator-rh",namespace="openshift-operators")
+            logger.info(f"Found existing Opendhift Pipelines Operator Subscription: openshift-operators/openshift-pipelines-operator-rh")
+        except NotFoundError:
             manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
             defaultChannel = manifest.status.defaultChannel
             catalogSource = manifest.status.catalogSource
