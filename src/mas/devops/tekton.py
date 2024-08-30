@@ -36,28 +36,28 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
 
     # Create the Operator Subscription
     try:
+        manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
+        defaultChannel = manifest.status.defaultChannel
+        catalogSource = manifest.status.catalogSource
+        catalogSourceNamespace = manifest.status.catalogSourceNamespace
+
+        logger.info(f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}")
+
+        templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+        env = Environment(
+            loader=FileSystemLoader(searchpath=templateDir)
+        )
+        template = env.get_template("subscription.yml.j2")
+        renderedTemplate = template.render(
+            pipelines_channel=defaultChannel,
+            pipelines_source=catalogSource,
+            pipelines_source_namespace=catalogSourceNamespace
+        )
+        subscription = yaml.safe_load(renderedTemplate)
         try:
             subscriptionsAPI.get(name="openshift-pipelines-operator-rh",namespace="openshift-operators")
             logger.info(f"Found existing Opendhift Pipelines Operator Subscription: openshift-operators/openshift-pipelines-operator-rh")
         except NotFoundError:
-            manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
-            defaultChannel = manifest.status.defaultChannel
-            catalogSource = manifest.status.catalogSource
-            catalogSourceNamespace = manifest.status.catalogSourceNamespace
-
-            logger.info(f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}")
-
-            templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-            env = Environment(
-                loader=FileSystemLoader(searchpath=templateDir)
-            )
-            template = env.get_template("subscription.yml.j2")
-            renderedTemplate = template.render(
-                pipelines_channel=defaultChannel,
-                pipelines_source=catalogSource,
-                pipelines_source_namespace=catalogSourceNamespace
-            )
-            subscription = yaml.safe_load(renderedTemplate)
             subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")
 
     except NotFoundError:
