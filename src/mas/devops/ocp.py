@@ -158,7 +158,8 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
     crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
     try:
         crd = crdAPI.get(name=crdName)
-        logger.info(f"Found existing crd: {crd.metadata.name}. Hence, skipping the step to create new subscription.")
+        logger.debug(f"CRD does exist: {crdName}")
         return True
     except NotFoundError:
+        logger.debug(f"CRD does not exist: {crdName}")
         return False
