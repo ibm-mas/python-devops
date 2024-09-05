@@ -153,3 +153,13 @@ def getStorageClasses(dynClient: DynamicClient) -> list:
 
 def isSNO(dynClient: DynamicClient) -> bool:
     return len(getNodes(dynClient)) == 1
+
+def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
+    crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
+    try:
+        crd = crdAPI.get(name=crdName)
+        logger.debug(f"CRD does exist: {crdName}")
+        return True
+    except NotFoundError:
+        logger.debug(f"CRD does not exist: {crdName}")
+        return False
