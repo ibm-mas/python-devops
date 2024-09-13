@@ -171,6 +171,7 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         return False
 
 def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
+  logger.debug(f"Executing command {command} on pod {pod_name} in {namespace}")
   req = stream(
       core_v1_api.connect_get_namespaced_pod_exec,
       pod_name, 
@@ -188,7 +189,8 @@ def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: 
 
   err = yaml.load(req.read_channel(ERROR_CHANNEL), Loader=yaml.FullLoader)
   if err.get("status") == "Failure":
-    print(f"stderr: {stderr}")
     raise Exception(f"Failed to execute {command} on {pod_name} in namespace {namespace}: {err.get('message')}. stdout: {stdout}, stderr: {stderr}")
+
+  logger.debug(f"stdout: \n----------------------------------------------------------------\n{stdout}\n----------------------------------------------------------------\n")
   
   return stdout

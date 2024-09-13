@@ -8,6 +8,10 @@
 from kubernetes import client, config
 from mas.devops.db2 import validate_db2_config
 import argparse
+import logging
+
+import urllib3
+urllib3.disable_warnings()
 
 
 if __name__ == "__main__":
@@ -17,8 +21,16 @@ if __name__ == "__main__":
     # Primary Options
     parser.add_argument("--mas-instance-id", required=True)
     parser.add_argument("--mas-app-id", required=True)
+    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
+
+
 
     args, unknown = parser.parse_known_args()
+
+    
+    log_level = getattr(logging, args.log_level)
+    logging.basicConfig()
+    logging.getLogger('mas.devops.db2').setLevel(level=log_level)
 
     validate_db2_config(
       client.api_client.ApiClient(configuration=config.load_kube_config()), 
