@@ -75,9 +75,9 @@ def cr_pod_v_matches(cr_k: str, cr_v: str, pod_v: str) -> bool:
     cr_v_num = int(matches.group(1))
     return pod_v == f"AUTOMATIC({cr_v_num})"
   
-  # Look for e.g. AUTOMATIC -> AUTOMATIC(6554)
+  # Look for e.g. AUTOMATIC -> AUTOMATIC(6554) or AUTOMATIC
   if cr_v.upper() == "AUTOMATIC":
-    return re.search(r"AUTOMATIC\(\d+\)", pod_v) is not None
+    return pod_v == "AUTOMATIC" or re.search(r"AUTOMATIC\(\d+\)", pod_v) is not None
   
   return pod_v == cr_v
 
