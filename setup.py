@@ -76,5 +76,8 @@ setup(
         'Topic :: Communications',
         'Topic :: Internet',
         'Topic :: Software Development :: Libraries :: Python Modules'
+    ],
+    scripts=[
+        'bin/mas-devops-db2-validate-config'
     ]
 )

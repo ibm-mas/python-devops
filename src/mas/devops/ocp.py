@@ -16,6 +16,12 @@ from kubeconfig.exceptions import KubectlNotFoundError
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError
 
+from kubernetes import client
+from kubernetes.stream import stream
+from kubernetes.stream.ws_client import ERROR_CHANNEL
+
+import yaml
+
 logger = logging.getLogger(__name__)
 
 
@@ -163,3 +169,26 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
     except NotFoundError:
         logger.debug(f"CRD does not exist: {crdName}")
         return False
+
+def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
+  req = stream(
+      core_v1_api.connect_get_namespaced_pod_exec,
+      pod_name, 
+      namespace, 
+      command=command, 
+      stderr=True, 
+      stdin=False, 
+      stdout=True, 
+      tty=False,
+      _preload_content=False,
+  )
+  req.run_forever(timeout)
+  stdout = req.read_stdout()
+  stderr = req.read_stderr()
+
+  err = yaml.load(req.read_channel(ERROR_CHANNEL), Loader=yaml.FullLoader)
+  if err.get("status") == "Failure":
+    print(f"stderr: {stderr}")
+    raise Exception(f"Failed to execute {command} on {pod_name} in namespace {namespace}: {err.get('message')}. stdout: {stdout}, stderr: {stderr}")
+  
+  return stdout
