@@ -6,6 +6,7 @@
 # restricted by GSA ADP Schedule Contract with IBM Corp.
 
 from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
 from mas.devops.db2 import validate_db2_config
 import argparse
 import logging
@@ -23,8 +24,6 @@ if __name__ == "__main__":
     parser.add_argument("--mas-app-id", required=True)
     parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
 
-
-
     args, unknown = parser.parse_known_args()
 
     
@@ -32,8 +31,18 @@ if __name__ == "__main__":
     logging.basicConfig()
     logging.getLogger('mas.devops.db2').setLevel(level=log_level)
 
+
+    try:
+      # Try to load in-cluster configuration
+      config.load_incluster_config()
+      print("Loaded in-cluster configuration")
+    except ConfigException:
+      # If that fails, fall back to kubeconfig file
+      config.load_kube_config()
+      print("Loaded kubeconfig file")
+
     validate_db2_config(
-      client.api_client.ApiClient(configuration=config.load_kube_config()), 
+      client.api_client.ApiClient(), 
       args.mas_instance_id, 
       args.mas_app_id
     )
