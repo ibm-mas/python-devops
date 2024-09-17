@@ -6,8 +6,6 @@ metadata:
     db2u/certs-api-cert: '[secure]'
     argocd.argoproj.io/sync-wave: '122'
     db2u/sshkeys-db2uadm: '[secure]'
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"db2u.databases.ibm.com/v1","kind":"Db2uInstance","metadata":{"annotations":{"argocd.argoproj.io/sync-options":"SkipDryRunOnMissingResource=true","argocd.argoproj.io/sync-wave":"122"},"labels":{"app.kubernetes.io/instance":"db2-db.fvtsaas.fvtsaas.iot"},"name":"db2wh-fvtsaas-iot","namespace":"db2u-fvtsaas"},"spec":{"account":{"imagePullSecrets":["ibm-registry"],"securityConfig":{"privilegedSysctlInit":true}},"environment":{"databases":[{"name":"BLUDB","settings":{"dftTableOrg":"ROW"}}],"dbType":"db2wh","instance":null,"partitionConfig":{"total":1},"ssl":{"allowSslOnly":true,"certLabel":"CN=db2u","secretName":"db2u-certificate-db2wh-fvtsaas-iot"}},"license":{"accept":true},"nodes":1,"podTemplate":{"db2u":{"resource":{"db2u":{"limits":{"cpu":"6","memory":"16Gi"},"requests":{"cpu":"4","memory":"8Gi"}}}}},"storage":[{"name":"meta","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"20Gi"}},"storageClassName":"efsfvtsaas"},"type":"create"},{"name":"backup","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"create"},{"name":"data","spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"tempts","spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"activelogs","spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"auditlogs","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"archivelogs","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"create"}],"version":"s11.5.9.0-cn1"}}
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     db2u/license: '[secure]'
     db2u/certs-wv-rest: '[secure]'
@@ -15,118 +13,6 @@ metadata:
     db2u/sshkeys-db2uhausr: '[secure]'
   resourceVersion: '673745'
   name: db2wh-fvtsaas-iot
-  uid: 622755f6-1d9e-417c-aae7-9a1482f9dbc5
-  creationTimestamp: '2024-09-17T13:37:08Z'
-  generation: 2
-  managedFields:
-    - apiVersion: db2u.databases.ibm.com/v1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:metadata':
-          'f:annotations':
-            .: {}
-            'f:argocd.argoproj.io/sync-options': {}
-            'f:argocd.argoproj.io/sync-wave': {}
-            'f:kubectl.kubernetes.io/last-applied-configuration': {}
-          'f:labels':
-            .: {}
-            'f:app.kubernetes.io/instance': {}
-        'f:spec':
-          .: {}
-          'f:account':
-            .: {}
-            'f:imagePullSecrets': {}
-            'f:securityConfig':
-              .: {}
-              'f:privilegedSysctlInit': {}
-          'f:environment':
-            .: {}
-            'f:databases': {}
-            'f:dbType': {}
-            'f:partitionConfig':
-              .: {}
-              'f:total': {}
-            'f:ssl':
-              .: {}
-              'f:allowSslOnly': {}
-              'f:certLabel': {}
-          'f:license':
-            .: {}
-            'f:accept': {}
-          'f:nodes': {}
-          'f:podTemplate':
-            .: {}
-            'f:db2u':
-              .: {}
-              'f:resource':
-                .: {}
-                'f:db2u':
-                  .: {}
-                  'f:limits':
-                    .: {}
-                    'f:cpu': {}
-                    'f:memory': {}
-                  'f:requests':
-                    .: {}
-                    'f:cpu': {}
-                    'f:memory': {}
-          'f:storage': {}
-          'f:version': {}
-      manager: argocd-controller
-      operation: Update
-      time: '2024-09-17T13:37:08Z'
-    - apiVersion: db2u.databases.ibm.com/v1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:metadata':
-          'f:annotations':
-            'f:db2u/certs-api-cert': {}
-            'f:db2u/certs-api-key': {}
-            'f:db2u/certs-wv-rest': {}
-            'f:db2u/license': {}
-            'f:db2u/sshkeys-db2instusr': {}
-            'f:db2u/sshkeys-db2uadm': {}
-            'f:db2u/sshkeys-db2uhausr': {}
-        'f:spec':
-          'f:addOns': {}
-          'f:environment':
-            'f:authentication':
-              .: {}
-              'f:ldap':
-                .: {}
-                'f:blueAdminPassword':
-                  .: {}
-                  'f:value': {}
-                'f:enabled': {}
-                'f:password':
-                  .: {}
-                  'f:value': {}
-            'f:instance':
-              .: {}
-              'f:password':
-                .: {}
-                'f:value': {}
-            'f:partitionConfig':
-              'f:dataOnMln0': {}
-              'f:volumePerPartition': {}
-            'f:ssl':
-              'f:secretName': {}
-      manager: manager
-      operation: Update
-      time: '2024-09-17T13:37:26Z'
-    - apiVersion: db2u.databases.ibm.com/v1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:status':
-          .: {}
-          'f:conditions': {}
-          'f:maintenanceState': {}
-          'f:state': {}
-          'f:version': {}
-      manager: manager
-      operation: Update
-      subresource: status
-      time: '2024-09-17T13:47:50Z'
   namespace: db2u-fvtsaas
   labels:
     app.kubernetes.io/instance: db2-db.fvtsaas.fvtsaas.iot

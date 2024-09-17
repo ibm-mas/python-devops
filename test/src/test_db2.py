@@ -66,6 +66,15 @@ def test_check_db_cfgs_no_databases():
       ), None, None, None
     )
 
+
+def test_check_db_cfg_no_dbConfig(mocker):
+  mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
+  assert db2.check_db_cfg(dict(name="a"), None, None, None) == []
+
+def test_check_db_cfg_empty_dbConfig(mocker):
+  mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
+  assert db2.check_db_cfg(dict(name="a", dbConfig=[]), None, None, None) == []
+
 def test_check_db_cfgs(mocker):
   '''
   Verifies that check_db_cfg function is called for each db in list
@@ -95,13 +104,6 @@ def test_check_db_cfgs(mocker):
   ]
 
 
-def test_check_db_cfg_no_dbConfig(mocker):
-  mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
-  assert db2.check_db_cfg(dict(name="a"), None, None, None) == []
-
-def test_check_db_cfg_empty_dbConfig(mocker):
-  mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
-  assert db2.check_db_cfg(dict(name="a", dbConfig=[]), None, None, None) == []
 
 
 def test_check_db_cfg(mocker):
@@ -126,6 +128,143 @@ def test_check_db_cfg(mocker):
     f"[db cfg for {db_name}] CHNGPGS_THRESH: 40 != 80"
   ])
 
+
+def test_check_dbm_cfg_no_spec():
+  db2_instance_cr = dict(
+  )
+  assert db2.check_dbm_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_dbm_cfg_no_environment():
+  db2_instance_cr = dict(
+    spec=dict()
+  )
+  assert db2.check_dbm_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_dbm_cfg_no_instance():
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict()
+    )
+  )
+  assert db2.check_dbm_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_dbm_cfg_no_dbmConfig():
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict(
+        instance=dict()
+      )
+    )
+  )
+  assert db2.check_dbm_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_dbm_cfg_empty_dbmConfig():
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict(
+        instance=dict(
+          dbmConfig=dict()
+        )
+      )
+    )
+  )
+  assert db2.check_dbm_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_dbm_cfg(mocker):
+
+  mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg")
+  mock_db2_pod_exec_db2_get_dbm_cfg.return_value = '''
+    Agent stack size                       (AGENT_STACK_SZ) = 1024
+  '''
+
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict(
+        instance = dict(
+          dbmConfig=dict(
+            AGENT_STACK_SZ='2048',
+            NOTFOUNDINOUTPUT="XXX",
+          )
+        )
+      )
+    )
+  )
+
+  assert set(db2.check_dbm_cfg(db2_instance_cr, None, None, None)) == set([
+    f"[dbm cfg] NOTFOUNDINOUTPUT not found in output of db2 get dbm cfg command",
+    f"[dbm cfg] AGENT_STACK_SZ: 2048 != 1024"
+  ])
+
+
+
+
+def test_check_reg_cfg_no_spec():
+  db2_instance_cr = dict(
+  )
+  assert db2.check_reg_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_reg_cfg_no_environment():
+  db2_instance_cr = dict(
+    spec=dict()
+  )
+  assert db2.check_reg_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_reg_cfg_no_instance():
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict()
+    )
+  )
+  assert db2.check_reg_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_reg_cfg_no_registry():
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict(
+        instance=dict()
+      )
+    )
+  )
+  assert db2.check_reg_cfg(db2_instance_cr, None, None, None) == []
+
+def test_check_reg_cfg_empty_registry():
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict(
+        instance=dict(
+          registry=dict()
+        )
+      )
+    )
+  )
+  assert db2.check_reg_cfg(db2_instance_cr, None, None, None) == []
+
+
+def test_check_reg_cfg(mocker):
+
+  mock_db2_pod_exec_db2set = mocker.patch("mas.devops.db2.db2_pod_exec_db2set")
+  mock_db2_pod_exec_db2set.return_value = '''
+    DB2AUTH=OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD
+    DB2_FMP_COMM_HEAPSZ=65536 [O]
+  '''
+
+  db2_instance_cr = dict(
+    spec=dict(
+      environment=dict(
+        instance = dict(
+          registry=dict(
+            DB2AUTH='WRONG',
+            NOTFOUNDINOUTPUT="XXX",
+          )
+        )
+      )
+    )
+  )
+
+  assert set(db2.check_reg_cfg(db2_instance_cr, None, None, None)) == set([
+    f"[registry cfg] NOTFOUNDINOUTPUT not found in output of db2set command",
+    f"[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"
+  ])
 
 @pytest.mark.parametrize("test_case_name, expected_failures", [
   # This test case simulates what will happen when we run the validate_db2_config using the IoT Db2uInstance CR
@@ -185,7 +324,12 @@ def test_check_db_cfg(mocker):
     "[registry cfg] DB2_WORKLOAD: MAXIMO != ANALYTICS",
   ]),
 ])
+
 def test_validate_db2_config(test_case_name, expected_failures, mocker):
+  '''
+  Each test case corresponds to a folder under test/test_cases.
+  Each folder must contain a file db2uinstance.yaml and optionally db2getdbcfg.txt, db2getdbmcfg.txt and db2set.txt.
+  '''
 
   current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -218,7 +362,7 @@ def test_validate_db2_config(test_case_name, expected_failures, mocker):
   mock_k8s_client = mock_ApiClient.return_value
 
   mas_instance_id = "unittest"
-  mas_app_id = "manage"
+  mas_app_id = test_case_name
 
   if len(expected_failures) == 0:
     db2.validate_db2_config(mock_k8s_client, mas_instance_id, mas_app_id)
