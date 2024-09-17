@@ -170,7 +170,36 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         logger.debug(f"CRD does not exist: {crdName}")
         return False
 
+# Assisted by WCA@IBM
+# Latest GenAI contribution: ibm/granite-8b-code-instruct
 def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
+  """
+  Executes a command in a Kubernetes pod and returns the standard output.
+  If running this function from inside a pod (i.e. config.load_incluster_config()), 
+  the ServiceAccount assigned to the pod must have the following access in one of the Roles bound to it:
+  rules:
+    - apiGroups:
+        - ""
+    resources:
+        - pods/exec
+    verbs: 
+        - create
+        - get
+        - list
+
+  Args:
+    core_v1_api (client.CoreV1Api): The Kubernetes API client.
+    pod_name (str): The name of the pod to execute the command in.
+    namespace (str): The namespace of the pod.
+    command (list): The command to execute in the pod.
+    timeout (int, optional): The timeout in seconds for the command execution. Defaults to 60.
+
+  Returns:
+    str: The standard output of the command.
+
+  Raises:
+    Exception: If the command execution fails or times out.
+  """
   logger.debug(f"Executing command {command} on pod {pod_name} in {namespace}")
   req = stream(
       core_v1_api.connect_get_namespaced_pod_exec,

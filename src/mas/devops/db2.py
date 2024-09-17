@@ -8,6 +8,7 @@
 #
 # *****************************************************************************
 
+
 import re
 from kubernetes import client
 from .ocp import execInPod
@@ -20,7 +21,6 @@ H2_BREAK = "----------------------------------------------------------------"
 logger = logging.getLogger(__name__)
 
 def get_db2u_instance_cr(custom_objects_api: client.CustomObjectsApi, mas_instance_id: str, mas_app_id: str) -> dict:
-
   cr_name = f"db2wh-{mas_instance_id}-{mas_app_id}"
   namespace = f"db2u-{mas_instance_id}"
   logger.debug(f"Getting Db2uInstance CR {cr_name} in {namespace}")
@@ -81,6 +81,18 @@ def cr_pod_v_matches(cr_k: str, cr_v: str, pod_v: str) -> bool:
 
 
 def check_db_cfgs(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
+  """
+  Runs check_db_cfg for each database in the provided Db2uInstance CR
+
+  Parameters:
+    db2u_instance_cr (dict): the Db2uInstanceCR as a dict (use get_db2u_instance_cr)
+    core_v1_api (client.CoreV1Api): The Kubernetes API client
+    mas_instance_id (str): The ID of the MAS instance.
+    mas_app_id (str): The ID of the MAS app the DB2 database is for (e.g. "manage", "iot")
+  
+  Returns:
+    list: The outputs of each call to check_db_cfg concatenated together
+  """
   failures = []
 
   db2u_instance_cr_databases = db2u_instance_cr.get("spec", {}).get("environment", {}).get("databases", {})
@@ -94,42 +106,70 @@ def check_db_cfgs(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
   return failures
 
 def check_db_cfg(db_dr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
-    failures = []
+  """
+  Check that the parameters in the provided db dict taken from the Db2uInstance CR align with those in the output of the
+  db2 get db cfg command (i.e. the configuration that is actually active in DB2).
 
-    db_name = db_dr["name"]
-    db_cfg_pod = db2_pod_exec_db2_get_db_cfg(core_v1_api, mas_instance_id, mas_app_id, db_name)
+  Parameters:
+    db_dr (dict): one element under spec.environment.databases taken from the Db2uInstance CR
+    core_v1_api (client.CoreV1Api): The Kubernetes API client
+    mas_instance_id (str): The ID of the MAS instance.
+    mas_app_id (str): The ID of the MAS app the DB2 database is for (e.g. "manage", "iot")
+  
+  Returns:
+    list: A list of strings describing any mismatches found between the CR and active DB2 configuration.
+          Any empty list implies all configuration matches.
+  """
+  failures = []
 
-    logger.info(f"Checking db cfg for {db_name}\n{H1_BREAK}")
+  db_name = db_dr["name"]
+  db_cfg_pod = db2_pod_exec_db2_get_db_cfg(core_v1_api, mas_instance_id, mas_app_id, db_name)
 
-    db_cfg_cr = db_dr.get('dbConfig', None)
-    if db_cfg_cr is None or len(db_cfg_cr) == 0:
-      logger.info(f"No dbConfig for db {db_name} found in CR, skipping db cfg checks for {db_name}\n")
-      return []
+  logger.info(f"Checking db cfg for {db_name}\n{H1_BREAK}")
 
-    logger.debug(f"db2 db {db_name} cfg output:\n{H2_BREAK}{db_cfg_pod}{H2_BREAK}")
-    logger.debug(f"db2 db {db_name} cr settings:\n{H2_BREAK}\n{yaml.dump(db_cfg_cr, sort_keys=False, default_flow_style=False)}{H2_BREAK}")
+  db_cfg_cr = db_dr.get('dbConfig', None)
+  if db_cfg_cr is None or len(db_cfg_cr) == 0:
+    logger.info(f"No dbConfig for db {db_name} found in CR, skipping db cfg checks for {db_name}\n")
+    return []
 
-    logger.debug(f"Running checks\n{H2_BREAK}")
-    for cr_k, cr_v in db_cfg_cr.items():
-      matches =  re.search(fr"\({cr_k}\)\s=\s(.*)$", db_cfg_pod, re.MULTILINE)
-      if matches is None:
-        failures.append(f"[db cfg for {db_name}] {cr_k} not found in output of db2 get db cfg command")
-        continue
-      pod_v = matches.group(1)
+  logger.debug(f"db2 db {db_name} cfg output:\n{H2_BREAK}{db_cfg_pod}{H2_BREAK}")
+  logger.debug(f"db2 db {db_name} cr settings:\n{H2_BREAK}\n{yaml.dump(db_cfg_cr, sort_keys=False, default_flow_style=False)}{H2_BREAK}")
 
-      if not cr_pod_v_matches(cr_k, cr_v, pod_v):
-        failures.append(f"[db cfg for {db_name}] {cr_k}: {cr_v} != {pod_v}")
-    logger.debug(f"\n{H2_BREAK}")
+  logger.debug(f"Running checks\n{H2_BREAK}")
+  for cr_k, cr_v in db_cfg_cr.items():
+    matches =  re.search(fr"\({cr_k}\)\s=\s(.*)$", db_cfg_pod, re.MULTILINE)
+    if matches is None:
+      failures.append(f"[db cfg for {db_name}] {cr_k} not found in output of db2 get db cfg command")
+      continue
+    pod_v = matches.group(1)
 
-    if len(failures) > 0:
-      logger.warning(f"{len(failures)} checks failed for db cfg {db_name}\n")
-    else:
-      logger.info(f"All db cfg checks for {db_name} passed\n")
-    return failures
+    if not cr_pod_v_matches(cr_k, cr_v, pod_v):
+      failures.append(f"[db cfg for {db_name}] {cr_k}: {cr_v} != {pod_v}")
+  logger.debug(f"\n{H2_BREAK}")
+
+  if len(failures) > 0:
+    logger.warning(f"{len(failures)} checks failed for db cfg {db_name}\n")
+  else:
+    logger.info(f"All db cfg checks for {db_name} passed\n")
+  return failures
 
 
 
 def check_dbm_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
+  """
+  Check that the database manager (dbmConfig) parameters from the Db2uInstance CR align with those in the output of the
+  db2 get dbm cfg command (i.e. the configuration that is actually active in DB2).
+
+  Parameters:
+    db2u_instance_cr (dict): the Db2uInstanceCR as a dict (use get_db2u_instance_cr)
+    core_v1_api (client.CoreV1Api): The Kubernetes API client
+    mas_instance_id (str): The ID of the MAS instance.
+    mas_app_id (str): The ID of the MAS app the DB2 database is for (e.g. "manage", "iot")
+  
+  Returns:
+    list: A list of strings describing any mismatches found between the CR and active DB2 configuration.
+          Any empty list implies all configuration matches.
+  """
   failures = []
 
   # Check dbm config
@@ -164,6 +204,20 @@ def check_dbm_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
   return failures
 
 def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
+  """
+  Check that the registry parameters from the Db2uInstance CR align with those in the output of the
+  db2set command (i.e. the configuration that is actually active in DB2).
+
+  Parameters:
+    db2u_instance_cr (dict): the Db2uInstanceCR as a dict (use get_db2u_instance_cr)
+    core_v1_api (client.CoreV1Api): The Kubernetes API client
+    mas_instance_id (str): The ID of the MAS instance.
+    mas_app_id (str): The ID of the MAS app the DB2 database is for (e.g. "manage", "iot")
+  
+  Returns:
+    list: A list of strings describing any mismatches found between the CR and active DB2 configuration.
+          Any empty list implies all configuration matches.
+  """
   failures = []
 
   # Check registry cfg
