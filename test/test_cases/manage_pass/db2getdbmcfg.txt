@@ -60,7 +60,7 @@
  Database monitor heap size (4KB)          (MON_HEAP_SZ) = AUTOMATIC(90)
  Java Virtual Machine heap size (4KB)     (JAVA_HEAP_SZ) = 65536
  Audit buffer size (4KB)                  (AUDIT_BUF_SZ) = 65000
- Global instance memory (% or 4KB)     (INSTANCE_MEMORY) = 24
+ Global instance memory (% or 4KB)     (INSTANCE_MEMORY) = 12
  Member instance memory (% or 4KB)                       = GLOBAL
  Agent stack size                       (AGENT_STACK_SZ) = 1024
  Sort heap threshold (4KB)                  (SHEAPTHRES) = 0
@@ -104,7 +104,7 @@
  SSL client keydb file                  (SSL_CLNT_KEYDB) = 
  SSL client stash file                  (SSL_CLNT_STASH) = 
 
- Maximum query degree of parallelism   (MAX_QUERYDEGREE) = 3
+ Maximum query degree of parallelism   (MAX_QUERYDEGREE) = 5
  Enable intra-partition parallelism     (INTRA_PARALLEL) = NO
 
  Maximum Asynchronous TQs per query    (FEDERATED_ASYNC) = 0
@@ -112,7 +112,7 @@
  Number of FCM buffers                 (FCM_NUM_BUFFERS) = AUTOMATIC(4096)
  FCM buffer size                       (FCM_BUFFER_SIZE) = 32768
  Number of FCM channels               (FCM_NUM_CHANNELS) = AUTOMATIC(2048)
- FCM parallelism                       (FCM_PARALLELISM) = AUTOMATIC(1)
+ FCM parallelism                       (FCM_PARALLELISM) = AUTOMATIC(3)
  Node connection elapse time (sec)         (CONN_ELAPSE) = 60
  Max number of node connection retries (MAX_CONNRETRIES) = 5
  Max time difference between nodes (min) (MAX_TIME_DIFF) = 60
@@ -135,3 +135,4 @@
  Path to R runtime                              (R_PATH) = 
 
  Multipart upload part size            (MULTIPARTSIZEMB) = 100
+

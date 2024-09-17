@@ -127,40 +127,105 @@ def test_check_db_cfg(mocker):
   ])
 
 
+@pytest.mark.parametrize("test_case_name, expected_failures", [
+  # This test case simulates what will happen when we run the validate_db2_config using the IoT Db2uInstance CR
+  # as we have it today in fvtsaas after the CR settings have been applied successfully to DB2
+  # (there are currently no custom settings set for IoT, so the validate should skip all the checks)
+  (
+    "iot",[
+    ]
+  ),
 
-def test_validate_db2_config(mocker):
+  # This test case simulates what will happen when we run the validate_db2_config using the Manage Db2uInstance CR
+  # as we have it today in fvtsaas after the CR settings have been applied successfully to DB2
+  (
+    "manage_pass",[
+    ]
+  ),
+
+  # This test case simulates what will happen when we run the validate_db2_config using the Manage Db2uInstance CR
+  # as we have it today in fvtsaas against default DB2 configuration values
+  ("manage_fail", [
+    "[db cfg for BLUDB] APPLHEAPSZ: WRONG != AUTOMATIC(256)",
+    "[db cfg for BLUDB] AUTHN_CACHE_DURATION: 10 != 3",
+    "[db cfg for BLUDB] AUTHN_CACHE_USERS: 100 != 0",
+    "[db cfg for BLUDB] AUTO_REORG: OFF != ON",
+    "[db cfg for BLUDB] CATALOGCACHE_SZ: 800 != 742",
+    "[db cfg for BLUDB] CHNGPGS_THRESH: 40 != 80",
+    "[db cfg for BLUDB] DDL_CONSTRAINT_DEF: YES != NO",
+    "[db cfg for BLUDB] LOCKTIMEOUT: 300 != -1",
+    "[db cfg for BLUDB] LOGBUFSZ: 1024 != 2152",
+    "[db cfg for BLUDB] LOGFILSIZ: 32768 != 50000",
+    "[db cfg for BLUDB] LOGPRIMARY: 100 != 20",
+    "[db cfg for BLUDB] LOGSECOND: 156 != 30",
+    "[db cfg for BLUDB] MIRRORLOGPATH: /mnt/backup != ",
+    "[db cfg for BLUDB] NUM_DB_BACKUPS: 60 != 2",
+    "[db cfg for BLUDB] REC_HIS_RETENTN: 60 != 0",
+    "[db cfg for BLUDB] SHEAPTHRES_SHR: automatic != 1336548",
+    "[db cfg for BLUDB] SORTHEAP: automatic != 66827",
+    "[db cfg for BLUDB] STMTHEAP: 20000 != AUTOMATIC(16384)",
+    "[db cfg for BLUDB] STMT_CONC: LITERALS != OFF",
+    "[db cfg for BLUDB] WLM_ADMISSION_CTRL: NO != YES",
+    "[dbm cfg] AGENT_STACK_SZ: WRONG != 1024",
+    "[dbm cfg] FENCED_POOL: 50 != AUTOMATIC(MAX_COORDAGENTS)",
+    "[dbm cfg] KEEPFENCED: NO != YES",
+    "[registry cfg] DB2AUTH: WRONG != OSAUTHDB",
+    "[registry cfg] DB2_4K_DEVICE_SUPPORT not found in output of db2set command",
+    "[registry cfg] DB2_BCKP_PAGE_VERIFICATION not found in output of db2set command",
+    "[registry cfg] DB2_CDE_REDUCED_LOGGING not found in output of db2set command",
+    "[registry cfg] DB2_EVALUNCOMMITTED not found in output of db2set command",
+    "[registry cfg] DB2_FMP_COMM_HEAPSZ not found in output of db2set command",
+    "[registry cfg] DB2_FMP_RUN_AS_CONNECTED_USER: NO != YES",
+    "[registry cfg] DB2_INLIST_TO_NLJN not found in output of db2set command",
+    "[registry cfg] DB2_MINIMIZE_LISTPREFETCH not found in output of db2set command",
+    "[registry cfg] DB2_OBJECT_STORAGE_LOCAL_STAGING_PATH: /mnt/backup/staging != /mnt/bludata0/scratch/db2/RemoteStorage",
+    "[registry cfg] DB2_SKIPDELETED not found in output of db2set command",
+    "[registry cfg] DB2_SKIPINSERTED not found in output of db2set command",
+    "[registry cfg] DB2_USE_ALTERNATE_PAGE_CLEANING: ON != ON [DB2_WORKLOAD]",
+    "[registry cfg] DB2_WORKLOAD: MAXIMO != ANALYTICS",
+  ]),
+])
+def test_validate_db2_config(test_case_name, expected_failures, mocker):
 
   current_dir = os.path.dirname(os.path.abspath(__file__))
 
   mock_get_db2u_instance_cr = mocker.patch("mas.devops.db2.get_db2u_instance_cr")
-  with open(os.path.join(current_dir, "..", "files", "db2uinstance.yaml"), "r") as f:
+  with open(os.path.join(current_dir, "..", "test_cases", test_case_name, "db2uinstance.yaml"), "r") as f:
     mock_get_db2u_instance_cr.return_value = yaml.load(f, Loader=yaml.FullLoader)
   
   mock_db2_pod_exec_db2_get_db_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
-  with open(os.path.join(current_dir, "..", "files", "db2getdbcfg.txt"), "r") as f:
-    mock_db2_pod_exec_db2_get_db_cfg.return_value = f.read()
-  
+  try:
+    with open(os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbcfg.txt"), "r") as f:
+      mock_db2_pod_exec_db2_get_db_cfg.return_value = f.read()
+  except FileNotFoundError:
+    mock_db2_pod_exec_db2_get_db_cfg.return_value = None
+    
   mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg")
-  with open(os.path.join(current_dir, "..", "files", "db2getdbmcfg.txt"), "r") as f:
-    mock_db2_pod_exec_db2_get_dbm_cfg.return_value = f.read()
+  try:
+    with open(os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbmcfg.txt"), "r") as f:
+      mock_db2_pod_exec_db2_get_dbm_cfg.return_value = f.read()
+  except FileNotFoundError:
+    mock_db2_pod_exec_db2_get_dbm_cfg.return_value = None
   
   mock_db2_pod_exec_db2set = mocker.patch("mas.devops.db2.db2_pod_exec_db2set")
-  with open(os.path.join(current_dir, "..", "files", "db2set.txt"), "r") as f:
-      mock_db2_pod_exec_db2set.return_value = f.read()
-
+  try:
+    with open(os.path.join(current_dir, "..", "test_cases", test_case_name, "db2set.txt"), "r") as f:
+        mock_db2_pod_exec_db2set.return_value = f.read()
+  except FileNotFoundError:
+    mock_db2_pod_exec_db2set.return_value = None
+  
   mock_ApiClient = mocker.patch("kubernetes.client.api_client.ApiClient")
   mock_k8s_client = mock_ApiClient.return_value
 
   mas_instance_id = "unittest"
   mas_app_id = "manage"
 
-  with pytest.raises(Exception) as ex:
+  if len(expected_failures) == 0:
     db2.validate_db2_config(mock_k8s_client, mas_instance_id, mas_app_id)
+  else:
+    with pytest.raises(Exception) as ex:
+      db2.validate_db2_config(mock_k8s_client, mas_instance_id, mas_app_id)
 
-  assert ex.value.args[0]["message"] == "3 checks failed"
-  assert set(ex.value.args[0]["details"]) == set([
-    "[db cfg for BLUDB] APPLHEAPSZ: WRONG != AUTOMATIC(8192)",
-    "[dbm cfg] AGENT_STACK_SZ: WRONG != 1024",
-    "[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"
-  ])
-  
+    assert ex.value.args[0]["message"] == f"{len(expected_failures)} checks failed"
+    assert set(ex.value.args[0]["details"]) == set(expected_failures)
+    

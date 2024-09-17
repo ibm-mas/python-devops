@@ -1,0 +1,349 @@
+apiVersion: db2u.databases.ibm.com/v1
+kind: Db2uInstance
+metadata:
+  annotations:
+    db2u/certs-api-key: '[secure]'
+    db2u/certs-api-cert: '[secure]'
+    argocd.argoproj.io/sync-wave: '122'
+    db2u/sshkeys-db2uadm: '[secure]'
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"db2u.databases.ibm.com/v1","kind":"Db2uInstance","metadata":{"annotations":{"argocd.argoproj.io/sync-options":"SkipDryRunOnMissingResource=true","argocd.argoproj.io/sync-wave":"122"},"labels":{"app.kubernetes.io/instance":"db2-db.fvtsaas.fvtsaas.manage"},"name":"db2wh-fvtsaas-manage","namespace":"db2u-fvtsaas"},"spec":{"account":{"imagePullSecrets":["ibm-registry"],"securityConfig":{"privilegedSysctlInit":true}},"addOns":{"audit":{"applyDefaultPolicy":true,"archiveToDb":true,"enableAudit":true,"interval":"15"}},"environment":{"databases":[{"dbConfig":{"APPLHEAPSZ":"8192 AUTOMATIC","AUTHN_CACHE_DURATION":"10","AUTHN_CACHE_USERS":"100","AUTO_DB_BACKUP":"OFF","AUTO_DEL_REC_OBJ":"ON","AUTO_MAINT":"ON","AUTO_REORG":"OFF","AUTO_REVAL":"DEFERRED","AUTO_RUNSTATS":"ON","AUTO_TBL_MAINT":"ON","CATALOGCACHE_SZ":"800","CHNGPGS_THRESH":"40","CUR_COMMIT":"ON","DATABASE_MEMORY":"AUTOMATIC","DBHEAP":"AUTOMATIC","DDL_CONSTRAINT_DEF":"YES","DEC_TO_CHAR_FMT":"NEW","DFT_QUERYOPT":"5","DFT_TABLE_ORG":"ROW","LOCKLIST":"AUTOMATIC","LOCKTIMEOUT":"300","LOGBUFSZ":"1024","LOGFILSIZ":"32768","LOGPRIMARY":"100","LOGSECOND":"156","MAXFILOP":"61440","MIRRORLOGPATH":"/mnt/backup/MIRRORLOGPATH","NUM_DB_BACKUPS":"60","NUM_IOCLEANERS":"AUTOMATIC","NUM_IOSERVERS":"AUTOMATIC","PCKCACHESZ":"AUTOMATIC","REC_HIS_RETENTN":"60","SHEAPTHRES_SHR":"automatic","SOFTMAX":"0","SORTHEAP":"automatic","STAT_HEAP_SZ":"AUTOMATIC","STMTHEAP":"20000","STMT_CONC":"LITERALS","TRACKMOD":"YES","WLM_ADMISSION_CTRL":"NO"},"name":"BLUDB","settings":{"dftTableOrg":"ROW"}}],"dbType":"db2wh","instance":{"dbmConfig":{"AGENT_STACK_SZ":"1024","FENCED_POOL":"50","HEALTH_MON":"OFF","KEEPFENCED":"NO","MON_HEAP_SZ":"AUTOMATIC","RQRIOBLK":"65535"},"registry":{"DB2AUTH":"OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD","DB2_4K_DEVICE_SUPPORT":"ON","DB2_BCKP_PAGE_VERIFICATION":"TRUE","DB2_CDE_REDUCED_LOGGING":"REDUCED_REDO:NO","DB2_EVALUNCOMMITTED":"YES","DB2_FMP_COMM_HEAPSZ":"65536","DB2_FMP_RUN_AS_CONNECTED_USER":"NO","DB2_INLIST_TO_NLJN":"YES","DB2_MINIMIZE_LISTPREFETCH":"Y","DB2_OBJECT_STORAGE_LOCAL_STAGING_PATH":"/mnt/backup/staging","DB2_SKIPDELETED":"ON","DB2_SKIPINSERTED":"ON","DB2_USE_ALTERNATE_PAGE_CLEANING":"ON","DB2_WORKLOAD":"MAXIMO"}},"partitionConfig":{"total":1},"ssl":{"allowSslOnly":true,"certLabel":"CN=db2u","secretName":"db2u-certificate-db2wh-fvtsaas-manage"}},"license":{"accept":true},"nodes":1,"podTemplate":{"db2u":{"resource":{"db2u":{"limits":{"cpu":"6","memory":"16Gi"},"requests":{"cpu":"4","memory":"8Gi"}}}}},"storage":[{"name":"meta","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"20Gi"}},"storageClassName":"efsfvtsaas"},"type":"create"},{"name":"backup","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"create"},{"name":"data","spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"tempts","spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"activelogs","spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"auditlogs","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"template"},{"name":"archivelogs","spec":{"accessModes":["ReadWriteMany"],"resources":{"requests":{"storage":"100Gi"}},"storageClassName":"efsfvtsaas"},"type":"create"}],"version":"s11.5.9.0-cn1"}}
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    db2u/license: '[secure]'
+    db2u/certs-wv-rest: '[secure]'
+    db2u/sshkeys-db2instusr: '[secure]'
+    db2u/sshkeys-db2uhausr: '[secure]'
+  resourceVersion: '672474'
+  name: db2wh-fvtsaas-manage
+  uid: 070a6c2a-ecbd-42da-81fd-02aa1f1a03d8
+  creationTimestamp: '2024-09-17T13:37:08Z'
+  generation: 2
+  managedFields:
+    - apiVersion: db2u.databases.ibm.com/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:argocd.argoproj.io/sync-options': {}
+            'f:argocd.argoproj.io/sync-wave': {}
+            'f:kubectl.kubernetes.io/last-applied-configuration': {}
+          'f:labels':
+            .: {}
+            'f:app.kubernetes.io/instance': {}
+        'f:spec':
+          'f:version': {}
+          'f:storage': {}
+          'f:addOns':
+            .: {}
+            'f:audit':
+              .: {}
+              'f:applyDefaultPolicy': {}
+              'f:archiveToDb': {}
+              'f:enableAudit': {}
+              'f:interval': {}
+          'f:podTemplate':
+            .: {}
+            'f:db2u':
+              .: {}
+              'f:resource':
+                .: {}
+                'f:db2u':
+                  .: {}
+                  'f:limits':
+                    .: {}
+                    'f:cpu': {}
+                    'f:memory': {}
+                  'f:requests':
+                    .: {}
+                    'f:cpu': {}
+                    'f:memory': {}
+          'f:license':
+            .: {}
+            'f:accept': {}
+          .: {}
+          'f:account':
+            .: {}
+            'f:imagePullSecrets': {}
+            'f:securityConfig':
+              .: {}
+              'f:privilegedSysctlInit': {}
+          'f:nodes': {}
+          'f:environment':
+            .: {}
+            'f:databases': {}
+            'f:dbType': {}
+            'f:instance':
+              .: {}
+              'f:dbmConfig':
+                .: {}
+                'f:AGENT_STACK_SZ': {}
+                'f:FENCED_POOL': {}
+                'f:HEALTH_MON': {}
+                'f:KEEPFENCED': {}
+                'f:MON_HEAP_SZ': {}
+                'f:RQRIOBLK': {}
+              'f:registry':
+                'f:DB2_OBJECT_STORAGE_LOCAL_STAGING_PATH': {}
+                'f:DB2_CDE_REDUCED_LOGGING': {}
+                'f:DB2_FMP_RUN_AS_CONNECTED_USER': {}
+                'f:DB2AUTH': {}
+                'f:DB2_EVALUNCOMMITTED': {}
+                'f:DB2_INLIST_TO_NLJN': {}
+                'f:DB2_USE_ALTERNATE_PAGE_CLEANING': {}
+                .: {}
+                'f:DB2_4K_DEVICE_SUPPORT': {}
+                'f:DB2_FMP_COMM_HEAPSZ': {}
+                'f:DB2_BCKP_PAGE_VERIFICATION': {}
+                'f:DB2_WORKLOAD': {}
+                'f:DB2_SKIPINSERTED': {}
+                'f:DB2_MINIMIZE_LISTPREFETCH': {}
+                'f:DB2_SKIPDELETED': {}
+            'f:partitionConfig':
+              .: {}
+              'f:total': {}
+            'f:ssl':
+              .: {}
+              'f:allowSslOnly': {}
+              'f:certLabel': {}
+      manager: argocd-controller
+      operation: Update
+      time: '2024-09-17T13:37:08Z'
+    - apiVersion: db2u.databases.ibm.com/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            'f:db2u/certs-api-cert': {}
+            'f:db2u/certs-api-key': {}
+            'f:db2u/certs-wv-rest': {}
+            'f:db2u/license': {}
+            'f:db2u/sshkeys-db2instusr': {}
+            'f:db2u/sshkeys-db2uadm': {}
+            'f:db2u/sshkeys-db2uhausr': {}
+        'f:spec':
+          'f:environment':
+            'f:authentication':
+              .: {}
+              'f:ldap':
+                .: {}
+                'f:blueAdminPassword':
+                  .: {}
+                  'f:value': {}
+                'f:enabled': {}
+                'f:password':
+                  .: {}
+                  'f:value': {}
+            'f:instance':
+              'f:password':
+                .: {}
+                'f:value': {}
+            'f:partitionConfig':
+              'f:dataOnMln0': {}
+              'f:volumePerPartition': {}
+            'f:ssl':
+              'f:secretName': {}
+      manager: manager
+      operation: Update
+      time: '2024-09-17T13:37:35Z'
+    - apiVersion: db2u.databases.ibm.com/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          .: {}
+          'f:conditions': {}
+          'f:maintenanceState': {}
+          'f:state': {}
+          'f:version': {}
+      manager: manager
+      operation: Update
+      subresource: status
+      time: '2024-09-17T13:47:17Z'
+  namespace: db2u-fvtsaas
+  labels:
+    app.kubernetes.io/instance: db2-db.fvtsaas.fvtsaas.manage
+spec:
+  account:
+    imagePullSecrets:
+      - ibm-registry
+    securityConfig:
+      privilegedSysctlInit: true
+  addOns:
+    audit:
+      applyDefaultPolicy: true
+      archiveToDb: true
+      enableAudit: true
+      interval: '15'
+  environment:
+    authentication:
+      ldap:
+        blueAdminPassword:
+          value: '[secure]'
+        enabled: true
+        password:
+          value: '[secure]'
+    databases:
+      - dbConfig:
+          AUTO_REORG: 'OFF'
+          AUTO_RUNSTATS: 'ON'
+          AUTO_DEL_REC_OBJ: 'ON'
+          DATABASE_MEMORY: AUTOMATIC
+          MAXFILOP: '61440'
+          DFT_TABLE_ORG: ROW
+          WLM_ADMISSION_CTRL: 'NO'
+          REC_HIS_RETENTN: '60'
+          LOCKLIST: AUTOMATIC
+          NUM_DB_BACKUPS: '60'
+          SORTHEAP: automatic
+          MIRRORLOGPATH: /mnt/backup/MIRRORLOGPATH
+          AUTO_TBL_MAINT: 'ON'
+          DBHEAP: AUTOMATIC
+          AUTHN_CACHE_DURATION: '10'
+          DEC_TO_CHAR_FMT: NEW
+          SHEAPTHRES_SHR: automatic
+          AUTO_MAINT: 'ON'
+          STAT_HEAP_SZ: AUTOMATIC
+          PCKCACHESZ: AUTOMATIC
+          NUM_IOSERVERS: AUTOMATIC
+          AUTHN_CACHE_USERS: '100'
+          AUTO_DB_BACKUP: 'OFF'
+          STMTHEAP: '20000'
+          CUR_COMMIT: 'ON'
+          LOCKTIMEOUT: '300'
+          DDL_CONSTRAINT_DEF: 'YES'
+          LOGBUFSZ: '1024'
+          TRACKMOD: 'YES'
+          LOGSECOND: '156'
+          STMT_CONC: LITERALS
+          DFT_QUERYOPT: '5'
+          SOFTMAX: '0'
+          NUM_IOCLEANERS: AUTOMATIC
+          CATALOGCACHE_SZ: '800'
+          CHNGPGS_THRESH: '40'
+          AUTO_REVAL: DEFERRED
+          LOGPRIMARY: '100'
+          APPLHEAPSZ: 8192 AUTOMATIC
+          LOGFILSIZ: '32768'
+        name: BLUDB
+        settings:
+          dftTableOrg: ROW
+    dbType: db2wh
+    instance:
+      dbmConfig:
+        AGENT_STACK_SZ: '1024'
+        FENCED_POOL: '50'
+        HEALTH_MON: 'OFF'
+        KEEPFENCED: 'NO'
+        MON_HEAP_SZ: AUTOMATIC
+        RQRIOBLK: '65535'
+      password:
+        value: '[secure]'
+      registry:
+        DB2_USE_ALTERNATE_PAGE_CLEANING: 'ON'
+        DB2_SKIPINSERTED: 'ON'
+        DB2_WORKLOAD: MAXIMO
+        DB2_4K_DEVICE_SUPPORT: 'ON'
+        DB2_FMP_COMM_HEAPSZ: '65536'
+        DB2_MINIMIZE_LISTPREFETCH: 'Y'
+        DB2_SKIPDELETED: 'ON'
+        DB2_INLIST_TO_NLJN: 'YES'
+        DB2_OBJECT_STORAGE_LOCAL_STAGING_PATH: /mnt/backup/staging
+        DB2_CDE_REDUCED_LOGGING: 'REDUCED_REDO:NO'
+        DB2_FMP_RUN_AS_CONNECTED_USER: 'NO'
+        DB2AUTH: 'OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD'
+        DB2_EVALUNCOMMITTED: 'YES'
+        DB2_BCKP_PAGE_VERIFICATION: 'TRUE'
+    partitionConfig:
+      dataOnMln0: true
+      total: 1
+      volumePerPartition: true
+    ssl:
+      allowSslOnly: true
+      certLabel: CN=db2u
+      secretName: '[secure]'
+  license:
+    accept: true
+  nodes: 1
+  podTemplate:
+    db2u:
+      resource:
+        db2u:
+          limits:
+            cpu: '6'
+            memory: 16Gi
+          requests:
+            cpu: '4'
+            memory: 8Gi
+  storage:
+    - name: meta
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 20Gi
+        storageClassName: efsfvtsaas
+      type: create
+    - name: backup
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: create
+    - name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: tempts
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: activelogs
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: auditlogs
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: archivelogs
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: create
+  version: s11.5.9.0-cn1
+status:
+  conditions:
+    - lastTransitionTime: '2024-09-17T13:47:17Z'
+      status: OK
+      type: FormationStatus
+  maintenanceState: None
+  state: Ready
+  version: s11.5.9.0-cn1

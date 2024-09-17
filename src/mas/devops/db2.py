@@ -173,7 +173,7 @@ def check_dbm_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
   dbm_cfg_cr = db2u_instance_cr.get("spec", {}).get("environment", {}).get("instance", {}).get("dbmConfig", {})
   if len(dbm_cfg_cr) == 0:
     logger.info("spec.environment.instance.dbmConfig not found or empty, skipping dbm cfg checks\n")
-    return failures
+    return []
 
   dbm_cfg_pod = db2_pod_exec_db2_get_dbm_cfg(core_v1_api, mas_instance_id, mas_app_id)
 
@@ -222,7 +222,7 @@ def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
   reg_cfg_cr = db2u_instance_cr.get("spec", {}).get("environment", {}).get("instance", {}).get("registry", {})
   if len(reg_cfg_cr) == 0:
     logger.info("spec.environment.instance.registry not found or empty, skipping registry cfg checks\n")
-    return failures
+    return []
 
   reg_cfg_pod = db2_pod_exec_db2set(core_v1_api, mas_instance_id, mas_app_id)
   

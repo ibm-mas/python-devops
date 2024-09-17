@@ -1,4 +1,4 @@
-       Database Configuration for Database 
+       Database Configuration for Database BLUDB
 
  Database configuration release level                    = 0x1500
  Database release level                                  = 0x1500
@@ -47,18 +47,18 @@
  User exit for logging status                            = YES
 
  Self tuning memory                    (SELF_TUNING_MEM) = ON
- Size of database shared memory (4KB)  (DATABASE_MEMORY) = AUTOMATIC(3138512)
+ Size of database shared memory (4KB)  (DATABASE_MEMORY) = AUTOMATIC(3453102)
  Database memory threshold               (DB_MEM_THRESH) = 100
  Max storage for lock list (4KB)              (LOCKLIST) = AUTOMATIC(15360)
  Percent. of lock lists per application       (MAXLOCKS) = AUTOMATIC(98)
  Package cache size (4KB)                   (PCKCACHESZ) = AUTOMATIC(65536)
- Sort heap thres for shared sorts (4KB) (SHEAPTHRES_SHR) = AUTOMATIC(119028)
- Sort list heap (4KB)                         (SORTHEAP) = AUTOMATIC(5951)
+ Sort heap thres for shared sorts (4KB) (SHEAPTHRES_SHR) = AUTOMATIC(120670)
+ Sort list heap (4KB)                         (SORTHEAP) = AUTOMATIC(6033)
 
- Database heap (4KB)                            (DBHEAP) = AUTOMATIC(6554)
+ Database heap (4KB)                            (DBHEAP) = AUTOMATIC(6602)
  Catalog cache size (4KB)              (CATALOGCACHE_SZ) = 800
  Log buffer size (4KB)                        (LOGBUFSZ) = 1024
- Utilities heap size (4KB)                (UTIL_HEAP_SZ) = AUTOMATIC(259519)
+ Utilities heap size (4KB)                (UTIL_HEAP_SZ) = AUTOMATIC(269628)
  SQL statement heap (4KB)                     (STMTHEAP) = 20000
  Default application heap (4KB)             (APPLHEAPSZ) = AUTOMATIC(8192)
  Application Memory Size (4KB)             (APPL_MEMORY) = AUTOMATIC(40000)
@@ -91,8 +91,8 @@
  Changed path to log files                  (NEWLOGPATH) = 
  Path to log files                                       = /mnt/logs/active/BLUDB/NODE0000/LOGSTREAM0000/
  Overflow log path                     (OVERFLOWLOGPATH) = 
- Mirror log path                         (MIRRORLOGPATH) = /mnt/backup/NODE0000/LOGSTREAM0000/
- First active log file                                   = S0000006.LOG
+ Mirror log path                         (MIRRORLOGPATH) = /mnt/backup/MIRRORLOGPATH/NODE0000/LOGSTREAM0000/
+ First active log file                                   = S0000010.LOG
  Block log on disk full                (BLK_LOG_DSK_FUL) = NO
  Block non logged operations            (BLOCKNONLOGGED) = NO
  Percent max primary log space by transaction  (MAX_LOG) = 0
@@ -207,3 +207,5 @@
  LOCKLIST size to be used by optimizer   (OPT_LOCKLIST) = 0
  MAXLOCKS size to be used by optimizer   (OPT_MAXLOCKS) = 0
  SORTHEAP size to be used by optimizer   (OPT_SORTHEAP) = 0
+
+
