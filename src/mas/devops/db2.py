@@ -49,8 +49,6 @@ def db2_pod_exec(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id
 def db2_pod_exec_db2_get_db_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, db_name: str) -> str:
   command = ["su", "-lc", f"db2 get db cfg for {db_name}", "db2inst1"]
   return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command)
-  # with open("./files/db2getdbcfg.txt", "r") as f:
-  #   return f.read()
 
 def db2_pod_exec_db2_get_dbm_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> str:
   command = ["su", "-lc", f"db2 get dbm cfg", "db2inst1"]
@@ -103,7 +101,7 @@ def check_db_cfg(db_dr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: st
 
     logger.info(f"Checking db cfg for {db_name}\n{H1_BREAK}")
 
-    db_cfg_cr = db_dr['dbConfig']
+    db_cfg_cr = db_dr.get('dbConfig', None)
     if db_cfg_cr is None or len(db_cfg_cr) == 0:
       logger.info(f"No dbConfig for db {db_name} found in CR, skipping db cfg checks for {db_name}\n")
       return []

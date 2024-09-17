@@ -61,7 +61,8 @@ setup(
         'dev': [
             'build',       # MIT License
             'flake8',      # MIT License
-            'pytest'      # MIT License
+            'pytest',      # MIT License
+            'pytest-mock'  # MIT License
         ]
     },
     classifiers=[
