@@ -8,6 +8,7 @@
 #
 # *****************************************************************************
 
+import os
 import pytest
 import yaml
 
@@ -103,10 +104,6 @@ def test_check_db_cfg_empty_dbConfig(mocker):
   assert db2.check_db_cfg(dict(name="a", dbConfig=[]), None, None, None) == []
 
 
-def read_file(path: str) -> str:
-  with open(path, "r") as f:
-    return f.read()
-
 def test_check_db_cfg(mocker):
 
   mock_db2_pod_exec_db2_get_db_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
@@ -128,3 +125,42 @@ def test_check_db_cfg(mocker):
     f"[db cfg for {db_name}] NOTFOUNDINOUTPUT not found in output of db2 get db cfg command",
     f"[db cfg for {db_name}] CHNGPGS_THRESH: 40 != 80"
   ])
+
+
+
+def test_validate_db2_config(mocker):
+
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+
+  mock_get_db2u_instance_cr = mocker.patch("mas.devops.db2.get_db2u_instance_cr")
+  with open(os.path.join(current_dir, "..", "files", "db2uinstance.yaml"), "r") as f:
+    mock_get_db2u_instance_cr.return_value = yaml.load(f, Loader=yaml.FullLoader)
+  
+  mock_db2_pod_exec_db2_get_db_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
+  with open(os.path.join(current_dir, "..", "files", "db2getdbcfg.txt"), "r") as f:
+    mock_db2_pod_exec_db2_get_db_cfg.return_value = f.read()
+  
+  mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg")
+  with open(os.path.join(current_dir, "..", "files", "db2getdbmcfg.txt"), "r") as f:
+    mock_db2_pod_exec_db2_get_dbm_cfg.return_value = f.read()
+  
+  mock_db2_pod_exec_db2set = mocker.patch("mas.devops.db2.db2_pod_exec_db2set")
+  with open(os.path.join(current_dir, "..", "files", "db2set.txt"), "r") as f:
+      mock_db2_pod_exec_db2set.return_value = f.read()
+
+  mock_ApiClient = mocker.patch("kubernetes.client.api_client.ApiClient")
+  mock_k8s_client = mock_ApiClient.return_value
+
+  mas_instance_id = "unittest"
+  mas_app_id = "manage"
+
+  with pytest.raises(Exception) as ex:
+    db2.validate_db2_config(mock_k8s_client, mas_instance_id, mas_app_id)
+
+  assert ex.value.args[0]["message"] == "3 checks failed"
+  assert set(ex.value.args[0]["details"]) == set([
+    "[db cfg for BLUDB] APPLHEAPSZ: WRONG != AUTOMATIC(8192)",
+    "[dbm cfg] AGENT_STACK_SZ: WRONG != 1024",
+    "[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"
+  ])
+  

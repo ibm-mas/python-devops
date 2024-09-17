@@ -1,0 +1,137 @@
+          Database Manager Configuration
+
+     Node type = Enterprise Server Edition with local and remote clients
+
+ Database manager configuration release level            = 0x1500
+
+ CPU speed (millisec/instruction)             (CPUSPEED) = 9.446887e-08
+ Communications bandwidth (MB/sec)      (COMM_BANDWIDTH) = 1.000000e+02
+
+ Max number of concurrently active databases     (NUMDB) = 1
+ Federated Database System Support           (FEDERATED) = YES
+ Transaction processor monitor name        (TP_MON_NAME) = 
+
+ Default charge-back account           (DFT_ACCOUNT_STR) = 
+
+ Java Development Kit installation path       (JDK_PATH) = /mnt/blumeta0/home/db2inst1/sqllib/java/jdk64
+
+ Diagnostic error capture level              (DIAGLEVEL) = 3
+ Notify Level                              (NOTIFYLEVEL) = 3
+ Diagnostic data directory path               (DIAGPATH) = /mnt/blumeta0/db2/log/ $N
+ Current member resolved DIAGPATH                        = /mnt/blumeta0/db2/log/NODE0000/
+ Alternate diagnostic data directory path (ALT_DIAGPATH) = 
+ Current member resolved ALT_DIAGPATH                    = 
+ Size of rotating db2diag & notify logs (MB)  (DIAGSIZE) = 300
+
+ Default database monitor switches
+   Buffer pool                         (DFT_MON_BUFPOOL) = OFF
+   Lock                                   (DFT_MON_LOCK) = OFF
+   Sort                                   (DFT_MON_SORT) = OFF
+   Statement                              (DFT_MON_STMT) = OFF
+   Table                                 (DFT_MON_TABLE) = OFF
+   Timestamp                         (DFT_MON_TIMESTAMP) = ON
+   Unit of work                            (DFT_MON_UOW) = OFF
+ Monitor health of instance and databases   (HEALTH_MON) = OFF
+
+ SYSADM group name                        (SYSADM_GROUP) = DB2IADM1
+ SYSCTRL group name                      (SYSCTRL_GROUP) = BLUADMIN
+ SYSMAINT group name                    (SYSMAINT_GROUP) = BLUADMIN
+ SYSMON group name                        (SYSMON_GROUP) = BLUADMIN
+
+ Client Userid-Password Plugin          (CLNT_PW_PLUGIN) = 
+ Client Kerberos Plugin                (CLNT_KRB_PLUGIN) = 
+ Group Plugin                             (GROUP_PLUGIN) = 
+ GSS Plugin for Local Authorization    (LOCAL_GSSPLUGIN) = 
+ Server Plugin Mode                    (SRV_PLUGIN_MODE) = UNFENCED
+ Server List of GSS Plugins      (SRVCON_GSSPLUGIN_LIST) = 
+ Server Userid-Password Plugin        (SRVCON_PW_PLUGIN) = 
+ Server Connection Authentication          (SRVCON_AUTH) = NOT_SPECIFIED
+ Cluster manager                                         = 
+
+ Database manager authentication        (AUTHENTICATION) = SERVER_ENCRYPT
+ Alternate authentication           (ALTERNATE_AUTH_ENC) = NOT_SPECIFIED
+ Cataloging allowed without authority   (CATALOG_NOAUTH) = NO
+ Trust all clients                      (TRUST_ALLCLNTS) = YES
+ Trusted client authentication          (TRUST_CLNTAUTH) = CLIENT
+ Bypass federated authentication            (FED_NOAUTH) = NO
+
+ Default database path                       (DFTDBPATH) = /mnt/blumeta0/db2/databases
+
+ Database monitor heap size (4KB)          (MON_HEAP_SZ) = AUTOMATIC(90)
+ Java Virtual Machine heap size (4KB)     (JAVA_HEAP_SZ) = 65536
+ Audit buffer size (4KB)                  (AUDIT_BUF_SZ) = 65000
+ Global instance memory (% or 4KB)     (INSTANCE_MEMORY) = 24
+ Member instance memory (% or 4KB)                       = GLOBAL
+ Agent stack size                       (AGENT_STACK_SZ) = 1024
+ Sort heap threshold (4KB)                  (SHEAPTHRES) = 0
+
+ Directory cache support                     (DIR_CACHE) = YES
+
+ Application support layer heap size (4KB)   (ASLHEAPSZ) = 15
+ Max requester I/O block size (bytes)         (RQRIOBLK) = 65535
+ Workload impact by throttled utilities(UTIL_IMPACT_LIM) = 10
+
+ Priority of agents                           (AGENTPRI) = SYSTEM
+ Agent pool size                        (NUM_POOLAGENTS) = AUTOMATIC(100)
+ Initial number of agents in pool       (NUM_INITAGENTS) = 0
+ Max number of coordinating agents     (MAX_COORDAGENTS) = AUTOMATIC(200)
+ Max number of client connections      (MAX_CONNECTIONS) = AUTOMATIC(MAX_COORDAGENTS)
+
+ Keep fenced process                        (KEEPFENCED) = NO
+ Number of pooled fenced processes         (FENCED_POOL) = 50
+ Initial number of fenced processes     (NUM_INITFENCED) = 0
+
+ Index re-creation time and redo index build  (INDEXREC) = RESTART
+
+ Transaction manager database name         (TM_DATABASE) = 1ST_CONN
+ Transaction resync interval (sec)     (RESYNC_INTERVAL) = 180
+
+ SPM name                                     (SPM_NAME) = a6887fb9
+ SPM log size                          (SPM_LOG_FILE_SZ) = 256
+ SPM resync agent limit                 (SPM_MAX_RESYNC) = 20
+ SPM log path                             (SPM_LOG_PATH) = 
+
+ TCP/IP Service name                          (SVCENAME) = db2c_db2inst1
+ Discovery mode                               (DISCOVER) = DISABLE
+ Discover server instance                (DISCOVER_INST) = DISABLE
+
+ SSL server keydb file                   (SSL_SVR_KEYDB) = /mnt/blumeta0/db2/ssl_keystore/bludb_ssl.kdb
+ SSL server stash file                   (SSL_SVR_STASH) = /mnt/blumeta0/db2/ssl_keystore/bludb_ssl.sth
+ SSL server certificate label            (SSL_SVR_LABEL) = CN=db2u
+ SSL service name                         (SSL_SVCENAME) = 50001
+ SSL cipher specs                      (SSL_CIPHERSPECS) = 
+ SSL versions                             (SSL_VERSIONS) = TLSV13,TLSV12
+ SSL client keydb file                  (SSL_CLNT_KEYDB) = 
+ SSL client stash file                  (SSL_CLNT_STASH) = 
+
+ Maximum query degree of parallelism   (MAX_QUERYDEGREE) = 3
+ Enable intra-partition parallelism     (INTRA_PARALLEL) = NO
+
+ Maximum Asynchronous TQs per query    (FEDERATED_ASYNC) = 0
+
+ Number of FCM buffers                 (FCM_NUM_BUFFERS) = AUTOMATIC(4096)
+ FCM buffer size                       (FCM_BUFFER_SIZE) = 32768
+ Number of FCM channels               (FCM_NUM_CHANNELS) = AUTOMATIC(2048)
+ FCM parallelism                       (FCM_PARALLELISM) = AUTOMATIC(1)
+ Node connection elapse time (sec)         (CONN_ELAPSE) = 60
+ Max number of node connection retries (MAX_CONNRETRIES) = 5
+ Max time difference between nodes (min) (MAX_TIME_DIFF) = 60
+
+ db2start/db2stop timeout (min)        (START_STOP_TIME) = 10
+
+ WLM dispatcher enabled                 (WLM_DISPATCHER) = NO
+ WLM dispatcher concurrency            (WLM_DISP_CONCUR) = COMPUTED
+ WLM dispatcher CPU shares enabled (WLM_DISP_CPU_SHARES) = NO
+ WLM dispatcher min. utilization (%) (WLM_DISP_MIN_UTIL) = 5
+
+ Communication buffer exit library list (COMM_EXIT_LIST) = 
+ Current effective arch level         (CUR_EFF_ARCH_LVL) = V:11 R:5 M:9 F:0 I:0 SB:0
+ Current effective code level         (CUR_EFF_CODE_LVL) = V:11 R:5 M:9 F:0 I:0 SB:39066
+
+ Keystore type                           (KEYSTORE_TYPE) = PKCS12
+ Keystore location                   (KEYSTORE_LOCATION) = /mnt/blumeta0/db2/keystore/keystore.p12
+
+ Path to python runtime                    (PYTHON_PATH) = /usr/bin/python
+ Path to R runtime                              (R_PATH) = 
+
+ Multipart upload part size            (MULTIPARTSIZEMB) = 100

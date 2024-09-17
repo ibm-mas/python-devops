@@ -34,10 +34,6 @@ def get_db2u_instance_cr(custom_objects_api: client.CustomObjectsApi, mas_instan
   )
 
   return db2u_instance_cr
-  # db2u_instance_cr_path = "./files/db2uinstance.yaml"
-  # with open(db2u_instance_cr_path, "r") as f:
-  #   return yaml.load(f, Loader=yaml.FullLoader)
-
 
 
 def db2_pod_exec(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, command: list) -> str:
@@ -265,7 +261,6 @@ def validate_db2_config(k8s_client: client.api_client.ApiClient, mas_instance_id
   reg_failures = check_reg_cfg(db2u_instance_cr, core_v1_api, mas_instance_id, mas_app_id)
 
   all_failures = [*db_failures, *dbm_failures, *reg_failures]
-
 
   logger.info(f"Results\n{H1_BREAK}")
   if len(all_failures) > 0:
