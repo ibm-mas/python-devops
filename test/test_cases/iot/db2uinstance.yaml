@@ -1,0 +1,135 @@
+apiVersion: db2u.databases.ibm.com/v1
+kind: Db2uInstance
+metadata:
+  annotations:
+    db2u/certs-api-key: '[secure]'
+    db2u/certs-api-cert: '[secure]'
+    argocd.argoproj.io/sync-wave: '122'
+    db2u/sshkeys-db2uadm: '[secure]'
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    db2u/license: '[secure]'
+    db2u/certs-wv-rest: '[secure]'
+    db2u/sshkeys-db2instusr: '[secure]'
+    db2u/sshkeys-db2uhausr: '[secure]'
+  resourceVersion: '673745'
+  name: db2wh-fvtsaas-iot
+  namespace: db2u-fvtsaas
+  labels:
+    app.kubernetes.io/instance: db2-db.fvtsaas.fvtsaas.iot
+spec:
+  account:
+    imagePullSecrets:
+      - ibm-registry
+    securityConfig:
+      privilegedSysctlInit: true
+  addOns: {}
+  environment:
+    authentication:
+      ldap:
+        blueAdminPassword:
+          value: '[secure]'
+        enabled: true
+        password:
+          value: '[secure]'
+    databases:
+      - name: BLUDB
+        settings:
+          dftTableOrg: ROW
+    dbType: db2wh
+    instance:
+      password:
+        value: '[secure]'
+    partitionConfig:
+      dataOnMln0: true
+      total: 1
+      volumePerPartition: true
+    ssl:
+      allowSslOnly: true
+      certLabel: CN=db2u
+      secretName: '[secure]'
+  license:
+    accept: true
+  nodes: 1
+  podTemplate:
+    db2u:
+      resource:
+        db2u:
+          limits:
+            cpu: '6'
+            memory: 16Gi
+          requests:
+            cpu: '4'
+            memory: 8Gi
+  storage:
+    - name: meta
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 20Gi
+        storageClassName: efsfvtsaas
+      type: create
+    - name: backup
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: create
+    - name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: tempts
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: activelogs
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: auditlogs
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: template
+    - name: archivelogs
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: efsfvtsaas
+      type: create
+  version: s11.5.9.0-cn1
+status:
+  conditions:
+    - lastTransitionTime: '2024-09-17T13:47:50Z'
+      status: OK
+      type: FormationStatus
+  maintenanceState: None
+  state: Ready
+  version: s11.5.9.0-cn1
