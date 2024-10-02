@@ -24,7 +24,14 @@ spec:
     - name: ibm_entitlement_key
       value: "{{ ibm_entitlement_key }}"
 {%- endif %}
-
+{%- if artifactory_username is defined and artifactory_username != "" %}
+    # Enable development catalogs
+    # -------------------------------------------------------------------------
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+{%- endif %}
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
     # Skip pre-check
     # -------------------------------------------------------------------------
