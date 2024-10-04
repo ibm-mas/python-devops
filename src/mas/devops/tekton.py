@@ -278,6 +278,7 @@ def launchUpgradePipeline(dynClient: DynamicClient,
 
 def launchUninstallPipeline(dynClient: DynamicClient,
                             instanceId: str,
+                            droNamespace: str,
                             certManagerProvider: str = "redhat",
                             uninstallCertManager: bool = False,
                             uninstallGrafana: bool = False,
@@ -286,6 +287,7 @@ def launchUninstallPipeline(dynClient: DynamicClient,
                             uninstallUDS: bool = False,
                             uninstallMongoDb: bool = False,
                             uninstallSLS: bool = False) -> str:
+
     """
     Create a PipelineRun to uninstall the chosen MAS instance (and selected dependencies)
     """
@@ -318,7 +320,8 @@ def launchUninstallPipeline(dynClient: DynamicClient,
         ibm_catalogs_action=ibmCatalogAction,
         mongodb_action=mongoDbAction,
         sls_action=slsAction,
-        uds_action=udsAction
+        uds_action=udsAction,
+        dro_namespace=droNamespace
     )
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
