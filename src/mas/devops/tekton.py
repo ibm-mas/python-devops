@@ -22,7 +22,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists
 
 logger = logging.getLogger(__name__)
 
@@ -36,25 +36,26 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
 
     # Create the Operator Subscription
     try:
-        manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
-        defaultChannel = manifest.status.defaultChannel
-        catalogSource = manifest.status.catalogSource
-        catalogSourceNamespace = manifest.status.catalogSourceNamespace
+        if not crdExists(dynClient, "pipelines.tekton.dev"):
+            manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
+            defaultChannel = manifest.status.defaultChannel
+            catalogSource = manifest.status.catalogSource
+            catalogSourceNamespace = manifest.status.catalogSourceNamespace
 
-        logger.info(f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}")
+            logger.info(f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}")
 
-        templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-        env = Environment(
-            loader=FileSystemLoader(searchpath=templateDir)
-        )
-        template = env.get_template("subscription.yml.j2")
-        renderedTemplate = template.render(
-            pipelines_channel=defaultChannel,
-            pipelines_source=catalogSource,
-            pipelines_source_namespace=catalogSourceNamespace
-        )
-        subscription = yaml.safe_load(renderedTemplate)
-        subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")
+            templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+            env = Environment(
+                loader=FileSystemLoader(searchpath=templateDir)
+            )
+            template = env.get_template("subscription.yml.j2")
+            renderedTemplate = template.render(
+                pipelines_channel=defaultChannel,
+                pipelines_source=catalogSource,
+                pipelines_source_namespace=catalogSourceNamespace
+            )
+            subscription = yaml.safe_load(renderedTemplate)
+            subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")
 
     except NotFoundError:
         logger.warning("Error: Couldn't find package manifest for Red Hat Openshift Pipelines Operator")
@@ -277,6 +278,7 @@ def launchUpgradePipeline(dynClient: DynamicClient,
 
 def launchUninstallPipeline(dynClient: DynamicClient,
                             instanceId: str,
+                            droNamespace: str,
                             certManagerProvider: str = "redhat",
                             uninstallCertManager: bool = False,
                             uninstallGrafana: bool = False,
@@ -285,6 +287,7 @@ def launchUninstallPipeline(dynClient: DynamicClient,
                             uninstallUDS: bool = False,
                             uninstallMongoDb: bool = False,
                             uninstallSLS: bool = False) -> str:
+
     """
     Create a PipelineRun to uninstall the chosen MAS instance (and selected dependencies)
     """
@@ -317,7 +320,8 @@ def launchUninstallPipeline(dynClient: DynamicClient,
         ibm_catalogs_action=ibmCatalogAction,
         mongodb_action=mongoDbAction,
         sls_action=slsAction,
-        uds_action=udsAction
+        uds_action=udsAction,
+        dro_namespace=droNamespace
     )
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)

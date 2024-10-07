@@ -33,8 +33,7 @@ jobs:
           cat ${GITHUB_WORKSPACE}/src/mas/devops/__init__.py
           python -m pip install --upgrade pip
           pip install .[dev]
-          # There are no tests yet
-          # pytest
+          python -m pytest
 
       # 3. Flake8 Linting
       # -------------------------------------------------------------------------------------------
