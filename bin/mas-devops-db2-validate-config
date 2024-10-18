@@ -31,23 +31,21 @@ if __name__ == "__main__":
 
     args, unknown = parser.parse_known_args()
 
-    
     log_level = getattr(logging, args.log_level)
     logging.basicConfig()
     logging.getLogger('mas.devops.db2').setLevel(level=log_level)
 
-
     try:
-      # Try to load in-cluster configuration
-      config.load_incluster_config()
-      print("Loaded in-cluster configuration")
+        # Try to load in-cluster configuration
+        config.load_incluster_config()
+        print("Loaded in-cluster configuration")
     except ConfigException:
-      # If that fails, fall back to kubeconfig file
-      config.load_kube_config()
-      print("Loaded kubeconfig file")
+        # If that fails, fall back to kubeconfig file
+        config.load_kube_config()
+        print("Loaded kubeconfig file")
 
     validate_db2_config(
-      client.api_client.ApiClient(), 
-      args.mas_instance_id, 
-      args.mas_app_id
+        client.api_client.ApiClient(),
+        args.mas_instance_id,
+        args.mas_app_id
     )
