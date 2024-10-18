@@ -25,7 +25,7 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
-def connect(server: str, token: str, skipVerify: bool=False) -> bool:
+def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     """
     Connect to target OCP
     """
@@ -105,6 +105,7 @@ def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
             sleep(5)
     return foundReadyCRD
 
+
 def waitForDeployment(dynClient: DynamicClient, namespace: str, deploymentName: str) -> bool:
     deploymentAPI = dynClient.resources.get(api_version="apps/v1", kind="Deployment")
     maxRetries = 100
@@ -143,6 +144,7 @@ def getNodes(dynClient: DynamicClient) -> str:
         logger.error(f"Error: Unable to get nodes: {e}")
         return []
 
+
 def getStorageClass(dynClient: DynamicClient, name: str) -> str:
     try:
         storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
@@ -150,6 +152,7 @@ def getStorageClass(dynClient: DynamicClient, name: str) -> str:
         return storageclass
     except NotFoundError:
         return None
+
 
 def getStorageClasses(dynClient: DynamicClient) -> list:
     storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
@@ -160,10 +163,11 @@ def getStorageClasses(dynClient: DynamicClient) -> list:
 def isSNO(dynClient: DynamicClient) -> bool:
     return len(getNodes(dynClient)) == 1
 
+
 def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
     crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
     try:
-        crd = crdAPI.get(name=crdName)
+        crdAPI.get(name=crdName)
         logger.debug(f"CRD does exist: {crdName}")
         return True
     except NotFoundError:
@@ -172,54 +176,56 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
 
 # Assisted by WCA@IBM
 # Latest GenAI contribution: ibm/granite-8b-code-instruct
+
+
 def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
-  """
-  Executes a command in a Kubernetes pod and returns the standard output.
-  If running this function from inside a pod (i.e. config.load_incluster_config()), 
-  the ServiceAccount assigned to the pod must have the following access in one of the Roles bound to it:
-  rules:
-    - apiGroups:
-        - ""
-    resources:
-        - pods/exec
-    verbs: 
-        - create
-        - get
-        - list
+    """
+    Executes a command in a Kubernetes pod and returns the standard output.
+    If running this function from inside a pod (i.e. config.load_incluster_config()),
+    the ServiceAccount assigned to the pod must have the following access in one of the Roles bound to it:
+    rules:
+      - apiGroups:
+          - ""
+      resources:
+          - pods/exec
+      verbs:
+          - create
+          - get
+          - list
 
-  Args:
-    core_v1_api (client.CoreV1Api): The Kubernetes API client.
-    pod_name (str): The name of the pod to execute the command in.
-    namespace (str): The namespace of the pod.
-    command (list): The command to execute in the pod.
-    timeout (int, optional): The timeout in seconds for the command execution. Defaults to 60.
+    Args:
+      core_v1_api (client.CoreV1Api): The Kubernetes API client.
+      pod_name (str): The name of the pod to execute the command in.
+      namespace (str): The namespace of the pod.
+      command (list): The command to execute in the pod.
+      timeout (int, optional): The timeout in seconds for the command execution. Defaults to 60.
 
-  Returns:
-    str: The standard output of the command.
+    Returns:
+      str: The standard output of the command.
 
-  Raises:
-    Exception: If the command execution fails or times out.
-  """
-  logger.debug(f"Executing command {command} on pod {pod_name} in {namespace}")
-  req = stream(
-      core_v1_api.connect_get_namespaced_pod_exec,
-      pod_name, 
-      namespace, 
-      command=command, 
-      stderr=True, 
-      stdin=False, 
-      stdout=True, 
-      tty=False,
-      _preload_content=False,
-  )
-  req.run_forever(timeout)
-  stdout = req.read_stdout()
-  stderr = req.read_stderr()
+    Raises:
+      Exception: If the command execution fails or times out.
+    """
+    logger.debug(f"Executing command {command} on pod {pod_name} in {namespace}")
+    req = stream(
+        core_v1_api.connect_get_namespaced_pod_exec,
+        pod_name,
+        namespace,
+        command=command,
+        stderr=True,
+        stdin=False,
+        stdout=True,
+        tty=False,
+        _preload_content=False,
+    )
+    req.run_forever(timeout)
+    stdout = req.read_stdout()
+    stderr = req.read_stderr()
 
-  err = yaml.load(req.read_channel(ERROR_CHANNEL), Loader=yaml.FullLoader)
-  if err.get("status") == "Failure":
-    raise Exception(f"Failed to execute {command} on {pod_name} in namespace {namespace}: {err.get('message')}. stdout: {stdout}, stderr: {stderr}")
+    err = yaml.load(req.read_channel(ERROR_CHANNEL), Loader=yaml.FullLoader)
+    if err.get("status") == "Failure":
+        raise Exception(f"Failed to execute {command} on {pod_name} in namespace {namespace}: {err.get('message')}. stdout: {stdout}, stderr: {stderr}")
 
-  logger.debug(f"stdout: \n----------------------------------------------------------------\n{stdout}\n----------------------------------------------------------------\n")
-  
-  return stdout
+    logger.debug(f"stdout: \n----------------------------------------------------------------\n{stdout}\n----------------------------------------------------------------\n")
+
+    return stdout
