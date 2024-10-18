@@ -1,5 +1,11 @@
 mas.devops
 ===============================================================================
+[![Code style: PEP8](https://img.shields.io/badge/code%20style-PEP--8-blue.svg)](https://peps.python.org/pep-0008/)
+[![Flake8: checked](https://img.shields.io/badge/flake8-checked-blueviolet)](https://flake8.pycqa.org/en/latest/)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ibm-mas/python-devops/python-release.yml)
+![PyPI - Version](https://img.shields.io/pypi/v/mas.devops)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mas.devops)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/mas.devops)
 
 
 Example
