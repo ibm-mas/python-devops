@@ -346,6 +346,7 @@ spec:
     # -------------------------------------------------------------------------
     - name: dns_provider
       value: "{{ dns_provider }}"
+  {%- if cloudflare_apitoken is defined and cloudflare_apitoken != "" %}
 
     # MAS DNS Integrations - Cloudflare Support
     # -------------------------------------------------------------------------
@@ -357,6 +358,8 @@ spec:
       value: "{{ cloudflare_zone }}"
     - name: cloudflare_subdomain
       value: "{{ cloudflare_subdomain }}"
+  {%- endif %}
+  {%- if cis_apikey is defined and cis_apikey != "" %}
 
     # MAS DNS Integrations - CIS Support
     # -------------------------------------------------------------------------
@@ -368,6 +371,8 @@ spec:
       value: "{{ cis_crn }}"
     - name: cis_subdomain
       value: "{{ cis_subdomain }}"
+  {%- endif %}
+  {%- if cis_service_name is defined and cis_service_name != "" %}
 
     # MAS DNS Integrations - CIS Security Enhancement Support
     # -------------------------------------------------------------------------
@@ -379,6 +384,7 @@ spec:
       value: "{{ override_edge_certs }}"
     - name: cis_proxy
       value: "{{ cis_proxy }}"
+  {%- endif %}
 {%- endif %}
 {%- if aws_access_key_id is defined and aws_access_key_id != "" %}
 
@@ -694,7 +700,7 @@ spec:
       value: "{{ mas_app_channel_aibroker }}"
 {%- endif %}
 {%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider != "" %}
-    
+
     # AI Broker - OpenData Hub Storage
     # -------------------------------------------------------------------------
     - name: mas_aibroker_storage_provider
@@ -716,7 +722,7 @@ spec:
     - name: mas_aibroker_storage_tenants_bucket
       value: "{{ mas_aibroker_storage_tenants_bucket }}"
     - name: mas_aibroker_storage_templates_bucket
-      value: "{{ mas_aibroker_storage_templates_bucket }}"     
+      value: "{{ mas_aibroker_storage_templates_bucket }}"
     - name: mas_aibroker_tenant_name
       value: "{{ mas_aibroker_tenant_name }}"
 {%- endif %}
@@ -751,7 +757,7 @@ spec:
 {%- if mas_aibroker_s3_action is defined and mas_aibroker_s3_action != "" %}
 
     # AI Broker - S3
-    # -------------------------------------------------------------------------  
+    # -------------------------------------------------------------------------
     - name: mas_aibroker_s3_action
       value: "{{ mas_aibroker_s3_action }}"
     - name: mas_aibroker_apikey_action
