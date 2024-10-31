@@ -294,6 +294,10 @@ spec:
     - name: sls_icr_cpopen
       value: "{{ sls_icr_cpopen }}"
 {%- endif %}
+{%- if sls_mongodb_cfg_file is defined and sls_mongodb_cfg_file != "" %}
+    - name: sls_mongodb_cfg_file
+      value: "{{ sls_mongodb_cfg_file }}"
+{%- endif %}
 
     # Dependencies - UDS/DRO (Required)
     # -------------------------------------------------------------------------
