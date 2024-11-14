@@ -319,12 +319,14 @@ spec:
     # -------------------------------------------------------------------------
     - name: cos_type
       value: "{{ cos_type }}"
-    - name: ibmcos_resourcegroup
-      value: "{{ ibmcos_resourcegroup }}"
-    - name: ibmcos_instance_name
-      value: "{{ ibmcos_instance_name }}"
+    - name: cos_resourcegroup
+      value: "{{ cos_resourcegroup }}"
+    - name: cos_instance_name
+      value: "{{ cos_instance_name }}"
     - name: cos_action
       value: "{{ cos_action }}"
+    - name: cos_apikey
+      value: "{{ cos_apikey }}"
 {%- endif %}
 
     # MAS Catalog
