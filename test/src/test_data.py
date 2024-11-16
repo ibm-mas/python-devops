@@ -25,3 +25,6 @@ def test_list_catalogs():
 def test_get_newest_catalog_tag():
     catalogTag = getNewestCatalogTag("amd64")
     assert catalogTag == "v9-241107-amd64"
+
+    catalogTag = getNewestCatalogTag("doesntexist")
+    assert catalogTag is None

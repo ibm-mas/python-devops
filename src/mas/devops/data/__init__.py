@@ -31,4 +31,8 @@ def listCatalogTags(arch="amd64") -> list:
 
 
 def getNewestCatalogTag(arch="amd64") -> str:
-    return listCatalogTags(arch)[-1]
+    catalogs = listCatalogTags(arch)
+    if len(catalogs) == 0:
+        return None
+    else:
+        return catalogs[-1]
