@@ -8,6 +8,7 @@
 #
 # *****************************************************************************
 import yaml
+from glob import glob
 from os import path
 
 
@@ -17,3 +18,21 @@ def getCatalog(name: str) -> dict:
     catalogFileName = f"{name}.yaml"
     with open(path.join(modulePath, "catalogs", catalogFileName)) as stream:
         return yaml.safe_load(stream)
+
+
+def listCatalogTags(arch="amd64") -> list:
+    moduleFile = path.abspath(__file__)
+    modulePath = path.dirname(moduleFile)
+    yamlFiles = glob(path.join(modulePath, "catalogs", f"*-{arch}.yaml"))
+    result = []
+    for yamlFile in sorted(yamlFiles):
+        result.append(path.basename(yamlFile).replace(".yaml", ""))
+    return result
+
+
+def getNewestCatalogTag(arch="amd64") -> str:
+    catalogs = listCatalogTags(arch)
+    if len(catalogs) == 0:
+        return None
+    else:
+        return catalogs[-1]
