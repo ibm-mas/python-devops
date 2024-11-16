@@ -25,7 +25,7 @@ def listCatalogTags(arch="amd64") -> list:
     modulePath = path.dirname(moduleFile)
     yamlFiles = glob(path.join(modulePath, "catalogs", f"*-{arch}.yaml"))
     result = []
-    for yamlFile in yamlFiles:
+    for yamlFile in sorted(yamlFiles):
         result.append(path.basename(yamlFile).replace(".yaml", ""))
     return result
 
