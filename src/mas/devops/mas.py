@@ -9,6 +9,7 @@
 # *****************************************************************************
 
 import logging
+import re
 
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError, UnauthorizedError
@@ -23,6 +24,32 @@ def isAirgapInstall(dynClient: DynamicClient) -> bool:
         return True
     except NotFoundError:
         return False
+
+
+def getCurrentCatalog(dynClient: DynamicClient) -> dict:
+    catalogsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="CatalogSource")
+    try:
+        catalog = catalogsAPI.get(name="ibm-operator-catalog", namespace="openshift-marketplace")
+        catalogDisplayName = catalog.spec.displayName
+        catalogImage = catalog.spec.image
+
+        m = re.match(r".+(?P<catalogId>v[89]-(?P<catalogVersion>[0-9]+)-(amd64|s390x|ppc64le))", catalogDisplayName)
+        if m:
+            # catalogId = v9-yymmdd-amd64
+            # catalogVersion = yymmdd
+            installedCatalogId = m.group("catalogId")
+        elif re.match(r".+v8-amd64", catalogDisplayName):
+            installedCatalogId = "v8-amd64"
+        else:
+            installedCatalogId = None
+
+        return {
+            "displayName": catalogDisplayName,
+            "image": catalogImage,
+            "catalogId": installedCatalogId,
+        }
+    except NotFoundError:
+        return None
 
 
 def listMasInstances(dynClient: DynamicClient) -> list:
