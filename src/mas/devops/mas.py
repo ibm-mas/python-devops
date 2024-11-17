@@ -10,9 +10,11 @@
 
 import logging
 import re
-
+from types import SimpleNamespace
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError, UnauthorizedError
+
+from .ocp import getStorageClasses
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,58 @@ def isAirgapInstall(dynClient: DynamicClient) -> bool:
         return True
     except NotFoundError:
         return False
+
+
+def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
+    result = SimpleNamespace(
+        provider=None,
+        providerName=None,
+        rwo=None,
+        rwx=None
+    )
+
+    # Iterate through storage classes until we find one that we recognize
+    # We make an assumption that if one of the paired classes if available, both will be
+    storageClasses = getStorageClasses(dynClient)
+    for storageClass in storageClasses:
+        if storageClass.metadata.name in ["ibmc-block-gold", "ibmc-file-gold-gid"]:
+            result.provider = "ibmc"
+            result.providerName = "IBMCloud ROKS"
+            result.rwo = "ibmc-block-gold"
+            result.rwx = "ibmc-file-gold-gid"
+            break
+        elif storageClass.metadata.name in ["ocs-storagecluster-ceph-rbd", "ocs-storagecluster-cephfs"]:
+            result.provider = "ocs"
+            result.providerName = "OpenShift Container Storage"
+            result.rwo = "ocs-storagecluster-ceph-rbd"
+            result.rwx = "ocs-storagecluster-cephfs"
+            break
+        elif storageClass.metadata.name in ["ocs-external-storagecluster-ceph-rbd", "ocs-external-storagecluster-cephfs"]:
+            result.provider = "ocs-external"
+            result.providerName = "OpenShift Container Storage (External)"
+            result.rwo = "ocs-external-storagecluster-ceph-rbd"
+            result.rwx = "ocs-external-storagecluster-cephfs"
+            break
+        elif storageClass.metadata.name == "nfs-client":
+            result.provider = "nfs"
+            result.providerName = "NFS Client"
+            result.rwo = "nfs-client"
+            result.rwx = "nfs-client"
+            break
+        elif storageClass.metadata.name in ["managed-premium", "azurefiles-premium"]:
+            result.provider = "azure"
+            result.providerName = "Azure Managed"
+            result.rwo = "managed-premium"
+            result.rwx = "azurefiles-premium"
+            break
+        elif storageClass.metadata.name in ["gp3-csi", "efs"]:
+            result.provider = "aws"
+            result.providerName = "AWS GP3"
+            result.rwo = "gp3-csi"
+            result.rwx = "efs"
+            break
+    logger.debug(f"Default storage class: {result}")
+    return result
 
 
 def getCurrentCatalog(dynClient: DynamicClient) -> dict:
