@@ -16,7 +16,12 @@ def getCatalog(name: str) -> dict:
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
     catalogFileName = f"{name}.yaml"
-    with open(path.join(modulePath, "catalogs", catalogFileName)) as stream:
+
+    pathToCatalog = path.join(modulePath, "catalogs", catalogFileName)
+    if not path.exists(pathToCatalog):
+        return None
+
+    with open(pathToCatalog) as stream:
         return yaml.safe_load(stream)
 
 
