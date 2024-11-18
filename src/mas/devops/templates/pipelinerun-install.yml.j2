@@ -611,6 +611,14 @@ spec:
     - name: mas_app_settings_server_timezone
       value: "{{ mas_app_settings_server_timezone }}"
   {%- endif %}
+  {%- if mas_manage_attachments_provider is defined and mas_manage_attachments_provider != "" %}
+    - name: mas_manage_attachments_provider
+      value: "{{ mas_manage_attachments_provider }}"
+  {%- endif %}
+  {%- if mas_manage_attachment_configuration_mode is defined and mas_manage_attachment_configuration_mode != "" %}
+    - name: mas_manage_attachment_configuration_mode
+      value: "{{ mas_manage_attachment_configuration_mode }}"
+  {%- endif %}
   {%- if mas_app_settings_tablespace is defined and mas_app_settings_tablespace != "" %}
     - name: mas_app_settings_tablespace
       value: "{{ mas_app_settings_tablespace }}"
