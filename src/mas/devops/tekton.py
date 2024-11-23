@@ -50,9 +50,12 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
             )
             template = env.get_template("subscription.yml.j2")
             renderedTemplate = template.render(
-                pipelines_channel=defaultChannel,
-                pipelines_source=catalogSource,
-                pipelines_source_namespace=catalogSourceNamespace
+                subscription_name="openshift-pipelines-operator",
+                subscription_namespace="openshift-operators",
+                package_name="openshift-pipelines-operator-rh",
+                package_channel=defaultChannel,
+                catalog_name=catalogSource,
+                catalog_namespace=catalogSourceNamespace
             )
             subscription = yaml.safe_load(renderedTemplate)
             subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")

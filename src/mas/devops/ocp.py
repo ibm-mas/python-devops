@@ -174,10 +174,9 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         logger.debug(f"CRD does not exist: {crdName}")
         return False
 
+
 # Assisted by WCA@IBM
 # Latest GenAI contribution: ibm/granite-8b-code-instruct
-
-
 def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
     """
     Executes a command in a Kubernetes pod and returns the standard output.
