@@ -2,10 +2,13 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-    name: openshift-pipelines-operator
-    namespace: openshift-operators
+    name: {{ subscription_name }}
+    namespace: {{ subscription_namespace }}
 spec:
-    channel: {{pipelines_channel}}
-    name: openshift-pipelines-operator-rh
-    source: {{pipelines_source}}
-    sourceNamespace: {{pipelines_source_namespace}}
+    name: {{ package_name }}
+    channel: {{ package_channel }}
+    source: {{ catalog_name }}
+    sourceNamespace: {{ catalog_namespace }}
+    {%- if subscription_config is not none %}
+    config: {{ subscription_config }}
+    {%- endif %}
