@@ -7,63 +7,61 @@
 # http://www.eclipse.org/legal/epl-v10.html
 #
 # *****************************************************************************
-import pytest
 
-# from openshift import dynamic
-# from kubernetes import config
-# from kubernetes.client import api_client
+from openshift import dynamic
+from kubernetes import config
+from kubernetes.client import api_client
 
-from mas.devops import olm
+from mas.devops import olm, ocp
 
-# dynClient = dynamic.DynamicClient(
-#     api_client.ApiClient(configuration=config.load_kube_config())
-# )
-dynClient = None
+dynClient = dynamic.DynamicClient(
+    api_client.ApiClient(configuration=config.load_kube_config())
+)
 
 
-@pytest.mark.skip(reason="Need to configure access to OCP")
 def test_get_manifest():
     manifest = olm.getPackageManifest(dynClient, "ibm-sls")
     assert manifest is not None
     assert manifest.metadata.name == "ibm-sls"
-    assert manifest.metadata.status.catalogSource == "ibm-operator-catalog"
-    assert manifest.metadata.status.catalogSourceNamespace == "openshift-marketplace"
-    assert manifest.metadata.status.catalogSourcePublisher == "IBM"
-    assert manifest.metadata.status.defaultChannel == "3.x"
-    assert manifest.metadata.status.packageName == "ibm-sls"
+    assert manifest.status.catalogSource == "ibm-operator-catalog"
+    assert manifest.status.catalogSourceNamespace == "openshift-marketplace"
+    assert manifest.status.catalogSourcePublisher == "IBM"
+    assert manifest.status.defaultChannel == "3.x-stable"
+    assert manifest.status.packageName == "ibm-sls"
 
 
-@pytest.mark.skip(reason="Need to configure access to OCP")
 def test_get_manifest_none():
     manifest = olm.getPackageManifest(dynClient, "ibm-sls2")
     assert manifest is None
 
 
-@pytest.mark.skip(reason="Need to configure access to OCP")
 def test_crud():
-    subscription = olm.applySubscription(dynClient, "namespace1", "sub1", "ibm-sls")
+    namespace = "cli-fvt-1"
+    subscription = olm.applySubscription(dynClient, namespace, "sub1", "ibm-sls", packageChannel="3.x")
     assert subscription.metadata.name == "sub1"
-    assert subscription.metadata.namespace == "namespace1"
+    assert subscription.metadata.namespace == namespace
 
     # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
     # subscription, but when we delete the subscription, OLM will not automatically remove the latter
-    olm.deleteSubscription(dynClient, "namespace1", "ibm-sls")
-    olm.deleteSubscription(dynClient, "namespace1", "ibm-truststore-mgr")
+    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
+    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    ocp.deleteNamespace(dynClient, namespace)
 
 
-@pytest.mark.skip(reason="Need to configure access to OCP")
 def test_crud_with_config():
+    namespace = "cli-fvt-2"
     # We don't need this, just want to test that it works
     testConfig = {
         "env": [
             {"name": "DUMMY_ENV_VAR", "value": "testing"}
         ]
     }
-    subscription = olm.applySubscription(dynClient, "namespace1", "sub1", "ibm-sls", config=testConfig)
+    subscription = olm.applySubscription(dynClient, namespace, "sub1", "ibm-sls", packageChannel="3.x", config=testConfig)
     assert subscription.metadata.name == "sub1"
-    assert subscription.metadata.namespace == "namespace1"
+    assert subscription.metadata.namespace == namespace
 
     # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
     # subscription, but when we delete the subscription, OLM will not automatically remove the latter
-    olm.deleteSubscription(dynClient, "namespace1", "ibm-sls")
-    olm.deleteSubscription(dynClient, "namespace1", "ibm-truststore-mgr")
+    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
+    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    ocp.deleteNamespace(dynClient, namespace)

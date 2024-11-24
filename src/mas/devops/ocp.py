@@ -82,6 +82,18 @@ def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
     return True
 
 
+def deleteNamespace(dynClient: DynamicClient, namespace: str) -> bool:
+    """
+    Delete a namespace if it exists
+    """
+    namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
+    try:
+        namespaceAPI.delete(name=namespace)
+    except NotFoundError:
+        logger.debug(f"Namespace {namespace} can not be deleted because it does not exist")
+    return True
+
+
 def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
     crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
     maxRetries = 100
