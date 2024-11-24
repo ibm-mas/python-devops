@@ -142,6 +142,8 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
 
 
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
+    if secretName is None:
+        secretName = "ibm-entitlement"
     if artifactoryUsername is not None:
         logger.info(f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}' (with Artifactory access)")
     else:
