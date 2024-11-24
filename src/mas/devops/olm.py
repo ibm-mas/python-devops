@@ -57,11 +57,12 @@ def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namesp
         logger.debug(f"An OperatorGroup already exists in namespace {namespace}")
 
 
-def applySubscription(dynClient: DynamicClient, namespace: str, name: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None):
+def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None):
     """
     Usage:
       createSubscription(dynClient, "testns1", "sub1", "ibm-sls")  # use default channel, & auto-detect CatalogSource
     """
+    labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir)
@@ -87,8 +88,17 @@ def applySubscription(dynClient: DynamicClient, namespace: str, name: str, packa
     ensureOperatorGroupExists(dynClient, env, namespace)
 
     # Create (or update) the subscription
-    logger.debug(f"Applying Subscription {name} in {namespace}")
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+
+    resources = subscriptionsAPI.get(label_selector=labelSelector, namespace=namespace)
+    if len(resources.items) == 0:
+        name = packageName
+        logger.info(f"Creating new subscription {name} in {namespace}")
+    elif len(resources.items) == 1:
+        name = resources.items[0].metadata.name
+        logger.info(f"Updating existing subscription {name} in {namespace}")
+    else:
+        raise OLMException(f"More than one subscription found in {namespace} for {packageName} ({len(resources.items)} subscriptions found)")
 
     template = env.get_template("subscription.yml.j2")
     renderedTemplate = template.render(
@@ -107,7 +117,6 @@ def applySubscription(dynClient: DynamicClient, namespace: str, name: str, packa
     logger.debug(f"Waiting for {packageName}.{namespace} InstallPlans")
     installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
 
-    labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
     installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
     while len(installPlanResources.items) == 0:
         installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)

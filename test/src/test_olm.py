@@ -37,8 +37,8 @@ def test_get_manifest_none():
 
 def test_crud():
     namespace = "cli-fvt-1"
-    subscription = olm.applySubscription(dynClient, namespace, "sub1", "ibm-sls", packageChannel="3.x")
-    assert subscription.metadata.name == "sub1"
+    subscription = olm.applySubscription(dynClient, namespace, "ibm-sls", packageChannel="3.x")
+    assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
 
     # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
@@ -56,8 +56,8 @@ def test_crud_with_config():
             {"name": "DUMMY_ENV_VAR", "value": "testing"}
         ]
     }
-    subscription = olm.applySubscription(dynClient, namespace, "sub1", "ibm-sls", packageChannel="3.x", config=testConfig)
-    assert subscription.metadata.name == "sub1"
+    subscription = olm.applySubscription(dynClient, namespace, "ibm-sls", packageChannel="3.x", config=testConfig)
+    assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
 
     # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr

@@ -89,6 +89,7 @@ def deleteNamespace(dynClient: DynamicClient, namespace: str) -> bool:
     namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
     try:
         namespaceAPI.delete(name=namespace)
+        logger.debug(f"Namespace {namespace} deleted")
     except NotFoundError:
         logger.debug(f"Namespace {namespace} can not be deleted because it does not exist")
     return True
