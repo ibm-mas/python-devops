@@ -10,9 +10,13 @@
 
 import logging
 import re
+import yaml
+from os import path
 from types import SimpleNamespace
+from kubernetes.dynamic.resource import ResourceInstance
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError, UnauthorizedError
+from jinja2 import Environment, FileSystemLoader
 
 from .ocp import getStorageClasses
 
@@ -135,3 +139,36 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     except UnauthorizedError:
         logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
+
+
+def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
+    if artifactoryUsername is not None:
+        logger.info(f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}' (with Artifactory access)")
+    else:
+        logger.info(f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}'")
+
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    env = Environment(
+        loader=FileSystemLoader(searchpath=templateDir),
+        extensions=["jinja2_base64_filters.Base64Filters"]
+    )
+
+    contentTemplate = env.get_template("ibm-entitlement-dockerconfig.json.j2")
+    dockerConfig = contentTemplate.render(
+        artifactory_username=artifactoryUsername,
+        artifactory_token=artifactoryPassword,
+        icr_username=icrUsername,
+        icr_password=icrPassword
+    )
+
+    template = env.get_template("ibm-entitlement-secret.yml.j2")
+    renderedTemplate = template.render(
+        name=secretName,
+        namespace=namespace,
+        docker_config=dockerConfig
+    )
+    secret = yaml.safe_load(renderedTemplate)
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    secret = secretsAPI.apply(body=secret, namespace=namespace)
+    return secret

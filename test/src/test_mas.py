@@ -1,0 +1,53 @@
+# *****************************************************************************
+# Copyright (c) 2024 IBM Corporation and other Contributors.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+#
+# *****************************************************************************
+
+from openshift import dynamic
+from kubernetes import config
+from kubernetes.client import api_client
+from kubernetes.dynamic.resource import ResourceInstance
+
+from mas.devops import mas
+
+dynClient = dynamic.DynamicClient(
+    api_client.ApiClient(configuration=config.load_kube_config())
+)
+
+
+def test_entitlement():
+    icrUsername = "testing-i"
+    icrPassword = "not-a-real-password-i"
+
+    secret = mas.updateIBMEntitlementKey(dynClient, "default", icrUsername, icrPassword)
+    assert secret is not None
+    assert isinstance(secret, ResourceInstance)
+    assert secret.metadata.name == "ibm-entitlement"
+
+
+def test_entitlement_with_artifactory():
+    artifactoryUsername = "testing-a"
+    artifactoryPassword = "not-a-real-password-a"
+
+    icrUsername = "testing-i"
+    icrPassword = "not-a-real-password-i"
+
+    secret = mas.updateIBMEntitlementKey(dynClient, "default", icrUsername, icrPassword, artifactoryUsername, artifactoryPassword)
+    assert secret is not None
+    assert isinstance(secret, ResourceInstance)
+    assert secret.metadata.name == "ibm-entitlement"
+
+
+def test_entitlement_alt_name():
+    icrUsername = "testing-i"
+    icrPassword = "not-a-real-password-i"
+
+    secret = mas.updateIBMEntitlementKey(dynClient, "default", icrUsername, icrPassword, secretName="ibm-entitlement-key")
+    assert secret is not None
+    assert isinstance(secret, ResourceInstance)
+    assert secret.metadata.name == "ibm-entitlement-key"
