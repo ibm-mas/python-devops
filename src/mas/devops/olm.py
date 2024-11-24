@@ -62,6 +62,9 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     Usage:
       createSubscription(dynClient, "testns1", "sub1", "ibm-sls")  # use default channel, & auto-detect CatalogSource
     """
+    if catalogSourceNamespace is None:
+        catalogSourceNamespace = "openshift-marketplace"
+
     labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
     env = Environment(

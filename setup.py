@@ -59,7 +59,8 @@ setup(
         'openshift',      # Apache Software License
         'kubernetes',     # Apache Software License
         'kubeconfig',     # BSD License
-        'jinja2'          # BSD License
+        'jinja2',         # BSD License
+        'jinja2-base64-filters'  # MIT License
     ],
     extras_require={
         'dev': [
