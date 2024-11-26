@@ -69,9 +69,9 @@ mas_predict_version:
   8.10.x: 8.8.4   # Updated tbc
   8.11.x: 8.9.6   # Updated
 mas_visualinspection_version:
-  9.0.x: 9.0.5    # Updated
+  9.0.x: 9.0.4    # Updated
   8.10.x: 8.8.4   # No update
-  8.11.x: 8.9.8   # Updated
+  8.11.x: 8.9.7   # Updated
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
