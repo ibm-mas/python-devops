@@ -12,8 +12,9 @@ from mas.devops.data import getCatalog, getNewestCatalogTag, listCatalogTags
 
 
 def test_catalog():
-    catalogData = getCatalog("v9-241205-amd64")
-    assert catalogData["catalog_digest"] == "sha256:31e2ce74568ace657e121fa0a97d9499942437e9e4807b31d2e64e2a079c4cf8"
+    # We don't need to update this to the latest version each monthly update
+    catalogData = getCatalog("v9-241107-amd64")
+    assert catalogData["catalog_digest"] == "sha256:2d470131ab6948d5262553547fafa1b472fa25690be5abba8719ad7493cd8911"
 
 
 def test_list_catalogs():
