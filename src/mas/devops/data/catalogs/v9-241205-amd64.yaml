@@ -102,7 +102,3 @@ amlen_extras_version: 1.1.2
 # Default Cloud Pak for Data version
 # ------------------------------------------------------------------------------
 cpd_product_version_default: 5.0.0
-<<<<<<< HEAD
-=======
-cpd_product_version: "{{ lookup('env', 'CPD_PRODUCT_VERSION') | default(cpd_product_version_default, true) }}"
->>>>>>> 9fdc9f9 (common_services)
