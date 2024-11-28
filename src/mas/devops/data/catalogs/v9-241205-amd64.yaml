@@ -10,10 +10,8 @@ catalog_digest: sha256:336900c02ea2bd5f591a58ec85573256b902e6fe2f9d44c4d370eb4ba
 # Dependencies
 # -----------------------------------------------------------------------------
 ibm_licensing_version: 4.2.10                 # Operator version 4.2.7 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
-common_svcs_version:
-  - 4.7.0                   # check once why we have 4.3.0 in all previous versions since so long it's 4.3.0   # Operator version 4.3.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
-  - 4.8.0
-  - 4.3.0
+common_svcs_version: 4.7.0                   # check once why we have 4.3.0 in all previous versions since so long it's 4.3.0   # Operator version 4.3.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
+common_svcs_version_2: 4.8.0
 common_svcs_version_1: 4.3.0 #+20240702.100000 # common_svcs is a mess
 
 cp4d_platform_version: 5.0.0 #+20240716.101015 # Operator version 5.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/4.0.0%2B20231213.115030)
