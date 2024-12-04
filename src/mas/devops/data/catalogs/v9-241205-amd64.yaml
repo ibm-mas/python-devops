@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:e6255083fbe4d4846158509bf3818d8a9f4966f3da946b3ee6a629e3bade240b
+catalog_digest: sha256:78e9c7c36f075092720ed1bd0e1ab0af3145f77875c7681cc474ee19140fb6c7
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -39,9 +39,9 @@ elasticsearch_version: 1.1.2346              # Operator version 1.1.2238
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0-pre.stable_7051
-  9.0.x: 9.0.5    # Updated tbc
-  8.10.x: 8.10.19 # Updated tbc
-  8.11.x: 8.11.16 # Updated tbc
+  9.0.x: 9.0.6    # Updated
+  8.10.x: 8.10.20 # Updated
+  8.11.x: 8.11.17 # Updated
 mas_assist_version:
   9.0.x: 9.0.3    # Updated
   8.10.x: 8.7.8   # Updated
@@ -56,13 +56,13 @@ mas_iot_version:
   8.11.x: 8.8.14  # No Update
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_8949
-  9.0.x: 9.0.6    # Updated
+  9.0.x: 9.0.7    # Updated
   8.10.x: 8.6.20  # Updated
   8.11.x: 8.7.14  # Updated
 mas_monitor_version:
-  9.0.x: 9.0.4    # Updated tbc
-  8.10.x: 8.10.14 # No Update tbc
-  8.11.x: 8.11.12 # Updated tbc
+  9.0.x: 9.0.4    # No Update
+  8.10.x: 8.10.14 # No Update
+  8.11.x: 8.11.12 # No Update
 mas_optimizer_version:
   9.1.x-feature: 9.1.0-pre.stable_1504
   9.0.x: 9.0.5    # Updated
