@@ -54,7 +54,7 @@ mas_iot_version:
   8.10.x: 8.7.18  # No Update
   8.11.x: 8.8.14  # No Update
 mas_manage_version:
-  9.0.x: 9.0.6    # Updated
+  9.0.x: 9.0.7    # Updated
   8.10.x: 8.6.20  # Updated
   8.11.x: 8.7.14  # Updated
 mas_monitor_version:
