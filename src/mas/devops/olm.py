@@ -57,6 +57,24 @@ def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namesp
         logger.debug(f"An OperatorGroup already exists in namespace {namespace}")
 
 
+def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
+    try:
+        labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
+        logger.debug(f"Get Subscription for {packageName} in {namespace}")
+        subscriptionsAPI = dynClient.resources.get(
+            api_version="operators.coreos.com/v1alpha1", kind="Subscription"
+        )
+        subscription = subscriptionsAPI.get(
+            label_selector=labelSelector, namespace=namespace
+        )
+        if subscription.items == 0:
+            raise NotFoundError
+    except NotFoundError:
+        logger.info(f"No matching Subscription found for {packageName} in {namespace}")
+        subscription = None
+    return subscription
+
+
 def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None):
     """
     Usage:

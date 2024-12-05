@@ -19,6 +19,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnauthorizedError
 from jinja2 import Environment, FileSystemLoader
 
 from .ocp import getStorageClasses
+from .olm import getSubscription
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +141,18 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
 
+def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
+    """
+    Get the MAS channel from the subscription
+    """
+    try:
+        masSubscription = getSubscription(dynClient, f"mas-{instanceId}-core", "ibm-mas")
+        return masSubscription.items[0]["spec"]["channel"]
+    except NotFoundError:
+        return False
+    except UnauthorizedError:
+        logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
+        return False
 
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
     if secretName is None:
