@@ -141,6 +141,7 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
 
+
 def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
     """
     Get the MAS channel from the subscription
@@ -153,6 +154,7 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
     except UnauthorizedError:
         logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
+
 
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
     if secretName is None:
