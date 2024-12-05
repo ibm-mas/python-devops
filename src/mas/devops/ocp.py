@@ -82,6 +82,19 @@ def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
     return True
 
 
+def deleteNamespace(dynClient: DynamicClient, namespace: str) -> bool:
+    """
+    Delete a namespace if it exists
+    """
+    namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
+    try:
+        namespaceAPI.delete(name=namespace)
+        logger.debug(f"Namespace {namespace} deleted")
+    except NotFoundError:
+        logger.debug(f"Namespace {namespace} can not be deleted because it does not exist")
+    return True
+
+
 def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
     crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
     maxRetries = 100
@@ -174,10 +187,9 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         logger.debug(f"CRD does not exist: {crdName}")
         return False
 
+
 # Assisted by WCA@IBM
 # Latest GenAI contribution: ibm/granite-8b-code-instruct
-
-
 def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
     """
     Executes a command in a Kubernetes pod and returns the standard output.
