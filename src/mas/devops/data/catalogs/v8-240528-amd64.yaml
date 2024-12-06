@@ -74,7 +74,6 @@ uds_extras_version: 1.5.0
 # Extra Images for Mongo
 # ------------------------------------------------------------------------------
 mongo_extras_version_default: 5.0.23
-mongo_extras_version: "{{ lookup('env', 'MONGODB_VERSION') | default(mongo_extras_version_default, True) }}"
 
 # Variables used to mirror additional mongo image versions
 mongo_extras_version_4: 4.4.21
@@ -96,4 +95,3 @@ amlen_extras_version: 1.1.1
 # Default Cloud Pak for Data version
 # ------------------------------------------------------------------------------
 cpd_product_version_default: 4.6.6
-cpd_product_version: "{{ lookup('env', 'CPD_PRODUCT_VERSION') | default(cpd_product_version_default, true) }}"
