@@ -258,8 +258,7 @@ def testCLI() -> None:
 def launchUpgradePipeline(dynClient: DynamicClient,
                           instanceId: str,
                           skipPreCheck: bool = False,
-                          masChannel: str = "",
-                          imagePullPolicy: str = None) -> str:
+                          masChannel: str = "") -> str:
     """
     Create a PipelineRun to upgrade the chosen MAS instance
     """
@@ -276,8 +275,7 @@ def launchUpgradePipeline(dynClient: DynamicClient,
         timestamp=timestamp,
         mas_instance_id=instanceId,
         skip_pre_check=skipPreCheck,
-        mas_channel=masChannel,
-        image_pull_policy=imagePullPolicy
+        mas_channel=masChannel
     )
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)

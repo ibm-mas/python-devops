@@ -27,10 +27,3 @@ spec:
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
-{%- if image_pull_policy is defined and image_pull_policy != "" %}
-
-    # Image Pull Policy
-    # -------------------------------------------------------------------------
-    - name: image_pull_policy
-      value: "{{ image_pull_policy }}"
-{%- endif %}
