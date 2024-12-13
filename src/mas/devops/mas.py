@@ -15,7 +15,7 @@ from os import path
 from types import SimpleNamespace
 from kubernetes.dynamic.resource import ResourceInstance
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, UnauthorizedError
+from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
 from jinja2 import Environment, FileSystemLoader
 
 from .ocp import getStorageClasses
@@ -136,6 +136,9 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         suitesAPI.get(name=instanceId, namespace=f"mas-{instanceId}-core")
         return True
     except NotFoundError:
+        return False
+    except ResourceNotFoundError:
+        # The MAS Suite CRD has not even been installed in the cluster
         return False
     except UnauthorizedError:
         logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
