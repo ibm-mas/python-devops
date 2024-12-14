@@ -58,21 +58,16 @@ def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namesp
 
 
 def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
-    try:
-        labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
-        logger.debug(f"Get Subscription for {packageName} in {namespace}")
-        subscriptionsAPI = dynClient.resources.get(
-            api_version="operators.coreos.com/v1alpha1", kind="Subscription"
-        )
-        subscription = subscriptionsAPI.get(
-            label_selector=labelSelector, namespace=namespace
-        )
-        if subscription.items == 0:
-            raise NotFoundError
-    except NotFoundError:
+    labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
+    logger.debug(f"Get Subscription for {packageName} in {namespace}")
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    subscriptions = subscriptionsAPI.get(label_selector=labelSelector, namespace=namespace)
+    if len(subscriptions.items) == 0:
         logger.info(f"No matching Subscription found for {packageName} in {namespace}")
-        subscription = None
-    return subscription
+        return None
+    elif len(subscriptions.items) > 0:
+        logger.warning(f"More than one ({len(subscriptions.items)}) Subscriptions found for {packageName} in {namespace}")
+    return subscriptions.items[0]
 
 
 def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None):
@@ -184,7 +179,7 @@ def deleteSubscription(dynClient: DynamicClient, namespace: str, packageName: st
 
 def _findAndDeleteResources(api, resourceType: str, labelSelector: str, namespace: str):
     resources = api.get(label_selector=labelSelector, namespace=namespace)
-    if resources.items == 0:
+    if len(resources.items) == 0:
         logger.info(f"No matching {resourceType}s to delete")
     else:
         for item in resources.items:

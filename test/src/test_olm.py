@@ -41,11 +41,25 @@ def test_crud():
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
 
+    subscriptionLookup1 = olm.getSubscription(dynClient, namespace, "ibm-sls")
+    subscriptionLookup2 = olm.getSubscription(dynClient, namespace, "ibm-truststore-mgr")
+
+    assert subscriptionLookup1.metadata.name == "ibm-sls"
+    assert subscriptionLookup1.metadata.namespace == namespace
+    assert subscriptionLookup1.spec.channel == "3.x"
+    assert subscriptionLookup2.metadata.namespace == namespace
+    assert subscriptionLookup2.spec.channel == "1.x"
+
     # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
     # subscription, but when we delete the subscription, OLM will not automatically remove the latter
     olm.deleteSubscription(dynClient, namespace, "ibm-sls")
     olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
     ocp.deleteNamespace(dynClient, namespace)
+
+    failedSubscriptionLookup1 = olm.getSubscription(dynClient, namespace, "ibm-sls")
+    failedSubscriptionLookup2 = olm.getSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    assert failedSubscriptionLookup1 is None
+    assert failedSubscriptionLookup2 is None
 
 
 def test_crud_with_config():
