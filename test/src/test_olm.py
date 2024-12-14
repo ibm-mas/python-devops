@@ -48,7 +48,7 @@ def test_crud():
     assert subscriptionLookup1.metadata.namespace == namespace
     assert subscriptionLookup1.spec.channel == "3.x"
     assert subscriptionLookup2.metadata.namespace == namespace
-    assert subscriptionLookup2.spec.channel == "1.x"
+    assert subscriptionLookup2.spec.channel == "1.x-stable"
 
     # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
     # subscription, but when we delete the subscription, OLM will not automatically remove the latter
