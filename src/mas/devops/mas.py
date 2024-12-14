@@ -151,7 +151,7 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
     """
     try:
         masSubscription = getSubscription(dynClient, f"mas-{instanceId}-core", "ibm-mas")
-        return masSubscription.items[0]["spec"]["channel"]
+        return masSubscription.spec.channel
     except NotFoundError:
         return False
     except UnauthorizedError:
