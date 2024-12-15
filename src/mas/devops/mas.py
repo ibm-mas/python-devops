@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def isAirgapInstall(dynClient: DynamicClient) -> bool:
     try:
         IDMSApi = dynClient.resources.get(api_version="config.openshift.io/v1", kind="ImageDigestMirrorSet")
-        masIDMS = IDMSApi.get(label_selector="mas.ibm.com/idmsGroup")
+        masIDMS = IDMSApi.get(label_selector="mas.ibm.com/idms")
         return len(masIDMS.items) > 0
     except NotFoundError:
         return False
