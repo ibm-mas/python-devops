@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: tbc  # tbc
+catalog_digest: sha256:91d201b62a075397494a2e0b4e453488d34dad2817e9ec2ba185ceaa8b533b0c # tbc
 
 
 sls_version: 3.10.2 # tbc                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
