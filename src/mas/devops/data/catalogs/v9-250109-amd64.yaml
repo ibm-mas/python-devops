@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 240625
+# Case bundle configuration for IBM Maximo Operator Catalog 250109
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: tbc
+catalog_digest: sha256:881753390c2c4cb80f71910f6160642195c4b43cc14f6d2b86c7f9395cf91189
 
 # Dependencies
 # -----------------------------------------------------------------------------
