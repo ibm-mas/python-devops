@@ -56,3 +56,9 @@ def test_entitlement_alt_name():
 def test_get_channel():
     channel = mas.getMasChannel(dynClient, "doesnotexist")
     assert channel is None
+
+
+def test_is_airgap_install():
+    # The cluster we are using to test with does not have the MAS ICSP or IDMS installed
+    assert mas.isAirgapInstall(dynClient) is False
+    assert mas.isAirgapInstall(dynClient, checkICSP=False) is False

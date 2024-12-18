@@ -24,13 +24,18 @@ from .olm import getSubscription
 logger = logging.getLogger(__name__)
 
 
-def isAirgapInstall(dynClient: DynamicClient) -> bool:
-    try:
+def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
+    if checkICSP:
+        try:
+            ICSPApi = dynClient.resources.get(api_version="operator.openshift.io/v1alpha1", kind="ImageContentSourcePolicy")
+            ICSPApi.get(name="ibm-mas-and-dependencies")
+            return True
+        except NotFoundError:
+            return False
+    else:
         IDMSApi = dynClient.resources.get(api_version="config.openshift.io/v1", kind="ImageDigestMirrorSet")
         masIDMS = IDMSApi.get(label_selector="mas.ibm.com/idmsContent=ibm")
         return len(masIDMS.items) > 0
-    except NotFoundError:
-        return False
 
 
 def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
