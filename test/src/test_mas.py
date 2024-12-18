@@ -51,3 +51,8 @@ def test_entitlement_alt_name():
     assert secret is not None
     assert isinstance(secret, ResourceInstance)
     assert secret.metadata.name == "ibm-entitlement-key"
+
+
+def test_get_channel():
+    channel = mas.getMasChannel(dynClient, "doesnotexist")
+    assert channel is None

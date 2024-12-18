@@ -149,14 +149,11 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
     """
     Get the MAS channel from the subscription
     """
-    try:
-        masSubscription = getSubscription(dynClient, f"mas-{instanceId}-core", "ibm-mas")
+    masSubscription = getSubscription(dynClient, f"mas-{instanceId}-core", "ibm-mas")
+    if masSubscription is None:
+        return None
+    else:
         return masSubscription.spec.channel
-    except NotFoundError:
-        return False
-    except UnauthorizedError:
-        logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
-        return False
 
 
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
