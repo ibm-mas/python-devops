@@ -21,9 +21,9 @@ mas_core_version:
   8.11.x: 8.11.17 # tbc
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_8949 # tbc
-  9.0.x: 9.0.7    # tbc
-  8.10.x: 8.6.20  # tbc
-  8.11.x: 8.7.14  # tbc
+  9.0.x: 9.0.8    # Updated
+  8.10.x: ""  # Not Supported
+  8.11.x: ""  # Not Supported
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
