@@ -43,28 +43,28 @@ mas_core_version:
   8.10.x: 8.10.20 # tbc
   8.11.x: 8.11.17 # tbc
 mas_assist_version:
-  9.0.x: 9.0.3    # tbc
-  8.10.x: 8.7.8   # tbc
-  8.11.x: 8.8.7   # tbc
+  9.0.x: 9.0.3    # No Update
+  8.10.x: 8.7.8   # No Update
+  8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
-  9.0.x: ""       # tbc
-  8.10.x: 8.6.7   # tbc
-  8.11.x: ""      # tbc
+  9.0.x: ""       # Not Supported
+  8.10.x: 8.6.7   # No Update
+  8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.0.x: 9.0.4    # tbc
-  8.10.x: 8.7.18  # tbc
-  8.11.x: 8.8.14  # tbc
+  9.0.x: 9.0.4    # No Update
+  8.10.x: 8.7.18  # No Update
+  8.11.x: 8.8.14  # No Update
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_8949 # tbc
-  9.0.x: 9.0.7    # tbc
-  8.10.x: 8.6.20  # tbc
-  8.11.x: 8.7.14  # tbc
+  9.0.x: 9.0.8    # Updated
+  8.10.x: 8.6.21  # Updated
+  8.11.x: 8.7.15  # Updated
 mas_monitor_version:
-  9.0.x: 9.0.4    # tbc
-  8.10.x: 8.10.14 # tbc
-  8.11.x: 8.11.12 # tbc
+  9.0.x: 9.0.5    # Updated
+  8.10.x: 8.10.15 # Updated
+  8.11.x: 8.11.13 # Updated
 mas_optimizer_version:
-  9.1.x-feature: 9.1.0-pre.stable_1504 # tbc
+  9.1.x-feature: 9.1.0-pre.stable_1628 # Updated
   9.0.x: 9.0.6    # Updated
   8.10.x: 8.4.13  # Updated
   8.11.x: 8.5.12  # Updated
@@ -73,10 +73,10 @@ mas_predict_version:
   8.10.x: 8.8.5   # Updated
   8.11.x: 8.9.7   # Updated
 mas_visualinspection_version:
-  9.1.x-feature: 9.1.0-pre.stable_1994 # tbc
-  9.0.x: 9.0.5    # tbc
-  8.10.x: 8.8.4   # tbc
-  8.11.x: 8.9.8   # tbc
+  9.1.x-feature: 9.1.0-pre.stable_1994 # No Update
+  9.0.x: 9.0.5    # No Update
+  8.10.x: 8.8.4   # No Update
+  8.11.x: 8.9.8   # No Update
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
