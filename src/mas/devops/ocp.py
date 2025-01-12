@@ -66,15 +66,15 @@ def getNamespace(dynClient: DynamicClient, namespace: str) -> dict:
     Get a namespace
     """
     namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
-    namespace = {}
 
     try:
-        namespace = namespaceAPI.get(name=namespace)
+        ns = namespaceAPI.get(name=namespace)
         logger.debug(f"Namespace {namespace} exists")
+        return ns
     except NotFoundError:
         logger.debug(f"Namespace {namespace} does not exist")
 
-    return namespace
+    return {}
 
 
 def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
