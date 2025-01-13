@@ -17,10 +17,10 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
         logger.info("There are no SLS instances installed on this cluster")
         return []
     except ResourceNotFoundError:
-        # The LicenseService CRD has not even been installed in the cluster
+        logger.info("LicenseService CRD not found on cluster")
         return []
     except UnauthorizedError:
-        logger.error("Error: Unable to verify SLS instance(s) due to failed authorization: {e}")
+        logger.error("Error: Unable to verify SLS instances due to failed authorization: {e}")
         return []
 
 
