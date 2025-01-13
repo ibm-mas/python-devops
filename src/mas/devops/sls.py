@@ -1,5 +1,7 @@
 import logging
+# import requests
 from openshift.dynamic import DynamicClient
+from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
 
 logger = logging.getLogger(__name__)
 
@@ -8,19 +10,24 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
     """
     Get a list of SLS instances on the cluster
     """
-    slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
-
-    licenseservices = slsAPI.get().to_dict()['items']
-
-    numSLS = len(licenseservices)
-
-    if numSLS == 1:
-        logger.info("There is 1 SLS instance installed on this cluster:")
-        logger.info(f" * {licenseservices[0]['metadata']['name']} ({{licenseservices[0]['metadata']['namespace']}}) v{licenseservices[0]['status']['versions']['reconciled']}")
-    elif numSLS > 0:
-        logger.info(f"There are {numSLS} SLS instances installed on this cluster:")
-        for licenseservice in licenseservices:
-            logger.info(f" * {licenseservice['metadata']['name']} ({{licenseservice['metadata']['namespace']}}) v{licenseservice['status']['versions']['reconciled']}")
-    else:
+    try:
+        slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
+        return slsAPI.get().to_dict()['items']
+    except NotFoundError:
         logger.info("There are no SLS instances installed on this cluster")
-    return licenseservices
+        return []
+    except ResourceNotFoundError:
+        # The LicenseService CRD has not even been installed in the cluster
+        return []
+    except UnauthorizedError:
+        logger.error("Error: Unable to verify SLS instance(s) due to failed authorization: {e}")
+        return []
+
+
+# def verifySLSConnection(sls_url: str, server_ca: str) -> bool:
+#     logger.info("Checking SLS connection")
+#     response = requests.get(f"{sls_url}api/probes/readiness", verify=server_ca)
+#     if response.status_code == 200:
+#             return True
+#     return False
+#     # response.raise_for_status()
