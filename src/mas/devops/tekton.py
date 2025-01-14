@@ -148,7 +148,7 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
                 sleep(15)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
     namespace = f"mas-{instanceId}-pipelines"
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
@@ -178,10 +178,21 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
     except NotFoundError:
         pass
 
-    # TODO: Convert this to using secretsAPI.create()
-    result = kubectl.run(subcmd_args=['-n', namespace, 'create', 'secret', 'generic', 'pipeline-sls-entitlement', '--from-file', slsLicenseFile])
-    for line in result.split("\n"):
-        logger.debug(line)
+    if slsLicenseFile is None:
+        slsLicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-sls-entitlement"
+            }
+        }
+        secretsAPI.create(body=slsLicenseFile, namespace=namespace)
+    else:
+        # TODO: Convert this to using secretsAPI.create()
+        result = kubectl.run(subcmd_args=['-n', namespace, 'create', 'secret', 'generic', 'pipeline-sls-entitlement', '--from-file', slsLicenseFile])
+        for line in result.split("\n"):
+            logger.debug(line)
 
     # 3. Secret/pipeline-certificates
     # -------------------------------------------------------------------------
