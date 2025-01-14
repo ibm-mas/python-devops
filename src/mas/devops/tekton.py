@@ -187,12 +187,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
                 "name": "pipeline-sls-entitlement"
             }
         }
-        secretsAPI.create(body=slsLicenseFile, namespace=namespace)
-    else:
-        # TODO: Convert this to using secretsAPI.create()
-        result = kubectl.run(subcmd_args=['-n', namespace, 'create', 'secret', 'generic', 'pipeline-sls-entitlement', '--from-file', slsLicenseFile])
-        for line in result.split("\n"):
-            logger.debug(line)
+    secretsAPI.create(body=slsLicenseFile, namespace=namespace)
 
     # 3. Secret/pipeline-certificates
     # -------------------------------------------------------------------------
