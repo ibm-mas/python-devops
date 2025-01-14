@@ -61,7 +61,7 @@ setup(
         'kubeconfig',               # BSD License
         'jinja2',                   # BSD License
         'jinja2-base64-filters',    # MIT License
-        # 'requests'                  # Apache Software License
+        'requests'                  # Apache Software License
     ],
     extras_require={
         'dev': [
