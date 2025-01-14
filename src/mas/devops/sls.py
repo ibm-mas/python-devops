@@ -26,7 +26,7 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
 
 def verifySLSConnection(sls_url: str, server_ca: str) -> bool:
     logger.info("Checking SLS connection")
-    response = requests.get(f"{sls_url}api/probes/readiness", verify=server_ca)
+    response = requests.get(f"{sls_url}/api/probes/readiness", verify=server_ca)
     if response.status_code == 200:
         return True
     return False
