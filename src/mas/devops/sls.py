@@ -36,6 +36,7 @@ def findSLSByNamespace(namespace: str, instances: list = None, dynClient: Dynami
             return True
     return False
 
+
 def verifySLSConnection(sls_url: str, server_ca: str) -> bool:
     logger.info("Checking SLS connection")
     response = requests.get(f"{sls_url}/api/probes/readiness", verify=server_ca)
