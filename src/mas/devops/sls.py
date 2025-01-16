@@ -32,8 +32,8 @@ def findSLSByNamespace(namespace: str, instances: list = None, dynClient: Dynami
         instances = listSLSInstances(dynClient)
 
     for instance in instances:
-            if namespace in instance['metadata']['namespace']:
-                return True
+        if namespace in instance['metadata']['namespace']:
+            return True
     return False
 
 def verifySLSConnection(sls_url: str, server_ca: str) -> bool:
