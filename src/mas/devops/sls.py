@@ -24,6 +24,18 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
         return []
 
 
+def findSLSByNamespace(namespace: str, instances: list = None, dynClient: DynamicClient = None):
+    if not instances and not dynClient:
+        return False
+
+    if not instances and dynClient:
+        instances = listSLSInstances(dynClient)
+
+    for instance in instances:
+            if namespace in instance['metadata']['namespace']:
+                return True
+    return False
+
 def verifySLSConnection(sls_url: str, server_ca: str) -> bool:
     logger.info("Checking SLS connection")
     response = requests.get(f"{sls_url}/api/probes/readiness", verify=server_ca)
