@@ -15,8 +15,8 @@ common_svcs_version_2: 4.8.0
 common_svcs_version_1: 4.3.0 #+20240702.100000 # common_svcs is a mess
 
 cp4d_platform_version: 5.0.0 #+20240716.101015 # Operator version 5.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/4.0.0%2B20231213.115030)
-# ibm_zen_version: 6.0.1+20240708.121250.32    # For CPD5 ibm-zen has to be explicitily mirrored
-ibm_zen_version: 6.0.2                         # For CPD5 ibm-zen has to be explicitily mirrored
+
+ibm_zen_version: 6.0.1+20240708.121250.32    # For CPD5 ibm-zen has to be explicitily mirrored
 
 db2u_version: 7.1.0+20241121.144113.11968    # Operator version 110509.0.2 to find the version 6.0.1, search CASE_VERSION in db2u, catalog.yaml into ibm-maximo-operator-catalog (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
