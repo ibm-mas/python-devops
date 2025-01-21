@@ -1,5 +1,4 @@
 import logging
-import requests
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
 
@@ -34,12 +33,4 @@ def findSLSByNamespace(namespace: str, instances: list = None, dynClient: Dynami
     for instance in instances:
         if namespace in instance['metadata']['namespace']:
             return True
-    return False
-
-
-def verifySLSConnection(sls_url: str, server_ca: str) -> bool:
-    logger.info("Checking SLS connection")
-    response = requests.get(f"{sls_url}/api/probes/readiness", verify=server_ca)
-    if response.status_code == 200:
-        return True
     return False
