@@ -8,7 +8,7 @@
 catalog_digest: sha256:0009604083ce2c5c551b1b734c9b57706f1c0ac0c6f2bc1e4095d911b06beb17
 
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.10.3 # Updated                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+sls_version: 3.11.0 # Updated                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.6.1  # No Update              # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 
 
@@ -16,7 +16,7 @@ tsm_version: 1.6.1  # No Update              # Operator version 1.5.4 (https://g
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0-pre.stable_7331 # tbc
-  9.0.x: 9.0.7    # tbc
+  9.0.x: 9.0.8    # updated
   8.10.x: "" # Not Supported
   8.11.x: "" # Not Supported
 mas_manage_version:
