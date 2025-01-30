@@ -284,8 +284,10 @@ spec:
     # -------------------------------------------------------------------------
     - name: sls_channel
       value: '3.x'
+{%- if sls_entitlement_file is defined and sls_entitlement_file != "" %}
     - name: sls_entitlement_file
       value: "{{ sls_entitlement_file }}"
+{%- endif %}
 {%- if sls_namespace is defined and sls_namespace != "" %}
     - name: sls_namespace
       value: "{{ sls_namespace }}"
@@ -298,6 +300,11 @@ spec:
     - name: sls_mongodb_cfg_file
       value: "{{ sls_mongodb_cfg_file }}"
 {%- endif %}
+{%- if sls_action is defined and sls_action != "" %}
+    - name: sls_action
+      value: "{{ sls_action }}"
+{%- endif %}
+
 
     # Dependencies - UDS/DRO (Required)
     # -------------------------------------------------------------------------

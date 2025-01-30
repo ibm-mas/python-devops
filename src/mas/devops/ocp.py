@@ -61,6 +61,22 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     return True
 
 
+def getNamespace(dynClient: DynamicClient, namespace: str) -> dict:
+    """
+    Get a namespace
+    """
+    namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
+
+    try:
+        ns = namespaceAPI.get(name=namespace)
+        logger.debug(f"Namespace {namespace} exists")
+        return ns
+    except NotFoundError:
+        logger.debug(f"Namespace {namespace} does not exist")
+
+    return {}
+
+
 def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
     """
     Create a namespace if it does not exist
