@@ -55,12 +55,12 @@ setup(
     description='Python for Maximo Application Suite Dev/Ops',
     long_description=long_description,
     install_requires=[
-        'pyyaml',         # MIT License
-        'openshift',      # Apache Software License
-        'kubernetes',     # Apache Software License
-        'kubeconfig',     # BSD License
-        'jinja2',         # BSD License
-        'jinja2-base64-filters'  # MIT License
+        'pyyaml',                  # MIT License
+        'openshift',               # Apache Software License
+        'kubernetes',              # Apache Software License
+        'kubeconfig',              # BSD License
+        'jinja2',                  # BSD License
+        'jinja2-base64-filters'    # MIT License
     ],
     extras_require={
         'dev': [
