@@ -38,3 +38,15 @@ Manually run the pre-commit hooks against all files
 ```bash
 pre-commit run -a
 ```
+
+Building locally
+-------------------------------------------------------------------------------
+Clone the python-devops repository locally. From the top level directory, run
+```
+make install build
+```
+
+NOTE: if building on MacOS you will need to first install pandoc:
+```
+brew install pandoc
+```
