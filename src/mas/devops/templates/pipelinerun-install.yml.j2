@@ -278,14 +278,22 @@ spec:
       value: "{{ cpd_install_openscale }}"
     - name: cpd_install_cognos
       value: "{{ cpd_install_cognos }}"
+    - name: cpd_install_ws
+      value: "{{ cpd_install_ws }}"
+    - name: cpd_install_wml
+      value: "{{ cpd_install_wml }}"
+    - name: cpd_install_ae
+      value: "{{ cpd_install_ae }}"
 {%- endif %}
 
     # Dependencies - SLS
     # -------------------------------------------------------------------------
     - name: sls_channel
       value: '3.x'
+{%- if sls_entitlement_file is defined and sls_entitlement_file != "" %}
     - name: sls_entitlement_file
       value: "{{ sls_entitlement_file }}"
+{%- endif %}
 {%- if sls_namespace is defined and sls_namespace != "" %}
     - name: sls_namespace
       value: "{{ sls_namespace }}"
@@ -298,6 +306,11 @@ spec:
     - name: sls_mongodb_cfg_file
       value: "{{ sls_mongodb_cfg_file }}"
 {%- endif %}
+{%- if sls_action is defined and sls_action != "" %}
+    - name: sls_action
+      value: "{{ sls_action }}"
+{%- endif %}
+
 
     # Dependencies - UDS/DRO (Required)
     # -------------------------------------------------------------------------
