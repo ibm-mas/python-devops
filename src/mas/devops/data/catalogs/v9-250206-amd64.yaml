@@ -75,7 +75,7 @@ mas_predict_version:
 mas_visualinspection_version:
   9.1.x-feature: 9.1.0-pre.stable_2122 #tbc
   9.0.x: 9.0.6    # updated
-  8.10.x: 8.8.3   # No Update
+  8.10.x: 8.8.4   # No Update
   8.11.x: 8.9.9   # updated
 
 # Extra Images for UDS
