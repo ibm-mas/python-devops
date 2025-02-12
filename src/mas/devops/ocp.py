@@ -165,13 +165,9 @@ def getConsoleURL(dynClient: DynamicClient) -> str:
 
 
 def getNodes(dynClient: DynamicClient) -> str:
-    try:
-        nodesAPI = dynClient.resources.get(api_version="v1", kind="Node")
-        nodes = nodesAPI.get().to_dict()['items']
-        return nodes
-    except Exception as e:
-        logger.error(f"Error: Unable to get nodes: {e}")
-        return []
+    nodesAPI = dynClient.resources.get(api_version="v1", kind="Node")
+    nodes = nodesAPI.get().to_dict()['items']
+    return nodes
 
 
 def getStorageClass(dynClient: DynamicClient, name: str) -> str:
