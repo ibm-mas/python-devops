@@ -1,0 +1,38 @@
+
+from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
+import logging
+import argparse
+from mas.devops.saas import job_cleaner
+
+import urllib3
+urllib3.disable_warnings()
+
+
+if __name__ == "__main__":
+    # Initialize the properties we need
+    parser = argparse.ArgumentParser()
+
+    # Primary Options
+    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
+    parser.add_argument("--label", required=True, help="Kubernetes resource label used to identify Job groups and associated ConfigMap.")
+
+    args, unknown = parser.parse_known_args()
+
+    log_level = getattr(logging, args.log_level)
+    logging.basicConfig()
+    logging.getLogger('mas.devops.saas.job_cleaner').setLevel(level=log_level)
+
+    try:
+        # Try to load in-cluster configuration
+        config.load_incluster_config()
+        print("Loaded in-cluster configuration")
+    except ConfigException:
+        # If that fails, fall back to kubeconfig file
+        config.load_kube_config()
+        print("Loaded kubeconfig file")
+
+    job_cleaner.cleanup_jobs(
+        client.api_client.ApiClient(),
+        args.label
+    )
