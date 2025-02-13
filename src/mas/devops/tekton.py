@@ -102,25 +102,26 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
         logger.debug(line)
 
 
-def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True):
-    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(
-        loader=FileSystemLoader(searchpath=templateDir)
-    )
+def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+    if configureRBAC:
+        templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+        env = Environment(
+            loader=FileSystemLoader(searchpath=templateDir)
+        )
 
-    if instanceId is None:
-        namespace = "mas-pipelines"
-        template = env.get_template("pipelines-rbac-cluster.yml.j2")
-    else:
-        namespace = f"mas-{instanceId}-pipelines"
-        template = env.get_template("pipelines-rbac.yml.j2")
+        if instanceId is None:
+            namespace = "mas-pipelines"
+            template = env.get_template("pipelines-rbac-cluster.yml.j2")
+        else:
+            namespace = f"mas-{instanceId}-pipelines"
+            template = env.get_template("pipelines-rbac.yml.j2")
 
-    # Create RBAC
-    renderedTemplate = template.render(mas_instance_id=instanceId)
-    logger.debug(renderedTemplate)
-    crb = yaml.safe_load(renderedTemplate)
-    clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
-    clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
+        # Create RBAC
+        renderedTemplate = template.render(mas_instance_id=instanceId)
+        logger.debug(renderedTemplate)
+        crb = yaml.safe_load(renderedTemplate)
+        clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
+        clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
 
     # Create PVC (instanceId namespace only)
     if instanceId is not None:
