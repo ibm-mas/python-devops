@@ -103,19 +103,18 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
 
 
 def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    env = Environment(
+        loader=FileSystemLoader(searchpath=templateDir)
+    )
+    if instanceId is None:
+        namespace = "mas-pipelines"
+        template = env.get_template("pipelines-rbac-cluster.yml.j2")
+    else:
+        namespace = f"mas-{instanceId}-pipelines"
+        template = env.get_template("pipelines-rbac.yml.j2")
+
     if configureRBAC:
-        templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-        env = Environment(
-            loader=FileSystemLoader(searchpath=templateDir)
-        )
-
-        if instanceId is None:
-            namespace = "mas-pipelines"
-            template = env.get_template("pipelines-rbac-cluster.yml.j2")
-        else:
-            namespace = f"mas-{instanceId}-pipelines"
-            template = env.get_template("pipelines-rbac.yml.j2")
-
         # Create RBAC
         renderedTemplate = template.render(mas_instance_id=instanceId)
         logger.debug(renderedTemplate)
