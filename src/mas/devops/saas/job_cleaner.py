@@ -12,108 +12,117 @@ from kubernetes import client
 import logging
 import itertools
 
-logger = logging.getLogger(__name__)
-
 # TODO: dry-run mode that just logs (does not delete anything)
-
-
 # TODO: test case: four jobs with same cleanup_group id but different namespaces
 
-
-def job_details(job, label):
-    name = job.metadata.name
-    namespace = job.metadata.namespace
-    creation_timestamp = job.metadata.creation_timestamp
-    cleanup_group = job.metadata.labels[label]
-
-    return f"{name} {namespace} {cleanup_group} {creation_timestamp}"
+# TODO: behaviours that diverge from default ArgoCD behaviour (if auto_delete: true were set), but may be useful?:
+#       - support option to only purge jobs >n iterations old
+#       - avoid purging jobs that are still running
+#       - prune prior jobs even if most recent job has failed, or leave them be as they may provide valuable debugging info
+#       - save details / logs from purged jobs (where? to a PV?)
 
 
-def cleanup_jobs(k8s_client: client.api_client.ApiClient, label: str, limit: int = 100):
-    batch_v1_api = client.BatchV1Api(k8s_client)
+class JobCleaner:
+    def __init__(self, k8s_client: client.api_client.ApiClient):
+        self.k8s_client = k8s_client
+        self.batch_v1_api = client.BatchV1Api(self.k8s_client)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    # we need to be sure we have all Jobs loaded up front (we can't do the cleanup page by page)
-    # so a page boundary may cut a cleanup_group in half, which would cause inconsistent behaviour
+    def _get_all_cleanup_groups(self, label: str, limit: int):
+        # set of tuples (namespace, cleanup_group_id)
+        cleanup_groups = set()
+        _continue = None
+        while True:
 
-    # set of tuples (namespace, cleanup_group_id)
-    cleanup_groups = set()
-    _continue = None
-    while True:
+            jobs_page = self.batch_v1_api.list_job_for_all_namespaces(
+                label_selector=label,
+                limit=limit,
+                _continue=_continue
+            )
+            _continue = jobs_page.metadata._continue
 
-        # to avoid loading all jobs into memory at once (there may be a LOT),
-        # do an initial query to look for all unique group_ids in the cluster
-        # later, for each group_id, another query to find all jobs belonging to that group
-        # We're trading cpu time / network io for memory here..
+            for job in jobs_page.items:
+                cleanup_groups.add((job.metadata.namespace, job.metadata.labels[label]))
 
-        jobs_page = batch_v1_api.list_job_for_all_namespaces(
-            label_selector=label,
-            limit=limit,
-            _continue=_continue
-        )
-        _continue = jobs_page.metadata._continue
+            if _continue is None:
+                return cleanup_groups
 
-        for job in jobs_page.items:
-            cleanup_groups.add((job.metadata.namespace, job.metadata.labels[label]))
-
-        if _continue is None:
-            break
-
-    # NOTE: it's possible for things to change in the cluster while this process is ongoing
-    # e.g.:
-    #  - a new sync cycle creates a newer version of Job; not a problem, just means an orphaned job will stick around for one extra cycle
-    #  - a new cleanup group appears; not a problem, the new cleanup group will be handled in the next cycle
-    #  - ... other race conditions?
-    # this process is eventually consistent
-
-    # Now we know all the cleanup group ids in the cluster
-    # we can deal with each one separately; we only have to load the job resources for that particular group into memory at once
-    # (we have to load into memory in order to guarantee the jobs are sorted by creation_date
-    # if we could (can?) rely on K8S to always return them in this order then we could evaluate each page of Jobs lazily
-    for (namespace, cleanup_group_id) in cleanup_groups:
-
-        print()
-        print()
-        print(f"{namespace} / {cleanup_group_id}")
-        print("============================")
-
+    def _get_all_jobs(self, namespace: str, group_id: str, label: str, limit: int):
         # page through all jobs in this namespace and group, and chain together all the resulting iterators
         job_items_iters = []
+        _continue = None
         while True:
-            jobs_page = batch_v1_api.list_namespaced_job(
+            jobs_page = self.batch_v1_api.list_namespaced_job(
                 namespace,
-                label_selector=f"{label}={cleanup_group_id}",
+                label_selector=f"{label}={group_id}",
                 limit=limit,
                 _continue=_continue
             )
             job_items_iters.append(jobs_page.items)
             _continue = jobs_page.metadata._continue
             if _continue is None:
-                break
+                return itertools.chain(*job_items_iters)
 
-        jobs = itertools.chain(*job_items_iters)
+    def cleanup_jobs(self, label: str, limit: int, dry_run: bool):
+        dry_run_param = None
+        if dry_run:
+            dry_run_param = "All"
 
-        # sort the jobs by creation_timestamp
-        jobs_sorted = iter(sorted(
-            jobs,
-            key=lambda group_job: group_job.metadata.creation_timestamp,
-            reverse=True
-        ))
+        # We want to avoid loading all Jobs into memory at once (there may be a lot)
+        # We cannot lazily page through Job resources in case a page boundary lands half way through a group
+        # Instead, we'll trade cpu time / network IO to save memory by:
+        #  - Performing an initial query to load all unique (namespace, group IDs) into memory
 
-        # inspect the first Job - i.e. the one created most recently
-        # whatever happens we definitely will not be deleting this job (in this cycle, at least)
-        most_recent_job = next(jobs_sorted)
-        print()
-        print("Most recent Job")
-        print("------")
-        print(job_details(most_recent_job, label))
+        cleanup_groups = self._get_all_cleanup_groups(label, limit)
 
-        # TODO: prune prior jobs even if most recent job has failed?
-        #       or leave them be as they may provide valuable debugging info?
+        self.logger.info(f"Found {len(cleanup_groups)} unique (namespace, cleanup group ID) pairs, processing ...")
 
-        print()
-        print("Old Jobs to be pruned")
-        print("------")
-        for job in jobs_sorted:
-            # prune prior jobs even if most recent job has failed?
-            # or leave them be as they may provide valuable debugging info?
-            print(job_details(job, label))
+        # NOTE: it's possible for things to change in the cluster while this process is ongoing
+        # e.g.:
+        #  - a new sync cycle creates a newer version of Job; not a problem, just means an orphaned job will stick around for one extra cycle
+        #  - a new cleanup group appears; not a problem, the new cleanup group will be handled in the next cycle
+        #  - ... other race conditions?
+        # this process is eventually consistent
+
+        # Now we know all the cleanup group ids in the cluster
+        # we can deal with each one separately; we only have to load the job resources for that particular group into memory at once
+        # (we have to load into memory in order to guarantee the jobs are sorted by creation_date)
+        i = 0
+        for (namespace, group_id) in cleanup_groups:
+
+            self.logger.info("")
+            self.logger.info(f"{i}) {group_id} {namespace}")
+
+            jobs = self._get_all_jobs(namespace, group_id, label, limit)
+
+            # sort the jobs by creation_timestamp
+            jobs_sorted = sorted(
+                jobs,
+                key=lambda group_job: group_job.metadata.creation_timestamp,
+                reverse=True
+            )
+
+            # TODO: sanity checks?
+            #   - all jobs start with same prefix (everything before final `-<adler32sum>`)?
+
+            if len(jobs_sorted) == 0:
+                self.logger.warning("No Jobs found in group, must have been deleted by some other process, skipping")
+                continue
+            else:
+                first = True
+                for job in jobs_sorted:
+                    name = job.metadata.name
+                    creation_timestamp = str(job.metadata.creation_timestamp)
+                    if first:
+                        self.logger.info("{0:<6} {1:<65} {2:<65}".format("SKIP", name, creation_timestamp))
+                        first = False
+                    else:
+                        try:
+                            self.batch_v1_api.delete_namespaced_job(name, namespace, dry_run=dry_run_param, propagation_policy="Foreground")
+                            result = "SUCCESS"
+                        except client.rest.ApiException as e:
+                            result = f"FAILED: {e}"
+
+                        self.logger.info("{0:<6} {1:<65} {2:<65} {3}".format("PURGE", name, creation_timestamp, result))
+
+            i = i + 1
