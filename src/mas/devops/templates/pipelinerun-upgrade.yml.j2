@@ -9,7 +9,7 @@ spec:
   pipelineRef:
     name: mas-upgrade
 
-  serviceAccountName: pipeline
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   timeouts:
     pipeline: "0"
 

@@ -102,12 +102,11 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
         logger.debug(line)
 
 
-def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True):
+def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir)
     )
-
     if instanceId is None:
         namespace = "mas-pipelines"
         template = env.get_template("pipelines-rbac-cluster.yml.j2")
@@ -115,12 +114,13 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         namespace = f"mas-{instanceId}-pipelines"
         template = env.get_template("pipelines-rbac.yml.j2")
 
-    # Create RBAC
-    renderedTemplate = template.render(mas_instance_id=instanceId)
-    logger.debug(renderedTemplate)
-    crb = yaml.safe_load(renderedTemplate)
-    clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
-    clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
+    if configureRBAC:
+        # Create RBAC
+        renderedTemplate = template.render(mas_instance_id=instanceId)
+        logger.debug(renderedTemplate)
+        crb = yaml.safe_load(renderedTemplate)
+        clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
+        clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
 
     # Create PVC (instanceId namespace only)
     if instanceId is not None:
