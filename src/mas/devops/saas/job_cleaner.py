@@ -12,13 +12,11 @@ from kubernetes import client
 import logging
 import itertools
 
-# TODO: dry-run mode that just logs (does not delete anything)
 # TODO: test case: four jobs with same cleanup_group id but different namespaces
 
-# TODO: behaviours that diverge from default ArgoCD behaviour (if auto_delete: true were set), but may be useful?:
+# Possible future features: behaviours that diverge from default ArgoCD behaviour (if auto_delete: true were set), but may be useful?:
 #       - support option to only purge jobs >n iterations old
 #       - avoid purging jobs that are still running
-#       - prune prior jobs even if most recent job has failed, or leave them be as they may provide valuable debugging info
 #       - save details / logs from purged jobs (where? to a PV?)
 
 
@@ -101,9 +99,6 @@ class JobCleaner:
                 key=lambda group_job: group_job.metadata.creation_timestamp,
                 reverse=True
             )
-
-            # TODO: sanity checks?
-            #   - all jobs start with same prefix (everything before final `-<adler32sum>`)?
 
             if len(jobs_sorted) == 0:
                 self.logger.warning("No Jobs found in group, must have been deleted by some other process, skipping")
