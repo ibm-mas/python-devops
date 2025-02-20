@@ -12,8 +12,6 @@ from kubernetes import client
 import logging
 import itertools
 
-# TODO: test case: four jobs with same cleanup_group id but different namespaces
-
 # Possible future features: behaviours that diverge from default ArgoCD behaviour (if auto_delete: true were set), but may be useful?:
 #       - support option to only purge jobs >n iterations old
 #       - avoid purging jobs that are still running
