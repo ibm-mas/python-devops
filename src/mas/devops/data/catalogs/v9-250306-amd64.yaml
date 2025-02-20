@@ -61,22 +61,22 @@ mas_manage_version:
   8.11.x: 8.7.16  # tbc
 mas_monitor_version:
   9.0.x: 9.0.6    # tbc
-  8.10.x: 8.10.16 # updated
-  8.11.x: 8.11.14 # updated
+  8.10.x: 8.10.16 # tbc
+  8.11.x: 8.11.14 # tbc
 mas_optimizer_version:
-  9.1.x-feature: 9.1.0-pre.stable_1703 # updated
-  9.0.x: 9.0.8    # updated
-  8.10.x: 8.4.15  # updated
-  8.11.x: 8.5.14  # updated
+  9.1.x-feature: 9.1.0-pre.stable_1703 # tbc
+  9.0.x: 9.0.8    # tbc
+  8.10.x: 8.4.15  # tbc
+  8.11.x: 8.5.14  # tbc
 mas_predict_version:
   9.0.x: 9.0.4    # No Update
   8.10.x: 8.8.5   # No Update
   8.11.x: 8.9.7   # No Update
 mas_visualinspection_version:
-  9.1.x-feature: 9.1.0-pre.stable_2122 # updated
-  9.0.x: 9.0.6    # updated
+  9.1.x-feature: 9.1.0-pre.stable_2122 # tbc
+  9.0.x: 9.0.6    # tbc
   8.10.x: 8.8.4   # No Update
-  8.11.x: 8.9.9   # updated
+  8.11.x: 8.9.9   # tbc
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
