@@ -38,10 +38,10 @@ elasticsearch_version: 1.1.2470              # Operator version 1.1.2470
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.1.x-feature: 9.1.0-pre.stable_7790 # tbc
-  9.0.x: 9.0.8    # tbc
-  8.10.x: 8.10.23 # updated
-  8.11.x: 8.11.20 # updated
+  9.1.x-feature: 9.1.0-pre.stable_7790 # updated
+  9.0.x: 9.0.8    # updated
+  8.10.x: 8.10.22 # updated
+  8.11.x: 8.11.19 # updated
 mas_assist_version:
   9.0.x: 9.0.3    # No Update
   8.10.x: 8.7.8   # No Update
