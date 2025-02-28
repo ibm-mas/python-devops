@@ -21,8 +21,8 @@ H2_BREAK = "----------------------------------------------------------------"
 logger = logging.getLogger(__name__)
 
 
-def get_db2u_instance_cr(custom_objects_api: client.CustomObjectsApi, mas_instance_id: str, mas_app_id: str) -> dict:
-    cr_name = f"db2wh-{mas_instance_id}-{mas_app_id}"
+def get_db2u_instance_cr(custom_objects_api: client.CustomObjectsApi, mas_instance_id: str, mas_app_id: str, database_role='primary') -> dict:
+    cr_name = {'primary': f"db2wh-{mas_instance_id}-{mas_app_id}", 'standby': f"db2wh-{mas_instance_id}-{mas_app_id}-sdb"}[database_role]
     namespace = f"db2u-{mas_instance_id}"
     logger.debug(f"Getting Db2uInstance CR {cr_name} in {namespace}")
 
@@ -37,25 +37,25 @@ def get_db2u_instance_cr(custom_objects_api: client.CustomObjectsApi, mas_instan
     return db2u_instance_cr
 
 
-def db2_pod_exec(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, command: list) -> str:
-    pod_name = f"c-db2wh-{mas_instance_id}-{mas_app_id}-db2u-0"
+def db2_pod_exec(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, command: list, database_role='primary') -> str:
+    pod_name = {'primary': f"c-db2wh-{mas_instance_id}-{mas_app_id}-db2u-0", 'standby': f"c-db2wh-{mas_instance_id}-{mas_app_id}-sdb-db2u-0"}[database_role]
     namespace = f"db2u-{mas_instance_id}"
     return execInPod(core_v1_api, pod_name, namespace, command)
 
 
-def db2_pod_exec_db2_get_db_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, db_name: str) -> str:
+def db2_pod_exec_db2_get_db_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, db_name: str, database_role='primary') -> str:
     command = ["su", "-lc", f"db2 get db cfg for {db_name}", "db2inst1"]
-    return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command)
+    return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command, database_role)
 
 
-def db2_pod_exec_db2_get_dbm_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> str:
+def db2_pod_exec_db2_get_dbm_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> str:
     command = ["su", "-lc", "db2 get dbm cfg", "db2inst1"]
-    return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command)
+    return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command, database_role)
 
 
-def db2_pod_exec_db2set(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> str:
+def db2_pod_exec_db2set(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> str:
     command = ["su", "-lc", "db2set", "db2inst1"]
-    return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command)
+    return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command, database_role)
 
 
 def cr_pod_v_matches(cr_k: str, cr_v: str, pod_v: str) -> bool:
@@ -79,7 +79,7 @@ def cr_pod_v_matches(cr_k: str, cr_v: str, pod_v: str) -> bool:
     return pod_v == cr_v
 
 
-def check_db_cfgs(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
+def check_db_cfgs(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> list:
     """
     Runs check_db_cfg for each database in the provided Db2uInstance CR
 
@@ -100,12 +100,12 @@ def check_db_cfgs(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
 
     # Check each db cfg
     for cr_db in db2u_instance_cr_databases:
-        failures = [*failures, *check_db_cfg(cr_db, core_v1_api, mas_instance_id, mas_app_id)]
+        failures = [*failures, *check_db_cfg(cr_db, core_v1_api, mas_instance_id, mas_app_id, database_role)]
 
     return failures
 
 
-def check_db_cfg(db_dr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
+def check_db_cfg(db_dr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> list:
     """
     Check that the parameters in the provided db dict taken from the Db2uInstance CR align with those in the output of the
     db2 get db cfg command (i.e. the configuration that is actually active in DB2).
@@ -123,7 +123,7 @@ def check_db_cfg(db_dr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: st
     failures = []
 
     db_name = db_dr["name"]
-    db_cfg_pod = db2_pod_exec_db2_get_db_cfg(core_v1_api, mas_instance_id, mas_app_id, db_name)
+    db_cfg_pod = db2_pod_exec_db2_get_db_cfg(core_v1_api, mas_instance_id, mas_app_id, db_name, database_role)
 
     logger.info(f"Checking db cfg for {db_name}\n{H1_BREAK}")
 
@@ -154,7 +154,7 @@ def check_db_cfg(db_dr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: st
     return failures
 
 
-def check_dbm_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
+def check_dbm_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> list:
     """
     Check that the database manager (dbmConfig) parameters from the Db2uInstance CR align with those in the output of the
     db2 get dbm cfg command (i.e. the configuration that is actually active in DB2).
@@ -178,7 +178,7 @@ def check_dbm_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
         logger.info("spec.environment.instance.dbmConfig not found or empty, skipping dbm cfg checks\n")
         return []
 
-    dbm_cfg_pod = db2_pod_exec_db2_get_dbm_cfg(core_v1_api, mas_instance_id, mas_app_id)
+    dbm_cfg_pod = db2_pod_exec_db2_get_dbm_cfg(core_v1_api, mas_instance_id, mas_app_id, database_role)
 
     logger.debug(f"db2 dbm cfg output:\n{H2_BREAK}{dbm_cfg_pod}{H2_BREAK}")
     logger.debug(f"db2 dbm cr settings:\n{H2_BREAK}\n{yaml.dump(dbm_cfg_cr, sort_keys=False, default_flow_style=False)}{H2_BREAK}")
@@ -203,7 +203,7 @@ def check_dbm_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
     return failures
 
 
-def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str) -> list:
+def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> list:
     """
     Check that the registry parameters from the Db2uInstance CR align with those in the output of the
     db2set command (i.e. the configuration that is actually active in DB2).
@@ -228,7 +228,7 @@ def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
         logger.info("spec.environment.instance.registry not found or empty, skipping registry cfg checks\n")
         return []
 
-    reg_cfg_pod = db2_pod_exec_db2set(core_v1_api, mas_instance_id, mas_app_id)
+    reg_cfg_pod = db2_pod_exec_db2set(core_v1_api, mas_instance_id, mas_app_id, database_role)
 
     logger.debug(f"db2set output:\n{H2_BREAK}{reg_cfg_pod}{H2_BREAK}")
     logger.debug(f"db2 cr registry settings:\n{H2_BREAK}\n{yaml.dump(reg_cfg_cr, sort_keys=False, default_flow_style=False)}{H2_BREAK}")
@@ -254,15 +254,15 @@ def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
     return failures
 
 
-def validate_db2_config(k8s_client: client.api_client.ApiClient, mas_instance_id: str, mas_app_id: str):
+def validate_db2_config(k8s_client: client.api_client.ApiClient, mas_instance_id: str, mas_app_id: str, database_role='primary'):
 
     core_v1_api = client.CoreV1Api(k8s_client)
     custom_objects_api = client.CustomObjectsApi(k8s_client)
 
-    db2u_instance_cr = get_db2u_instance_cr(custom_objects_api, mas_instance_id, mas_app_id)
-    db_failures = check_db_cfgs(db2u_instance_cr, core_v1_api, mas_instance_id, mas_app_id)
-    dbm_failures = check_dbm_cfg(db2u_instance_cr, core_v1_api, mas_instance_id, mas_app_id)
-    reg_failures = check_reg_cfg(db2u_instance_cr, core_v1_api, mas_instance_id, mas_app_id)
+    db2u_instance_cr = get_db2u_instance_cr(custom_objects_api, mas_instance_id, mas_app_id, database_role)
+    db_failures = check_db_cfgs(db2u_instance_cr, core_v1_api, mas_instance_id, mas_app_id, database_role)
+    dbm_failures = check_dbm_cfg(db2u_instance_cr, core_v1_api, mas_instance_id, mas_app_id, database_role)
+    reg_failures = check_reg_cfg(db2u_instance_cr, core_v1_api, mas_instance_id, mas_app_id, database_role)
 
     all_failures = [*db_failures, *dbm_failures, *reg_failures]
 
