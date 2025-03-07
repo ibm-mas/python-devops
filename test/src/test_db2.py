@@ -101,8 +101,8 @@ def test_check_db_cfgs(mocker):
     )
 
     assert mock_check_db_cfg.call_args_list == [
-        mocker.call(dict(name="a"), mock_core_v1_api, "mas_instance_id", "mas_app_id"),
-        mocker.call(dict(name="b"), mock_core_v1_api, "mas_instance_id", "mas_app_id")
+        mocker.call(dict(name="a"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"),
+        mocker.call(dict(name="b"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary")
     ]
 
 
