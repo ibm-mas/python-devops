@@ -318,8 +318,16 @@ class MASUserUtils():
 
     def link_user_to_local_idp(self, user_id, email_password=False):
         '''
-        TODO: idempotency
+        Checks if user already has a local identity, no-op if so.
+        Assumes user exists, raises if not
         '''
+
+        # For the sake of idempotency, check if the user already has a local identity
+        user = self.get_user(user_id)
+        if "identities" in user and "_local" in user["identities"]:
+            self.logger.info(f"User {user_id} already has a local identity")
+            return None
+
         self.logger.info(f"Linking user {user_id} to local IDP (email_password: {email_password})")
         url = f"{self.mas_api_url}/v3/users/{user_id}/idps/local"
         querystring = {
@@ -342,7 +350,7 @@ class MASUserUtils():
         if response.status_code != 200:
             raise Exception(response.text)
 
-        return response.json()
+        return None
 
     def get_user(self, user_id):
         self.logger.info(f"Getting user {user_id}")
