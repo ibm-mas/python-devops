@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+
+# *****************************************************************************
+# Copyright (c) 2024 IBM Corporation and other Contributors.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+#
+# *****************************************************************************
+
+from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
+import argparse
+import logging
+import urllib3
+urllib3.disable_warnings()
+import os
+import sys
+import json
+import re
+import yaml
+
+from mas.devops.users import MASUserUtils
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # Primary Options
+    parser.add_argument("--mas-instance-id", required=True)
+    parser.add_argument("--mas-workspace-id", required=True)
+    parser.add_argument("--initial-users-yaml-file", required=True)
+    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
+    parser.add_argument("--dry-run", required=False, help="When specified, nothing will actually be deleted from the cluster", action="store_true")
+
+    args, unknown = parser.parse_known_args()
+
+    log_level = getattr(logging, args.log_level)
+
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(log_level)
+    chFormatter = logging.Formatter(
+        "%(asctime)-25s %(name)-50s [%(threadName)s] %(levelname)-8s %(message)s"
+    )
+    ch.setFormatter(chFormatter)
+    logger.addHandler(ch)
+
+
+    mas_instance_id = args.mas_instance_id
+    mas_workspace_id = args.mas_workspace_id
+    initial_users_yaml_file = args.initial_users_yaml_file
+    dry_run = args.dry_run
+
+    logger.info("Configuration:")
+    logger.info("--------------")
+    logger.info(f"mas_instance_id:         {mas_instance_id}")
+    logger.info(f"mas_workspace_id:        {mas_workspace_id}")
+    logger.info(f"initial_users_yaml_file: {initial_users_yaml_file}")
+    logger.info(f"log_level:               {log_level}")
+    logger.info(f"dry_run:                 {dry_run}")
+    logger.info("")
+
+    try:
+        # Try to load in-cluster configuration
+        config.load_incluster_config()
+        logger.info("Loaded in-cluster configuration")
+    except ConfigException:
+        # If that fails, fall back to kubeconfig file
+        config.load_kube_config()
+        logger.info("Loaded kubeconfig file")
+
+    user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient())
+
+    with open(initial_users_yaml_file, 'r') as file:
+       initial_users_yaml = yaml.safe_load(file)
+
+    user_utils.create_initial_users_for_saas(initial_users_yaml)
+

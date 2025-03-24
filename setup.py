@@ -84,6 +84,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     scripts=[
-        'bin/mas-devops-db2-validate-config'
+        'bin/mas-devops-db2-validate-config',
+        'bin/mas-devops-create-initial-users-for-saas'
     ]
 )
