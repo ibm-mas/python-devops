@@ -40,6 +40,10 @@ TODO:
 
 
 class MASUserUtils():
+    '''
+    A collection of utilities for interacting with the MAS Core V3 User APIs and related APIs.
+    Each instance of this class is tied to a specific MAS instance and workspace ID.
+    '''
 
     MAXADMIN = "MAXADMIN"
 
@@ -373,10 +377,40 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
+    def get_user_workspaces(self, user_id):
+        '''
+        Assumes user exists, raises if not.
+        '''
+        self.logger.info(f"Getting workspaces for user {user_id}")
+        url = f"{self.mas_api_url}/v3/users/{user_id}/workspaces"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.mas_api_url_ca_chain_file_path
+        )
+
+        if response.status_code == 404:
+            raise Exception(f"User {user_id} does not exist")
+
+        if response.status_code == 200:
+            return response.json()
+
+        raise Exception(f"{response.status_code} {response.text}")
+
     def add_user_to_workspace(self, user_id, is_workspace_admin=False):
         '''
-        TODO: idempotency
+        No-op if user is already a member of the workspace. No attempt will be made to update their existing is_workspace_admin flag if it differs.
         '''
+        workspaces = self.get_user_workspaces(user_id)
+        for workspace in workspaces:
+            if "id" in workspace and workspace["id"] == self.mas_workspace_id:
+                self.logger.info(f"User {user_id} is already a member of workspace {self.mas_workspace_id}")
+                return None
+
         self.logger.info(f"Adding user {user_id} to {self.mas_workspace_id} (is_workspace_admin: {is_workspace_admin})")
         url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/users/{user_id}"
         querystring = {}
@@ -396,7 +430,11 @@ class MASUserUtils():
             params=querystring,
             verify=self.mas_api_url_ca_chain_file_path
         )
-        return response.json()
+
+        if response.status_code == 200:
+            return None
+
+        raise Exception(f"{response.status_code} {response.text}")
 
     def set_user_application_permission(self, user_id, application_id, role):
         '''
