@@ -80,5 +80,6 @@ if __name__ == "__main__":
     with open(initial_users_yaml_file, 'r') as file:
        initial_users_yaml = yaml.safe_load(file)
 
+
     user_utils.create_initial_users_for_saas(initial_users_yaml)
 

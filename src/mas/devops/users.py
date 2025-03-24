@@ -193,7 +193,7 @@ class MASUserUtils():
     @property
     def superuser_auth_token(self):
         if self._superuser_auth_token is None:
-            self.logger.info("Getting superuser auth token")
+            self.logger.debug("Getting superuser auth token")
             url = f"{self.mas_admin_url}/logininitial"
             headers = {
                 "Content-Type": "application/json"
@@ -287,7 +287,7 @@ class MASUserUtils():
                 "familyName": family_name
             }
         '''
-        self.logger.info(f"Upserting user {payload["id"]}")
+        self.logger.info(f"Creating (or getting) user {payload["id"]}")
         existing_user = self.get_user(payload["id"])
 
         if existing_user is not None:
@@ -357,7 +357,7 @@ class MASUserUtils():
         return None
 
     def get_user(self, user_id):
-        self.logger.info(f"Getting user {user_id}")
+        self.logger.debug(f"Getting user {user_id}")
         url = f"{self.mas_api_url}/v3/users/{user_id}"
         headers = {
             "Accept": "application/json",
@@ -381,7 +381,7 @@ class MASUserUtils():
         '''
         Assumes user exists, raises if not.
         '''
-        self.logger.info(f"Getting workspaces for user {user_id}")
+        self.logger.debug(f"Getting workspaces for user {user_id}")
         url = f"{self.mas_api_url}/v3/users/{user_id}/workspaces"
         headers = {
             "Accept": "application/json",
@@ -440,6 +440,7 @@ class MASUserUtils():
         '''
         TODO: idempotency
         '''
+        self.logger.info(f"Setting user {user_id} role for {application_id} to {role}")
         url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
         querystring = {}
         payload = {
@@ -464,7 +465,6 @@ class MASUserUtils():
         while time.time() < t_end:
             user = self.get_user(user_id)
             sync_state = user["applications"][application_id]["sync"]["state"]
-            self.logger.info(f"User sync {user_id} status is currently {sync_state}")
             if sync_state == "SUCCESS":
                 return
             elif sync_state == "ERROR":
@@ -473,9 +473,10 @@ class MASUserUtils():
                 # time.sleep(8)
                 # alternative mechanism to kick off a user resync?
                 # if not, bomb out here since we'll never get SUCCESS?
-                pass
+                # TODO: I think you can just set user roles against to retrigger user sync
+                raise Exception(f"User {user_id} sync failed, aborting")
             else:
-                self.logger.info(f"User {user_id} sync has not been completed yet for app {application_id}: {t_end - time.time():.2f} seconds remaining")
+                self.logger.info(f"User {user_id} sync has not been completed yet for app {application_id} (currrently {sync_state}): {t_end - time.time():.2f} seconds remaining")
                 time.sleep(5)
         raise Exception(f"User {user_id} sync failed to complete for app within {timeout_secs} seconds")
 
@@ -564,7 +565,7 @@ class MASUserUtils():
         return apikey
 
     def get_manage_api_key_for_user(self, user_id):
-        self.logger.info(f"Getting Manage API Key for user {user_id}")
+        self.logger.debug(f"Getting Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
         querystring = {
             "ccm": 1,
@@ -627,7 +628,7 @@ class MASUserUtils():
             self._manage_maxadmin_api_key = None
 
     def get_manage_group_id(self, group_name):
-        self.logger.info(f"Getting ID for Manage group {group_name}")
+        self.logger.debug(f"Getting ID for Manage group {group_name}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup"
         querystring = {
             "ccm": 1,
@@ -694,11 +695,14 @@ class MASUserUtils():
             verify=self.manage_internal_ca_pem_file_path,
         )
         self.logger.debug(f"  < {response.status_code}")
-        if response.status_code != 204:
-            raise Exception(response.text)
+
+        if response.status_code == 204:
+            return None
+
+        raise Exception(f"{response.status_code} {response.text}")
 
     def get_groups(self):
-        self.logger.info("Getting groups")
+        self.logger.debug("Getting groups")
         url = f"{self.mas_api_url}/groups"
         headers = {
             "Accept": "application/json",
@@ -709,7 +713,9 @@ class MASUserUtils():
             headers=headers,
             verify=self.mas_api_url_ca_chain_file_path
         )
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
 
     def get_user_groups(self, user_id):
         self.logger.info(f"Getting groups for user {user_id}")
@@ -723,7 +729,70 @@ class MASUserUtils():
             headers=headers,
             verify=self.mas_api_url_ca_chain_file_path
         )
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
+
+    def get_installed_mas_applications(self):
+        self.logger.debug("Getting installed MAS Applications")
+        url = f"{self.mas_api_url}/applications"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.mas_api_url_ca_chain_file_path
+        )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
+
+    def get_mas_applications_in_workspace(self):
+        self.logger.debug(f"Getting MAS Applications in workspace {self.mas_workspace_id}")
+        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.mas_api_url_ca_chain_file_path
+        )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
+
+    def get_mas_application_availability(self, mas_application_id):
+        self.logger.debug(f"Getting availability of MAS Application {mas_application_id} in workspace {self.mas_workspace_id}")
+        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications/{mas_application_id}"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.mas_api_url_ca_chain_file_path
+        )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
+
+    def await_mas_application_availability(self, mas_application_id, timeout_secs=60 * 10):
+        t_end = time.time() + timeout_secs
+        self.logger.info(f"Waiting for {mas_application_id} to become ready and available: {t_end - time.time():.2f} seconds remaining")
+        while time.time() < t_end:
+            app = self.get_mas_application_availability(mas_application_id)
+            if "available" in app and "ready" in app and app["ready"] and app["available"]:
+                return
+            # TODO: error state?
+            else:
+                self.logger.info(f"{mas_application_id} is not ready or available, retry in 5 seconds: {t_end - time.time():.2f} seconds remaining")
+                time.sleep(5)
+        raise Exception(f"{mas_application_id} did not become ready and available in time, aborting")
 
     def create_initial_users_for_saas(self, initial_users):
 
@@ -778,7 +847,7 @@ class MASUserUtils():
                 "alwaysReserveLicense": True
             }
             is_workspace_admin = True
-            # application_role = "ADMINISTRATOR"
+            application_role = "ADMINISTRATOR"
         elif user_type == "SECONDARY":
             permissions = {
                 "systemAdmin": False,
@@ -791,11 +860,9 @@ class MASUserUtils():
                 "alwaysReserveLicense": True
             }
             is_workspace_admin = False
-            # application_role = "USER"
+            application_role = "USER"
         else:
             raise Exception(f"Unsupported user_type: {user_type}")
-
-        # manage_role = "MANAGEUSER"
 
         user_def = {
             "id": user_id,
@@ -821,16 +888,18 @@ class MASUserUtils():
         self.link_user_to_local_idp(user_id)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
 
-        # for mas_application in mas_applications:
-        #     if mas_application == "manage":
-        #         role = manage_role
-        #     else:
-        #         role = application_role
-        #     user_utils.set_user_application_permission(user_id, mas_application, role)
+        mas_application_ids = list(map(lambda ma: ma["id"], self.get_mas_applications_in_workspace()))
 
-        # for mas_application in mas_applications:
-        #     user_utils.check_user_sync(user_id, mas_application)
+        for mas_application_id in mas_application_ids:
+            self.await_mas_application_availability(mas_application_id)
+            if mas_application_id == "manage":
+                role = "MANAGEUSER"
+            else:
+                role = application_role
+            self.set_user_application_permission(user_id, mas_application_id, role)
 
-        # if "manage" in mas_applications:
-        #     maxadmin_group_id = user_utils.get_manage_group_id("MAXADMIN")
-        #     user_utils.add_user_to_manage_group(user_id, "MAXADMIN")
+        for mas_application_id in mas_application_ids:
+            self.check_user_sync(user_id, mas_application_id)
+
+        # if "manage" in mas_application_ids:
+        #     self.add_user_to_manage_group(user_id, "MAXADMIN")
