@@ -287,7 +287,6 @@ class MASUserUtils():
                 "familyName": family_name
             }
         '''
-        self.logger.info(f"Creating (or getting) user {payload["id"]}")
         existing_user = self.get_user(payload["id"])
 
         if existing_user is not None:
@@ -436,10 +435,38 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
+    def get_user_application_permissions(self, user_id, application_id):
+        self.logger.debug(f"Getting user {user_id} permissions for application {application_id}")
+        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.mas_api_url_ca_chain_file_path
+        )
+
+        if response.status_code == 200:
+            return response.json()
+
+        if response.status_code == 404:
+            return None
+
+        raise Exception(f"{response.status_code} {response.text}")
+
     def set_user_application_permission(self, user_id, application_id, role):
         '''
-        TODO: idempotency
+        No-op if user already has a role established for the application. No attempt will be made to update the role if it differs.
         '''
+
+        existing_permissions = self.get_user_application_permissions(user_id, application_id)
+
+        if existing_permissions is not None:
+            self.logger.info(f"User {user_id} already has permissions set for application {application_id}")
+            return None
+
         self.logger.info(f"Setting user {user_id} role for {application_id} to {role}")
         url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
         querystring = {}
@@ -457,7 +484,11 @@ class MASUserUtils():
             params=querystring,
             verify=self.mas_api_url_ca_chain_file_path
         )
-        return response.json()
+
+        if response.status_code == 200:
+            return None
+
+        raise Exception(f"{response.status_code} {response.text}")
 
     def check_user_sync(self, user_id, application_id, timeout_secs=60 * 10):
         t_end = time.time() + timeout_secs

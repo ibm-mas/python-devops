@@ -69,11 +69,11 @@ if __name__ == "__main__":
     try:
         # Try to load in-cluster configuration
         config.load_incluster_config()
-        logger.info("Loaded in-cluster configuration")
+        logger.debug("Loaded in-cluster configuration")
     except ConfigException:
         # If that fails, fall back to kubeconfig file
         config.load_kube_config()
-        logger.info("Loaded kubeconfig file")
+        logger.debug("Loaded kubeconfig file")
 
     user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient())
 
