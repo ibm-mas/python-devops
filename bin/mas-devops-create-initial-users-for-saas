@@ -36,6 +36,12 @@ if __name__ == "__main__":
     parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
     parser.add_argument("--dry-run", required=False, help="When specified, nothing will actually be deleted from the cluster", action="store_true")
 
+
+    parser.add_argument("--coreapi-port", required=False, default=443)
+    parser.add_argument("--admin-dashboard-port", required=False, default=443)
+    parser.add_argument("--manage-api-port", required=False, default=443)
+
+
     args, unknown = parser.parse_known_args()
 
     log_level = getattr(logging, args.log_level)
@@ -56,6 +62,10 @@ if __name__ == "__main__":
     mas_workspace_id = args.mas_workspace_id
     initial_users_yaml_file = args.initial_users_yaml_file
     dry_run = args.dry_run
+    coreapi_port = args.coreapi_port
+    admin_dashboard_port = args.admin_dashboard_port
+    manage_api_port = args.manage_api_port
+
 
     logger.info("Configuration:")
     logger.info("--------------")
@@ -64,6 +74,9 @@ if __name__ == "__main__":
     logger.info(f"initial_users_yaml_file: {initial_users_yaml_file}")
     logger.info(f"log_level:               {log_level}")
     logger.info(f"dry_run:                 {dry_run}")
+    logger.info(f"coreapi_port:            {coreapi_port}")
+    logger.info(f"admin_dashboard_port:    {admin_dashboard_port}")
+    logger.info(f"manage_api_port:         {manage_api_port}")
     logger.info("")
 
     try:
@@ -75,7 +88,7 @@ if __name__ == "__main__":
         config.load_kube_config()
         logger.debug("Loaded kubeconfig file")
 
-    user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient())
+    user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient(), coreapi_port=coreapi_port, admin_dashboard_port=admin_dashboard_port, manage_api_port=manage_api_port)
 
     with open(initial_users_yaml_file, 'r') as file:
        initial_users_yaml = yaml.safe_load(file)

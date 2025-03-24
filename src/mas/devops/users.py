@@ -27,6 +27,8 @@ TODO:
     MVI / other apps?
     unit tests
 
+    dry-run support
+
     where are we going to run this from? Needs to run in cluster, so a Job in an app
     which app though? Manage?
     Perhaps we do the core bits in a core app (suite workspace?)
@@ -46,11 +48,15 @@ class MASUserUtils():
 
     MAXADMIN = "MAXADMIN"
 
-    def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient):
+    def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
         self.mas_instance_id = mas_instance_id
         self.mas_workspace_id = mas_workspace_id
         self.k8s_client = k8s_client
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+
+        self.coreapi_port = coreapi_port
+        self.admin_dashboard_port = admin_dashboard_port
+        self.manage_api_port = manage_api_port
 
         self.mas_core_namespace = f"mas-{self.mas_instance_id}-core"
         self.manage_namespace = f"mas-{self.mas_instance_id}-manage"
@@ -90,16 +96,12 @@ class MASUserUtils():
     @property
     def mas_admin_url_internal(self):
         if self._mas_admin_url_internal is None:
-            self._mas_admin_url_internal = f'https://admin-dashboard.{self.mas_core_namespace}.svc.cluster.local'
+            self._mas_admin_url_internal = f'https://admin-dashboard.{self.mas_core_namespace}.svc.cluster.local:{self.admin_dashboard_port}'
 
             # for local testing:
             # add to /etc/hosts:
             #    127.0.0.1               admin-dashboard.mas-tgk01-core.svc.cluster.local
             # oc port-forward service/admin-dashboard 8445:443 -n mas-tgk01-core
-
-            # uncomment for local testing
-            # TODO: make configurable
-            self._mas_admin_url_internal = f"{self._mas_admin_url_internal}:8445"
         return self._mas_admin_url_internal
 
     @property
@@ -123,16 +125,12 @@ class MASUserUtils():
     @property
     def mas_api_url_internal(self):
         if self._mas_api_url_internal is None:
-            self._mas_api_url_internal = f'https://coreapi.{self.mas_core_namespace}.svc.cluster.local'
+            self._mas_api_url_internal = f'https://coreapi.{self.mas_core_namespace}.svc.cluster.local:{self.coreapi_port}'
 
             # for local testing:
             # add to /etc/hosts:
             #    127.0.0.1               coreapi.mas-tgk01-core.svc.cluster.local
             # oc port-forward service/coreapi 8444:443 -n mas-tgk01-core
-
-            # uncomment for local testing
-            # TODO: make configurable
-            self._mas_api_url_internal = f"{self._mas_api_url_internal}:8444"
         return self._mas_api_url_internal
 
     @property
@@ -162,11 +160,7 @@ class MASUserUtils():
 
             # oc port-forward service/tgk01-masdev 8443:443 -n mas-tgk01-manage
 
-            self._manage_api_url_internal = f'https://{self.mas_instance_id}-{self.mas_workspace_id}.{self.manage_namespace}.svc.cluster.local'
-
-            # uncomment for local testing
-            # TODO: make configurable
-            self._manage_api_url_internal = f"{self._manage_api_url_internal}:8443"
+            self._manage_api_url_internal = f'https://{self.mas_instance_id}-{self.mas_workspace_id}.{self.manage_namespace}.svc.cluster.local:{self.manage_api_port}'
         return self._manage_api_url_internal
 
     @property
