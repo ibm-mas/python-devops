@@ -14,7 +14,6 @@ from kubernetes import client
 from openshift.dynamic import DynamicClient
 import base64
 import atexit
-import certifi
 import tempfile
 import os
 import time
@@ -61,66 +60,22 @@ class MASUserUtils():
 
         self._mas_superuser_credentials = None
 
-        self._mas_admin_route = None
-        self._mas_admin_url = None
-        self._mas_admin_url_ca_chain_file_path = None
+        self._mas_admin_url_internal = None
+        self._admin_internal_tls_secret = None
+        self._admin_internal_ca_pem_file_path = None
 
-        self._mas_api_route = None
-        self._mas_api_url = None
-        self._mas_api_url_ca_chain_file_path = None
+        self._mas_api_url_internal = None
+        self._core_internal_tls_secret = None
+        self._core_internal_ca_pem_file_path = None
 
         self._superuser_auth_token = None
 
-        self._manage_api_route = None
         self._manage_api_url_internal = None
         self._manage_internal_tls_secret = None
         self._manage_internal_ca_pem_file_path = None
         self._manage_internal_client_pem_file_path = None
 
         self._manage_maxadmin_api_key = None
-
-    @staticmethod
-    def ca_chain_file_path_from_route(route):
-        # TODO: this just "happens" to work for the MAS api and admin routes (in no frontend, manual_cert_mgmt: false mode)
-        #       should try and come up with a more robust approach here (see ntoes for manage API urls below)
-        # maybe switch to calling via internal service?
-        try:
-            # This may include CA certificates that we need in order to trust the certificates presented by the endpoint
-            cert = route["spec"]["tls"]["certificate"]
-        except KeyError:
-            pass
-        try:
-            # This may include CA certificates that we need in order to trust the certificates presented by the endpoint
-            ca = route["spec"]["tls"]["caCertificate"]
-        except KeyError:
-            pass
-        try:
-            # This may include CA certificates that we need in order to trust the certificates presented by the endpoint
-            dest_ca = route["spec"]["tls"]["destinationCACertificate"]
-        except KeyError:
-            pass
-
-        # Load default CA bundle. This will include certs for well-known CAs. This ensures that we will
-        # trust the certificates presented by the endpoint when MAS is configured to use
-        # an external frontend like CIS.
-        with open(certifi.where(), 'rb') as default_ca:
-            default_ca_content = default_ca.read()
-
-        with tempfile.NamedTemporaryFile(delete=False) as chain_file:
-            if cert:
-                chain_file.write(cert.encode())
-            if ca:
-                chain_file.write(ca.encode())
-            if dest_ca:
-                chain_file.write(dest_ca.encode())
-
-            chain_file.write(default_ca_content)
-
-            chain_file.flush()
-            chain_file.close()
-            atexit.register(os.remove, chain_file.name)
-
-            return chain_file.name
 
     @property
     def mas_superuser_credentials(self):
@@ -133,51 +88,74 @@ class MASUserUtils():
         return self._mas_superuser_credentials
 
     @property
-    def mas_admin_route(self):
-        if self._mas_admin_route is None:
-            self._mas_admin_route = self.v1_routes.get(name=f"{self.mas_instance_id}-admin", namespace=self.mas_core_namespace)
-        return self._mas_admin_route
+    def mas_admin_url_internal(self):
+        if self._mas_admin_url_internal is None:
+            self._mas_admin_url_internal = f'https://admin-dashboard.{self.mas_core_namespace}.svc.cluster.local'
+
+            # for local testing:
+            # add to /etc/hosts:
+            #    127.0.0.1               admin-dashboard.mas-tgk01-core.svc.cluster.local
+            # oc port-forward service/admin-dashboard 8445:443 -n mas-tgk01-core
+
+            # uncomment for local testing
+            # TODO: make configurable
+            self._mas_admin_url_internal = f"{self._mas_admin_url_internal}:8445"
+        return self._mas_admin_url_internal
 
     @property
-    def mas_admin_url(self):
-        if self._mas_admin_url is None:
-            self._mas_admin_url = f"https://{self.mas_admin_route.spec.host}{self.mas_admin_route.spec.path}"
-        return self._mas_admin_url
+    def admin_internal_tls_secret(self):
+        if self._admin_internal_tls_secret is None:
+            self._admin_internal_tls_secret = self.v1_secrets.get(name=f"{self.mas_instance_id}-admindashboard-cert-internal", namespace=self.mas_core_namespace)
+        return self._admin_internal_tls_secret
 
     @property
-    def mas_admin_url_ca_chain_file_path(self):
-        if self._mas_admin_url_ca_chain_file_path is None:
-            self._mas_admin_url_ca_chain_file_path = MASUserUtils.ca_chain_file_path_from_route(self.mas_admin_route)
-        return self._mas_admin_url_ca_chain_file_path
+    def admin_internal_ca_pem_file_path(self):
+        if self._admin_internal_ca_pem_file_path is None:
+            ca = base64.b64decode(self.core_internal_tls_secret.data["ca.crt"]).decode('utf-8')
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as pem_file:
+                pem_file.write(ca.encode())
+                pem_file.flush()
+                pem_file.close()
+                atexit.register(os.remove, pem_file.name)
+                self._admin_internal_ca_pem_file_path = pem_file.name
+        return self._admin_internal_ca_pem_file_path
 
     @property
-    def mas_api_route(self):
-        if self._mas_api_route is None:
-            self._mas_api_route = self.v1_routes.get(name=f"{self.mas_instance_id}-api", namespace=self.mas_core_namespace)
-        return self._mas_api_route
+    def mas_api_url_internal(self):
+        if self._mas_api_url_internal is None:
+            self._mas_api_url_internal = f'https://coreapi.{self.mas_core_namespace}.svc.cluster.local'
+
+            # for local testing:
+            # add to /etc/hosts:
+            #    127.0.0.1               coreapi.mas-tgk01-core.svc.cluster.local
+            # oc port-forward service/coreapi 8444:443 -n mas-tgk01-core
+
+            # uncomment for local testing
+            # TODO: make configurable
+            self._mas_api_url_internal = f"{self._mas_api_url_internal}:8444"
+        return self._mas_api_url_internal
 
     @property
-    def mas_api_url(self):
-        if self._mas_api_url is None:
-            self._mas_api_url = f"https://{self.mas_api_route.spec.host}"
-        return self._mas_api_url
+    def core_internal_tls_secret(self):
+        if self._core_internal_tls_secret is None:
+            self._core_internal_tls_secret = self.v1_secrets.get(name=f"{self.mas_instance_id}-coreapi-cert-internal", namespace=self.mas_core_namespace)
+        return self._core_internal_tls_secret
 
     @property
-    def mas_api_url_ca_chain_file_path(self):
-        if self._mas_api_url_ca_chain_file_path is None:
-            self._mas_api_url_ca_chain_file_path = MASUserUtils.ca_chain_file_path_from_route(self.mas_api_route)
-        return self._mas_api_url_ca_chain_file_path
-
-    @property
-    def manage_api_route(self):
-        if self._manage_api_route is None:
-            self._manage_api_route = self.v1_routes.get(name=f"{self.mas_instance_id}-manage-{self.mas_workspace_id}", namespace=self.manage_namespace)
-        return self._manage_api_route
+    def core_internal_ca_pem_file_path(self):
+        if self._core_internal_ca_pem_file_path is None:
+            ca = base64.b64decode(self.core_internal_tls_secret.data["ca.crt"]).decode('utf-8')
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as pem_file:
+                pem_file.write(ca.encode())
+                pem_file.flush()
+                pem_file.close()
+                atexit.register(os.remove, pem_file.name)
+                self._core_internal_ca_pem_file_path = pem_file.name
+        return self._core_internal_ca_pem_file_path
 
     @property
     def manage_api_url_internal(self):
         if self._manage_api_url_internal is None:
-            self.logger.info("Getting Manage internal API URL")
             # for local testing:
             # add to /etc/hosts:
             #    127.0.0.1               tgk01-masdev.mas-tgk01-manage.svc.cluster.local
@@ -187,6 +165,7 @@ class MASUserUtils():
             self._manage_api_url_internal = f'https://{self.mas_instance_id}-{self.mas_workspace_id}.{self.manage_namespace}.svc.cluster.local'
 
             # uncomment for local testing
+            # TODO: make configurable
             self._manage_api_url_internal = f"{self._manage_api_url_internal}:8443"
         return self._manage_api_url_internal
 
@@ -194,7 +173,7 @@ class MASUserUtils():
     def superuser_auth_token(self):
         if self._superuser_auth_token is None:
             self.logger.debug("Getting superuser auth token")
-            url = f"{self.mas_admin_url}/logininitial"
+            url = f"{self.mas_admin_url_internal}/logininitial"
             headers = {
                 "Content-Type": "application/json"
             }
@@ -207,7 +186,7 @@ class MASUserUtils():
                 json=payload,
                 headers=headers,
                 params=querystring,
-                verify=self.mas_admin_url_ca_chain_file_path
+                verify=self.admin_internal_ca_pem_file_path
             )
             self._superuser_auth_token = response.json()["token"]
         return self._superuser_auth_token
@@ -295,7 +274,7 @@ class MASUserUtils():
 
         self.logger.info(f"Creating new user {payload["id"]}")
 
-        url = f"{self.mas_api_url}/v3/users"
+        url = f"{self.mas_api_url_internal}/v3/users"
         querystring = {}
         payload = payload
         headers = {
@@ -307,7 +286,7 @@ class MASUserUtils():
             json=payload,
             headers=headers,
             params=querystring,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code == 201:
             return response.json()
@@ -332,7 +311,7 @@ class MASUserUtils():
             return None
 
         self.logger.info(f"Linking user {user_id} to local IDP (email_password: {email_password})")
-        url = f"{self.mas_api_url}/v3/users/{user_id}/idps/local"
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}/idps/local"
         querystring = {
             "emailPassword": email_password
         }
@@ -348,7 +327,7 @@ class MASUserUtils():
             json=payload,
             headers=headers,
             params=querystring,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code != 200:
             raise Exception(response.text)
@@ -357,7 +336,7 @@ class MASUserUtils():
 
     def get_user(self, user_id):
         self.logger.debug(f"Getting user {user_id}")
-        url = f"{self.mas_api_url}/v3/users/{user_id}"
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -365,7 +344,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
 
         if response.status_code == 404:
@@ -381,7 +360,7 @@ class MASUserUtils():
         Assumes user exists, raises if not.
         '''
         self.logger.debug(f"Getting workspaces for user {user_id}")
-        url = f"{self.mas_api_url}/v3/users/{user_id}/workspaces"
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}/workspaces"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -389,7 +368,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
 
         if response.status_code == 404:
@@ -411,7 +390,7 @@ class MASUserUtils():
                 return None
 
         self.logger.info(f"Adding user {user_id} to {self.mas_workspace_id} (is_workspace_admin: {is_workspace_admin})")
-        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/users/{user_id}"
+        url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/users/{user_id}"
         querystring = {}
         payload = {
             "permissions": {
@@ -427,7 +406,7 @@ class MASUserUtils():
             json=payload,
             headers=headers,
             params=querystring,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
 
         if response.status_code == 200:
@@ -437,7 +416,7 @@ class MASUserUtils():
 
     def get_user_application_permissions(self, user_id, application_id):
         self.logger.debug(f"Getting user {user_id} permissions for application {application_id}")
-        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
+        url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -445,7 +424,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
 
         if response.status_code == 200:
@@ -468,7 +447,7 @@ class MASUserUtils():
             return None
 
         self.logger.info(f"Setting user {user_id} role for {application_id} to {role}")
-        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
+        url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
         querystring = {}
         payload = {
             "role": role
@@ -482,7 +461,7 @@ class MASUserUtils():
             json=payload,
             headers=headers,
             params=querystring,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
 
         if response.status_code == 200:
@@ -515,7 +494,7 @@ class MASUserUtils():
 
     def resync_users(self, user_ids):
         self.logger.info(f"Issuing resync request for user(s) {user_ids}")
-        url = f"{self.mas_api_url}/v3/users/utils/resync"
+        url = f"{self.mas_api_url_internal}/v3/users/utils/resync"
         querystring = {}
         payload = {
             "users": user_ids
@@ -529,7 +508,7 @@ class MASUserUtils():
             json=payload,
             headers=headers,
             params=querystring,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code != 204:
             raise Exception(response.text)
@@ -734,7 +713,7 @@ class MASUserUtils():
 
     def get_groups(self):
         self.logger.debug("Getting groups")
-        url = f"{self.mas_api_url}/groups"
+        url = f"{self.mas_api_url_internal}/groups"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -742,7 +721,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code == 200:
             return response.json()
@@ -750,7 +729,7 @@ class MASUserUtils():
 
     def get_user_groups(self, user_id):
         self.logger.info(f"Getting groups for user {user_id}")
-        url = f"{self.mas_api_url}/v3/users/{user_id}/groups"
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}/groups"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -758,7 +737,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code == 200:
             return response.json()
@@ -766,7 +745,7 @@ class MASUserUtils():
 
     def get_installed_mas_applications(self):
         self.logger.debug("Getting installed MAS Applications")
-        url = f"{self.mas_api_url}/applications"
+        url = f"{self.mas_api_url_internal}/applications"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -774,7 +753,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code == 200:
             return response.json()
@@ -782,7 +761,7 @@ class MASUserUtils():
 
     def get_mas_applications_in_workspace(self):
         self.logger.debug(f"Getting MAS Applications in workspace {self.mas_workspace_id}")
-        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications"
+        url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -790,7 +769,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code == 200:
             return response.json()
@@ -798,7 +777,7 @@ class MASUserUtils():
 
     def get_mas_application_availability(self, mas_application_id):
         self.logger.debug(f"Getting availability of MAS Application {mas_application_id} in workspace {self.mas_workspace_id}")
-        url = f"{self.mas_api_url}/workspaces/{self.mas_workspace_id}/applications/{mas_application_id}"
+        url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{mas_application_id}"
         headers = {
             "Accept": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -806,7 +785,7 @@ class MASUserUtils():
         response = requests.get(
             url,
             headers=headers,
-            verify=self.mas_api_url_ca_chain_file_path
+            verify=self.core_internal_ca_pem_file_path
         )
         if response.status_code == 200:
             return response.json()
