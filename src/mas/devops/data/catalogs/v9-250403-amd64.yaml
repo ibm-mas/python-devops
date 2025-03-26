@@ -51,9 +51,9 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # tbc
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.0.x: 9.0.6    # tbc
-  8.10.x: 8.7.20  # tbc
-  8.11.x: 8.8.16  # tbc
+  9.0.x: 9.0.7    # updated
+  8.10.x: 8.7.21  # updated
+  8.11.x: 8.8.17  # updated
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_9992 # tbc
   9.0.x: 9.0.10   # tbc
