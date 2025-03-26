@@ -69,9 +69,9 @@ mas_optimizer_version:
   8.10.x: 8.4.16  # updated
   8.11.x: 8.5.15  # updated
 mas_predict_version:
-  9.0.x: 9.0.5    # tbc
-  8.10.x: 8.8.6   # tbc
-  8.11.x: 8.9.8   # tbc
+  9.0.x: 9.0.6    # updated
+  8.10.x: 8.8.7   # updated
+  8.11.x: 8.9.9   # updated
 mas_visualinspection_version:
   9.1.x-feature: 9.1.0-pre.stable_2246 # tbc
   9.0.x: 9.0.7    # tbc
