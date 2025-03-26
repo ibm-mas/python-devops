@@ -508,7 +508,7 @@ class MASUserUtils():
             raise Exception(response.text)
 
     def create_or_get_manage_api_key_for_user(self, user_id):
-        self.logger.info(f"Attempting to create Manage API Key for user {user_id}")
+        self.logger.debug(f"Attempting to create Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
         querystring = {
             "ccm": 1,
@@ -545,7 +545,9 @@ class MASUserUtils():
                 # any other 400 error is unexpected
                 raise Exception(response.text)
 
-        elif response.status_code != 201:
+        elif response.status_code == 201:
+            self.logger.info(f"Creating new Manage API Key for user {user_id}")
+        else:
             # any other status code is unexpected
             raise Exception(response.text)
 
@@ -580,7 +582,6 @@ class MASUserUtils():
         headers = {
             "Accept": "application/json",
         }
-        self.logger.debug(f"  > {url} {querystring}")
 
         response = requests.get(
             url,
@@ -589,16 +590,16 @@ class MASUserUtils():
             verify=self.manage_internal_ca_pem_file_path,
             cert=self.manage_internal_client_pem_file_path
         )
-        self.logger.debug(f"  < {response.status_code}")
-        if response.status_code != 200:
-            raise Exception(response.text)
 
-        json = response.json()
+        if response.status_code == 200:
+            json = response.json()
 
-        if "member" in json and len(json["member"]) > 0:
-            return json["member"][0]
+            if "member" in json and len(json["member"]) > 0:
+                return json["member"][0]
 
-        return None
+            return None
+
+        raise Exception(response.text)
 
     def delete_manage_api_key(self, manage_api_key):
         self.logger.info(f"Deleting Manage API Key for user {manage_api_key['userid']}")
@@ -637,7 +638,7 @@ class MASUserUtils():
         querystring = {
             "ccm": 1,
             "lean": 1,
-            "oslc.select": "*",
+            "oslc.select": "maxgroupid",
             "oslc.where": f"groupname=\"{group_name}\"",
         }
         headers = {
@@ -663,10 +664,42 @@ class MASUserUtils():
 
         return None
 
+    def is_user_in_manage_group(self, group_name, user_id):
+
+        group_id = self.get_manage_group_id(group_name)
+
+        url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup/{group_id}/groupuser"
+        querystring = {
+            "lean": 1,
+            "oslc.where": f"userid=\"{user_id}\"",
+        }
+        headers = {
+            "Accept": "application/json",
+            "apikey": self.manage_maxadmin_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
+        }
+
+        response = requests.get(
+            url,
+            headers=headers,
+            params=querystring,
+            verify=self.manage_internal_ca_pem_file_path,
+        )
+
+        if response.status_code == 200:
+            json = response.json()
+            return "member" in json and len(json["member"]) > 0
+
+        raise Exception(f"{response.status_code} {response.text}")
+
     def add_user_to_manage_group(self, user_id, group_name):
         '''
-        TODO: idempotency
+        No-op if user_id is already a member of the manage security group
         '''
+
+        if self.is_user_in_manage_group(group_name, user_id):
+            self.logger.info(f"User {user_id} is already a member of Manage Security Group {group_name}")
+            return None
+
         self.logger.info(f"Adding user {user_id} to Manage group {group_name}")
 
         group_id = self.get_manage_group_id(group_name)
@@ -905,5 +938,5 @@ class MASUserUtils():
         for mas_application_id in mas_application_ids:
             self.check_user_sync(user_id, mas_application_id)
 
-        # if "manage" in mas_application_ids:
-        #     self.add_user_to_manage_group(user_id, "MAXADMIN")
+        if "manage" in mas_application_ids:
+            self.add_user_to_manage_group(user_id, "MAXADMIN")
