@@ -60,9 +60,9 @@ mas_manage_version:
   8.10.x: 8.6.23  # tbc
   8.11.x: 8.7.17  # tbc
 mas_monitor_version:
-  9.0.x: 9.0.7    # tbc
-  8.10.x: 8.10.17 # tbc
-  8.11.x: 8.11.15 # tbc
+  9.0.x: 9.0.8    # updated
+  8.10.x: 8.10.18 # updated
+  8.11.x: 8.11.16 # updated
 mas_optimizer_version:
   9.1.x-feature: 9.1.0-pre.stable_1813 # tbc
   9.0.x: 9.0.8    # tbc
