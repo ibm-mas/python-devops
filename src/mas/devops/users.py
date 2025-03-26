@@ -326,6 +326,8 @@ class MASUserUtils():
         if response.status_code != 200:
             raise Exception(response.text)
 
+        # Important: HTTP 200 output will contain generated user token; DO NOT LOG
+
         return None
 
     def get_user(self, user_id):
@@ -645,15 +647,12 @@ class MASUserUtils():
             "Accept": "application/json",
             "apikey": self.manage_maxadmin_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
         }
-        self.logger.debug(f"  > {url} {querystring}")
-
         response = requests.get(
             url,
             headers=headers,
             params=querystring,
             verify=self.manage_internal_ca_pem_file_path,
         )
-        self.logger.debug(f"  < {response.status_code}")
         if response.status_code != 200:
             raise Exception(response.text)
 
@@ -885,6 +884,8 @@ class MASUserUtils():
             }
             is_workspace_admin = True
             application_role = "ADMINISTRATOR"
+            # TODO: check which security groups primary users should be members of
+            manage_security_groups = ["MAXADMIN"]
         elif user_type == "SECONDARY":
             permissions = {
                 "systemAdmin": False,
@@ -898,6 +899,8 @@ class MASUserUtils():
             }
             is_workspace_admin = False
             application_role = "USER"
+            # TODO: check which security groups secondary users should be members of
+            manage_security_groups = []
         else:
             raise Exception(f"Unsupported user_type: {user_type}")
 
@@ -930,8 +933,10 @@ class MASUserUtils():
         for mas_application_id in mas_application_ids:
             self.await_mas_application_availability(mas_application_id)
             if mas_application_id == "manage":
+                # special case for manage; role is always "MANAGEUSER"
                 role = "MANAGEUSER"
             else:
+                # otherwise grant the user the appropriate role for their user_type
                 role = application_role
             self.set_user_application_permission(user_id, mas_application_id, role)
 
@@ -939,4 +944,5 @@ class MASUserUtils():
             self.check_user_sync(user_id, mas_application_id)
 
         if "manage" in mas_application_ids:
-            self.add_user_to_manage_group(user_id, "MAXADMIN")
+            for manage_security_group in manage_security_groups:
+                self.add_user_to_manage_group(user_id, manage_security_group)
