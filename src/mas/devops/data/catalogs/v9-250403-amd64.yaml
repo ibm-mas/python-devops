@@ -38,7 +38,7 @@ elasticsearch_version: 1.1.2570              # Operator version 1.1.2470
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.1.x-feature: 9.1.0-pre.stable_8193 # tbc
+  9.1.x-feature: 9.1.0-pre.stable_8193 # No Update
   9.0.x: 9.0.10   # updated
   8.10.x: 8.10.24 # updated
   8.11.x: 8.11.21 # updated
@@ -55,7 +55,7 @@ mas_iot_version:
   8.10.x: 8.7.21  # updated
   8.11.x: 8.8.17  # updated
 mas_manage_version:
-  9.1.x-feature: 9.1.0-pre.stable_9992 # tbc
+  9.1.x-feature: 9.1.0-pre.stable_9992 # No Update
   9.0.x: 9.0.11   # updated
   8.10.x: 8.6.24  # updated
   8.11.x: 8.7.18  # updated
@@ -64,7 +64,7 @@ mas_monitor_version:
   8.10.x: 8.10.18 # updated
   8.11.x: 8.11.16 # updated
 mas_optimizer_version:
-  9.1.x-feature: 9.1.0-pre.stable_1813 # tbc
+  9.1.x-feature: 9.1.0-pre.stable_1813 # No Update
   9.0.x: 9.0.9    # updated
   8.10.x: 8.4.16  # updated
   8.11.x: 8.5.15  # updated
@@ -73,7 +73,7 @@ mas_predict_version:
   8.10.x: 8.8.7   # updated
   8.11.x: 8.9.9   # updated
 mas_visualinspection_version:
-  9.1.x-feature: 9.1.0-pre.stable_2246 # tbc
+  9.1.x-feature: 9.1.0-pre.stable_2246 # No Update
   9.0.x: 9.0.8    # updated
   8.10.x: 8.8.4   # No Update
   8.11.x: 8.9.11  # updated
