@@ -951,7 +951,7 @@ class MASUserUtils():
         }
 
         self.get_or_create_user(user_def)
-        self.link_user_to_local_idp(user_id)
+        self.link_user_to_local_idp(user_id, email_password=True)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
 
         for mas_application_id in self.mas_workspace_application_ids:
