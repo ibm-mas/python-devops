@@ -81,6 +81,8 @@ class MASUserUtils():
 
         self._manage_maxadmin_api_key = None
 
+        self._mas_workspace_application_ids = None
+
     @property
     def mas_superuser_credentials(self):
         if self._mas_superuser_credentials is None:
@@ -220,6 +222,12 @@ class MASUserUtils():
         if self._manage_maxadmin_api_key is None:
             self._manage_maxadmin_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN)
         return self._manage_maxadmin_api_key
+
+    @property
+    def mas_workspace_application_ids(self):
+        if self._mas_workspace_application_ids is None:
+            self._mas_workspace_application_ids = list(map(lambda ma: ma["id"], self.get_mas_applications_in_workspace()))
+        return self._mas_workspace_application_ids
 
     def get_or_create_user(self, payload):
         '''
@@ -735,54 +743,6 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
-    def get_groups(self):
-        self.logger.debug("Getting groups")
-        url = f"{self.mas_api_url_internal}/groups"
-        headers = {
-            "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
-        if response.status_code == 200:
-            return response.json()
-        raise Exception(f"{response.status_code} {response.text}")
-
-    def get_user_groups(self, user_id):
-        self.logger.info(f"Getting groups for user {user_id}")
-        url = f"{self.mas_api_url_internal}/v3/users/{user_id}/groups"
-        headers = {
-            "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
-        if response.status_code == 200:
-            return response.json()
-        raise Exception(f"{response.status_code} {response.text}")
-
-    def get_installed_mas_applications(self):
-        self.logger.debug("Getting installed MAS Applications")
-        url = f"{self.mas_api_url_internal}/applications"
-        headers = {
-            "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
-        if response.status_code == 200:
-            return response.json()
-        raise Exception(f"{response.status_code} {response.text}")
-
     def get_mas_applications_in_workspace(self):
         self.logger.debug(f"Getting MAS Applications in workspace {self.mas_workspace_id}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications"
@@ -874,6 +834,10 @@ class MASUserUtils():
         if type(secondary_users) is not list:
             raise Exception("'users.secondary' is not a list")
 
+        # before we do anything, let's check all MAS applications are ready
+        for mas_application_id in self.mas_workspace_application_ids:
+            self.await_mas_application_availability(mas_application_id)
+
         for primary_user in primary_users:
             self.create_initial_user_for_saas(primary_user, "PRIMARY")
 
@@ -955,9 +919,7 @@ class MASUserUtils():
         self.link_user_to_local_idp(user_id)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
 
-        mas_application_ids = list(map(lambda ma: ma["id"], self.get_mas_applications_in_workspace()))
-
-        for mas_application_id in mas_application_ids:
+        for mas_application_id in self.mas_workspace_application_ids:
             self.await_mas_application_availability(mas_application_id)
             if mas_application_id == "manage":
                 # special case for manage; role is always "MANAGEUSER"
@@ -967,9 +929,60 @@ class MASUserUtils():
                 role = application_role
             self.set_user_application_permission(user_id, mas_application_id, role)
 
-        for mas_application_id in mas_application_ids:
+        for mas_application_id in self.mas_workspace_application_ids:
             self.check_user_sync(user_id, mas_application_id)
 
-        if "manage" in mas_application_ids:
+        if "manage" in self.mas_workspace_application_ids:
             for manage_security_group in manage_security_groups:
                 self.add_user_to_manage_group(user_id, manage_security_group)
+
+    # Unused (but potentially useful) methods
+    # ----------------------------------------
+
+    def get_groups(self):
+        self.logger.debug("Getting groups")
+        url = f"{self.mas_api_url_internal}/groups"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.core_internal_ca_pem_file_path
+        )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
+
+    def get_installed_mas_applications(self):
+        self.logger.debug("Getting installed MAS Applications")
+        url = f"{self.mas_api_url_internal}/applications"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.core_internal_ca_pem_file_path
+        )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
+
+    def get_user_groups(self, user_id):
+        self.logger.info(f"Getting groups for user {user_id}")
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}/groups"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.core_internal_ca_pem_file_path
+        )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"{response.status_code} {response.text}")
