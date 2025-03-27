@@ -27,8 +27,6 @@ TODO:
     MVI / other apps?
     unit tests
 
-    dry-run support
-
     where are we going to run this from? Needs to run in cluster, so a Job in an app
     which app though? Manage?
     Perhaps we do the core bits in a core app (suite workspace?)
@@ -829,6 +827,35 @@ class MASUserUtils():
                 self.logger.info(f"{mas_application_id} is not ready or available, retry in 5 seconds: {t_end - time.time():.2f} seconds remaining")
                 time.sleep(5)
         raise Exception(f"{mas_application_id} did not become ready and available in time, aborting")
+
+    def parse_initial_users_from_aws_secret_json(self, secret_json):
+        primary = []
+        secondary = []
+        for (email, csv) in secret_json.items():
+            values = csv.split(",")
+            user_type = values[0].strip()
+            given_name = values[1].strip()
+            family_name = values[2].strip()
+
+            user = {
+                "email": email,
+                "given_name": given_name,
+                "family_name": family_name
+            }
+            if user_type == "primary":
+                primary.append(user)
+            elif user_type == "secondary":
+                secondary.append(user)
+            else:
+                raise Exception(f"Unknown user type for {email}: {user_type}")
+
+        initial_users = {
+            "users": {
+                "primary": primary,
+                "secondary": secondary
+            }
+        }
+        return initial_users
 
     def create_initial_users_for_saas(self, initial_users):
 

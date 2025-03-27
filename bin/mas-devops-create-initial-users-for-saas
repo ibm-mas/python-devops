@@ -16,11 +16,12 @@ import argparse
 import logging
 import urllib3
 urllib3.disable_warnings()
-import os
-import sys
-import json
-import re
 import yaml
+import json
+import sys
+
+import boto3
+from botocore.exceptions import ClientError
 
 from mas.devops.users import MASUserUtils
 
@@ -30,17 +31,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Primary Options
+    parser.add_argument("--mas-account-id", required=False) # TODO: remove if unused
+    parser.add_argument("--mas-cluster-id", required=False) # TODO: remove if unused
     parser.add_argument("--mas-instance-id", required=True)
     parser.add_argument("--mas-workspace-id", required=True)
-    parser.add_argument("--initial-users-yaml-file", required=True)
     parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
-    parser.add_argument("--dry-run", required=False, help="When specified, nothing will actually be deleted from the cluster", action="store_true")
-
-
     parser.add_argument("--coreapi-port", required=False, default=443)
     parser.add_argument("--admin-dashboard-port", required=False, default=443)
     parser.add_argument("--manage-api-port", required=False, default=443)
 
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--initial-users-yaml-file")
+    group.add_argument("--initial-users-secret-name")
 
     args, unknown = parser.parse_known_args()
 
@@ -57,11 +60,12 @@ if __name__ == "__main__":
     ch.setFormatter(chFormatter)
     logger.addHandler(ch)
 
-
+    mas_account_id = args.mas_account_id
+    mas_cluster_id = args.mas_cluster_id
     mas_instance_id = args.mas_instance_id
     mas_workspace_id = args.mas_workspace_id
     initial_users_yaml_file = args.initial_users_yaml_file
-    dry_run = args.dry_run
+    initial_users_secret_name = args.initial_users_secret_name
     coreapi_port = args.coreapi_port
     admin_dashboard_port = args.admin_dashboard_port
     manage_api_port = args.manage_api_port
@@ -69,14 +73,16 @@ if __name__ == "__main__":
 
     logger.info("Configuration:")
     logger.info("--------------")
-    logger.info(f"mas_instance_id:         {mas_instance_id}")
-    logger.info(f"mas_workspace_id:        {mas_workspace_id}")
-    logger.info(f"initial_users_yaml_file: {initial_users_yaml_file}")
-    logger.info(f"log_level:               {log_level}")
-    logger.info(f"dry_run:                 {dry_run}")
-    logger.info(f"coreapi_port:            {coreapi_port}")
-    logger.info(f"admin_dashboard_port:    {admin_dashboard_port}")
-    logger.info(f"manage_api_port:         {manage_api_port}")
+    logger.info(f"mas_account_id:            {mas_account_id}")
+    logger.info(f"mas_cluster_id:            {mas_cluster_id}")
+    logger.info(f"mas_instance_id:           {mas_instance_id}")
+    logger.info(f"mas_workspace_id:          {mas_workspace_id}")
+    logger.info(f"initial_users_yaml_file:   {initial_users_yaml_file}")
+    logger.info(f"initial_users_secret_name: {initial_users_secret_name}")
+    logger.info(f"log_level:                 {log_level}")
+    logger.info(f"coreapi_port:              {coreapi_port}")
+    logger.info(f"admin_dashboard_port:      {admin_dashboard_port}")
+    logger.info(f"manage_api_port:           {manage_api_port}")
     logger.info("")
 
     try:
@@ -88,11 +94,30 @@ if __name__ == "__main__":
         config.load_kube_config()
         logger.debug("Loaded kubeconfig file")
 
+
     user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient(), coreapi_port=coreapi_port, admin_dashboard_port=admin_dashboard_port, manage_api_port=manage_api_port)
 
-    with open(initial_users_yaml_file, 'r') as file:
-       initial_users_yaml = yaml.safe_load(file)
+    if initial_users_secret_name is not None:
 
-
-    user_utils.create_initial_users_for_saas(initial_users_yaml)
+        session = boto3.session.Session()
+        aws_sm_client = session.client(
+            service_name='secretsmanager',
+        )
+        try:
+            initial_users_secret = aws_sm_client.get_secret_value( # pragma: allowlist secret
+                SecretId=initial_users_secret_name
+            )
+        except ClientError as e:
+            raise Exception(f"Failed to fetch secret {initial_users_secret_name}: {str(e)}")
+        
+        secret_json = json.loads(initial_users_secret['SecretString'])
+        initial_users = user_utils.parse_initial_users_from_aws_secret_json(secret_json)
+    elif initial_users_yaml_file is not None:
+        with open(initial_users_yaml_file, 'r') as file:
+            initial_users = yaml.safe_load(file)
+    else:
+        raise Exception("Something unexpected happened")
+    
+    user_utils.create_initial_users_for_saas(initial_users)
+   
 

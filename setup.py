@@ -60,7 +60,8 @@ setup(
         'kubernetes',              # Apache Software License
         'kubeconfig',              # BSD License
         'jinja2',                  # BSD License
-        'jinja2-base64-filters'    # MIT License
+        'jinja2-base64-filters',    # MIT License
+        'boto3'
     ],
     extras_require={
         'dev': [

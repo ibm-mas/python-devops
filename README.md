@@ -37,3 +37,44 @@ updateTektonDefinitions(pipelinesNamespace, "/mascli/templates/ibm-mas-tekton.ya
 pipelineURL = launchUpgradePipeline(self.dynamicClient, instanceId)
 print(pipelineURL)
 ```
+
+
+mas-devops-create-initial-users
+---------------------------------------------
+
+
+```bash
+SM_AWS_REGION=""
+SM_AWS_ACCESS_KEY_ID=""
+SM_AWS_SECRET_ACCESS_KEY=""
+
+aws configure set default.region ${SM_AWS_REGION}
+aws configure set aws_access_key_id ${SM_AWS_ACCESS_KEY_ID}
+aws configure set aws_secret_access_key ${SM_AWS_SECRET_ACCESS_KEY}
+
+
+oc login --token=sha256~xxx --server=https://xxx:6443
+
+oc port-forward service/admin-dashboard 8445:443 -n mas-tgk01-core
+oc port-forward service/coreapi 8444:443 -n mas-tgk01-core
+oc port-forward service/tgk01-masdev 8443:443 -n mas-tgk01-manage
+
+mas-devops-create-initial-users-for-saas \
+    --mas-instance-id tgk01 \
+    --mas-workspace-id masdev \
+    --log-level INFO \
+    --initial-users-secret-name "aws-dev/noble4/tgk01/initial_users" \
+    --manage-api-port 8443 \
+    --coreapi-port 8444 \
+    --admin-dashboard-port 8445
+    
+
+mas-devops-create-initial-users-for-saas \
+    --mas-instance-id tgk01 \
+    --mas-workspace-id masdev \
+    --log-level INFO \
+    --initial-users-yaml-file /home/tom/workspaces/notes/mascore3423/example-users-single.yaml \
+    --manage-api-port 8443 \
+    --coreapi-port 8444 \
+    --admin-dashboard-port 8445
+```
