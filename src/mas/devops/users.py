@@ -793,6 +793,10 @@ class MASUserUtils():
         secondary = []
         for (email, csv) in secret_json.items():
             values = csv.split(",")
+
+            if len(values) != 3:
+                raise Exception(f"Wrong number of CSV values for {email} (expected 3 but got {len(values)})")
+
             user_type = values[0].strip()
             given_name = values[1].strip()
             family_name = values[2].strip()
@@ -834,15 +838,46 @@ class MASUserUtils():
         if type(secondary_users) is not list:
             raise Exception("'users.secondary' is not a list")
 
+        if len(primary_users) == 0 and len(secondary_users) == 0:
+            self.logger.info("No users left to sync, nothing to do")
+            return {"completed": [], "failed": []}
+
         # before we do anything, let's check all MAS applications are ready
         for mas_application_id in self.mas_workspace_application_ids:
             self.await_mas_application_availability(mas_application_id)
 
+        completed = []
+        failed = []
+
         for primary_user in primary_users:
-            self.create_initial_user_for_saas(primary_user, "PRIMARY")
+            self.logger.info("")
+            try:
+                self.logger.info(f"Syncing primary user {primary_user['email']}")
+                self.create_initial_user_for_saas(primary_user, "PRIMARY")
+                completed.append(primary_user)
+                self.logger.info(f"Completed sync of primary user {primary_user['email']}")
+            except Exception as e:
+                self.logger.error(f"Sync of primary user {primary_user['email']} failed: {str(e)}")
+                failed.append(primary_user)
+            self.logger.info("")
 
         for secondary_user in secondary_users:
-            self.create_initial_user_for_saas(secondary_user, "SECONDARY")
+            self.logger.info("")
+            try:
+                self.logger.info("")
+                self.logger.info(f"Syncing secondary user {secondary_user['email']}")
+                self.create_initial_user_for_saas(secondary_user, "SECONDARY")
+                completed.append(secondary_user)
+                self.logger.info(f"Completed sync of secondary user {secondary_user['email']}")
+            except Exception as e:
+                self.logger.error(f"Sync of secondary user {secondary_user['email']} failed: {str(e)}")
+                failed.append(secondary_user)
+            self.logger.info("")
+
+        return {
+            "completed": completed,
+            "failed": failed
+        }
 
     def create_initial_user_for_saas(self, user, user_type):
         if "email" not in user:

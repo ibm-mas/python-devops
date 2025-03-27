@@ -99,6 +99,8 @@ if __name__ == "__main__":
 
     if initial_users_secret_name is not None:
 
+        logger.info(f"Loading initial_users configuration from secret {initial_users_secret_name}")
+
         session = boto3.session.Session()
         aws_sm_client = session.client(
             service_name='secretsmanager',
@@ -118,6 +120,24 @@ if __name__ == "__main__":
     else:
         raise Exception("Something unexpected happened")
     
-    user_utils.create_initial_users_for_saas(initial_users)
-   
+    
+    result = user_utils.create_initial_users_for_saas(initial_users)
 
+    # if user details were sourced from an AWS SM secret, remove the completed entries from the secret
+    # so we don't try and resync them the next time round (and potentially undo an update made by a customer)
+    if initial_users_secret_name is not None:
+        has_updates = False
+        for completed_user in result["completed"]:
+            logger.info(f"Removing synced user {completed_user['email']} from {initial_users_secret_name} secret")
+            secret_json.pop(completed_user["email"])
+            has_updates = True
+
+        if has_updates:
+            logger.info(f"Updating secret {initial_users_secret_name}")
+            try:
+                aws_sm_client.update_secret( # pragma: allowlist secret
+                    SecretId=initial_users_secret_name,
+                    SecretString=json.dumps(secret_json)
+                )
+            except ClientError as e:
+                raise Exception(f"Failed to update secret {initial_users_secret_name}: {str(e)}")

@@ -78,3 +78,8 @@ mas-devops-create-initial-users-for-saas \
     --coreapi-port 8444 \
     --admin-dashboard-port 8445
 ```
+
+Example of initial_users secret:
+```json
+{"john.smith1@example.com":"primary,john1,smith1","john.smith2@example.com":"primary,john2,smith2","john.smith3@example.com":"secondary,john3,smith3"}
+```
