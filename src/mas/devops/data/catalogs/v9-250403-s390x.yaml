@@ -16,12 +16,12 @@ tsm_version: 1.6.1  # No Update              # Operator version 1.5.4 (https://g
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0-pre.stable_8193 # tbc
-  9.0.x: 9.0.8    # tbc
+  9.0.x: 9.0.10    # updated
   8.10.x: "" # Not Supported
   8.11.x: "" # Not Supported
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_9992 # tbc
-  9.0.x: 9.0.9    # tbc
+  9.0.x: 9.0.11    # updated
   8.10.x: ""  # Not Supported
   8.11.x: ""  # Not Supported
 
