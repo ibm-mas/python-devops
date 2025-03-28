@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("--mas-cluster-id", required=False) # TODO: remove if unused
     parser.add_argument("--mas-instance-id", required=True)
     parser.add_argument("--mas-workspace-id", required=True)
-    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
+    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
     parser.add_argument("--coreapi-port", required=False, default=443)
     parser.add_argument("--admin-dashboard-port", required=False, default=443)
     parser.add_argument("--manage-api-port", required=False, default=443)
