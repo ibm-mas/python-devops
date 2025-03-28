@@ -43,6 +43,13 @@ mas-devops-create-initial-users
 ---------------------------------------------
 
 
+Add to /etc/hosts
+```
+127.0.0.1               tgk01-masdev.mas-tgk01-manage.svc.cluster.local
+127.0.0.1               coreapi.mas-tgk01-core.svc.cluster.local
+127.0.0.1               admin-dashboard.mas-tgk01-core.svc.cluster.local
+```
+
 ```bash
 SM_AWS_REGION=""
 SM_AWS_ACCESS_KEY_ID=""

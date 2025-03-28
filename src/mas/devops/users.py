@@ -32,8 +32,11 @@ TODO:
     Perhaps we do the core bits in a core app (suite workspace?)
     And app-specific bits in the apps themselves
     but if we create a user before manage is ready, sync fails, and no way to trigger resync in MAS < 9.1.0?
-
     # could do it all from a core app, but check for readiness of apps
+    Run in a dedicated instance-root app in the final syncwave
+
+    how ot cope with users that have been soft-deleted? tolerate / skip - ensure they are removed from secret so
+    we don't get caught in an infinite loop?
 
 '''
 
@@ -59,7 +62,6 @@ class MASUserUtils():
         self.mas_core_namespace = f"mas-{self.mas_instance_id}-core"
         self.manage_namespace = f"mas-{self.mas_instance_id}-manage"
         self.dyn_client = DynamicClient(self.k8s_client)
-        self.v1_routes = self.dyn_client.resources.get(api_version="route.openshift.io/v1", kind="Route")
         self.v1_secrets = self.dyn_client.resources.get(api_version="v1", kind="Secret")
 
         self._mas_superuser_credentials = None
