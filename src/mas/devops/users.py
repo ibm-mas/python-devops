@@ -274,7 +274,7 @@ class MASUserUtils():
             self.logger.info(f"Existing user {existing_user['id']} found")
             return existing_user
 
-        self.logger.info(f"Creating new user {payload["id"]}")
+        self.logger.info(f"Creating new user {payload['id']}")
 
         url = f"{self.mas_api_url_internal}/v3/users"
         querystring = {}
