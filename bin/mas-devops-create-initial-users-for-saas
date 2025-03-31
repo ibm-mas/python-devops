@@ -143,6 +143,6 @@ if __name__ == "__main__":
                 raise Exception(f"Failed to update secret {initial_users_secret_name}: {str(e)}")
             
 
-        if len(result["failed"]) > 0:
-            failed_user_ids = list(map(lambda u : u["email"], result["failed"]))
-            raise Exception(f"Sync failed for the following user IDs {failed_user_ids}")
+    if len(result["failed"]) > 0:
+        failed_user_ids = list(map(lambda u : u["email"], result["failed"]))
+        raise Exception(f"Sync failed for the following user IDs {failed_user_ids}")

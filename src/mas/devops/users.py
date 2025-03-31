@@ -861,7 +861,6 @@ class MASUserUtils():
             except Exception as e:
                 self.logger.error(f"Sync of primary user {primary_user['email']} failed: {str(e)}")
                 failed.append(primary_user)
-            self.logger.info("")
 
         for secondary_user in secondary_users:
             self.logger.info("")
