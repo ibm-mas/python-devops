@@ -60,15 +60,16 @@ setup(
         'kubernetes',              # Apache Software License
         'kubeconfig',              # BSD License
         'jinja2',                  # BSD License
-        'jinja2-base64-filters',    # MIT License
-        'boto3'
+        'jinja2-base64-filters',   # MIT License
+        'boto3'                    # Apache Software License
     ],
     extras_require={
         'dev': [
-            'build',       # MIT License
-            'flake8',      # MIT License
-            'pytest',      # MIT License
-            'pytest-mock'  # MIT License
+            'build',        # MIT License
+            'flake8',       # MIT License
+            'pytest',       # MIT License
+            'pytest-mock',  # MIT License
+            'requests-mock'  # Apache Software License
         ]
     },
     classifiers=[

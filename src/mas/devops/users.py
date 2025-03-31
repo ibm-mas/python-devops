@@ -52,31 +52,26 @@ class MASUserUtils():
     def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
         self.mas_instance_id = mas_instance_id
         self.mas_workspace_id = mas_workspace_id
-        self.k8s_client = k8s_client
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-
-        self.coreapi_port = coreapi_port
-        self.admin_dashboard_port = admin_dashboard_port
-        self.manage_api_port = manage_api_port
 
         self.mas_core_namespace = f"mas-{self.mas_instance_id}-core"
         self.manage_namespace = f"mas-{self.mas_instance_id}-manage"
-        self.dyn_client = DynamicClient(self.k8s_client)
-        self.v1_secrets = self.dyn_client.resources.get(api_version="v1", kind="Secret")
+
+        dyn_client = DynamicClient(k8s_client)
+        self.v1_secrets = dyn_client.resources.get(api_version="v1", kind="Secret")
 
         self._mas_superuser_credentials = None
+        self._superuser_auth_token = None
 
-        self._mas_admin_url_internal = None
+        self.mas_admin_url_internal = f'https://admin-dashboard.{self.mas_core_namespace}.svc.cluster.local:{admin_dashboard_port}'
         self._admin_internal_tls_secret = None
         self._admin_internal_ca_pem_file_path = None
 
-        self._mas_api_url_internal = None
+        self.mas_api_url_internal = f'https://coreapi.{self.mas_core_namespace}.svc.cluster.local:{coreapi_port}'
         self._core_internal_tls_secret = None
         self._core_internal_ca_pem_file_path = None
 
-        self._superuser_auth_token = None
-
-        self._manage_api_url_internal = None
+        self.manage_api_url_internal = f'https://{self.mas_instance_id}-{self.mas_workspace_id}.{self.manage_namespace}.svc.cluster.local:{manage_api_port}'
         self._manage_internal_tls_secret = None
         self._manage_internal_ca_pem_file_path = None
         self._manage_internal_client_pem_file_path = None
@@ -90,21 +85,10 @@ class MASUserUtils():
         if self._mas_superuser_credentials is None:
             k8s_secret = self.v1_secrets.get(name=f"{self.mas_instance_id}-credentials-superuser", namespace=self.mas_core_namespace)
             self._mas_superuser_credentials = dict(
-                username=base64.b64decode(str(k8s_secret.data.username)).decode("utf-8"),
-                password=base64.b64decode(str(k8s_secret.data.password)).decode("utf-8"),
+                username=base64.b64decode(k8s_secret.data["username"]).decode("utf-8"),
+                password=base64.b64decode(k8s_secret.data["password"]).decode("utf-8"),
             )
         return self._mas_superuser_credentials
-
-    @property
-    def mas_admin_url_internal(self):
-        if self._mas_admin_url_internal is None:
-            self._mas_admin_url_internal = f'https://admin-dashboard.{self.mas_core_namespace}.svc.cluster.local:{self.admin_dashboard_port}'
-
-            # for local testing:
-            # add to /etc/hosts:
-            #    127.0.0.1               admin-dashboard.mas-tgk01-core.svc.cluster.local
-            # oc port-forward service/admin-dashboard 8445:443 -n mas-tgk01-core
-        return self._mas_admin_url_internal
 
     @property
     def admin_internal_tls_secret(self):
@@ -115,7 +99,7 @@ class MASUserUtils():
     @property
     def admin_internal_ca_pem_file_path(self):
         if self._admin_internal_ca_pem_file_path is None:
-            ca = base64.b64decode(self.core_internal_tls_secret.data["ca.crt"]).decode('utf-8')
+            ca = base64.b64decode(self.admin_internal_tls_secret.data["ca.crt"]).decode('utf-8')
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as pem_file:
                 pem_file.write(ca.encode())
                 pem_file.flush()
@@ -123,17 +107,6 @@ class MASUserUtils():
                 atexit.register(os.remove, pem_file.name)
                 self._admin_internal_ca_pem_file_path = pem_file.name
         return self._admin_internal_ca_pem_file_path
-
-    @property
-    def mas_api_url_internal(self):
-        if self._mas_api_url_internal is None:
-            self._mas_api_url_internal = f'https://coreapi.{self.mas_core_namespace}.svc.cluster.local:{self.coreapi_port}'
-
-            # for local testing:
-            # add to /etc/hosts:
-            #    127.0.0.1               coreapi.mas-tgk01-core.svc.cluster.local
-            # oc port-forward service/coreapi 8444:443 -n mas-tgk01-core
-        return self._mas_api_url_internal
 
     @property
     def core_internal_tls_secret(self):
@@ -152,18 +125,6 @@ class MASUserUtils():
                 atexit.register(os.remove, pem_file.name)
                 self._core_internal_ca_pem_file_path = pem_file.name
         return self._core_internal_ca_pem_file_path
-
-    @property
-    def manage_api_url_internal(self):
-        if self._manage_api_url_internal is None:
-            # for local testing:
-            # add to /etc/hosts:
-            #    127.0.0.1               tgk01-masdev.mas-tgk01-manage.svc.cluster.local
-
-            # oc port-forward service/tgk01-masdev 8443:443 -n mas-tgk01-manage
-
-            self._manage_api_url_internal = f'https://{self.mas_instance_id}-{self.mas_workspace_id}.{self.manage_namespace}.svc.cluster.local:{self.manage_api_port}'
-        return self._manage_api_url_internal
 
     @property
     def superuser_auth_token(self):
@@ -230,6 +191,27 @@ class MASUserUtils():
         if self._mas_workspace_application_ids is None:
             self._mas_workspace_application_ids = list(map(lambda ma: ma["id"], self.get_mas_applications_in_workspace()))
         return self._mas_workspace_application_ids
+
+    def get_user(self, user_id):
+        self.logger.debug(f"Getting user {user_id}")
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.get(
+            url,
+            headers=headers,
+            verify=self.core_internal_ca_pem_file_path
+        )
+
+        if response.status_code == 404:
+            return None
+
+        if response.status_code == 200:
+            return response.json()
+
+        raise Exception(f"{response.status_code} {response.text}")
 
     def get_or_create_user(self, payload):
         '''
@@ -308,6 +290,9 @@ class MASUserUtils():
 
         # For the sake of idempotency, check if the user already has a local identity
         user = self.get_user(user_id)
+        if user is None:
+            raise Exception(f"User {user_id} was not found")
+
         if "identities" in user and "_local" in user["identities"]:
             self.logger.info(f"User {user_id} already has a local identity")
             return None
@@ -337,27 +322,6 @@ class MASUserUtils():
         # Important: HTTP 200 output will contain generated user token; DO NOT LOG
 
         return None
-
-    def get_user(self, user_id):
-        self.logger.debug(f"Getting user {user_id}")
-        url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
-        headers = {
-            "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
-
-        if response.status_code == 404:
-            return None
-
-        if response.status_code == 200:
-            return response.json()
-
-        raise Exception(f"{response.status_code} {response.text}")
 
     def get_user_workspaces(self, user_id):
         '''
