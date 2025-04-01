@@ -490,7 +490,7 @@ class MASUserUtils():
                 time.sleep(retry_interval_secs)
         raise Exception(f"User {user_id} sync failed to complete for app within {timeout_secs} seconds")
 
-    def resync_user(self, user_ids):
+    def resync_users(self, user_ids):
         self.logger.info(f"Issuing resync request(s) for user(s) {user_ids}")
 
         # The "/v3/users/utils/resync" API is only available in MAS Core >= 9.1 (coreapi >= 25.2.3)

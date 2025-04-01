@@ -85,7 +85,7 @@ def mock_get_user(requests_mock, user_id, json, status_code):
 
 def mock_get_user_200(requests_mock, user_id):
     return mock_get_user(
-        requests_mock, user_id, {"id": user_id}, 200
+        requests_mock, user_id, {"id": user_id, "displayName": user_id}, 200
     )
 
 
@@ -104,7 +104,7 @@ def mock_get_user_500(requests_mock, user_id):
 def test_get_user_exists(user_utils, requests_mock):
     user_id = "user1"
     get = mock_get_user_200(requests_mock, user_id)
-    assert user_utils.get_user(user_id) == {"id": user_id}
+    assert user_utils.get_user(user_id) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
 
 
@@ -139,7 +139,7 @@ def test_get_or_create_user_exists(user_utils, requests_mock):
         status_code=201
     )
 
-    assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id}
+    assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
     assert post.call_count == 0
 
@@ -151,11 +151,11 @@ def test_get_or_create_user_notfound(user_utils, requests_mock):
     post = requests_mock.post(
         f"{MAS_API_URL}/v3/users",
         request_headers={"x-access-token": TOKEN},
-        json={"id": user_id},
+        json={"id": user_id, "displayName": user_id},
         status_code=201
     )
 
-    assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id}
+    assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
     assert post.call_count == 1
 
@@ -469,6 +469,32 @@ def test_set_user_application_permissions_alreadyset(user_utils, requests_mock):
     assert put.call_count == 0
 
 
+def test_resync_users(user_utils, requests_mock):
+    user_ids = ["user1", "user2"]
+
+    gets = []
+    patches = []
+    for user_id in user_ids:
+        gets.append(mock_get_user_200(requests_mock, user_id))
+
+        patches.append(
+            requests_mock.patch(
+                f"{MAS_API_URL}/v3/users/{user_id}",
+                request_headers={"x-access-token": TOKEN},
+                json={"id": user_id},
+                status_code=200
+            )
+        )
+
+    user_utils.resync_users(user_ids)
+
+    for get in gets:
+        assert get.call_count == 1
+
+    for patche in patches:
+        assert patche.call_count == 1
+
+
 def test_check_user_sync(user_utils, requests_mock):
     user_id = "user1"
     application_id = "manage"
@@ -491,7 +517,7 @@ def test_check_user_sync(user_utils, requests_mock):
                         "state": "ERROR"
                     }
                 },
-                "manage": {
+                application_id: {
                     "sync": {
                         "state": state
                     }
@@ -525,7 +551,7 @@ def test_check_user_sync_timeout(user_utils, requests_mock):
                         "state": "ERROR"
                     }
                 },
-                "manage": {
+                application_id: {
                     "sync": {
                         "state": "PENDING"
                     }
@@ -541,15 +567,160 @@ def test_check_user_sync_timeout(user_utils, requests_mock):
 
 
 def test_check_user_sync_appstate_notfound(user_utils, requests_mock):
-    pass
-    # TODO
+    user_id = "user1"
+    application_id = "manage"
+
+    # first call (made bvy check_user_sync) returns user record with missing sync status for app
+    # subsequent calls will include sync status and so should succeed
+    # a single resync should have been triggered
+    attempts = 0
+
+    def json_callback(request, context):
+        nonlocal attempts
+        if attempts >= 1:
+            ret = {
+                "id": user_id,
+                "displayName": user_id,
+                "applications": {
+                    "other": {
+                        "sync": {
+                            "state": "ERROR"
+                        }
+                    },
+                    application_id: {
+                        "sync": {
+                            "state": "SUCCESS"
+                        }
+                    }
+                }
+            }
+        else:
+            ret = {
+                "id": user_id,
+                "displayName": user_id,
+                "applications": {
+                    "other": {
+                        "sync": {
+                            "state": "ERROR"
+                        }
+                    },
+                }
+            }
+        attempts = attempts + 1
+        return ret
+
+    patch = requests_mock.patch(
+        f"{MAS_API_URL}/v3/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"id": user_id},
+        status_code=200
+    )
+
+    get = mock_get_user(
+        requests_mock,
+        user_id,
+        json_callback,
+        200
+    )
+
+    user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
+    assert get.call_count == 3
+
+    # a single resync should have been triggered
+    assert patch.call_count == 1
 
 
 def test_check_user_sync_appstate_transient_error(user_utils, requests_mock):
-    pass
-    # TODO
+    user_id = "user1"
+    application_id = "manage"
+
+    # first call (made bvy check_user_sync) returns user record with sync state error
+    # subsequent calls will have successful sync state and so should succeed
+    # a single resync should have been triggered
+    attempts = 0
+
+    def json_callback(request, context):
+        nonlocal attempts
+        if attempts >= 1:
+            ret = {
+                "id": user_id,
+                "displayName": user_id,
+                "applications": {
+                    application_id: {
+                        "sync": {
+                            "state": "SUCCESS"
+                        }
+                    }
+                }
+            }
+        else:
+            ret = {
+                "id": user_id,
+                "displayName": user_id,
+                "applications": {
+                    application_id: {
+                        "sync": {
+                            "state": "ERROR"
+                        }
+                    }
+                }
+            }
+        attempts = attempts + 1
+        return ret
+
+    patche = requests_mock.patch(
+        f"{MAS_API_URL}/v3/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"id": user_id},
+        status_code=200
+    )
+
+    get = mock_get_user(
+        requests_mock,
+        user_id,
+        json_callback,
+        200
+    )
+
+    user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
+    assert get.call_count == 3
+
+    # a single resync should have been triggered
+    assert patche.call_count == 1
 
 
 def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock):
-    pass
-    # TODO
+    user_id = "user1"
+    application_id = "manage"
+
+    patche = requests_mock.patch(
+        f"{MAS_API_URL}/v3/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"id": user_id},
+        status_code=200
+    )
+
+    get = mock_get_user(
+        requests_mock,
+        user_id,
+        {
+            "id": user_id,
+            "displayName": user_id,
+            "applications": {
+                application_id: {
+                    "sync": {
+                        "state": "ERROR"
+                    }
+                }
+            }
+        },
+        200
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.check_user_sync(user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05)
+    assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
+    assert get.call_count > 1
+
+    # an "update_user_display_name" should have been triggered for every 2 get calls (1 call by check_user_sync, 1 by resync)
+    assert patche.call_count == get.call_count / 2
