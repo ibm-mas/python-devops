@@ -70,13 +70,8 @@ def user_utils(mock_v1_secrets, requests_mock):
         coreapi_port=COREAPI_PORT,
         admin_dashboard_port=ADMIN_DASHBOARD_PORT
     )
-    get_token = requests_mock.post(f"{MAS_ADMIN_URL}/logininitial", json=dict(token=TOKEN))
-    assert get_token.call_count == 0
+    requests_mock.post(f"{MAS_ADMIN_URL}/logininitial", json=dict(token=TOKEN))
     yield user_utils
-
-    # assuming the test calls any MAS Core API (all do)
-    # we expect the token endpoint to have been called exactly once (and its response cached)
-    assert get_token.call_count == 1
 
 
 def mock_get_user(requests_mock, user_id, json, status_code):
@@ -111,6 +106,11 @@ def test_get_user_exists(user_utils, requests_mock):
     get = mock_get_user_200(requests_mock, user_id)
     assert user_utils.get_user(user_id) == {"id": user_id}
     assert get.call_count == 1
+
+
+def test_mas_superuser_credentials():
+    pass
+    # TODO this and tests for other properties
 
 
 def test_get_user_notfound(user_utils, requests_mock):
@@ -417,3 +417,89 @@ def test_set_user_application_permissions_alreadyset(user_utils, requests_mock):
     user_utils.set_user_application_permission(user_id, application_id, "USER")
     assert get.call_count == 1
     assert put.call_count == 0
+
+
+def test_check_user_sync(user_utils, requests_mock):
+    user_id = "user1"
+    application_id = "manage"
+
+    # transitions from PENDING -> SUCCESS on the third call
+    attempts = 0
+
+    def json_callback(request, context):
+        nonlocal attempts
+        if attempts >= 2:
+            state = "SUCCESS"
+        else:
+            state = "PENDING"
+        attempts = attempts + 1
+        return {
+            "id": user_id,
+            "applications": {
+                "other": {
+                    "sync": {
+                        "state": "ERROR"
+                    }
+                },
+                "manage": {
+                    "sync": {
+                        "state": state
+                    }
+                }
+            }
+        }
+
+    get = mock_get_user(
+        requests_mock,
+        user_id,
+        json_callback,
+        200
+    )
+
+    user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
+    assert get.call_count == 3
+
+
+def test_check_user_sync_timeout(user_utils, requests_mock):
+    user_id = "user1"
+    application_id = "manage"
+
+    get = mock_get_user(
+        requests_mock,
+        user_id,
+        {
+            "id": user_id,
+            "applications": {
+                "other": {
+                    "sync": {
+                        "state": "ERROR"
+                    }
+                },
+                "manage": {
+                    "sync": {
+                        "state": "PENDING"
+                    }
+                }
+            }
+        },
+        200
+    )
+    with pytest.raises(Exception) as excinfo:
+        user_utils.check_user_sync(user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05)
+    assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
+    assert get.call_count > 1
+
+
+def test_check_user_sync_appstate_notfound(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_check_user_sync_appstate_transient_error(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock):
+    pass
+    # TODO

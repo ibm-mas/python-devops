@@ -19,23 +19,12 @@ import os
 import time
 import re
 
-
 '''
 TODO:
-    idempotency
-    handle user deletion if removed from config?
     MVI / other apps?
     unit tests
 
-    where are we going to run this from? Needs to run in cluster, so a Job in an app
-    which app though? Manage?
-    Perhaps we do the core bits in a core app (suite workspace?)
-    And app-specific bits in the apps themselves
-    but if we create a user before manage is ready, sync fails, and no way to trigger resync in MAS < 9.1.0?
-    # could do it all from a core app, but check for readiness of apps
-    Run in a dedicated instance-root app in the final syncwave
-
-    how ot cope with users that have been soft-deleted? tolerate / skip - ensure they are removed from secret so
+    how to cope with users that have been soft-deleted? tolerate / skip - ensure they are removed from secret so
     we don't get caught in an infinite loop?
 
 '''
@@ -282,6 +271,47 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
+    def update_user(self, payload):
+        user_id = payload["id"]
+        self.logger.debug(f"Updating user {user_id}")
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.put(
+            url,
+            headers=headers,
+            json=payload,
+            verify=self.core_internal_ca_pem_file_path
+        )
+
+        if response.status_code == 200:
+            return response.json()
+
+        raise Exception(f"{response.status_code} {response.text}")
+
+    def update_user_display_name(self, user_id, display_name):
+        self.logger.debug(f"Updating user display name {user_id}")
+        url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
+        headers = {
+            "Accept": "application/json",
+            "x-access-token": self.superuser_auth_token
+        }
+        response = requests.patch(
+            url,
+            headers=headers,
+            json={
+                "displayName": display_name
+            },
+            verify=self.core_internal_ca_pem_file_path
+        )
+
+        if response.status_code == 200:
+            return response.json()
+
+        raise Exception(f"{response.status_code} {response.text}")
+
     def link_user_to_local_idp(self, user_id, email_password=False):
         '''
         Checks if user already has a local identity, no-op if so.
@@ -437,49 +467,41 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
-    def check_user_sync(self, user_id, application_id, timeout_secs=60 * 10):
+    def check_user_sync(self, user_id, application_id, timeout_secs=60 * 10, retry_interval_secs=5):
         t_end = time.time() + timeout_secs
         self.logger.info(f"Awaiting user {user_id} sync status \"SUCCESS\" for app {application_id}: {t_end - time.time():.2f} seconds remaining")
         while time.time() < t_end:
             user = self.get_user(user_id)
-            sync_state = user["applications"][application_id]["sync"]["state"]
-            if sync_state == "SUCCESS":
-                return
-            elif sync_state == "ERROR":
-                # coreapi >= 25.2.3, not in mas 9.0.9, mas >= 9.1 only?
-                # self.resync_users([user_id])
-                # time.sleep(8)
-                # alternative mechanism to kick off a user resync?
-                # if not, bomb out here since we'll never get SUCCESS?
-                # TODO: I think you can just set user roles against to retrigger user sync
-                raise Exception(f"User {user_id} sync failed, aborting")
+
+            if "applications" not in user or application_id not in user["applications"] or "sync" not in user["applications"][application_id] or "state" not in user["applications"][application_id]["sync"]:
+                self.logger.warning(f"User {user_id} does not have any sync state for application {application_id}, triggering resync")
+                self.resync_users([user_id])
+                time.sleep(retry_interval_secs)
             else:
-                self.logger.info(f"User {user_id} sync has not been completed yet for app {application_id} (currrently {sync_state}): {t_end - time.time():.2f} seconds remaining")
-                time.sleep(5)
+                sync_state = user["applications"][application_id]["sync"]["state"]
+                if sync_state == "SUCCESS":
+                    return
+                elif sync_state == "ERROR":
+                    self.logger.warning(f"User {user_id} sync state for {application_id} was {sync_state}, triggering resync")
+                    self.resync_users([user_id])
+                    time.sleep(retry_interval_secs)
+                else:
+                    self.logger.info(f"User {user_id} sync has not been completed yet for app {application_id} (currrently {sync_state}): {t_end - time.time():.2f} seconds remaining")
+                time.sleep(retry_interval_secs)
         raise Exception(f"User {user_id} sync failed to complete for app within {timeout_secs} seconds")
 
-    # coreapi >= 25.2.3, not in mas 9.0.9, mas >= 9.1 only?
+    def resync_user(self, user_ids):
+        self.logger.info(f"Issuing resync request(s) for user(s) {user_ids}")
 
-    def resync_users(self, user_ids):
-        self.logger.info(f"Issuing resync request for user(s) {user_ids}")
-        url = f"{self.mas_api_url_internal}/v3/users/utils/resync"
-        querystring = {}
-        payload = {
-            "users": user_ids
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.put(
-            url,
-            json=payload,
-            headers=headers,
-            params=querystring,
-            verify=self.core_internal_ca_pem_file_path
-        )
-        if response.status_code != 204:
-            raise Exception(response.text)
+        # The "/v3/users/utils/resync" API is only available in MAS Core >= 9.1 (coreapi >= 25.2.3)
+        # Until it is available in all supported versions of MAS,
+        # we instead perform a no-op update to the user to achieve the same effect
+        # (the "update user profile" API is used as this is this allows us to isolate the displayName field,
+        # which reduces the impact of concurrent updates leading to race conditions)
+
+        for user_id in user_ids:
+            user = self.get_user(user_id)
+            self.update_user_display_name(user_id, user["displayName"])
 
     def create_or_get_manage_api_key_for_user(self, user_id):
         self.logger.debug(f"Attempting to create Manage API Key for user {user_id}")
