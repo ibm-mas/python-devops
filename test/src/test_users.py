@@ -323,3 +323,97 @@ def test_add_user_to_workspace_error(user_utils, requests_mock):
         user_utils.add_user_to_workspace(user_id, is_workspace_admin=True)
     assert get.call_count == 1
     assert put.call_count == 1
+
+
+def test_get_user_application_permissions(user_utils, requests_mock):
+    user_id = "user1"
+    application_id = "manage"
+    response_json = {
+        "role": "USER",
+        "userId": user_id,
+        "workspaceId": MAS_WORKSPACE_ID,
+        "userUrl": "https://api.yourmasdomain.com/users/joebloggs",
+        "workspaceUrl": "https://api.yourmasdomain.com/workspaces/myworkspace1"
+    }
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json=response_json,
+        status_code=200
+    )
+    assert user_utils.get_user_application_permissions(user_id, application_id) == response_json
+    assert get.call_count == 1
+
+
+def test_get_user_application_permissions_notfound(user_utils, requests_mock):
+    user_id = "user1"
+    application_id = "manage"
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"error": "notfound"},
+        status_code=404
+    )
+    assert user_utils.get_user_application_permissions(user_id, application_id) is None
+    assert get.call_count == 1
+
+
+def test_get_user_application_permissions_error(user_utils, requests_mock):
+    user_id = "user1"
+    application_id = "manage"
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"error": "internal"},
+        status_code=500
+    )
+    with pytest.raises(Exception):
+        user_utils.get_user_application_permissions(user_id, application_id)
+    assert get.call_count == 1
+
+
+def test_set_user_application_permissions(user_utils, requests_mock):
+    user_id = "user1"
+    application_id = "manage"
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"error": "notfound"},
+        status_code=404
+    )
+    put = requests_mock.put(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={},
+        status_code=200
+    )
+    user_utils.set_user_application_permission(user_id, application_id, "USER")
+    assert get.call_count == 1
+    assert put.call_count == 1
+
+
+def test_set_user_application_permissions_alreadyset(user_utils, requests_mock):
+    user_id = "user1"
+    application_id = "manage"
+    get_response_json = {
+        "role": "ADMINISTRATOR",
+        "userId": user_id,
+        "workspaceId": MAS_WORKSPACE_ID,
+        "userUrl": "https://api.yourmasdomain.com/users/joebloggs",
+        "workspaceUrl": "https://api.yourmasdomain.com/workspaces/myworkspace1"
+    }
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json=get_response_json,
+        status_code=200
+    )
+    put = requests_mock.put(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={},
+        status_code=200
+    )
+    user_utils.set_user_application_permission(user_id, application_id, "USER")
+    assert get.call_count == 1
+    assert put.call_count == 0
