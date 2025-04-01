@@ -10,8 +10,10 @@
 
 import pytest
 import base64
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 from pytest import fixture
+
+import os
 
 from mas.devops.users import MASUserUtils
 
@@ -37,6 +39,8 @@ COREAPI_PORT = 2
 
 MAS_ADMIN_URL = f"https://admin-dashboard.{MAS_CORE_NAMESPACE}.svc.cluster.local:{ADMIN_DASHBOARD_PORT}"
 MAS_API_URL = f'https://coreapi.{MAS_CORE_NAMESPACE}.svc.cluster.local:{COREAPI_PORT}'
+
+PEM_PATH = "pempath"
 
 
 def get_secret(name, namespace):
@@ -69,6 +73,21 @@ def get_secret(name, namespace):
 
 
 @fixture
+def mock_atexit():
+    with patch('atexit.register') as mock_atexit:
+        yield mock_atexit
+
+
+@fixture
+def mock_named_temporary_file(mock_atexit):
+    with patch('tempfile.NamedTemporaryFile') as mock_named_temporary_file:
+        mock_file = MagicMock()
+        mock_file.name = PEM_PATH
+        mock_named_temporary_file.return_value.__enter__.return_value = mock_file
+        yield mock_file
+
+
+@fixture
 def mock_v1_secrets():
     with patch('mas.devops.users.DynamicClient') as mock_DynamicClientCls:
         mock_DynamicClient = mock_DynamicClientCls.return_value
@@ -78,7 +97,7 @@ def mock_v1_secrets():
 
 
 @fixture
-def user_utils(mock_v1_secrets, requests_mock):
+def user_utils(mock_v1_secrets, requests_mock, mock_named_temporary_file, mock_atexit):
     user_utils = MASUserUtils(
         MAS_INSTANCE_ID,
         MAS_WORKSPACE_ID,
@@ -88,6 +107,17 @@ def user_utils(mock_v1_secrets, requests_mock):
     )
     requests_mock.post(f"{MAS_ADMIN_URL}/logininitial", json=dict(token=TOKEN))
     yield user_utils
+
+
+def test_admin_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
+    assert str(user_utils.admin_internal_ca_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(ADMINDASHBOARD_CA_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
+
+    # verify caching
+    assert str(user_utils.admin_internal_ca_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(ADMINDASHBOARD_CA_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
 def mock_get_user(requests_mock, user_id, json, status_code):
@@ -134,11 +164,6 @@ def test_admin_internal_tls_secret(user_utils, mock_v1_secrets):
     assert mock_v1_secrets.get.call_count == 1
 
 
-def test_admin_internal_ca_pem_file_path():
-    pass
-    # TODO
-
-
 def test_core_internal_tls_secret(user_utils, mock_v1_secrets):
     assert mock_v1_secrets.get.call_count == 0
     assert user_utils.core_internal_tls_secret.data["ca.crt"] == base64.b64encode(COREAPI_CA_CRT.encode('utf-8'))
@@ -147,9 +172,19 @@ def test_core_internal_tls_secret(user_utils, mock_v1_secrets):
     assert mock_v1_secrets.get.call_count == 1
 
 
-def test_core_internal_ca_pem_file_path():
-    pass
-    # TODO
+def test_core_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
+    '''
+    Check the correct content is written to core_internal_ca_pem_file_path tempfile, that an exit handler is registered to
+    delete the temp file, and that the tempfile is only written once (with its path cached)
+    '''
+    assert str(user_utils.core_internal_ca_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(COREAPI_CA_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
+
+    # verify caching
+    assert str(user_utils.core_internal_ca_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(COREAPI_CA_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
 def test_superuser_auth_token():
@@ -169,14 +204,26 @@ def test_manage_internal_tls_secret(user_utils, mock_v1_secrets):
     assert mock_v1_secrets.get.call_count == 1
 
 
-def test_manage_internal_client_pem_file_path():
-    pass
-    # TODO
+def test_manage_internal_client_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
+    assert str(user_utils.manage_internal_client_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(MANAGE_TLS_KEY.encode()), call.write(MANAGE_TLS_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
+
+    # verify caching
+    assert str(user_utils.manage_internal_client_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(MANAGE_TLS_KEY.encode()), call.write(MANAGE_TLS_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
-def test_manage_internal_ca_pem_file_path():
-    pass
-    # TODO
+def test_manage_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
+    assert str(user_utils.manage_internal_ca_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(MANAGE_CA_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
+
+    # verify caching
+    assert str(user_utils.manage_internal_ca_pem_file_path) == PEM_PATH
+    assert mock_named_temporary_file.mock_calls == [call.write(MANAGE_CA_CRT.encode()), call.flush(), call.close()]
+    assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
 def test_manage_maxadmin_api_key():
