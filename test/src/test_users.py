@@ -807,8 +807,80 @@ def test_get_mas_application_availability_error(user_utils, requests_mock):
 
 
 def test_await_mas_application_availability(user_utils, requests_mock):
-    pass
-    # TODO
+    application_id = "manage"
+
+    # returns all possible permutations of the endpoint, until finally returning the
+    # response that should cause the retry logic to exit
+    return_values = [
+        {
+            "id": application_id,
+        },
+        {
+            "available": False,
+        },
+        {
+            "available": True,
+        },
+        {
+            "ready": False,
+        },
+        {
+            "ready": True,
+        },
+        {
+            "available": False,
+            "ready": False,
+        },
+        {
+            "available": True,
+            "ready": False,
+        },
+        {
+            "available": False,
+            "ready": True,
+        },
+        {
+            "available": True,
+            "ready": True,
+        },
+    ]
+    attempt = 0
+
+    def json_callback(request, context):
+        nonlocal attempt
+        nonlocal return_values
+        ret = return_values[attempt]
+        attempt = attempt + 1
+        return ret
+
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}",
+        request_headers={"x-access-token": TOKEN},
+        json=json_callback,
+        status_code=200
+    )
+
+    user_utils.await_mas_application_availability(application_id, timeout_secs=5, retry_interval_secs=0)
+    assert get.call_count == len(return_values)
+
+
+def test_await_mas_application_availability_timeout(user_utils, requests_mock):
+    application_id = "manage"
+
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={
+            "available": False,
+            "ready": False,
+        },
+        status_code=200
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.await_mas_application_availability(application_id, timeout_secs=1, retry_interval_secs=0.1)
+    assert get.call_count > 1
+    assert str(excinfo.value) == f"{application_id} did not become ready and available in time, aborting"
 
 
 def test_parse_initial_users_from_aws_secret_json(user_utils):
