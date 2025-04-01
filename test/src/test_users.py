@@ -724,3 +724,145 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock):
 
     # an "update_user_display_name" should have been triggered for every 2 get calls (1 call by check_user_sync, 1 by resync)
     assert patche.call_count == get.call_count / 2
+
+
+def test_create_or_get_manage_api_key_for_user(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_get_manage_api_key_for_user(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_delete_manage_api_key(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_get_manage_group_id(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_is_user_in_manage_group(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_add_user_to_manage_group(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_get_mas_applications_in_workspace(user_utils, requests_mock):
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications",
+        request_headers={"x-access-token": TOKEN},
+        json=[{"id": "manage"}],
+        status_code=200
+    )
+    assert user_utils.get_mas_applications_in_workspace() == [{"id": "manage"}]
+    assert get.call_count == 1
+
+
+def test_get_mas_applications_in_workspace_error(user_utils, requests_mock):
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications",
+        request_headers={"x-access-token": TOKEN},
+        json={"error": "internal"},
+        status_code=500
+    )
+    with pytest.raises(Exception) as excinfo:
+        user_utils.get_mas_applications_in_workspace()
+    assert get.call_count == 1
+    assert str(excinfo.value) == '500 {"error": "internal"}'
+
+
+def test_get_mas_application_availability(user_utils, requests_mock):
+    application_id = "manage"
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"id": "manage"},
+        status_code=200
+    )
+    assert user_utils.get_mas_application_availability(application_id) == {"id": "manage"}
+    assert get.call_count == 1
+
+
+def test_get_mas_application_availability_error(user_utils, requests_mock):
+    application_id = "manage"
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"error": "internal"},
+        status_code=500
+    )
+    with pytest.raises(Exception) as excinfo:
+        user_utils.get_mas_application_availability(application_id)
+    assert get.call_count == 1
+    assert str(excinfo.value) == '500 {"error": "internal"}'
+
+
+def test_await_mas_application_availability(user_utils, requests_mock):
+    pass
+    # TODO
+
+
+def test_parse_initial_users_from_aws_secret_json(user_utils):
+
+    actual_initial_users = user_utils.parse_initial_users_from_aws_secret_json(
+        {
+            "user1@example.com": "primary,joe,bloggs",
+            "user2@example.com": "  primary     ,   ben     ,   bob  ",
+            "user3@example.com": "secondary     ,bill,  bibb"
+        }
+    )
+
+    expected_initial_users = {
+        "users": {
+            "primary": [
+                {
+                    "email": "user1@example.com",
+                    "given_name": "joe",
+                    "family_name": "bloggs"
+                },
+                {
+                    "email": "user2@example.com",
+                    "given_name": "ben",
+                    "family_name": "bob"
+                }
+            ],
+            "secondary": [
+                {
+                    "email": "user3@example.com",
+                    "given_name": "bill",
+                    "family_name": "bibb"
+                }
+            ]
+        }
+    }
+
+    assert actual_initial_users == expected_initial_users
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.parse_initial_users_from_aws_secret_json({
+            "user1@example.com": "primary"
+        })
+    assert "Wrong number of CSV values for user1@example.com (expected 3 but got 1)" == str(excinfo.value)
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.parse_initial_users_from_aws_secret_json({
+            "user1@example.com": "unknown,x,y"
+        })
+    assert "Unknown user type for user1@example.com: unknown" == str(excinfo.value)
+
+
+def test_create_initial_user_for_saas(user_utils, requests_mock):
+    pass
+
+
+def test_create_initial_users_for_saas(user_utils, requests_mock):
+    pass

@@ -545,7 +545,7 @@ class MASUserUtils():
             self.logger.info(f"Creating new Manage API Key for user {user_id}")
         else:
             # any other status code is unexpected
-            raise Exception(response.text)
+            raise Exception(f"{response.status_code} {response.text}")
 
         # otherwise, retrieve the apikey (either it already existed, or we just created it)
 
@@ -561,8 +561,6 @@ class MASUserUtils():
             #       which may then fail if we subsequently delete it?
             #       NOTE: the manage sanity test seems to create maxadmin apikey and not clean it up
             atexit.register(self.delete_manage_api_key, apikey)
-
-            pass
 
         return apikey
 
@@ -763,17 +761,16 @@ class MASUserUtils():
             return response.json()
         raise Exception(f"{response.status_code} {response.text}")
 
-    def await_mas_application_availability(self, mas_application_id, timeout_secs=60 * 10):
+    def await_mas_application_availability(self, mas_application_id, timeout_secs=60 * 10, retry_interval_secs=5):
         t_end = time.time() + timeout_secs
         self.logger.info(f"Waiting for {mas_application_id} to become ready and available: {t_end - time.time():.2f} seconds remaining")
         while time.time() < t_end:
             app = self.get_mas_application_availability(mas_application_id)
             if "available" in app and "ready" in app and app["ready"] and app["available"]:
                 return
-            # TODO: error state?
             else:
-                self.logger.info(f"{mas_application_id} is not ready or available, retry in 5 seconds: {t_end - time.time():.2f} seconds remaining")
-                time.sleep(5)
+                self.logger.info(f"{mas_application_id} is not ready or available, retry in {retry_interval_secs} seconds: {t_end - time.time():.2f} seconds remaining")
+                time.sleep(retry_interval_secs)
         raise Exception(f"{mas_application_id} did not become ready and available in time, aborting")
 
     def parse_initial_users_from_aws_secret_json(self, secret_json):
