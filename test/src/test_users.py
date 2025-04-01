@@ -176,6 +176,56 @@ def test_get_or_create_user_error(user_utils, requests_mock):
     assert post.call_count == 1
 
 
+def test_update_user(user_utils, requests_mock):
+    user_id = "user1"
+    put = requests_mock.put(
+        f"{MAS_API_URL}/v3/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"id": user_id},
+        status_code=200
+    )
+    user_utils.update_user({"id": user_id})
+    assert put.call_count == 1
+
+
+def test_update_user_error(user_utils, requests_mock):
+    user_id = "user1"
+    put = requests_mock.put(
+        f"{MAS_API_URL}/v3/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"error": "nofound"},
+        status_code=404
+    )
+    with pytest.raises(Exception):
+        user_utils.update_user({"id": user_id})
+    assert put.call_count == 1
+
+
+def test_update_user_display_name(user_utils, requests_mock):
+    user_id = "user1"
+    patch = requests_mock.patch(
+        f"{MAS_API_URL}/v3/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"id": user_id},
+        status_code=200
+    )
+    user_utils.update_user_display_name(user_id, "display_name")
+    assert patch.call_count == 1
+
+
+def test_update_user_display_name_error(user_utils, requests_mock):
+    user_id = "user1"
+    patch = requests_mock.patch(
+        f"{MAS_API_URL}/v3/users/{user_id}",
+        request_headers={"x-access-token": TOKEN},
+        json={"error": "notfound"},
+        status_code=404
+    )
+    with pytest.raises(Exception):
+        user_utils.update_user_display_name(user_id, "display_name")
+    assert patch.call_count == 1
+
+
 def test_link_user_to_local_idp(user_utils, requests_mock):
     user_id = "user1"
     email_password = True
