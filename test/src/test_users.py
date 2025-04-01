@@ -15,6 +15,15 @@ from pytest import fixture
 
 from mas.devops.users import MASUserUtils
 
+SUPERUSER_USERNAME = "superuser_username"
+SUPERUSER_PASSWORD = "superuser_password"  # pragma: allowlist secret
+
+
+ADMINDASHBOARD_CA_CRT = "admindashboard-ca"
+COREAPI_CA_CRT = "coreapi-ca"
+MANAGE_CA_CRT = "manage-ca"
+MANAGE_TLS_CRT = "manage-tls-crt"
+MANAGE_TLS_KEY = "manage-tls-key"
 
 TOKEN = "TOKEN"
 MAS_INSTANCE_ID = "inst1"
@@ -31,20 +40,27 @@ MAS_API_URL = f'https://coreapi.{MAS_CORE_NAMESPACE}.svc.cluster.local:{COREAPI_
 
 
 def get_secret(name, namespace):
-    if name.endswith("-credentials-superuser"):
+    if name == f"{MAS_INSTANCE_ID}-credentials-superuser":
         data = {
-            "username": base64.b64encode("hello".encode("utf-8")),
-            "password": base64.b64encode("world".encode("utf-8")),
+            "username": base64.b64encode(SUPERUSER_USERNAME.encode("utf-8")),
+            "password": base64.b64encode(SUPERUSER_PASSWORD.encode("utf-8")),
         }
 
-    if name.endswith("-admindashboard-cert-internal"):
+    if name == f"{MAS_INSTANCE_ID}-admindashboard-cert-internal":
         data = {
-            "ca.crt": base64.b64encode("admindashboard-ca".encode("utf-8"))
+            "ca.crt": base64.b64encode(ADMINDASHBOARD_CA_CRT.encode("utf-8"))
         }
 
-    if name.endswith("-coreapi-cert-internal"):
+    if name == f"{MAS_INSTANCE_ID}-coreapi-cert-internal":
         data = {
-            "ca.crt": base64.b64encode("coreapi-ca".encode("utf-8"))
+            "ca.crt": base64.b64encode(COREAPI_CA_CRT.encode("utf-8"))
+        }
+
+    if name == f"{MAS_INSTANCE_ID}-internal-manage-tls":
+        data = {
+            "ca.crt": base64.b64encode(MANAGE_CA_CRT.encode("utf-8")),
+            "tls.crt": base64.b64encode(MANAGE_TLS_CRT.encode("utf-8")),
+            "tls.key": base64.b64encode(MANAGE_TLS_KEY.encode("utf-8")),
         }
 
     return MagicMock(
@@ -58,7 +74,7 @@ def mock_v1_secrets():
         mock_DynamicClient = mock_DynamicClientCls.return_value
         mock_v1_secrets = mock_DynamicClient.resources.get.return_value
         mock_v1_secrets.get.side_effect = get_secret
-        yield
+        yield mock_v1_secrets
 
 
 @fixture
@@ -101,16 +117,83 @@ def mock_get_user_500(requests_mock, user_id):
     )
 
 
+def test_mas_superuser_credentials(user_utils, mock_v1_secrets):
+    assert mock_v1_secrets.get.call_count == 0
+    assert user_utils.mas_superuser_credentials == {"username": SUPERUSER_USERNAME, "password": SUPERUSER_PASSWORD}
+    assert mock_v1_secrets.get.call_count == 1
+    # verify caching is working
+    assert user_utils.mas_superuser_credentials == {"username": SUPERUSER_USERNAME, "password": SUPERUSER_PASSWORD}
+    assert mock_v1_secrets.get.call_count == 1
+
+
+def test_admin_internal_tls_secret(user_utils, mock_v1_secrets):
+    assert mock_v1_secrets.get.call_count == 0
+    assert user_utils.admin_internal_tls_secret.data["ca.crt"] == base64.b64encode(ADMINDASHBOARD_CA_CRT.encode('utf-8'))
+    assert mock_v1_secrets.get.call_count == 1
+    assert user_utils.admin_internal_tls_secret.data["ca.crt"] == base64.b64encode(ADMINDASHBOARD_CA_CRT.encode('utf-8'))
+    assert mock_v1_secrets.get.call_count == 1
+
+
+def test_admin_internal_ca_pem_file_path():
+    pass
+    # TODO
+
+
+def test_core_internal_tls_secret(user_utils, mock_v1_secrets):
+    assert mock_v1_secrets.get.call_count == 0
+    assert user_utils.core_internal_tls_secret.data["ca.crt"] == base64.b64encode(COREAPI_CA_CRT.encode('utf-8'))
+    assert mock_v1_secrets.get.call_count == 1
+    assert user_utils.core_internal_tls_secret.data["ca.crt"] == base64.b64encode(COREAPI_CA_CRT.encode('utf-8'))
+    assert mock_v1_secrets.get.call_count == 1
+
+
+def test_core_internal_ca_pem_file_path():
+    pass
+    # TODO
+
+
+def test_superuser_auth_token():
+    pass
+    # TODO
+
+
+def test_manage_internal_tls_secret(user_utils, mock_v1_secrets):
+    assert mock_v1_secrets.get.call_count == 0
+    assert user_utils.manage_internal_tls_secret.data["ca.crt"] == base64.b64encode(MANAGE_CA_CRT.encode('utf-8'))
+    assert user_utils.manage_internal_tls_secret.data["tls.crt"] == base64.b64encode(MANAGE_TLS_CRT.encode('utf-8'))
+    assert user_utils.manage_internal_tls_secret.data["tls.key"] == base64.b64encode(MANAGE_TLS_KEY.encode('utf-8'))
+    assert mock_v1_secrets.get.call_count == 1
+    assert user_utils.manage_internal_tls_secret.data["ca.crt"] == base64.b64encode(MANAGE_CA_CRT.encode('utf-8'))
+    assert user_utils.manage_internal_tls_secret.data["tls.crt"] == base64.b64encode(MANAGE_TLS_CRT.encode('utf-8'))
+    assert user_utils.manage_internal_tls_secret.data["tls.key"] == base64.b64encode(MANAGE_TLS_KEY.encode('utf-8'))
+    assert mock_v1_secrets.get.call_count == 1
+
+
+def test_manage_internal_client_pem_file_path():
+    pass
+    # TODO
+
+
+def test_manage_internal_ca_pem_file_path():
+    pass
+    # TODO
+
+
+def test_manage_maxadmin_api_key():
+    pass
+    # TODO
+
+
+def test_mas_workspace_application_ids():
+    pass
+    # TODO
+
+
 def test_get_user_exists(user_utils, requests_mock):
     user_id = "user1"
     get = mock_get_user_200(requests_mock, user_id)
     assert user_utils.get_user(user_id) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
-
-
-def test_mas_superuser_credentials():
-    pass
-    # TODO this and tests for other properties
 
 
 def test_get_user_notfound(user_utils, requests_mock):
