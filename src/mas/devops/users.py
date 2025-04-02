@@ -249,7 +249,6 @@ class MASUserUtils():
 
         url = f"{self.mas_api_url_internal}/v3/users"
         querystring = {}
-        payload = payload
         headers = {
             "Content-Type": "application/json",
             "x-access-token": self.superuser_auth_token
@@ -292,7 +291,7 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def update_user_display_name(self, user_id, display_name):
-        self.logger.debug(f"Updating user display name {user_id}")
+        self.logger.debug(f"Updating user display name {user_id} to {display_name}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
         headers = {
             "Accept": "application/json",

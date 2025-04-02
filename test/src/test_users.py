@@ -43,6 +43,13 @@ MAS_API_URL = f'https://coreapi.{MAS_CORE_NAMESPACE}.svc.cluster.local:{COREAPI_
 PEM_PATH = "pempath"
 
 
+def additional_matcher(req, json=None, verify=PEM_PATH):
+    if json is not None:
+        assert req.json() == json
+    assert req.verify == verify
+    return True
+
+
 def get_secret(name, namespace):
     if name == f"{MAS_INSTANCE_ID}-credentials-superuser":
         data = {
@@ -97,15 +104,25 @@ def mock_v1_secrets():
 
 
 @fixture
-def user_utils(mock_v1_secrets, requests_mock, mock_named_temporary_file, mock_atexit):
+def mock_logininitial_endpoint(requests_mock):
+    yield requests_mock.post(
+        f"{MAS_ADMIN_URL}/logininitial",
+        json=dict(token=TOKEN),
+        additional_matcher=lambda req: additional_matcher(req, json={"username": SUPERUSER_USERNAME, "password": SUPERUSER_PASSWORD})
+    )
+
+
+@fixture
+def user_utils(mock_v1_secrets, mock_logininitial_endpoint, mock_named_temporary_file, mock_atexit):
+    k8s_client = MagicMock()  # DynamicClient is mocked out, no methods will be called on the k8s_client
     user_utils = MASUserUtils(
         MAS_INSTANCE_ID,
         MAS_WORKSPACE_ID,
-        None,
+        k8s_client,
         coreapi_port=COREAPI_PORT,
         admin_dashboard_port=ADMIN_DASHBOARD_PORT
     )
-    requests_mock.post(f"{MAS_ADMIN_URL}/logininitial", json=dict(token=TOKEN))
+
     yield user_utils
 
 
@@ -125,7 +142,8 @@ def mock_get_user(requests_mock, user_id, json, status_code):
         f"{MAS_API_URL}/v3/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json=json,
-        status_code=status_code
+        status_code=status_code,
+        additional_matcher=lambda req: additional_matcher(req)
     )
 
 
@@ -187,9 +205,14 @@ def test_core_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, m
     assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
-def test_superuser_auth_token():
-    pass
-    # TODO
+def test_superuser_auth_token(user_utils, mock_logininitial_endpoint):
+    assert mock_logininitial_endpoint.call_count == 0
+    assert user_utils.superuser_auth_token == TOKEN
+    assert mock_logininitial_endpoint.call_count == 1
+
+    # verify caching
+    user_utils.superuser_auth_token
+    assert mock_logininitial_endpoint.call_count == 1
 
 
 def test_manage_internal_tls_secret(user_utils, mock_v1_secrets):
@@ -266,7 +289,8 @@ def test_get_or_create_user_exists(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users",
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id},
-        status_code=201
+        status_code=201,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
 
     assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
@@ -282,7 +306,8 @@ def test_get_or_create_user_notfound(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users",
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id, "displayName": user_id},
-        status_code=201
+        status_code=201,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
 
     assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
@@ -297,7 +322,8 @@ def test_get_or_create_user_error(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users",
         request_headers={"x-access-token": TOKEN},
         json={"error": "unknown"},
-        status_code=500
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
 
     with pytest.raises(Exception):
@@ -312,7 +338,8 @@ def test_update_user(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id},
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
     user_utils.update_user({"id": user_id})
     assert put.call_count == 1
@@ -324,7 +351,8 @@ def test_update_user_error(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"error": "nofound"},
-        status_code=404
+        status_code=404,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
     with pytest.raises(Exception):
         user_utils.update_user({"id": user_id})
@@ -337,7 +365,8 @@ def test_update_user_display_name(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id},
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"displayName": "display_name"})
     )
     user_utils.update_user_display_name(user_id, "display_name")
     assert patche.call_count == 1
@@ -349,7 +378,8 @@ def test_update_user_display_name_error(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"error": "notfound"},
-        status_code=404
+        status_code=404,
+        additional_matcher=lambda req: additional_matcher(req, json={"displayName": "display_name"})
     )
     with pytest.raises(Exception):
         user_utils.update_user_display_name(user_id, "display_name")
@@ -365,7 +395,8 @@ def test_link_user_to_local_idp(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local?emailPassword={email_password}",
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id},
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
     )
 
     user_utils.link_user_to_local_idp(user_id, email_password=email_password)
@@ -379,6 +410,7 @@ def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock):
     get = mock_get_user_404(requests_mock, user_id)
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local",
+        additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
     )
 
     with pytest.raises(Exception):
@@ -399,7 +431,8 @@ def test_link_user_to_local_idp_already_linked(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local?emailPassword={email_password}",
         request_headers={"x-access-token": TOKEN},
         json={"identities": {}},
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
     )
 
     user_utils.link_user_to_local_idp(user_id, email_password=email_password)
@@ -414,7 +447,8 @@ def test_get_user_workspaces(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}/workspaces",
         request_headers={"x-access-token": TOKEN},
         json=[{"id": "masdev"}],
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     workspaces = user_utils.get_user_workspaces(user_id)
     assert workspaces == [{"id": "masdev"}]
@@ -427,7 +461,8 @@ def test_get_user_workspaces_usernotfound(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}/workspaces",
         request_headers={"x-access-token": TOKEN},
         json={},
-        status_code=404
+        status_code=404,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     with pytest.raises(Exception):
         user_utils.get_user_workspaces(user_id)
@@ -440,7 +475,8 @@ def test_get_user_workspaces_error(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}/workspaces",
         request_headers={"x-access-token": TOKEN},
         json={"error": "internal"},
-        status_code=500
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     with pytest.raises(Exception):
         user_utils.get_user_workspaces(user_id)
@@ -453,13 +489,15 @@ def test_add_user_to_workspace_already_a_member(user_utils, requests_mock):
         f"{MAS_API_URL}/v3/users/{user_id}/workspaces",
         request_headers={"x-access-token": TOKEN},
         json=[{"id": "someotherworkspace"}, {"id": MAS_WORKSPACE_ID}],
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
     )
-    put = requests_mock.get(
+    put = requests_mock.put(
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json=[{"id": "masdev"}],
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"permissions": {"workspaceAdmin": True}})
     )
     user_utils.add_user_to_workspace(user_id, is_workspace_admin=True)
     assert get.call_count == 1
@@ -478,7 +516,8 @@ def test_add_user_to_workspace(user_utils, requests_mock):
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={},
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"permissions": {"workspaceAdmin": True}})
     )
     user_utils.add_user_to_workspace(user_id, is_workspace_admin=True)
     assert get.call_count == 1
@@ -497,7 +536,8 @@ def test_add_user_to_workspace_error(user_utils, requests_mock):
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"error": "internal"},
-        status_code=500
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req, json={"permissions": {"workspaceAdmin": True}})
     )
     with pytest.raises(Exception):
         user_utils.add_user_to_workspace(user_id, is_workspace_admin=True)
@@ -519,7 +559,8 @@ def test_get_user_application_permissions(user_utils, requests_mock):
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json=response_json,
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     assert user_utils.get_user_application_permissions(user_id, application_id) == response_json
     assert get.call_count == 1
@@ -532,7 +573,8 @@ def test_get_user_application_permissions_notfound(user_utils, requests_mock):
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"error": "notfound"},
-        status_code=404
+        status_code=404,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     assert user_utils.get_user_application_permissions(user_id, application_id) is None
     assert get.call_count == 1
@@ -545,7 +587,8 @@ def test_get_user_application_permissions_error(user_utils, requests_mock):
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"error": "internal"},
-        status_code=500
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     with pytest.raises(Exception):
         user_utils.get_user_application_permissions(user_id, application_id)
@@ -559,13 +602,15 @@ def test_set_user_application_permissions(user_utils, requests_mock):
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={"error": "notfound"},
-        status_code=404
+        status_code=404,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     put = requests_mock.put(
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={},
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"role": "USER"})
     )
     user_utils.set_user_application_permission(user_id, application_id, "USER")
     assert get.call_count == 1
@@ -586,13 +631,15 @@ def test_set_user_application_permissions_alreadyset(user_utils, requests_mock):
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json=get_response_json,
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
     )
     put = requests_mock.put(
         f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications/{application_id}/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json={},
-        status_code=200
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, json={"role": "USER"})
     )
     user_utils.set_user_application_permission(user_id, application_id, "USER")
     assert get.call_count == 1
@@ -612,7 +659,9 @@ def test_resync_users(user_utils, requests_mock):
                 f"{MAS_API_URL}/v3/users/{user_id}",
                 request_headers={"x-access-token": TOKEN},
                 json={"id": user_id},
-                status_code=200
+                status_code=200,
+                # uid=user_id captures the current value of user_id during each loop iteration, ensuring that the lambda uses the correct value when it is eventually called.
+                additional_matcher=lambda req, uid=user_id: additional_matcher(req, json={"displayName": uid})
             )
         )
 
