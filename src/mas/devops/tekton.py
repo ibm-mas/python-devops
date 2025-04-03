@@ -22,7 +22,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, waitForPVC, patchPendingPVC, crdExists
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +79,26 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
     foundReadyWebhook = waitForDeployment(dynClient, namespace="openshift-pipelines", deploymentName="tekton-pipelines-webhook")
     if foundReadyWebhook:
         logger.info("OpenShift Pipelines Webhook is installed and ready")
-        return True
     else:
         logger.error("OpenShift Pipelines Webhook is NOT installed and ready")
         return False
+
+    # Wait for the postgredb-tekton-results-postgres-0 PVC to be ready
+    # this PVC doesn't come up when there's no default storage class is  in the cluster,
+    # this is causing the pvc to be in pending state and causing the tekton-results-postgres statefulSet in pending, 
+    # due to these resources not coming up, the MAS pre-install check in the pipeline times out checking the health of this statefulSet,
+    # causing failure in pipeline. 
+    # Refer https://github.com/ibm-mas/cli/issues/1511
+    logger.debug("Waiting for postgredb-tekton-results-postgres-0 PVC to be ready")
+    foundReadyPVC = waitForPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
+    if foundReadyPVC:
+        logger.info("OpenShift Pipelines postgres is installed and ready")
+    else:
+        patchedPVC = patchPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
+        if patchPVC:
+            logger.info("OpenShift Pipelines postgres is installed and ready")
+        else:
+            logger.error("OpenShift Pipelines postgres PVC is NOT ready")
 
 
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
