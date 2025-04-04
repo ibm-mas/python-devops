@@ -190,6 +190,9 @@ def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, stor
                 defaultStorageClasses = getDefaultStorageClasses(dynClient)
                 if defaultStorageClasses.provider is not None:
                     pvc.spec.storageClassName = defaultStorageClasses.rwo
+                else:
+                    logger.error("Unable to set storageClassName in PVC {pvcName}.")
+                    return False
 
             pvcAPI.patch(body=pvc, namespace=namespace)
 
