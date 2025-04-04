@@ -27,7 +27,7 @@ from .ocp import getConsoleURL, waitForCRD, waitForDeployment, waitForPVC, patch
 logger = logging.getLogger(__name__)
 
 
-def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
+def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:
     """
     Install the OpenShift Pipelines Operator and wait for it to be ready to use
     """
@@ -94,8 +94,8 @@ def installOpenShiftPipelines(dynClient: DynamicClient) -> bool:
     if foundReadyPVC:
         logger.info("OpenShift Pipelines postgres is installed and ready")
     else:
-        patchedPVC = patchPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
-        if patchPVC:
+        patchedPVC = patchPendingPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0", storageClassName=customStorageClassName)
+        if patchedPVC:
             logger.info("OpenShift Pipelines postgres is installed and ready")
         else:
             logger.error("OpenShift Pipelines postgres PVC is NOT ready")

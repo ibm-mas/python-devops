@@ -20,6 +20,8 @@ from kubernetes import client
 from kubernetes.stream import stream
 from kubernetes.stream.ws_client import ERROR_CHANNEL
 
+from .mas import getDefaultStorageClasses
+
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -177,12 +179,18 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
     return foundReadyPVC
 
 
-def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str) -> bool:
+def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
     try:
         pvc = pvcAPI.get(name=pvcName, namespace=namespace)
         if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
-            pvc.spec.storageClassName = storageClassName
+            if getStorageClasses is not None:
+                pvc.spec.storageClassName = storageClassName
+            else:
+                defaultStorageClasses = getDefaultStorageClasses(dynClient)
+                if defaultStorageClasses.provider is not None:
+                    pvc.spec.storageClassName = defaultStorageClasses.rwo
+
             pvcAPI.patch(body=pvc, namespace=namespace)
 
             maxRetries = 60
