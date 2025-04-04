@@ -26,7 +26,8 @@ from .ocp import getConsoleURL, waitForCRD, waitForDeployment, waitForPVC, patch
 
 logger = logging.getLogger(__name__)
 
-
+# customStorageClassName is used when no default Storageclass is available on cluster,
+# openshift-pipelines creates PVC which looks for default. customStorageClassName is patched into PVC when default is unavailable.
 def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:
     """
     Install the OpenShift Pipelines Operator and wait for it to be ready to use
