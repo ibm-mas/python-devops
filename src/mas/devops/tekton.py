@@ -22,7 +22,8 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, waitForPVC, patchPendingPVC, crdExists
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists
+from .mas import waitForPVC, patchPendingPVC
 
 logger = logging.getLogger(__name__)
 
