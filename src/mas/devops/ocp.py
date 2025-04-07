@@ -159,65 +159,6 @@ def waitForDeployment(dynClient: DynamicClient, namespace: str, deploymentName: 
             sleep(5)
     return foundReadyDeployment
 
-def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
-    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
-    maxRetries = 60
-    foundReadyPVC = False
-    retries = 0
-    while not foundReadyPVC and retries < maxRetries:
-        retries += 1
-        try:
-            pvc = pvcAPI.get(name=pvcName, namespace=namespace)
-            if pvc.status.phase == "Bound":
-                foundReadyPVC = True
-            else:
-                logger.debug("Waiting 5s for PVC {pvcName} to be ready before checking again ...")
-                sleep(5)
-        except NotFoundError:
-            logger.debug("Waiting 5s for PVC {pvcName} to be created before checking again ...")
-            sleep(5)
-    return foundReadyPVC
-
-
-def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
-    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
-    try:
-        pvc = pvcAPI.get(name=pvcName, namespace=namespace)
-        if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
-            if getStorageClasses is not None:
-                pvc.spec.storageClassName = storageClassName
-            else:
-                defaultStorageClasses = getDefaultStorageClasses(dynClient)
-                if defaultStorageClasses.provider is not None:
-                    pvc.spec.storageClassName = defaultStorageClasses.rwo
-                else:
-                    logger.error("Unable to set storageClassName in PVC {pvcName}.")
-                    return False
-
-            pvcAPI.patch(body=pvc, namespace=namespace)
-
-            maxRetries = 60
-            foundReadyPVC = False
-            retries = 0
-            while not foundReadyPVC and retries < maxRetries:
-                retries += 1
-                try:
-                    patchedPVC = pvcAPI.get(name=pvcName, namespace=namespace)
-                    if patchedPVC.status.phase == "Bound":
-                        foundReadyPVC = True
-                    else:
-                        logger.debug("Waiting 5s for PVC {pvcName} to be bound before checking again ...")
-                        sleep(5)
-                except NotFoundError:
-                    logger.error("The patched PVC {pvcName} does not exist.")
-                    return False
-            
-            return foundReadyPVC
-
-    except NotFoundError:
-        logger.error("PVC {pvcName} does not exist")
-        return False
-
 def getConsoleURL(dynClient: DynamicClient) -> str:
     routesAPI = dynClient.resources.get(api_version="route.openshift.io/v1", kind="Route")
     consoleRoute = routesAPI.get(name="console", namespace="openshift-console")
@@ -257,6 +198,65 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         return True
     except NotFoundError:
         logger.debug(f"CRD does not exist: {crdName}")
+        return False
+
+def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    maxRetries = 60
+    foundReadyPVC = False
+    retries = 0
+    while not foundReadyPVC and retries < maxRetries:
+        retries += 1
+        try:
+            pvc = pvcAPI.get(name=pvcName, namespace=namespace)
+            if pvc.status.phase == "Bound":
+                foundReadyPVC = True
+            else:
+                logger.debug("Waiting 5s for PVC {pvcName} to be ready before checking again ...")
+                sleep(5)
+        except NotFoundError:
+            logger.debug("Waiting 5s for PVC {pvcName} to be created before checking again ...")
+            sleep(5)
+    return foundReadyPVC
+
+
+def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    try:
+        pvc = pvcAPI.get(name=pvcName, namespace=namespace)
+        if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
+            if storageClassName is not None and storageClassName(dynClient, name=storageClassName) is not None:
+                pvc.spec.storageClassName = storageClassName
+            else:
+                defaultStorageClasses = getDefaultStorageClasses(dynClient)
+                if defaultStorageClasses.provider is not None:
+                    pvc.spec.storageClassName = defaultStorageClasses.rwo
+                else:
+                    logger.error("Unable to set storageClassName in PVC {pvcName}.")
+                    return False
+
+            pvcAPI.patch(body=pvc, namespace=namespace)
+
+            maxRetries = 60
+            foundReadyPVC = False
+            retries = 0
+            while not foundReadyPVC and retries < maxRetries:
+                retries += 1
+                try:
+                    patchedPVC = pvcAPI.get(name=pvcName, namespace=namespace)
+                    if patchedPVC.status.phase == "Bound":
+                        foundReadyPVC = True
+                    else:
+                        logger.debug("Waiting 5s for PVC {pvcName} to be bound before checking again ...")
+                        sleep(5)
+                except NotFoundError:
+                    logger.error("The patched PVC {pvcName} does not exist.")
+                    return False
+            
+            return foundReadyPVC
+
+    except NotFoundError:
+        logger.error("PVC {pvcName} does not exist")
         return False
 
 
