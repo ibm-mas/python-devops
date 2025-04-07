@@ -96,12 +96,15 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     foundReadyPVC = waitForPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
     if foundReadyPVC:
         logger.info("OpenShift Pipelines postgres is installed and ready")
+        return True
     else:
         patchedPVC = patchPendingPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0", storageClassName=customStorageClassName)
         if patchedPVC:
             logger.info("OpenShift Pipelines postgres is installed and ready")
+            return True
         else:
             logger.error("OpenShift Pipelines postgres PVC is NOT ready")
+            return False
 
 
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
