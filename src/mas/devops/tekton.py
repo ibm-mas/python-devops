@@ -86,10 +86,10 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
         return False
 
     # Wait for the postgredb-tekton-results-postgres-0 PVC to be ready
-    # this PVC doesn't come up when there's no default storage class is  in the cluster,
-    # this is causing the pvc to be in pending state and causing the tekton-results-postgres statefulSet in pending, 
+    # this PVC doesn't come up when there's no default storage class is in the cluster,
+    # this is causing the pvc to be in pending state and causing the tekton-results-postgres statefulSet in pending,
     # due to these resources not coming up, the MAS pre-install check in the pipeline times out checking the health of this statefulSet,
-    # causing failure in pipeline. 
+    # causing failure in pipeline.
     # Refer https://github.com/ibm-mas/cli/issues/1511
     logger.debug("Waiting for postgredb-tekton-results-postgres-0 PVC to be ready")
     foundReadyPVC = waitForPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
