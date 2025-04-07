@@ -27,6 +27,7 @@ from .mas import waitForPVC, patchPendingPVC
 
 logger = logging.getLogger(__name__)
 
+
 # customStorageClassName is used when no default Storageclass is available on cluster,
 # openshift-pipelines creates PVC which looks for default. customStorageClassName is patched into PVC when default is unavailable.
 def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:

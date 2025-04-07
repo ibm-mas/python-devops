@@ -196,6 +196,7 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
     secret = secretsAPI.apply(body=secret, namespace=namespace)
     return secret
 
+
 def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
     maxRetries = 60
@@ -213,6 +214,7 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
         except NotFoundError:
             logger.debug("Waiting 5s for PVC {pvcName} to be created before checking again ...")
             sleep(5)
+
     return foundReadyPVC
 
 

@@ -157,6 +157,7 @@ def waitForDeployment(dynClient: DynamicClient, namespace: str, deploymentName: 
             sleep(5)
     return foundReadyDeployment
 
+
 def getConsoleURL(dynClient: DynamicClient) -> str:
     routesAPI = dynClient.resources.get(api_version="route.openshift.io/v1", kind="Route")
     consoleRoute = routesAPI.get(name="console", namespace="openshift-console")
