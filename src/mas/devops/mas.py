@@ -250,7 +250,7 @@ def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, stor
                 except NotFoundError:
                     logger.error("The patched PVC {pvcName} does not exist.")
                     return False
-            
+
             return foundReadyPVC
 
     except NotFoundError:
