@@ -280,14 +280,19 @@ def test_manage_internal_ca_pem_file_path(user_utils, mock_named_temporary_file,
     assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
-def test_manage_maxadmin_api_key():
-    pass
-    # TODO
+def test_mas_workspace_application_ids(user_utils, requests_mock):
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications",
+        request_headers={"x-access-token": TOKEN},
+        json=[{"id": "manage"}, {"id": "iot"}],
+        status_code=200
+    )
+    assert user_utils.mas_workspace_application_ids == ["manage", "iot"]
+    assert get.call_count == 1
 
-
-def test_mas_workspace_application_ids():
-    pass
-    # TODO
+    # verify caching
+    assert user_utils.mas_workspace_application_ids == ["manage", "iot"]
+    assert get.call_count == 1
 
 
 def test_get_user_exists(user_utils, requests_mock):
