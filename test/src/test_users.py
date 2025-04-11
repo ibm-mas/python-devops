@@ -130,6 +130,33 @@ def user_utils(mock_v1_secrets, mock_logininitial_endpoint, mock_named_temporary
     yield user_utils
 
 
+@fixture
+def mock_manage_api_key(requests_mock):
+    '''
+    Setup mock Manage APIs for setting up an API Key
+    '''
+    user_id = "user1"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}
+
+    requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1",
+        request_headers={"content-type": "application/json"},
+        json={"id": user_id},
+        status_code=201,
+        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH)
+    )
+
+    requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [apikey]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    yield apikey
+
+
 def test_admin_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
     assert str(user_utils.admin_internal_ca_pem_file_path) == PEM_PATH
     assert mock_named_temporary_file.mock_calls == [call.write(ADMINDASHBOARD_CA_CRT.encode()), call.flush(), call.close()]
@@ -1119,8 +1146,55 @@ def test_delete_manage_api_key_error(user_utils, requests_mock):
 
 
 def test_get_manage_group_id(user_utils, requests_mock):
-    pass
-    # TODO
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{"maxgroupid": group_id}]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    assert user_utils.get_manage_group_id(group_name, apikey) == group_id
+    assert get.call_count == 1
+
+
+def test_get_manage_group_id_error(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        text="boom",
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+    with pytest.raises(Exception) as excinfo:
+        user_utils.get_manage_group_id(group_name, apikey)
+    assert str(excinfo.value) == "500 boom"
+    assert get.call_count == 1
+
+
+def test_get_manage_group_id_notfound(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{}]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+    assert user_utils.get_manage_group_id(group_name, apikey) is None
+    assert get.call_count == 1
 
 
 def test_is_user_in_manage_group(user_utils, requests_mock):

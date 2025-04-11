@@ -654,6 +654,9 @@ class MASUserUtils():
 
         group_id = self.get_manage_group_id(group_name, manage_api_key)
 
+        if group_id is None:
+            raise Exception(f"No Manage group found with name {group_name}")
+
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup/{group_id}/groupuser"
         querystring = {
             "lean": 1,
