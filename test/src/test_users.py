@@ -1047,8 +1047,22 @@ def test_create_or_get_manage_api_key_for_user_error(user_utils, requests_mock, 
 
 
 def test_delete_manage_api_key(user_utils, requests_mock):
-    pass
-    # TODO
+    user_id = "user1"
+    apikey_id = "theapikeyid"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}:{MANAGE_API_PORT}/maximo/api/os/mxapiapikey/{apikey_id}"}
+
+    delete = requests_mock.delete(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey/{apikey_id}?ccm=1&lean=1",
+        request_headers={"accept": "application/json"},
+        text="notused",
+        status_code=204,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    user_utils.delete_manage_api_key(apikey)
+    assert delete.call_count == 1
+
+# TODO: href_does_not_parse
 
 
 def test_get_manage_group_id(user_utils, requests_mock):

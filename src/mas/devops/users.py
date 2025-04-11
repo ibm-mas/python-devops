@@ -615,8 +615,7 @@ class MASUserUtils():
         )
 
         if response.status_code != 204 and response.status_code != 404:
-            raise Exception(response.text)
-        # {"Error":{"extendedError":{"moreInfo":{"href":"https:\/\/masdev.manage.tgk01.apps.noble4.cp.fyre.ibm.com\/maximo\/api\/error\/messages\/BMXAA8727E"}},"reasonCode":"BMXAA8727E","message":"The OSLC resource MXAPIAPIKEY with the ID _WmxvZlZLNVl2V3dGa1FseUJoKzJ4ZzQzSEd1bmRUamdWcTFiV1hWMGQ5QnAyNHQxQm53TmVFRWtVbmN4YkI2alZSTlp3eElsQko2bElNSCJzcCJ1M3hiNlE9PQ-- was not found as it does not exist in the system. In the database, verify whether the resource for the ID exists.","statusCode":"404"}}
+            raise Exception(f"{response.status_code} {response.text}")
 
     def get_manage_group_id(self, group_name, manage_api_key):
         self.logger.debug(f"Getting ID for Manage group {group_name}")
