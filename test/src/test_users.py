@@ -1661,7 +1661,7 @@ def test_create_initial_user_for_saas_unsupported_type(user_utils):
         []
     )
 ])
-def test_create_initial_users_for_saas(
+def test_create_initial_user_for_saas(
     user_type, permissions, entitlement, is_workspace_admin, application_role, manage_security_groups,
     user_utils, requests_mock
 ):
@@ -1731,3 +1731,72 @@ def test_create_initial_users_for_saas(
     user_utils.add_user_to_manage_group.assert_has_calls(
         map(lambda sg: call(user_id, sg, manage_api_key), manage_security_groups)
     )
+
+
+def test_create_initial_users_for_saas_invalid_inputs(user_utils):
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_users_for_saas({})
+    assert str(excinfo.value) == "expected top-level key 'users' not found"
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_users_for_saas({"users": {}})
+    assert str(excinfo.value) == "expected key 'users.primary' not found"
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_users_for_saas({"users": {"primary": "nope"}})
+    assert str(excinfo.value) == "'users.primary' is not a list"
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_users_for_saas({"users": {"primary": []}})
+    assert str(excinfo.value) == "expected key 'users.secondary' not found"
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_users_for_saas({"users": {"primary": [], "secondary": "nope"}})
+    assert str(excinfo.value) == "'users.secondary' is not a list"
+
+
+def test_create_initial_users_for_saas_no_users(user_utils):
+    assert user_utils.create_initial_users_for_saas({"users": {"primary": [], "secondary": []}}) == {"completed": [], "failed": []}
+
+
+def test_create_initial_users_for_saas(user_utils):
+
+    mas_workspace_application_ids = ["manage", "iot"]
+    user_utils.get_mas_applications_in_workspace = MagicMock(return_value=map(lambda x: {"id": x}, mas_workspace_application_ids))
+    user_utils.await_mas_application_availability = MagicMock()
+    user_utils.create_initial_user_for_saas = MagicMock()
+
+    def fail_for_users_b_and_e(user, user_type):
+        if user["email"] in ["b", "e"]:
+            raise Exception(f"{user['email']} should fail")
+    user_utils.create_initial_user_for_saas.side_effect = fail_for_users_b_and_e
+
+    initial_users = {
+        "users": {
+            "primary": [
+                {"email": "a"},
+                {"email": "b"},
+                {"email": "c"}
+            ],
+            "secondary": [
+                {"email": "d"},
+                {"email": "e"},
+                {"email": "f"}
+            ]
+        }
+    }
+
+    assert user_utils.create_initial_users_for_saas(initial_users) == {
+        "completed": [
+            {"email": "a"},
+            {"email": "c"},
+            {"email": "d"},
+            {"email": "f"},
+        ],
+        "failed": [
+            {"email": "b"},
+            {"email": "e"},
+        ]
+    }
+
+    user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
