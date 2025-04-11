@@ -1153,7 +1153,7 @@ def test_get_manage_group_id(user_utils, requests_mock):
 
     get = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
-        request_headers={"accept": "application/json"},
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
         json={"member": [{"maxgroupid": group_id}]},
         status_code=200,
         additional_matcher=lambda req: additional_matcher(req)
@@ -1170,7 +1170,7 @@ def test_get_manage_group_id_error(user_utils, requests_mock):
 
     get = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
-        request_headers={"accept": "application/json"},
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
         text="boom",
         status_code=500,
         additional_matcher=lambda req: additional_matcher(req)
@@ -1188,7 +1188,7 @@ def test_get_manage_group_id_notfound(user_utils, requests_mock):
 
     get = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
-        request_headers={"accept": "application/json"},
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
         json={"member": [{}]},
         status_code=200,
         additional_matcher=lambda req: additional_matcher(req)
@@ -1197,14 +1197,243 @@ def test_get_manage_group_id_notfound(user_utils, requests_mock):
     assert get.call_count == 1
 
 
-def test_is_user_in_manage_group(user_utils, requests_mock):
-    pass
-    # TODO
+def test_is_user_in_manage_group_yes(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get_group_id = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{"maxgroupid": group_id}], "apikey": apikey["apikey"]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    get_group_user = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
+        json={"member": [{}]},  # <--- member length non-empty indicates that the user is a member of the group
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    assert user_utils.is_user_in_manage_group(group_name, user_id, apikey)
+    assert get_group_id.call_count == 1
+    assert get_group_user.call_count == 1
+
+
+def test_is_user_in_manage_group_no(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get_group_id = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{"maxgroupid": group_id}], "apikey": apikey["apikey"]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    get_group_user = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
+        json={"member": []},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    assert not user_utils.is_user_in_manage_group(group_name, user_id, apikey)
+    assert get_group_id.call_count == 1
+    assert get_group_user.call_count == 1
+
+
+def test_is_user_in_manage_group_error(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get_group_id = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{"maxgroupid": group_id}], "apikey": apikey["apikey"]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    get_group_user = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
+        text="boom",
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.is_user_in_manage_group(group_name, user_id, apikey)
+    assert str(excinfo.value) == "500 boom"
+    assert get_group_id.call_count == 1
+    assert get_group_user.call_count == 1
+
+
+def test_is_user_in_manage_group_no_group_found(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get_group_id = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [], "apikey": apikey["apikey"]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    get_group_user = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
+        text="boom",
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.is_user_in_manage_group(group_name, user_id, apikey)
+    assert str(excinfo.value) == f"No Manage group found with name {group_name}"
+    assert get_group_id.call_count == 1
+    assert get_group_user.call_count == 0
 
 
 def test_add_user_to_manage_group(user_utils, requests_mock):
-    pass
-    # TODO
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get_group_id = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{"maxgroupid": group_id}], "apikey": apikey["apikey"]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    get_group_user = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1",
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
+        json={"member": []},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    add_group_user = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}",
+        request_headers={
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-method-override": "PATCH",
+            "patchtype": "MERGE",
+            "apikey": apikey["apikey"]
+        },
+        json={},
+        status_code=204,
+        additional_matcher=lambda req: additional_matcher(req, json={"groupuser": [{"userid": user_id}]})
+    )
+
+    assert user_utils.add_user_to_manage_group(user_id, group_name, apikey) is None
+    assert get_group_id.call_count == 2
+    assert get_group_user.call_count == 1
+    assert add_group_user.call_count == 1
+
+
+def test_add_user_to_manage_group_already_member(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get_group_id = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{"maxgroupid": group_id}], "apikey": apikey["apikey"]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    get_group_user = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1",
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
+        json={"member": [{}]},  # <--- member length non-empty indicates that the user is a member of the group
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    add_group_user = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}",
+        request_headers={
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-method-override": "PATCH",
+            "patchtype": "MERGE",
+            "apikey": apikey["apikey"]
+        },
+        json={},
+        status_code=204,
+        additional_matcher=lambda req: additional_matcher(req, json={"groupuser": [{"userid": user_id}]})
+    )
+
+    assert user_utils.add_user_to_manage_group(user_id, group_name, apikey) is None
+    assert get_group_id.call_count == 1
+    assert get_group_user.call_count == 1
+    assert add_group_user.call_count == 0
+
+
+def test_add_user_to_manage_group_error(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "apikey": "342fwasdasd", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
+    group_name = "thegroup"
+    group_id = "39231234"
+
+    get_group_id = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup?ccm=1&lean=1&oslc.select=maxgroupid&oslc.where=groupname=\"{group_name}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [{"maxgroupid": group_id}], "apikey": apikey["apikey"]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    get_group_user = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1",
+        request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
+        json={"member": []},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req)
+    )
+
+    add_group_user = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}",
+        request_headers={
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-method-override": "PATCH",
+            "patchtype": "MERGE",
+            "apikey": apikey["apikey"]
+        },
+        text="boom",
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req, json={"groupuser": [{"userid": user_id}]})
+    )
+    with pytest.raises(Exception) as excinfo:
+        user_utils.add_user_to_manage_group(user_id, group_name, apikey)
+    assert str(excinfo.value) == "500 boom"
+    assert get_group_id.call_count == 2
+    assert get_group_user.call_count == 1
+    assert add_group_user.call_count == 1
 
 
 def test_get_mas_applications_in_workspace(user_utils, requests_mock):

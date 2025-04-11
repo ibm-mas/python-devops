@@ -711,8 +711,6 @@ class MASUserUtils():
                 }
             ]
         }
-        self.logger.debug(f"  > {url} {querystring}")
-
         response = requests.post(
             url,
             headers=headers,
@@ -720,8 +718,6 @@ class MASUserUtils():
             json=payload,
             verify=self.manage_internal_ca_pem_file_path,
         )
-        self.logger.debug(f"  < {response.status_code}")
-
         if response.status_code == 204:
             return None
 
