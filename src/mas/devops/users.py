@@ -596,6 +596,9 @@ class MASUserUtils():
 
         # extract the apikey's identifier from the href
         match = re.search(r'\/maximo\/api\/os\/mxapiapikey\/(.*)', manage_api_key['href'])
+        if match is None:
+            raise Exception(f"Could not parse API Key href: {manage_api_key['href']}")
+
         id = match.group(1)
 
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey/{id}"
@@ -618,7 +621,7 @@ class MASUserUtils():
             raise Exception(f"{response.status_code} {response.text}")
 
     def get_manage_group_id(self, group_name, manage_api_key):
-        self.logger.debug(f"Getting ID for Manage group {group_name}")
+        self.logger.debug(f"Getting ID for Manage group with name {group_name}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup"
         querystring = {
             "ccm": 1,
@@ -637,7 +640,7 @@ class MASUserUtils():
             verify=self.manage_internal_ca_pem_file_path,
         )
         if response.status_code != 200:
-            raise Exception(response.text)
+            raise Exception(f"{response.status_code} {response.text}")
 
         json = response.json()
 
@@ -647,6 +650,7 @@ class MASUserUtils():
         return None
 
     def is_user_in_manage_group(self, group_name, user_id, manage_api_key):
+        self.logger.debug(f"Checking if {user_id} is a member of Manage group with name {group_name}")
 
         group_id = self.get_manage_group_id(group_name, manage_api_key)
 

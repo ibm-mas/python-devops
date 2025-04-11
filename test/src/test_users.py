@@ -1062,7 +1062,60 @@ def test_delete_manage_api_key(user_utils, requests_mock):
     user_utils.delete_manage_api_key(apikey)
     assert delete.call_count == 1
 
-# TODO: href_does_not_parse
+
+def test_delete_manage_api_key_notfound(user_utils, requests_mock):
+    user_id = "user1"
+    apikey_id = "theapikeyid"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}:{MANAGE_API_PORT}/maximo/api/os/mxapiapikey/{apikey_id}"}
+
+    delete = requests_mock.delete(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey/{apikey_id}?ccm=1&lean=1",
+        request_headers={"accept": "application/json"},
+        text="notused",
+        status_code=404,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    user_utils.delete_manage_api_key(apikey)
+    assert delete.call_count == 1
+
+
+def test_delete_manage_api_key_bad_href(user_utils, requests_mock):
+    user_id = "user1"
+    apikey_id = "theapikeyid"
+    apikey = {"userid": user_id, "href": f"notgood/{apikey_id}"}
+
+    delete = requests_mock.delete(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey/{apikey_id}?ccm=1&lean=1",
+        request_headers={"accept": "application/json"},
+        text="notused",
+        status_code=204,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.delete_manage_api_key(apikey)
+    assert str(excinfo.value) == f"Could not parse API Key href: notgood/{apikey_id}"
+    assert delete.call_count == 0
+
+
+def test_delete_manage_api_key_error(user_utils, requests_mock):
+    user_id = "user1"
+    apikey_id = "theapikeyid"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}:{MANAGE_API_PORT}/maximo/api/os/mxapiapikey/{apikey_id}"}
+
+    delete = requests_mock.delete(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey/{apikey_id}?ccm=1&lean=1",
+        request_headers={"accept": "application/json"},
+        text="boom",
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.delete_manage_api_key(apikey)
+    assert str(excinfo.value) == "500 boom"
+    assert delete.call_count == 1
 
 
 def test_get_manage_group_id(user_utils, requests_mock):
