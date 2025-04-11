@@ -172,7 +172,7 @@ class MASUserUtils():
     @property
     def manage_maxadmin_api_key(self):
         if self._manage_maxadmin_api_key is None:
-            self._manage_maxadmin_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN)
+            self._manage_maxadmin_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
         return self._manage_maxadmin_api_key
 
     @property
@@ -502,7 +502,11 @@ class MASUserUtils():
             user = self.get_user(user_id)
             self.update_user_display_name(user_id, user["displayName"])
 
-    def create_or_get_manage_api_key_for_user(self, user_id):
+    def create_or_get_manage_api_key_for_user(self, user_id, temporary=False):
+        '''
+        Get singleton API for user_id if it already exists, create it if not
+        if temporary is True AND we created the API key, delete it on exit
+        '''
         self.logger.debug(f"Attempting to create Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
         querystring = {
@@ -531,14 +535,19 @@ class MASUserUtils():
         )
 
         if response.status_code == 400:
-            error_json = response.json()
+            # Assisted by watsonx Code Assistant
+            try:
+                error_json = response.json()
+            except ValueError:
+                raise Exception(f"{response.status_code} {response.text}")
+
             if "Error" in error_json and "reasonCode" in error_json["Error"] and error_json["Error"]["reasonCode"] == "BMXAA10051E":
                 # BMXAA10051E - Only one API key allowed per user.
                 self.logger.info(f"Reusing existing Manage API Key for user {user_id}")
                 pass
             else:
                 # any other 400 error is unexpected
-                raise Exception(response.text)
+                raise Exception(f"{response.status_code} {response.text}")
 
         elif response.status_code == 201:
             self.logger.info(f"Creating new Manage API Key for user {user_id}")
@@ -554,11 +563,7 @@ class MASUserUtils():
             # so we expect the get call to find it
             raise Exception("API key was unexpectedly not found")
 
-        if response.status_code == 201:
-            # We created this api key, register a handler to delete it when we're done
-            # TODO: is there a danger of some other process adopting this singleton api key
-            #       which may then fail if we subsequently delete it?
-            #       NOTE: the manage sanity test seems to create maxadmin apikey and not clean it up
+        if temporary and response.status_code == 201:
             atexit.register(self.delete_manage_api_key, apikey)
 
         return apikey
@@ -592,7 +597,7 @@ class MASUserUtils():
 
             return None
 
-        raise Exception(response.text)
+        raise Exception(f"{response.status_code} {response.text}")
 
     def delete_manage_api_key(self, manage_api_key):
         self.logger.info(f"Deleting Manage API Key for user {manage_api_key['userid']}")

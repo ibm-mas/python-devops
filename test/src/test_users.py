@@ -36,17 +36,20 @@ MANAGE_NAMESPACE = f"mas-{MAS_INSTANCE_ID}-manage"
 
 ADMIN_DASHBOARD_PORT = 1
 COREAPI_PORT = 2
+MANAGE_API_PORT = 3
 
 MAS_ADMIN_URL = f"https://admin-dashboard.{MAS_CORE_NAMESPACE}.svc.cluster.local:{ADMIN_DASHBOARD_PORT}"
 MAS_API_URL = f'https://coreapi.{MAS_CORE_NAMESPACE}.svc.cluster.local:{COREAPI_PORT}'
+MANAGE_API_URL = f'https://{MAS_INSTANCE_ID}-{MAS_WORKSPACE_ID}.{MANAGE_NAMESPACE}.svc.cluster.local:{MANAGE_API_PORT}'
 
 PEM_PATH = "pempath"
 
 
-def additional_matcher(req, json=None, verify=PEM_PATH):
+def additional_matcher(req, json=None, verify=PEM_PATH, cert=None):
     if json is not None:
         assert req.json() == json
     assert req.verify == verify
+    assert req.cert == cert
     return True
 
 
@@ -120,7 +123,8 @@ def user_utils(mock_v1_secrets, mock_logininitial_endpoint, mock_named_temporary
         MAS_WORKSPACE_ID,
         k8s_client,
         coreapi_port=COREAPI_PORT,
-        admin_dashboard_port=ADMIN_DASHBOARD_PORT
+        admin_dashboard_port=ADMIN_DASHBOARD_PORT,
+        manage_api_port=MANAGE_API_PORT
     )
 
     yield user_utils
@@ -905,14 +909,141 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock):
     assert patche.call_count == get.call_count / 2
 
 
-def test_create_or_get_manage_api_key_for_user(user_utils, requests_mock):
-    pass
-    # TODO
+def test_get_manage_api_key_for_user_exists(user_utils, requests_mock):
+    user_id = "user1"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [apikey]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    assert user_utils.get_manage_api_key_for_user(user_id) == apikey
+    assert get.call_count == 1
 
 
-def test_get_manage_api_key_for_user(user_utils, requests_mock):
-    pass
-    # TODO
+def test_get_manage_api_key_for_user_notfound(user_utils, requests_mock):
+    user_id = "user1"
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": []},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    assert user_utils.get_manage_api_key_for_user(user_id) is None
+    assert get.call_count == 1
+
+
+def test_get_manage_api_key_for_user_error(user_utils, requests_mock):
+    user_id = "user1"
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json"},
+        text="boom",
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.get_manage_api_key_for_user(user_id)
+    assert str(excinfo.value) == "500 boom"
+    assert get.call_count == 1
+
+
+@pytest.mark.parametrize("temporary", [(True), (False)])
+def test_create_or_get_manage_api_key_for_user_new_api_key(temporary, user_utils, requests_mock, mock_atexit):
+    user_id = "user1"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}
+
+    post = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1",
+        request_headers={"content-type": "application/json"},
+        json={"id": user_id},
+        status_code=201,
+        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH)
+    )
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [apikey]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    assert user_utils.create_or_get_manage_api_key_for_user(user_id, temporary=temporary) == apikey
+    assert post.call_count == 1
+    assert get.call_count == 1
+
+    # if temporary, check we registered the exit hook to delete the temporary Manage API Key
+    if temporary:
+        assert call(user_utils.delete_manage_api_key, apikey) in mock_atexit.mock_calls, "delete_manage_api_key exit hook not registered for temporary api key that we created"
+    else:
+        assert call(user_utils.delete_manage_api_key, apikey) not in mock_atexit.mock_calls, "delete_manage_api_key exit hook registered unexpectedly for non-temporary api key that we created"
+
+
+@pytest.mark.parametrize("temporary", [(True), (False)])
+def test_create_or_get_manage_api_key_for_user_existing_api_key(temporary, user_utils, requests_mock, mock_atexit):
+    user_id = "user1"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}
+
+    post = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1",
+        request_headers={"content-type": "application/json"},
+        json={"Error": {"reasonCode": "BMXAA10051E"}},
+        status_code=400,
+        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH)
+    )
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [apikey]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    assert user_utils.create_or_get_manage_api_key_for_user(user_id, temporary=temporary) == apikey
+    assert post.call_count == 1
+    assert get.call_count == 1
+
+    # even if temporary is set, because we did not create the api key, we should not registered a hook to delete it
+    assert call(user_utils.delete_manage_api_key, apikey) not in mock_atexit.mock_calls, "delete_manage_api_key exit hook registered unexpectedly for existing API Key that we did not create"
+
+
+def test_create_or_get_manage_api_key_for_user_error(user_utils, requests_mock, mock_atexit):
+    user_id = "user1"
+    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}
+
+    post = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1",
+        request_headers={"content-type": "application/json"},
+        text="boom",
+        status_code=400,
+        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH)
+    )
+
+    get = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [apikey]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_or_get_manage_api_key_for_user(user_id, temporary=True)
+    assert str(excinfo.value) == "400 boom"
+    assert post.call_count == 1
+    assert get.call_count == 0
+    assert call(user_utils.delete_manage_api_key, apikey) not in mock_atexit.mock_calls, "delete_manage_api_key exit hook not registered even though we failed to create the api key"
 
 
 def test_delete_manage_api_key(user_utils, requests_mock):
