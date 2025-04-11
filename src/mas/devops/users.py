@@ -65,8 +65,6 @@ class MASUserUtils():
         self._manage_internal_ca_pem_file_path = None
         self._manage_internal_client_pem_file_path = None
 
-        self._manage_maxadmin_api_key = None
-
         self._mas_workspace_application_ids = None
 
     @property
@@ -168,12 +166,6 @@ class MASUserUtils():
                 atexit.register(os.remove, pem_file.name)
                 self._manage_internal_ca_pem_file_path = pem_file.name
         return self._manage_internal_ca_pem_file_path
-
-    @property
-    def manage_maxadmin_api_key(self):
-        if self._manage_maxadmin_api_key is None:
-            self._manage_maxadmin_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
-        return self._manage_maxadmin_api_key
 
     @property
     def mas_workspace_application_ids(self):
@@ -626,11 +618,7 @@ class MASUserUtils():
             raise Exception(response.text)
         # {"Error":{"extendedError":{"moreInfo":{"href":"https:\/\/masdev.manage.tgk01.apps.noble4.cp.fyre.ibm.com\/maximo\/api\/error\/messages\/BMXAA8727E"}},"reasonCode":"BMXAA8727E","message":"The OSLC resource MXAPIAPIKEY with the ID _WmxvZlZLNVl2V3dGa1FseUJoKzJ4ZzQzSEd1bmRUamdWcTFiV1hWMGQ5QnAyNHQxQm53TmVFRWtVbmN4YkI2alZSTlp3eElsQko2bElNSCJzcCJ1M3hiNlE9PQ-- was not found as it does not exist in the system. In the database, verify whether the resource for the ID exists.","statusCode":"404"}}
 
-        if manage_api_key["userid"] == MASUserUtils.MAXADMIN:
-            # clear any cached _manage_maxadmin_api_key if necessary
-            self._manage_maxadmin_api_key = None
-
-    def get_manage_group_id(self, group_name):
+    def get_manage_group_id(self, group_name, manage_api_key):
         self.logger.debug(f"Getting ID for Manage group {group_name}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup"
         querystring = {
@@ -641,7 +629,7 @@ class MASUserUtils():
         }
         headers = {
             "Accept": "application/json",
-            "apikey": self.manage_maxadmin_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
+            "apikey": manage_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
         }
         response = requests.get(
             url,
@@ -659,9 +647,9 @@ class MASUserUtils():
 
         return None
 
-    def is_user_in_manage_group(self, group_name, user_id):
+    def is_user_in_manage_group(self, group_name, user_id, manage_api_key):
 
-        group_id = self.get_manage_group_id(group_name)
+        group_id = self.get_manage_group_id(group_name, manage_api_key)
 
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup/{group_id}/groupuser"
         querystring = {
@@ -670,7 +658,7 @@ class MASUserUtils():
         }
         headers = {
             "Accept": "application/json",
-            "apikey": self.manage_maxadmin_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
+            "apikey": manage_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
         }
 
         response = requests.get(
@@ -686,18 +674,18 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
-    def add_user_to_manage_group(self, user_id, group_name):
+    def add_user_to_manage_group(self, user_id, group_name, manage_api_key):
         '''
         No-op if user_id is already a member of the manage security group
         '''
 
-        if self.is_user_in_manage_group(group_name, user_id):
+        if self.is_user_in_manage_group(group_name, user_id, manage_api_key):
             self.logger.info(f"User {user_id} is already a member of Manage Security Group {group_name}")
             return None
 
         self.logger.info(f"Adding user {user_id} to Manage group {group_name}")
 
-        group_id = self.get_manage_group_id(group_name)
+        group_id = self.get_manage_group_id(group_name, manage_api_key)
 
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup/{group_id}"
         querystring = {
@@ -708,7 +696,7 @@ class MASUserUtils():
             "Accept": "application/json",
             "x-method-override": "PATCH",
             "patchtype": "MERGE",
-            "apikey": self.manage_maxadmin_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
+            "apikey": manage_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
         }
         payload = {
             "groupuser": [
@@ -956,8 +944,9 @@ class MASUserUtils():
             self.check_user_sync(user_id, mas_application_id)
 
         if "manage" in self.mas_workspace_application_ids:
+            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
             for manage_security_group in manage_security_groups:
-                self.add_user_to_manage_group(user_id, manage_security_group)
+                self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
 
     # Unused (but potentially useful) methods
     # ----------------------------------------
