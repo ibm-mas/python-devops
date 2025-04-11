@@ -945,7 +945,7 @@ class MASUserUtils():
         for mas_application_id in self.mas_workspace_application_ids:
             self.check_user_sync(user_id, mas_application_id)
 
-        if "manage" in self.mas_workspace_application_ids:
+        if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
             for manage_security_group in manage_security_groups:
                 self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)

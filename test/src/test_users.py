@@ -1617,9 +1617,117 @@ def test_parse_initial_users_from_aws_secret_json(user_utils):
     assert "Unknown user type for user1@example.com: unknown" == str(excinfo.value)
 
 
-def test_create_initial_user_for_saas(user_utils, requests_mock):
-    pass
+def test_create_initial_user_for_saas_no_email(user_utils):
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_user_for_saas({"given_name": "asdasd", "family_name": "sdfzsd"}, None)
+    assert str(excinfo.value) == "'email' not found in at least one of the user defs"
 
 
-def test_create_initial_users_for_saas(user_utils, requests_mock):
-    pass
+def test_create_initial_user_for_saas_no_given_name(user_utils):
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_user_for_saas({"email": "asda", "family_name": "sdfzsd"}, None)
+    assert str(excinfo.value) == "'given_name' not found in at least one of the user defs"
+
+
+def test_create_initial_user_for_saas_no_family_name(user_utils):
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_user_for_saas({"email": "asda", "given_name": "asdasd"}, None)
+    assert str(excinfo.value) == "'family_name' not found in at least one of the user defs"
+
+
+def test_create_initial_user_for_saas_unsupported_type(user_utils):
+    with pytest.raises(Exception) as excinfo:
+        user_utils.create_initial_user_for_saas({"given_name": "asdasd", "family_name": "sdfzsd", "email": "asdasd"}, "whoknows")
+    assert str(excinfo.value) == "Unsupported user_type: whoknows"
+
+# Assisted by watsonx Code Assistant
+
+
+@pytest.mark.parametrize("user_type, permissions, entitlement, is_workspace_admin, application_role, manage_security_groups", [
+    (
+        "PRIMARY",
+        {"systemAdmin": False, "userAdmin": True, "apikeyAdmin": False},
+        {"application": "PREMIUM", "admin": "ADMIN_BASE", "alwaysReserveLicense": True},
+        True,
+        "ADMINISTRATOR",
+        ["MAXADMIN"]
+    ),
+    (
+        "SECONDARY",
+        {"systemAdmin": False, "userAdmin": False, "apikeyAdmin": False},
+        {"application": "BASE", "admin": "NONE", "alwaysReserveLicense": True},
+        False,
+        "USER",
+        []
+    )
+])
+def test_create_initial_users_for_saas(
+    user_type, permissions, entitlement, is_workspace_admin, application_role, manage_security_groups,
+    user_utils, requests_mock
+):
+    user_utils.get_or_create_user = MagicMock()
+    user_utils.link_user_to_local_idp = MagicMock()
+    user_utils.add_user_to_workspace = MagicMock()
+    mas_workspace_application_ids = ["manage", "iot"]
+    user_utils.get_mas_applications_in_workspace = MagicMock(return_value=map(lambda x: {"id": x}, mas_workspace_application_ids))
+    user_utils.await_mas_application_availability = MagicMock()
+    user_utils.set_user_application_permission = MagicMock()
+    user_utils.check_user_sync = MagicMock()
+    manage_api_key = "manage_api_key"  # pragma: allowlist secret
+    user_utils.create_or_get_manage_api_key_for_user = MagicMock(return_value=manage_api_key)
+    user_utils.add_user_to_manage_group = MagicMock()
+
+    user_email = "bill.bob@acme.com"
+    user_given_name = "billy"
+    user_family_name = "bobby"
+    user_id = user_email
+    username = user_email
+    display_name = f"{user_given_name} {user_family_name}"
+
+    user_utils.create_initial_user_for_saas({
+        "email": user_email,
+        "given_name": user_given_name,
+        "family_name": user_family_name
+    },
+        user_type
+    )
+
+    user_utils.get_or_create_user.assert_called_once_with({
+        "id": user_id,
+        "status": {"active": True},
+        "username": username,
+        "owner": "local",
+        "emails": [
+            {
+                "value": user_email,
+                "type": "Work",
+                "primary": True
+            }
+        ],
+        "displayName": display_name,
+        "issuer": "local",
+        "permissions": permissions,
+        "entitlement": entitlement,
+        "givenName": user_given_name,
+        "familyName": user_family_name
+    })
+    user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True)
+    user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
+    user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
+    user_utils.set_user_application_permission.assert_has_calls([
+        call(user_id, "manage", "MANAGEUSER"),
+        call(user_id, "iot", application_role),
+    ])
+    user_utils.check_user_sync.assert_has_calls([
+        call(user_id, "manage"),
+        call(user_id, "iot")
+    ])
+
+    if len(manage_security_groups) > 0:
+        user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MAXADMIN", temporary=True)
+    else:
+        user_utils.create_or_get_manage_api_key_for_user.assert_not_called()
+
+    user_utils.add_user_to_manage_group.assert_has_calls(
+        map(lambda sg: call(user_id, sg, manage_api_key), manage_security_groups)
+    )
