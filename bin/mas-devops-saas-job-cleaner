@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+# *****************************************************************************
+# Copyright (c) 2025 IBM Corporation and other Contributors.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+#
+# *****************************************************************************
+
+
+from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
+import logging
+import argparse
+from mas.devops.saas.job_cleaner import JobCleaner
+
+import urllib3
+urllib3.disable_warnings()
+
+
+if __name__ == "__main__":
+    # Initialize the properties we need
+    parser = argparse.ArgumentParser()
+
+    # Primary Options
+    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
+    parser.add_argument("--label", required=True, help="Kubernetes resource label used to identify Job groups to cleanup")
+    parser.add_argument("--limit", required=False, help="Limit page sizes fetched from K8S API. Larger values will use more memory but less cpu time / network IO.", default=100)
+    parser.add_argument("--dry-run", required=False, help="When specified, nothing will actually be deleted from the cluster", action="store_true")
+
+    args, unknown = parser.parse_known_args()
+
+    log_level = getattr(logging, args.log_level)
+
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(log_level)
+    chFormatter = logging.Formatter(
+        "%(asctime)-25s %(name)-50s [%(threadName)s] %(levelname)-8s %(message)s"
+    )
+    ch.setFormatter(chFormatter)
+    logger.addHandler(ch)
+
+
+    limit = args.limit
+    label = args.label
+    dry_run = args.dry_run
+
+    logger.info("Configuration:")
+    logger.info("--------------")
+    logger.info(f"log_level:      {log_level}")
+    logger.info(f"label:          {label}")
+    logger.info(f"limit:          {limit}")
+    logger.info(f"dry_run:        {dry_run}")
+
+    logger.info("")
+
+    try:
+        # Try to load in-cluster configuration
+        config.load_incluster_config()
+        logger.info("Loaded in-cluster configuration")
+    except ConfigException:
+        # If that fails, fall back to kubeconfig file
+        config.load_kube_config()
+        logger.info("Loaded kubeconfig file")
+
+    logger.info("")
+
+    job_cleaner = JobCleaner(client.api_client.ApiClient())
+
+    job_cleaner.cleanup_jobs(args.label, args.limit, dry_run)

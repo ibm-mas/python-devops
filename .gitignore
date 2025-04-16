@@ -14,7 +14,7 @@ README.rst
 # Environments
 .venv/
 venv/
-.venv39/
+.venv39
 
 # Other
 kubectl.exe

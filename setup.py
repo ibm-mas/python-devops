@@ -87,6 +87,7 @@ setup(
     ],
     scripts=[
         'bin/mas-devops-db2-validate-config',
-        'bin/mas-devops-create-initial-users-for-saas'
+        'bin/mas-devops-create-initial-users-for-saas',
+        'bin/mas-devops-saas-job-cleaner'
     ]
 )
