@@ -21,9 +21,234 @@ spec:
     - name: mas_channel
       value: "{{ mas_channel }}"
 
+    # IBM Entitlement Key
+    # -------------------------------------------------------------------------
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
     # Skip pre-check
     # -------------------------------------------------------------------------
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
+{%- if artifactory_username is defined and artifactory_username != "" %}
+
+    # Enable development catalogs
+    # -------------------------------------------------------------------------
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+{%- endif %}
+{%- if db2_action_system == "install" or db2_action_manage == "install" %}
+
+    # Dependencies - Db2 - Actions
+    # -------------------------------------------------------------------------
+    - name: db2_action_system
+      value: "{{ db2_action_system }}"
+    - name: db2_action_manage
+      value: "{{ db2_action_manage }}"
+
+    # Dependencies - Db2u Operator
+    # -------------------------------------------------------------------------
+    - name: db2_namespace
+      value: "{{ db2_namespace }}"
+    - name: db2_channel
+      value: "{{ db2_channel }}"
+    - name: db2_type
+      value: "{{ db2_type }}"
+    - name: db2_timezone
+      value: "{{ db2_timezone }}"
+  {%- if db2_meta_storage_accessmode is defined and db2_meta_storage_accessmode != "" %}
+
+    # Dependencies - Db2 - Access Mode
+    # -------------------------------------------------------------------------
+    - name: db2_meta_storage_accessmode
+      value: "{{ db2_meta_storage_accessmode }}"
+    - name: db2_backup_storage_accessmode
+      value: "{{ db2_backup_storage_accessmode }}"
+    - name: db2_logs_storage_accessmode
+      value: "{{ db2_logs_storage_accessmode }}"
+    - name: db2_temp_storage_accessmode
+      value: "{{ db2_temp_storage_accessmode }}"
+    - name: db2_data_storage_accessmode
+      value: "{{ db2_data_storage_accessmode }}"
+  {%- endif %}
+  {%- if db2_affinity_key is defined and db2_affinity_key != "" %}
+
+    # Dependencies - Db2 - Node Scheduling
+    # -------------------------------------------------------------------------
+    - name: db2_affinity_key
+      value: "{{ db2_affinity_key }}"
+    - name: db2_affinity_value
+      value: "{{ db2_affinity_value }}"
+    - name: db2_tolerate_key
+      value: "{{ db2_tolerate_key }}"
+    - name: db2_tolerate_value
+      value: "{{ db2_tolerate_value }}"
+    - name: db2_tolerate_effect
+      value: "{{ db2_tolerate_effect }}"
+  {%- endif %}
+  {%- if db2_cpu_requests is defined and db2_cpu_requests != "" %}
+
+    # Dependencies - Db2 - Memory & CPU Resources
+    # -------------------------------------------------------------------------
+    - name: db2_cpu_requests
+      value: "{{ db2_cpu_requests }}"
+    - name: db2_cpu_limits
+      value: "{{ db2_cpu_limits }}"
+    - name: db2_memory_requests
+      value: "{{ db2_memory_requests }}"
+    - name: db2_memory_limits
+      value: "{{ db2_memory_limits }}"
+  {%- endif %}
+  {%- if db2_meta_storage_size is defined and db2_meta_storage_size != "" %}
+
+    # Dependencies - Db2 - Storage Capacity
+    # -------------------------------------------------------------------------
+    - name: db2_meta_storage_size
+      value: "{{ db2_meta_storage_size }}"
+    - name: db2_backup_storage_size
+      value: "{{ db2_backup_storage_size }}"
+    - name: db2_logs_storage_size
+      value: "{{ db2_logs_storage_size }}"
+    - name: db2_temp_storage_size
+      value: "{{ db2_temp_storage_size }}"
+    - name: db2_data_storage_size
+      value: "{{ db2_data_storage_size }}"
+  {%- endif %}
+{%- endif %}
+{%- if mas_app_channel_manage is defined and mas_app_channel_manage != "" %}
+
+    # Manage Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_manage
+      value: "{{ mas_app_channel_manage }}"
+    - name: mas_appws_components
+      value: "{{ mas_appws_components }}"
+  {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
+    - name: mas_appws_bindings_health_wsl_flag
+      value: "{{ mas_appws_bindings_health_wsl_flag }}"
+  {%- endif %}
+  {%- if mas_app_settings_aio_flag is defined and mas_app_settings_aio_flag != "" %}
+    - name: mas_app_settings_aio_flag
+      value: "{{ mas_app_settings_aio_flag }}"
+  {%- endif %}
+  {%- if mas_app_settings_demodata is defined and mas_app_settings_demodata != "" %}
+    - name: mas_app_settings_demodata
+      value: "{{ mas_app_settings_demodata }}"
+  {%- endif %}
+  {%- if mas_appws_bindings_jdbc_manage is defined and mas_appws_bindings_jdbc_manage != "" %}
+    - name: mas_appws_bindings_jdbc_manage
+      value: "{{ mas_appws_bindings_jdbc_manage }}"
+  {%- endif %}
+  {%- if mas_app_settings_persistent_volumes_flag is defined and mas_app_settings_persistent_volumes_flag != "" %}
+    - name: mas_app_settings_persistent_volumes_flag
+      value: "{{ mas_app_settings_persistent_volumes_flag }}"
+  {%- endif %}
+  {%- if mas_app_settings_jms_queue_pvc_storage_class is defined and mas_app_settings_jms_queue_pvc_storage_class != "" %}
+    - name: mas_app_settings_jms_queue_pvc_storage_class
+      value: "{{ mas_app_settings_jms_queue_pvc_storage_class }}"
+    - name: mas_app_settings_jms_queue_pvc_accessmode
+      value: "{{ mas_app_settings_jms_queue_pvc_accessmode }}"
+  {%- endif %}
+  {%- if mas_app_settings_bim_pvc_storage_class is defined and mas_app_settings_bim_pvc_storage_class != "" %}
+    - name: mas_app_settings_bim_pvc_storage_class
+      value: "{{ mas_app_settings_bim_pvc_storage_class }}"
+    - name: mas_app_settings_bim_pvc_accessmode
+      value: "{{ mas_app_settings_bim_pvc_accessmode }}"
+  {%- endif %}
+  {%- if mas_app_settings_doclinks_pvc_storage_class is defined or mas_app_settings_doclinks_pvc_storage_class != "" %}
+    - name: mas_app_settings_doclinks_pvc_storage_class
+      value: "{{ mas_app_settings_doclinks_pvc_storage_class }}"
+    - name: mas_app_settings_doclinks_pvc_accessmode
+      value: "{{ mas_app_settings_doclinks_pvc_accessmode }}"
+  {%- endif %}
+  {%- if mas_app_settings_server_bundles_size is defined and mas_app_settings_server_bundles_size != "" %}
+    - name: mas_app_settings_server_bundles_size
+      value: "{{ mas_app_settings_server_bundles_size }}"
+  {%- endif %}
+  {%- if is_full_manage is defined and is_full_manage != "" %}
+    - name: is_full_manage
+      value: "{{ is_full_manage }}"
+  {%- endif %}
+  {%- if mas_workspace_id is defined and mas_workspace_id != "" %}
+    - name: mas_workspace_id
+      value: "{{ mas_workspace_id }}"
+  {%- endif %}
+  {%- if should_install_manage_foundation is defined and should_install_manage_foundation != "" %}
+    - name: should_install_manage_foundation
+      value: "{{ should_install_manage_foundation }}"
+  {%- endif %}
+  {%- if mas_app_settings_base_lang is defined and mas_app_settings_base_lang != "" %}
+    - name: mas_app_settings_base_lang
+      value: "{{ mas_app_settings_base_lang }}"
+    - name: mas_app_settings_secondary_langs
+      value: "{{ mas_app_settings_secondary_langs }}"
+  {%- endif %}
+  {%- if mas_app_settings_server_timezone is defined and mas_app_settings_server_timezone != "" %}
+    - name: mas_app_settings_server_timezone
+      value: "{{ mas_app_settings_server_timezone }}"
+  {%- endif %}
+  {%- if mas_manage_attachments_provider is defined and mas_manage_attachments_provider != "" %}
+    - name: mas_manage_attachments_provider
+      value: "{{ mas_manage_attachments_provider }}"
+  {%- endif %}
+  {%- if mas_manage_attachment_configuration_mode is defined and mas_manage_attachment_configuration_mode != "" %}
+    - name: mas_manage_attachment_configuration_mode
+      value: "{{ mas_manage_attachment_configuration_mode }}"
+  {%- endif %}
+  {%- if mas_app_settings_tablespace is defined and mas_app_settings_tablespace != "" %}
+    - name: mas_app_settings_tablespace
+      value: "{{ mas_app_settings_tablespace }}"
+    - name: mas_app_settings_indexspace
+      value: "{{ mas_app_settings_indexspace }}"
+    - name: mas_app_settings_db2_schema
+      value: "{{ mas_app_settings_db2_schema }}"
+  {%- endif %}
+  {%- if mas_app_settings_customization_archive_url is defined and mas_app_settings_customization_archive_url != "" %}
+    - name: mas_app_settings_customization_archive_url
+      value: "{{ mas_app_settings_customization_archive_url }}"
+    - name: mas_app_settings_customization_archive_name
+      value: "{{ mas_app_settings_customization_archive_name }}"
+    {%- if mas_app_settings_customization_archive_username is defined and mas_app_settings_customization_archive_username != "" %}
+    - name: mas_app_settings_customization_archive_username
+      value: "{{ mas_app_settings_customization_archive_username }}"
+    - name: mas_app_settings_customization_archive_password
+      value: "{{ mas_app_settings_customization_archive_password }}"
+    {%- endif %}
+  {%- endif %}
+  {%- if mas_app_settings_crypto_key is defined and mas_app_settings_crypto_key != "" %}
+    - name: mas_app_settings_crypto_key
+      value: "{{ mas_app_settings_crypto_key }}"
+    - name: mas_app_settings_cryptox_key
+      value: "{{ mas_app_settings_cryptox_key }}"
+    - name: mas_app_settings_old_crypto_key
+      value: "{{ mas_app_settings_old_crypto_key }}"
+    - name: mas_app_settings_old_cryptox_key
+      value: "{{ mas_app_settings_old_cryptox_key }}"
+  {%- endif %}
+  {%- if mas_app_settings_override_encryption_secrets_flag is defined and mas_app_settings_override_encryption_secrets_flag != "" %}
+    - name: mas_app_settings_override_encryption_secrets_flag
+      value: "{{ mas_app_settings_override_encryption_secrets_flag }}"
+  {%- endif %}
+  {%- if mas_app_settings_default_jms is defined and mas_app_settings_default_jms != "" %}
+    - name: mas_app_settings_default_jms
+      value: "{{ mas_app_settings_default_jms }}"
+  {%- endif %}
+{%- endif %}
+
+
+  workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+    - name: shared-configs
+      persistentVolumeClaim:
+        claimName: config-pvc
+
+    # PodTemplates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-pod-templates
+      secret:
+        secretName: pipeline-pod-templates
