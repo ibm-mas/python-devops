@@ -1649,7 +1649,7 @@ def test_create_initial_user_for_saas_unsupported_type(user_utils):
         {"systemAdmin": False, "userAdmin": True, "apikeyAdmin": False},
         {"application": "PREMIUM", "admin": "ADMIN_BASE", "alwaysReserveLicense": True},
         True,
-        "ADMINISTRATOR",
+        "ADMIN",
         ["MAXADMIN"]
     ),
     (
