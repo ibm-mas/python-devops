@@ -887,7 +887,7 @@ class MASUserUtils():
                 "alwaysReserveLicense": True
             }
             is_workspace_admin = True
-            application_role = "ADMINISTRATOR"
+            application_role = "ADMIN"
             # TODO: check which security groups primary users should be members of
             manage_security_groups = ["MAXADMIN"]
         elif user_type == "SECONDARY":
