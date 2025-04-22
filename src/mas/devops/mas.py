@@ -163,6 +163,7 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
 
+
 def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: str) -> bool:
     """
     Validate that the chosen app instance exists
