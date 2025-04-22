@@ -21,7 +21,7 @@ events_version: 5.0.1                        # Operator version 5.0.1 (https://g
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.11.1 # tbc                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.6.2  # tbc                    # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-dd_version: 1.1.17  # tbc                    # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
+dd_version: 1.1.18  # tbc                    # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 wsl_version: 10.0.0
 wml_version: 10.0.0
@@ -58,23 +58,23 @@ mas_manage_version:
   8.10.x: 8.6.24  # tbc
   8.11.x: 8.7.18  # tbc
 mas_monitor_version:
-  9.0.x: 9.0.8    # tbc
-  8.10.x: 8.10.18 # tbc
-  8.11.x: 8.11.16 # tbc
+  9.0.x: 9.0.9    # tbc
+  8.10.x: 8.10.19 # tbc
+  8.11.x: 8.11.17 # tbc
 mas_optimizer_version:
   9.1.x-feature: 9.1.0-pre.stable_1813 # No Update
-  9.0.x: 9.0.9    # tbc
-  8.10.x: 8.4.16  # tbc
-  8.11.x: 8.5.15  # tbc
+  9.0.x: 9.0.10   # tbc
+  8.10.x: 8.4.17  # tbc
+  8.11.x: 8.5.16  # tbc
 mas_predict_version:
-  9.0.x: 9.0.6    # tbc
-  8.10.x: 8.8.7   # tbc
-  8.11.x: 8.9.9   # tbc
+  9.0.x: 9.0.7    # tbc
+  8.10.x: 8.8.8   # tbc
+  8.11.x: 8.9.10  # tbc
 mas_visualinspection_version:
   9.1.x-feature: 9.1.0-pre.stable_2246 # No Update
-  9.0.x: 9.0.8    # tbc
+  9.0.x: 9.0.9    # tbc
   8.10.x: 8.8.4   # No Update
-  8.11.x: 8.9.11  # tbc
+  8.11.x: 8.9.12  # tbc
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
