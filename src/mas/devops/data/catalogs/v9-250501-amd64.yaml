@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:61d2174bb39c102179b923af37e2555aca488520ede60d4516e8f8ed1e204752
+catalog_digest: sha256:6a34de6e00791707056512e0f60575ce3391efdb1fc140188c27cc843b60437b
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -38,10 +38,10 @@ elasticsearch_version: 1.1.2570              # Operator version 1.1.2470
 mas_core_version:
   9.1.x-feature: 9.1.0-pre.stable_8193 # No Update
   9.0.x: 9.0.10   # tbc
-  8.10.x: 8.10.24 # tbc
-  8.11.x: 8.11.21 # tbc
+  8.10.x: 8.10.25 # tbc
+  8.11.x: 8.11.22 # tbc
 mas_assist_version:
-  9.0.x: 9.0.4    # No Update
+  9.0.x: 9.0.5    # No Update
   8.10.x: 8.7.8   # No Update
   8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
@@ -49,14 +49,14 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # tbc
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.0.x: 9.0.7    # tbc
-  8.10.x: 8.7.21  # tbc
-  8.11.x: 8.8.17  # tbc
+  9.0.x: 9.0.8    # tbc
+  8.10.x: 8.7.22  # tbc
+  8.11.x: 8.8.18  # tbc
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_9992 # No Update
-  9.0.x: 9.0.11   # tbc
-  8.10.x: 8.6.24  # tbc
-  8.11.x: 8.7.18  # tbc
+  9.0.x: 9.0.12   # tbc
+  8.10.x: 8.6.25  # tbc
+  8.11.x: 8.7.19  # tbc
 mas_monitor_version:
   9.0.x: 9.0.9    # tbc
   8.10.x: 8.10.19 # tbc
@@ -71,7 +71,7 @@ mas_predict_version:
   8.10.x: 8.8.8   # tbc
   8.11.x: 8.9.10  # tbc
 mas_visualinspection_version:
-  9.1.x-feature: 9.1.0-pre.stable_2246 # No Update
+  9.1.x-feature: 9.1.0-pre.stable_2405 # No Update
   9.0.x: 9.0.9    # tbc
   8.10.x: 8.8.4   # No Update
   8.11.x: 8.9.12  # tbc
