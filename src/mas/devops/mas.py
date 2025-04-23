@@ -146,8 +146,8 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     except ResourceNotFoundError:
         # The MAS Suite CRD has not even been installed in the cluster
         return False
-    except UnauthorizedError:
-        logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
 
 
@@ -209,10 +209,10 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
             if pvc.status.phase == "Bound":
                 foundReadyPVC = True
             else:
-                logger.debug("Waiting 5s for PVC {pvcName} to be ready before checking again ...")
+                logger.debug(f"Waiting 5s for PVC {pvcName} to be ready before checking again ...")
                 sleep(5)
         except NotFoundError:
-            logger.debug("Waiting 5s for PVC {pvcName} to be created before checking again ...")
+            logger.debug(f"Waiting 5s for PVC {pvcName} to be created before checking again ...")
             sleep(5)
 
     return foundReadyPVC
@@ -230,7 +230,7 @@ def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, stor
                 if defaultStorageClasses.provider is not None:
                     pvc.spec.storageClassName = defaultStorageClasses.rwo
                 else:
-                    logger.error("Unable to set storageClassName in PVC {pvcName}.")
+                    logger.error(f"Unable to set storageClassName in PVC {pvcName}.")
                     return False
 
             pvcAPI.patch(body=pvc, namespace=namespace)
@@ -245,14 +245,14 @@ def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, stor
                     if patchedPVC.status.phase == "Bound":
                         foundReadyPVC = True
                     else:
-                        logger.debug("Waiting 5s for PVC {pvcName} to be bound before checking again ...")
+                        logger.debug(f"Waiting 5s for PVC {pvcName} to be bound before checking again ...")
                         sleep(5)
                 except NotFoundError:
-                    logger.error("The patched PVC {pvcName} does not exist.")
+                    logger.error(f"The patched PVC {pvcName} does not exist.")
                     return False
 
             return foundReadyPVC
 
     except NotFoundError:
-        logger.error("PVC {pvcName} does not exist")
+        logger.error(f"PVC {pvcName} does not exist")
         return False
