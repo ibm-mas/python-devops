@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:07eb918b45ccd94c36daf5b9aa2d4b7d287b8fe3f75fa47813216b181d98ae7d
+catalog_digest: sha256:76c9c49e45cf9e52ae42f8eb214dabc1e9e8dd79037e8d6eeea2b200fce86dea
 
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.11.1 # tbc                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
@@ -21,7 +21,7 @@ mas_core_version:
   8.11.x: "" # Not Supported
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_9992 # tbc
-  9.0.x: 9.0.11    # tbc
+  9.0.x: 9.0.12    # tbc
   8.10.x: ""  # Not Supported
   8.11.x: ""  # Not Supported
 
