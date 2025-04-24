@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:6a34de6e00791707056512e0f60575ce3391efdb1fc140188c27cc843b60437b
+catalog_digest: sha256:cfc8151b42a8d705ee68024897afe4224e5a1cae9249dc09188c4b2e5b7c77bb
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ elasticsearch_version: 1.1.2570              # Operator version 1.1.2470
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0-pre.stable_8193 # No Update
-  9.0.x: 9.0.10   # tbc
+  9.0.x: 9.0.11   # tbc
   8.10.x: 8.10.25 # tbc
   8.11.x: 8.11.22 # tbc
 mas_assist_version:
