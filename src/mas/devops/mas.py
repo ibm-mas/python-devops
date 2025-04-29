@@ -132,6 +132,20 @@ def listMasInstances(dynClient: DynamicClient) -> list:
     return suites
 
 
+def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
+    """
+    Get the MAS workspace ID for namespace "mas-{instanceId}-core"
+    """
+    workspaceId = None
+    workspacesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Workspace")
+    workspaces = workspacesAPI.get(namespace=f"mas-{instanceId}-core")
+    if len(workspaces["items"]) > 0:
+        workspaceId = workspaces["items"][0]["metadata"]["labels"]["mas.ibm.com/workspaceId"]
+    else:
+        logger.info("There are no MAS workspaces for the provided instanceId on this cluster")
+    return workspaceId
+
+
 def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     """
     Validate that the chosen MAS instance exists
@@ -147,6 +161,41 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         return False
     except UnauthorizedError:
         logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
+        return False
+
+
+def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: str) -> bool:
+    """
+    Validate that the chosen app instance exists
+    """
+    try:
+        # IoT has a different api version
+        operatorApiVersions = dict(iot="iot.ibm.com/v1")
+        apiVersion = operatorApiVersions[applicationId] if applicationId in operatorApiVersions else "apps.mas.ibm.com/v1"
+        operatorKinds = dict(
+            health="HealthApp",
+            predict="PredictApp",
+            monitor="MonitorApp",
+            iot="IoT",
+            visualinspection="VisualInspectionApp",
+            assist="AssistApp",
+            safety="SafetyApp",
+            manage="ManageApp",
+            hputilities="HPUtilitiesApp",
+            mso="MSOApp",
+            optimizer="OptimizerApp",
+            facilities="FacilitiesApp",
+        )
+        appAPI = dynClient.resources.get(api_version=apiVersion, kind=operatorKinds[applicationId])
+        appAPI.get(name=instanceId, namespace=f"mas-{instanceId}-{applicationId}")
+        return True
+    except NotFoundError:
+        return False
+    except ResourceNotFoundError:
+        # The MAS App CRD has not even been installed in the cluster
+        return False
+    except UnauthorizedError:
+        logger.error("Error: Unable to verify MAS app instance due to failed authorization: {e}")
         return False
 
 
