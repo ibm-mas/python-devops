@@ -132,7 +132,7 @@ def listMasInstances(dynClient: DynamicClient) -> list:
     return suites
 
 
-def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> list:
+def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
     """
     Get the MAS workspace ID for namespace "mas-{instanceId}-core"
     """
