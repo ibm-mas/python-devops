@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:55feb1250f29536a2c9f6b355456280af0e195bf743da2fd60b089f0872accfb
+catalog_digest: sha256:18f72f1ed0c1acdf8c871b64328a2ddf58142a0d54e2cc8b95efe980d0f2266b
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ elasticsearch_version: 1.1.2570              # Operator version 1.1.2470
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.1.x-feature: 9.1.0-pre.stable_8193 # No Update
+  9.1.x-feature: 9.1.0-pre.stable_9709 # No Update
   9.0.x: 9.0.11   # tbc
   8.10.x: 8.10.25 # tbc
   8.11.x: 8.11.22 # tbc
