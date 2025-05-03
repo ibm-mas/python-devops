@@ -150,10 +150,10 @@ def waitForDeployment(dynClient: DynamicClient, namespace: str, deploymentName: 
                 # NoneType and int comparison TypeError
                 foundReadyDeployment = True
             else:
-                logger.debug("Waiting 5s for deployment {deploymentName} to be ready before checking again ...")
+                logger.debug(f"Waiting 5s for deployment {deploymentName} to be ready before checking again ...")
                 sleep(5)
         except NotFoundError:
-            logger.debug("Waiting 5s for deployment {deploymentName} to be created before checking again ...")
+            logger.debug(f"Waiting 5s for deployment {deploymentName} to be created before checking again ...")
             sleep(5)
     return foundReadyDeployment
 
