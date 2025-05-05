@@ -758,6 +758,11 @@ spec:
       value: "{{ mas_aibroker_storage_templates_bucket }}"
     - name: mas_aibroker_tenant_name
       value: "{{ mas_aibroker_tenant_name }}"
+    - name: minio_root_user
+      value: "{{ minio_root_user }}"
+    - name: minio_root_password
+      value: "{{ minio_root_password }}"
+
 {%- endif %}
 {%- if mas_aibroker_controller_tag is defined and mas_aibroker_controller_tag != "" %}
 
@@ -814,6 +819,13 @@ spec:
       value: "{{ mas_aibroker_db_secret_key }}"
     - name: mas_aibroker_db_secret_value
       value: "{{ mas_aibroker_db_secret_value }}"
+    - name: mariadb_user
+      value: "{{ mariadb_user }}"
+    - name: mariadb_password
+      value: "{{ mariadb_password }}"
+    - name: mariadb_database
+      value: "{{ mariadb_database }}"
+      
 {%- endif %}
 
   workspaces:
