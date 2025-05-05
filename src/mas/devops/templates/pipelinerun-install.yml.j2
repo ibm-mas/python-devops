@@ -731,6 +731,16 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_app_channel_aibroker
       value: "{{ mas_app_channel_aibroker }}"
+
+    # AI Broker Tenant
+    # -------------------------------------------------------------------------
+    - name: tenant_entitlement_type
+      value: "{{ tenant_entitlement_type }}"
+    - name: tenant_entitlement_start_date
+      value: "{{ tenant_entitlement_start_date }}"
+    - name: tenant_entitlement_end_date
+      value: "{{ tenant_entitlement_end_date }}"
+
 {%- endif %}
 {%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider != "" %}
 
