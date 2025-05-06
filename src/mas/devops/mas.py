@@ -12,6 +12,7 @@ import logging
 import re
 import yaml
 from os import path
+from time import sleep
 from types import SimpleNamespace
 from kubernetes.dynamic.resource import ResourceInstance
 from openshift.dynamic import DynamicClient
@@ -159,8 +160,8 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     except ResourceNotFoundError:
         # The MAS Suite CRD has not even been installed in the cluster
         return False
-    except UnauthorizedError:
-        logger.error("Error: Unable to verify MAS instance due to failed authorization: {e}")
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
 
 
@@ -243,3 +244,64 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
 
     secret = secretsAPI.apply(body=secret, namespace=namespace)
     return secret
+
+
+def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    maxRetries = 60
+    foundReadyPVC = False
+    retries = 0
+    while not foundReadyPVC and retries < maxRetries:
+        retries += 1
+        try:
+            pvc = pvcAPI.get(name=pvcName, namespace=namespace)
+            if pvc.status.phase == "Bound":
+                foundReadyPVC = True
+            else:
+                logger.debug(f"Waiting 5s for PVC {pvcName} to be ready before checking again ...")
+                sleep(5)
+        except NotFoundError:
+            logger.debug(f"Waiting 5s for PVC {pvcName} to be created before checking again ...")
+            sleep(5)
+
+    return foundReadyPVC
+
+
+def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    try:
+        pvc = pvcAPI.get(name=pvcName, namespace=namespace)
+        if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
+            if storageClassName is not None and storageClassName(dynClient, name=storageClassName) is not None:
+                pvc.spec.storageClassName = storageClassName
+            else:
+                defaultStorageClasses = getDefaultStorageClasses(dynClient)
+                if defaultStorageClasses.provider is not None:
+                    pvc.spec.storageClassName = defaultStorageClasses.rwo
+                else:
+                    logger.error(f"Unable to set storageClassName in PVC {pvcName}.")
+                    return False
+
+            pvcAPI.patch(body=pvc, namespace=namespace)
+
+            maxRetries = 60
+            foundReadyPVC = False
+            retries = 0
+            while not foundReadyPVC and retries < maxRetries:
+                retries += 1
+                try:
+                    patchedPVC = pvcAPI.get(name=pvcName, namespace=namespace)
+                    if patchedPVC.status.phase == "Bound":
+                        foundReadyPVC = True
+                    else:
+                        logger.debug(f"Waiting 5s for PVC {pvcName} to be bound before checking again ...")
+                        sleep(5)
+                except NotFoundError:
+                    logger.error(f"The patched PVC {pvcName} does not exist.")
+                    return False
+
+            return foundReadyPVC
+
+    except NotFoundError:
+        logger.error(f"PVC {pvcName} does not exist")
+        return False
