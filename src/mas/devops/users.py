@@ -19,16 +19,6 @@ import os
 import time
 import re
 
-'''
-TODO:
-    MVI / other apps?
-    unit tests
-
-    how to cope with users that have been soft-deleted? tolerate / skip - ensure they are removed from secret so
-    we don't get caught in an infinite loop?
-
-'''
-
 
 class MASUserUtils():
     '''
@@ -324,7 +314,7 @@ class MASUserUtils():
             "emailPassword": email_password
         }
         payload = {
-            "idpUserId": user_id
+            "idpUserId": user_id,
         }
         headers = {
             "Content-Type": "application/json",
@@ -506,10 +496,6 @@ class MASUserUtils():
             "lean": 1,
         }
 
-        # TODO: is this just a temporary API Key for this script?
-        #       if so, add cleanup logic (atext) and perhaps set an expiration date in case cleanup fails
-
-        #
         payload = {
             "expiration": -1,
             "userid": user_id
