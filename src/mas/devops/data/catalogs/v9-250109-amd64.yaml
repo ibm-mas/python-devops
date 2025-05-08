@@ -77,6 +77,8 @@ mas_visualinspection_version:
   9.0.x: 9.0.5    # No Update
   8.10.x: 8.8.4   # No Update
   8.11.x: 8.9.8   # No Update
+mas_aibroker_version:
+  9.0.x: 9.0.5
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
