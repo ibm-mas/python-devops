@@ -402,6 +402,18 @@ def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
     return pipelineURL
 
 
+def launchInstallPipelineForAiservice(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to install the chosen MAS instance (and selected dependencies)
+    """
+    instanceId = params["mas_instance_id"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
+    return pipelineURL
+
+
 def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     """
     Create a PipelineRun to update the Maximo Operator Catalog
