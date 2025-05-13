@@ -574,7 +574,7 @@ spec:
     # -------------------------------------------------------------------------
     - name: shared-configs
       persistentVolumeClaim:
-        claimName: config-pvc-aiservice
+        claimName: config-pvc
 
     # User-provided configurations
     # -------------------------------------------------------------------------
@@ -582,7 +582,7 @@ spec:
     # shared-config during install-suite
     - name: shared-additional-configs
       secret:
-        secretName: pipeline-additional-configs-aiservice
+        secretName: pipeline-additional-configs
 
     # SLS entitlement
     # -------------------------------------------------------------------------
@@ -590,16 +590,16 @@ spec:
     # during install-sls
     - name: shared-entitlement
       secret:
-        secretName: pipeline-sls-entitlement-aiservice
+        secretName: pipeline-sls-entitlement
 
     # PodTemplates configurations
     # -------------------------------------------------------------------------
     - name: shared-pod-templates
       secret:
-        secretName: pipeline-pod-templates-aiservice
+        secretName: pipeline-pod-templates
 
     # Certificates configurations
     # -------------------------------------------------------------------------
     - name: shared-certificates
       secret:
-        secretName: pipeline-certificates-aiservice
+        secretName: pipeline-certificates
