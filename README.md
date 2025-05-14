@@ -37,3 +37,4 @@ updateTektonDefinitions(pipelinesNamespace, "/mascli/templates/ibm-mas-tekton.ya
 pipelineURL = launchUpgradePipeline(self.dynamicClient, instanceId)
 print(pipelineURL)
 ```
+
