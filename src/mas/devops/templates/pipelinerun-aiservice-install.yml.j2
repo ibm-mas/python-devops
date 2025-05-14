@@ -441,6 +441,100 @@ spec:
       value: "{{ mas_add_channel }}"
 {%- endif %}
 
+    # MAS Core
+    # -------------------------------------------------------------------------
+    - name: mas_instance_id
+      value: "{{ mas_instance_id }}"
+{%- if mas_wipe_mongo_data is defined and mas_wipe_mongo_data != "" %}
+    - name: mas_wipe_mongo_data
+      value: "{{ mas_wipe_mongo_data }}"
+{%- endif %}
+{%- if mas_domain is defined and mas_domain != "" %}
+    - name: mas_domain
+      value: "{{ mas_domain }}"
+{%- endif %}
+{%- if mas_special_characters is defined and mas_special_characters != "" %}
+    - name: mas_special_characters
+      value: "{{ mas_special_characters }}"
+{%- endif %}
+{%- if mas_cluster_issuer is defined and mas_cluster_issuer != "" %}
+    - name: mas_cluster_issuer
+      value: "{{ mas_cluster_issuer }}"
+{%- endif %}
+{%- if idle_timeout is defined and idle_timeout != "" %}
+    - name: idle_timeout
+      value: "{{ idle_timeout }}"
+{%- endif %}
+{%- if idp_session_timeout is defined and idp_session_timeout != "" %}
+    - name: idp_session_timeout
+      value: "{{ idp_session_timeout }}"
+{%- endif %}
+{%- if access_token_timeout is defined and access_token_timeout != "" %}
+    - name: access_token_timeout
+      value: "{{ access_token_timeout }}"
+{%- endif %}
+{%- if refresh_token_timeout is defined and refresh_token_timeout != "" %}
+    - name: refresh_token_timeout
+      value: "{{ refresh_token_timeout }}"
+{%- endif %}
+{%- if default_idp is defined and default_idp != "" %}
+    - name: default_idp
+      value: "{{ default_idp }}"
+{%- endif %}
+{%- if seamless_login is defined and seamless_login != "" %}
+    - name: seamless_login
+      value: "{{ seamless_login }}"
+{%- endif %}
+{%- if sso_cookie_name is defined and sso_cookie_name != "" %}
+    - name: sso_cookie_name
+      value: "{{ sso_cookie_name }}"
+{%- endif %}
+{%- if allow_default_sso_cookie_name is defined and allow_default_sso_cookie_name != "" %}
+    - name: allow_default_sso_cookie_name
+      value: "{{ allow_default_sso_cookie_name }}"
+{%- endif %}
+{%- if use_only_custom_cookie_name is defined and use_only_custom_cookie_name != "" %}
+    - name: use_only_custom_cookie_name
+      value: "{{ use_only_custom_cookie_name }}"
+{%- endif %}
+{%- if disable_ldap_cookie is defined and disable_ldap_cookie != "" %}
+    - name: disable_ldap_cookie
+      value: "{{ disable_ldap_cookie }}"
+{%- endif %}
+{%- if allow_custom_cache_key is defined and allow_custom_cache_key != "" %}
+    - name: allow_custom_cache_key
+      value: "{{ allow_custom_cache_key }}"
+{%- endif %}
+{%- if mas_annotations is defined and mas_annotations != "" %}
+    - name: mas_annotations
+      value: "{{ mas_annotations }}"
+{%- endif %}
+    - name: mas_icr_cp
+      value: "{{ mas_icr_cp }}"
+    - name: mas_icr_cpopen
+      value: "{{ mas_icr_cpopen }}"
+{%- if mas_trust_default_cas is defined and mas_trust_default_cas != "" %}
+    - name: mas_trust_default_cas
+      value: "{{ mas_trust_default_cas }}"
+{%- endif %}
+{%- if mas_manual_cert_mgmt is defined %}
+    - name: mas_manual_cert_mgmt
+      value: "{{ mas_manual_cert_mgmt }}"
+{%- endif %}
+{%- if enable_ipv6 is defined and enable_ipv6 != "" %}
+    - name: enable_ipv6
+      value: "{{ enable_ipv6 }}"
+{%- endif %}
+{%- if mas_superuser_username is defined and mas_superuser_username != "" %}
+    - name: mas_superuser_username
+      value: "{{ mas_superuser_username }}"
+    - name: mas_superuser_password
+      value: "{{ mas_superuser_password }}"
+{%- endif %}
+{%- if mas_enable_walkme is defined and mas_enable_walkme != "" %}
+    - name: mas_enable_walkme
+      value: "{{ mas_enable_walkme }}"
+{%- endif %}
     
     # MAS Workspace
     # -------------------------------------------------------------------------
