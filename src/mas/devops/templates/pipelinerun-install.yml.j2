@@ -112,6 +112,8 @@ spec:
       value: "{{ db2_action_system }}"
     - name: db2_action_manage
       value: "{{ db2_action_manage }}"
+    - name: db2_action_facilities
+      value: "{{ db2_action_facilities}}"
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -814,6 +816,64 @@ spec:
       value: "{{ mas_aibroker_db_secret_key }}"
     - name: mas_aibroker_db_secret_value
       value: "{{ mas_aibroker_db_secret_value }}"
+{%- endif %}
+
+{%- if mas_app_channel_facilities is defined and mas_app_channel_facilities != "" %}
+
+    # Real Estate anda Facilities Application
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_facilities
+      value: "{{ mas_app_channel_facilities }}"
+
+{%- if mas_ws_facilities_size is defined and mas_ws_facilities_size != "" %}    
+    - name: mas_ws_facilities_size
+      value: "{{ mas_ws_facilities_size }}"
+{%- endif %}
+{%- if mas_ws_facilities_routes_timeout is defined and mas_ws_facilities_routes_timeout != "" %}    
+    - name: mas_ws_facilities_routes_timeout
+      value: "{{ mas_ws_facilities_routes_timeout }}"
+{%- endif %}
+{%- if mas_ws_facilities_liberty_extension_XML is defined and mas_ws_facilities_liberty_extension_XML != "" %}    
+    - name: mas_ws_facilities_liberty_extension_XML
+      value: "{{ mas_ws_facilities_liberty_extension_XML }}"
+{%- endif %}
+{%- if mas_ws_facilities_vault_secret is defined and mas_ws_facilities_vault_secret != "" %}    
+    - name: mas_ws_facilities_vault_secret
+      value: "{{ mas_ws_facilities_vault_secret }}"
+{%- endif %}
+{%- if mas_ws_facilities_pull_policy is defined and mas_ws_facilities_pull_policy != "" %}    
+    - name: mas_ws_facilities_pull_policy
+      value: "{{ mas_ws_facilities_pull_policy }}"
+{%- endif %}
+    - name: mas_ws_facilities_storage_log_class
+      value: "{{ mas_ws_facilities_storage_log_class }}"
+{%- if mas_ws_facilities_storage_log_mode is defined and mas_ws_facilities_storage_log_mode != "" %}    
+    - name: mas_ws_facilities_storage_log_mode
+      value: "{{ mas_ws_facilities_storage_log_mode }}"
+{%- endif %}
+{%- if mas_ws_facilities_storage_log_size is defined and mas_ws_facilities_storage_log_size != "" %}    
+    - name: mas_ws_facilities_storage_log_size
+      value: "{{ mas_ws_facilities_storage_log_size }}"
+{%- endif %}
+    - name: mas_ws_facilities_storage_userfiles_class
+      value: "{{ mas_ws_facilities_storage_userfiles_class }}"
+{%- if mas_ws_facilities_storage_userfiles_mode is defined and mas_ws_facilities_storage_userfiles_mode != "" %}    
+    - name: mas_ws_facilities_storage_userfiles_mode
+      value: "{{ mas_ws_facilities_storage_userfiles_mode }}"
+{%- endif %}
+{%- if mas_ws_facilities_storage_userfiles_size is defined and mas_ws_facilities_storage_userfiles_size != "" %}    
+    - name: mas_ws_facilities_storage_userfiles_size
+      value: "{{ mas_ws_facilities_storage_userfiles_size }}"
+{%- endif %}
+{%- if mas_ws_facilities_dwfagents is defined and mas_ws_facilities_dwfagents != "" %}
+    - name: mas_ws_facilities_dwfagents
+      value: "{{ mas_ws_facilities_dwfagents }}"
+{%- endif %}
+{%- if mas_ws_facilities_db_maxconnpoolsize is defined and mas_ws_facilities_db_maxconnpoolsize != "" %}    
+    - name: mas_ws_facilities_db_maxconnpoolsize
+      value: "{{ mas_ws_facilities_db_maxconnpoolsize }}"
+{%- endif %}
+
 {%- endif %}
 
   workspaces:
