@@ -818,6 +818,7 @@ spec:
       value: "{{ mas_aibroker_db_secret_value }}"
 {%- endif %}
 
+# TODO: Fix type for storage sizes and max conn pool size
 {%- if mas_app_channel_facilities is defined and mas_app_channel_facilities != "" %}
 
     # Real Estate anda Facilities Application
@@ -851,28 +852,28 @@ spec:
     - name: mas_ws_facilities_storage_log_mode
       value: "{{ mas_ws_facilities_storage_log_mode }}"
 {%- endif %}
-{%- if mas_ws_facilities_storage_log_size is defined and mas_ws_facilities_storage_log_size != "" %}    
-    - name: mas_ws_facilities_storage_log_size
-      value: "{{ mas_ws_facilities_storage_log_size }}"
-{%- endif %}
+# {%- if mas_ws_facilities_storage_log_size is defined and mas_ws_facilities_storage_log_size != "" %}    
+#     - name: mas_ws_facilities_storage_log_size
+#       value: "{{ mas_ws_facilities_storage_log_size }}"
+# {%- endif %}
     - name: mas_ws_facilities_storage_userfiles_class
       value: "{{ mas_ws_facilities_storage_userfiles_class }}"
 {%- if mas_ws_facilities_storage_userfiles_mode is defined and mas_ws_facilities_storage_userfiles_mode != "" %}    
     - name: mas_ws_facilities_storage_userfiles_mode
       value: "{{ mas_ws_facilities_storage_userfiles_mode }}"
 {%- endif %}
-{%- if mas_ws_facilities_storage_userfiles_size is defined and mas_ws_facilities_storage_userfiles_size != "" %}    
-    - name: mas_ws_facilities_storage_userfiles_size
-      value: "{{ mas_ws_facilities_storage_userfiles_size }}"
-{%- endif %}
+# {%- if mas_ws_facilities_storage_userfiles_size is defined and mas_ws_facilities_storage_userfiles_size != "" %}    
+#     - name: mas_ws_facilities_storage_userfiles_size
+#       value: "{{ mas_ws_facilities_storage_userfiles_size }}"
+# {%- endif %}
 {%- if mas_ws_facilities_dwfagents is defined and mas_ws_facilities_dwfagents != "" %}
     - name: mas_ws_facilities_dwfagents
       value: "{{ mas_ws_facilities_dwfagents }}"
 {%- endif %}
-{%- if mas_ws_facilities_db_maxconnpoolsize is defined and mas_ws_facilities_db_maxconnpoolsize != "" %}    
-    - name: mas_ws_facilities_db_maxconnpoolsize
-      value: "{{ mas_ws_facilities_db_maxconnpoolsize }}"
-{%- endif %}
+# {%- if mas_ws_facilities_db_maxconnpoolsize is defined and mas_ws_facilities_db_maxconnpoolsize != "" %}    
+#     - name: mas_ws_facilities_db_maxconnpoolsize
+#       value: "{{ mas_ws_facilities_db_maxconnpoolsize }}"
+# {%- endif %}
 
 {%- endif %}
 
