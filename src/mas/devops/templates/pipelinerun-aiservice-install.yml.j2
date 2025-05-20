@@ -578,6 +578,12 @@ spec:
       value: "{{ mas_aibroker_tenant_s3_access_key }}"
     - name: mas_aibroker_tenant_s3_secret_key
       value: "{{ mas_aibroker_tenant_s3_secret_key }}"
+    - name: rsl_url
+      value: "{{ rsl_url }}"
+    - name: rsl_org_id
+      value: "{{ rsl_org_id }}"
+    - name: rsl_token
+      value: "{{ rsl_token }}"
 {%- endif %}
 {%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider != "" %}
 
@@ -650,7 +656,7 @@ spec:
     - name: mas_aibroker_s3_bucket_prefix
       value: "{{ mas_aibroker_s3_bucket_prefix }}"
     - name: mas_aibroker_s3_region
-      value: "{{ mas_aibroker_storage_region }}"
+      value: "{{ mas_aibroker_s3_region }}"
     - name: mas_aibroker_s3_endpoint_url
       value: "{{ mas_aibroker_s3_endpoint_url }}"
 {%- endif %}
