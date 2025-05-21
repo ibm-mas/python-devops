@@ -109,7 +109,7 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
 
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
     """
-    Install/update the MAS tekton pipeline and task definitions
+    Install/update/ rollback the MAS tekton pipeline and task definitions
 
     Unfortunately there's no API equivalent of what the kubectl CLI gives
     us with the ability to just apply a file containing a mix of resource types
@@ -410,4 +410,15 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-update", params)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-update-{timestamp}"
+    return pipelineURL
+
+def launchRollbackPipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to update the Maximo Operator Catalog
+    """
+    instanceId = params["mas_instance_id"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-rollback", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-rollback-{timestamp}"
     return pipelineURL
