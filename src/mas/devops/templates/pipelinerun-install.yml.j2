@@ -112,8 +112,6 @@ spec:
       value: "{{ db2_action_system }}"
     - name: db2_action_manage
       value: "{{ db2_action_manage }}"
-    - name: db2_action_facilities
-      value: "{{ db2_action_facilities}}"
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -874,6 +872,9 @@ spec:
 #     - name: mas_ws_facilities_db_maxconnpoolsize
 #       value: "{{ mas_ws_facilities_db_maxconnpoolsize }}"
 # {%- endif %}
+
+    - name: db2_action_facilities
+      value: "{{ db2_action_facilities}}"
 
 {%- endif %}
 
