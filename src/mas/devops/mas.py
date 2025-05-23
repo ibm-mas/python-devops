@@ -327,7 +327,7 @@ def isVersionBefore(_compare_to_version, _current_version):
     return current_version.compare(compareToVersion) < 0
 
 
-def isVersionAfter(_compare_to_version, _current_version):
+def isVersionEqualOrAfter(_compare_to_version, _current_version):
     """
     The method does a modified semantic version comparison,
     as we want to treat any pre-release as == to the real release
