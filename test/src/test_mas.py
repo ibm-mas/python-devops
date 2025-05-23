@@ -74,6 +74,3 @@ def test_version_equal_of_after():
     assert mas.isVersionEqualOrAfter('9.1.0','9.0.0') is False
     assert mas.isVersionEqualOrAfter('8.11.1','9.1.0') is True
     assert mas.isVersionEqualOrAfter('9.2.0','9.1.x-stable') is False
-
-if __name__ == '__main__':
-    test_version_before()
