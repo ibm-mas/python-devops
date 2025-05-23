@@ -62,3 +62,18 @@ def test_is_airgap_install():
     # The cluster we are using to test with does not have the MAS ICSP or IDMS installed
     assert mas.isAirgapInstall(dynClient) is False
     assert mas.isAirgapInstall(dynClient, checkICSP=False) is False
+    
+def test_version_before():
+    assert mas.isVersionBefore('9.1.0','9.1.x-feature') is False
+    assert mas.isVersionBefore('9.1.0','9.0.0') is True
+    assert mas.isVersionBefore('8.11.1','9.1.0') is False
+    assert mas.isVersionBefore('9.1.0','9.1.x-stable') is False
+
+def test_version_before():
+    assert mas.isVersionAfter('9.1.0','9.2.x-feature') is True
+    assert mas.isVersionAfter('9.1.0','9.0.0') is False
+    assert mas.isVersionAfter('8.11.1','9.1.0') is True
+    assert mas.isVersionAfter('9.2.0','9.1.x-stable') is False
+
+if __name__ == '__main__':
+    test_version_before()
