@@ -61,6 +61,7 @@ setup(
         'kubeconfig',              # BSD License
         'jinja2',                  # BSD License
         'jinja2-base64-filters',   # MIT License
+        'semver',                  # BSD License
         'boto3'                    # Apache Software License
     ],
     extras_require={
