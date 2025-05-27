@@ -1,29 +1,29 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 250501
+# Case bundle configuration for IBM Maximo Operator Catalog 250624 (PPC)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:ec978dfaac709428efb7a6da1bccc645f6f09411f7f25506c75fbe33ac43dee8
+catalog_digest: sha256:4421e4590929d4b95a1833aa4faf40701f0795f48e14dab49377d99bc089fd5a
 
-uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.11.1 # tbc                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.6.2  # tbc             # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+sls_version: 3.11.1  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.6.2   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.1.x-feature: 9.1.0-pre.stable_9718 # tbc
-  9.0.x: 9.0.11    # tbc
-  8.10.x: "" # Not Supported
-  8.11.x: "" # Not Supported
+  9.1.x-feature: 9.1.0-pre.stable_9718  # tbc
+  9.0.x: 9.0.11                         # tbc
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_10993 # tbc
-  9.0.x: 9.0.13    # tbc
-  8.10.x: ""  # Not Supported
-  8.11.x: ""  # Not Supported
+  9.0.x: 9.0.13                         # tbc
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
