@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:777dd54cbca0f8b7b4e8337cff52047da3ebf7b97c1970d300d4c84e4ae5b3bf
+catalog_digest: sha256:fea5f4b5c7af3528fe52ac00a55e419cd60a628d17ced06f71ae62a73d65ad7f
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -20,7 +20,7 @@ events_version: 5.0.1                        # Operator version 5.0.1 (https://g
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.11.1                          # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.6.2                           # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-dd_version: 1.1.18                           # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
+dd_version: 1.1.19                           # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 wsl_version: 10.2.0                          # Operator version 9.0.0
 wml_version: 10.2.0                          # Operator version 5.0.0
@@ -51,9 +51,9 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # tbc
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.0.x: 9.0.8    # tbc
-  8.10.x: 8.7.22  # tbc
-  8.11.x: 8.8.18  # tbc
+  9.0.x: 9.0.9    # tbc
+  8.10.x: 8.7.23  # tbc
+  8.11.x: 8.8.19  # tbc
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_10993 # tbc
   9.0.x: 9.0.13   # tbc
@@ -65,9 +65,9 @@ mas_monitor_version:
   8.11.x: 8.11.17 # tbc
 mas_optimizer_version:
   9.1.x-feature: 9.1.0-pre.stable_1943 # tbc
-  9.0.x: 9.0.10   # tbc
-  8.10.x: 8.4.17  # tbc
-  8.11.x: 8.5.16  # tbc
+  9.0.x: 9.0.11   # tbc
+  8.10.x: 8.4.18  # tbc
+  8.11.x: 8.5.17  # tbc
 mas_predict_version:
   9.0.x: 9.0.7    # tbc
   8.10.x: 8.8.8   # tbc
