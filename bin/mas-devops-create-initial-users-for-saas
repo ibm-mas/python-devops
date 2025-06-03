@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+
+# *****************************************************************************
+# Copyright (c) 2025 IBM Corporation and other Contributors.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+#
+# *****************************************************************************
+
+from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
+import argparse
+import logging
+import urllib3
+urllib3.disable_warnings()
+import yaml
+import json
+import sys
+
+import boto3
+from botocore.exceptions import ClientError
+
+from mas.devops.users import MASUserUtils
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # Primary Options
+    parser.add_argument("--mas-instance-id", required=True)
+    parser.add_argument("--mas-workspace-id", required=True)
+    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
+    parser.add_argument("--coreapi-port", required=False, default=443)
+    parser.add_argument("--admin-dashboard-port", required=False, default=443)
+    parser.add_argument("--manage-api-port", required=False, default=443)
+
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--initial-users-yaml-file")
+    group.add_argument("--initial-users-secret-name")
+
+    args, unknown = parser.parse_known_args()
+
+    log_level = getattr(logging, args.log_level)
+
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(log_level)
+    chFormatter = logging.Formatter(
+        "%(asctime)-25s %(name)-50s [%(threadName)s] %(levelname)-8s %(message)s"
+    )
+    ch.setFormatter(chFormatter)
+    logger.addHandler(ch)
+
+    mas_instance_id = args.mas_instance_id
+    mas_workspace_id = args.mas_workspace_id
+    initial_users_yaml_file = args.initial_users_yaml_file
+    initial_users_secret_name = args.initial_users_secret_name
+    coreapi_port = args.coreapi_port
+    admin_dashboard_port = args.admin_dashboard_port
+    manage_api_port = args.manage_api_port
+
+
+    logger.info("Configuration:")
+    logger.info("--------------")
+    logger.info(f"mas_instance_id:           {mas_instance_id}")
+    logger.info(f"mas_workspace_id:          {mas_workspace_id}")
+    logger.info(f"initial_users_yaml_file:   {initial_users_yaml_file}")
+    logger.info(f"initial_users_secret_name: {initial_users_secret_name}")
+    logger.info(f"log_level:                 {log_level}")
+    logger.info(f"coreapi_port:              {coreapi_port}")
+    logger.info(f"admin_dashboard_port:      {admin_dashboard_port}")
+    logger.info(f"manage_api_port:           {manage_api_port}")
+    logger.info("")
+
+    try:
+        # Try to load in-cluster configuration
+        config.load_incluster_config()
+        logger.debug("Loaded in-cluster configuration")
+    except ConfigException:
+        # If that fails, fall back to kubeconfig file
+        config.load_kube_config()
+        logger.debug("Loaded kubeconfig file")
+
+
+    user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient(), coreapi_port=coreapi_port, admin_dashboard_port=admin_dashboard_port, manage_api_port=manage_api_port)
+
+    if initial_users_secret_name is not None:
+
+        logger.info(f"Loading initial_users configuration from secret {initial_users_secret_name}")
+
+        session = boto3.session.Session()
+        aws_sm_client = session.client(
+            service_name='secretsmanager',
+        )
+        try:
+            initial_users_secret = aws_sm_client.get_secret_value( # pragma: allowlist secret
+                SecretId=initial_users_secret_name
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                logger.info(f"Secret {initial_users_secret_name} was not found, nothing to do, exiting now.")
+                sys.exit(0)
+
+            raise Exception(f"Failed to fetch secret {initial_users_secret_name}: {str(e)}")
+        
+        secret_json = json.loads(initial_users_secret['SecretString'])
+        initial_users = user_utils.parse_initial_users_from_aws_secret_json(secret_json)
+    elif initial_users_yaml_file is not None:
+        with open(initial_users_yaml_file, 'r') as file:
+            initial_users = yaml.safe_load(file)
+    else:
+        raise Exception("Something unexpected happened")
+    
+    
+    result = user_utils.create_initial_users_for_saas(initial_users)
+
+    # if user details were sourced from an AWS SM secret, remove the completed entries from the secret
+    # so we don't try and resync them the next time round (and potentially undo an update made by a customer)
+    if initial_users_secret_name is not None:
+        has_updates = False
+        for completed_user in result["completed"]:
+            logger.info(f"Removing synced user {completed_user['email']} from {initial_users_secret_name} secret")
+            secret_json.pop(completed_user["email"])
+            has_updates = True
+
+        if has_updates:
+            logger.info(f"Updating secret {initial_users_secret_name}")
+            try:
+                aws_sm_client.update_secret( # pragma: allowlist secret
+                    SecretId=initial_users_secret_name,
+                    SecretString=json.dumps(secret_json)
+                )
+            except ClientError as e:
+                raise Exception(f"Failed to update secret {initial_users_secret_name}: {str(e)}")
+            
+
+    if len(result["failed"]) > 0:
+        failed_user_ids = list(map(lambda u : u["email"], result["failed"]))
+        raise Exception(f"Sync failed for the following user IDs {failed_user_ids}")
