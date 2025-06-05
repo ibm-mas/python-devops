@@ -404,7 +404,7 @@ def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
 
 def launchInstallPipelineForAiservice(dynClient: DynamicClient, params: dict) -> str:
     """
-    Create a PipelineRun to install the chosen MAS instance (and selected dependencies)
+    Create a PipelineRun to install the Aiservice
     """
     instanceId = params["mas_instance_id"]
     namespace = f"mas-{instanceId}-pipelines"

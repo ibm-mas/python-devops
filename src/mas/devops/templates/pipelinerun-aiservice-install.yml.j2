@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  name: "{{mas_instance_id}}-install-{{ timestamp }}"
+  name: "aiservice-install-{{ timestamp }}"
   labels:
     tekton.dev/pipeline: aiservice-install
 spec:
@@ -64,31 +64,7 @@ spec:
       value: "{{ storage_class_rwx }}"
     - name: storage_class_rwo
       value: "{{ storage_class_rwo }}"
-{%- if eck_action is defined and eck_action != "" %}
 
-    # Dependencies - ECK
-    # -------------------------------------------------------------------------
-    - name: eck_action
-      value: "{{ eck_action }}"
-
-    - name: eck_enable_elasticsearch
-      value: "{{ eck_enable_elasticsearch }}"
-    - name: eck_enable_kibana
-      value: "{{ eck_enable_kibana }}"
-    - name: eck_enable_logstash
-      value: "{{ eck_enable_logstash }}"
-    - name: eck_enable_filebeat
-      value: "{{ eck_enable_filebeat }}"
-
-  {%- if eck_remote_es_hosts is defined and eck_remote_es_hosts != "" %}
-    - name: eck_remote_es_hosts
-      value: "{{ eck_remote_es_hosts }}"
-    - name: eck_remote_es_username
-      value: "{{ eck_remote_es_username }}"
-    - name: eck_remote_es_password
-      value: "{{ eck_remote_es_password }}"
-  {%- endif %}
-{%- endif %}
 {%- if turbonomic_server_url is defined and turbonomic_server_url != "" %}
 
     # Dependencies - Turbonomic
@@ -212,60 +188,7 @@ spec:
       value: "{{ ibm_mongo_admin_password }}"
   {%- endif %}
 {%- endif %}
-{%- if kafka_action_system == "install" %}
 
-    # Dependencies - Kafka
-    # -------------------------------------------------------------------------
-    - name: kafka_action_system
-      value: "{{ kafka_action_system }}"
-    - name: kafka_provider
-      value: "{{ kafka_provider }}"
-    - name: kafka_namespace
-      value: "{{ kafka_namespace }}"
-    - name: kafka_version
-      value: "{{ kafka_version }}"
-  {%- if kafka_provider == "aws" %}
-
-    # Dependencies - AWS MSK
-    # -------------------------------------------------------------------------
-    - name: vpc_id
-      value: "{{ vpc_id }}"
-    - name: aws_kafka_user_name
-      value: "{{ aws_kafka_user_name }}"
-    - name: aws_kafka_user_password
-      value: "{{ aws_kafka_user_password }}"
-    - name: aws_msk_instance_type
-      value: "{{ aws_msk_instance_type }}"
-    - name: aws_msk_instance_number
-      value: "{{ aws_msk_instance_number }}"
-    - name: aws_msk_volume_size
-      value: "{{ aws_msk_volume_size }}"
-    - name: aws_msk_cidr_az1
-      value: "{{ aws_msk_cidr_az1 }}"
-    - name: aws_msk_cidr_az2
-      value: "{{ aws_msk_cidr_az2 }}"
-    - name: aws_msk_cidr_az3
-      value: "{{ aws_msk_cidr_az3 }}"
-    - name: aws_msk_ingress_cidr
-      value: "{{ aws_msk_ingress_cidr }}"
-    - name: aws_msk_egress_cidr
-      value: "{{ aws_msk_egress_cidr }}"
-  {%- elif kafka_provider == "ibm" %}
-
-    # Dependencies - IBM Cloud Event Streams
-    # -------------------------------------------------------------------------
-    - name: eventstreams_resourcegroup
-      value: "{{ eventstreams_resourcegroup }}"
-    - name: eventstreams_name
-      value: "{{ eventstreams_name }}"
-    - name: eventstreams_location
-      value: "{{ eventstreams_location }}"
-    - name: eventstreams_retention
-      value: "{{ eventstreams_retention }}"
-    - name: eventstreams_create_manage_jms_topics
-      value: "{{ eventstreams_create_manage_jms_topics }}"
-  {%- endif %}
-{%- endif %}
 {%- if cpd_product_version is defined and cpd_product_version != "" %}
 
     # Dependencies - CP4D
@@ -326,28 +249,9 @@ spec:
     - name: dro_namespace
       value: "{{ dro_namespace }}"
 {%- endif %}
-{%- if cos_type is defined and cos_type != "" %}
-
-    # Dependencies - COS
-    # -------------------------------------------------------------------------
-    - name: cos_type
-      value: "{{ cos_type }}"
-    - name: cos_resourcegroup
-      value: "{{ cos_resourcegroup }}"
-    - name: cos_instance_name
-      value: "{{ cos_instance_name }}"
-    - name: cos_action
-      value: "{{ cos_action }}"
-    - name: cos_apikey
-      value: "{{ cos_apikey }}"
-    - name: cos_bucket_name
-      value: "{{ cos_bucket_name }}"
-{%- endif %}
 
     # MAS Catalog
     # -------------------------------------------------------------------------
-    - name: mas_channel
-      value: "{{ mas_channel }}"
     - name: mas_catalog_version
       value: "{{ mas_catalog_version }}"
 {%- if mas_catalog_digest is defined and mas_catalog_digest != "" %}
@@ -445,65 +349,9 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_instance_id
       value: "{{ mas_instance_id }}"
-{%- if mas_wipe_mongo_data is defined and mas_wipe_mongo_data != "" %}
-    - name: mas_wipe_mongo_data
-      value: "{{ mas_wipe_mongo_data }}"
-{%- endif %}
-{%- if mas_domain is defined and mas_domain != "" %}
-    - name: mas_domain
-      value: "{{ mas_domain }}"
-{%- endif %}
 {%- if mas_special_characters is defined and mas_special_characters != "" %}
     - name: mas_special_characters
       value: "{{ mas_special_characters }}"
-{%- endif %}
-{%- if mas_cluster_issuer is defined and mas_cluster_issuer != "" %}
-    - name: mas_cluster_issuer
-      value: "{{ mas_cluster_issuer }}"
-{%- endif %}
-{%- if idle_timeout is defined and idle_timeout != "" %}
-    - name: idle_timeout
-      value: "{{ idle_timeout }}"
-{%- endif %}
-{%- if idp_session_timeout is defined and idp_session_timeout != "" %}
-    - name: idp_session_timeout
-      value: "{{ idp_session_timeout }}"
-{%- endif %}
-{%- if access_token_timeout is defined and access_token_timeout != "" %}
-    - name: access_token_timeout
-      value: "{{ access_token_timeout }}"
-{%- endif %}
-{%- if refresh_token_timeout is defined and refresh_token_timeout != "" %}
-    - name: refresh_token_timeout
-      value: "{{ refresh_token_timeout }}"
-{%- endif %}
-{%- if default_idp is defined and default_idp != "" %}
-    - name: default_idp
-      value: "{{ default_idp }}"
-{%- endif %}
-{%- if seamless_login is defined and seamless_login != "" %}
-    - name: seamless_login
-      value: "{{ seamless_login }}"
-{%- endif %}
-{%- if sso_cookie_name is defined and sso_cookie_name != "" %}
-    - name: sso_cookie_name
-      value: "{{ sso_cookie_name }}"
-{%- endif %}
-{%- if allow_default_sso_cookie_name is defined and allow_default_sso_cookie_name != "" %}
-    - name: allow_default_sso_cookie_name
-      value: "{{ allow_default_sso_cookie_name }}"
-{%- endif %}
-{%- if use_only_custom_cookie_name is defined and use_only_custom_cookie_name != "" %}
-    - name: use_only_custom_cookie_name
-      value: "{{ use_only_custom_cookie_name }}"
-{%- endif %}
-{%- if disable_ldap_cookie is defined and disable_ldap_cookie != "" %}
-    - name: disable_ldap_cookie
-      value: "{{ disable_ldap_cookie }}"
-{%- endif %}
-{%- if allow_custom_cache_key is defined and allow_custom_cache_key != "" %}
-    - name: allow_custom_cache_key
-      value: "{{ allow_custom_cache_key }}"
 {%- endif %}
 {%- if mas_annotations is defined and mas_annotations != "" %}
     - name: mas_annotations
@@ -535,24 +383,7 @@ spec:
     - name: mas_enable_walkme
       value: "{{ mas_enable_walkme }}"
 {%- endif %}
-    
-    # MAS Workspace
-    # -------------------------------------------------------------------------
-    - name: mas_workspace_id
-      value: "{{ mas_workspace_id }}"
-    - name: mas_workspace_name
-      value: "{{ mas_workspace_name }}"
 
-{%- if grafana_action is defined and grafana_action != "" %}
-    # Grafana
-    # -------------------------------------------------------------------------
-    - name: grafana_action
-      value: "{{ grafana_action }}"
-    - name: grafana_v5_namespace
-      value: "{{ grafana_v5_namespace }}"
-    - name: grafana_instance_storage_size
-      value: "{{ grafana_instance_storage_size }}"
-{%- endif %}
 {%- if mas_app_channel_aibroker is defined and mas_app_channel_aibroker != "" %}
 
     # AI Broker
