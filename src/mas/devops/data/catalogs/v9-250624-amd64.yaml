@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:36ded869aaa1caec4c0279aaefa42efddbc4fe98fd814bee2fa97a12d1160088
+catalog_digest: sha256:30b1de14964e8b9a767262c8edaf6fdddc695f93cc02595b7f5bdb7962157a38
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -57,7 +57,7 @@ mas_iot_version:
 mas_manage_version:
   9.1.x-feature: 9.1.0-pre.stable_10993 # tbc
   9.0.x: 9.0.14   # updated
-  8.10.x: 8.6.26  # tbc
+  8.10.x: 8.6.27  # updated
   8.11.x: 8.7.21  # updated
 mas_monitor_version:
   9.0.x: 9.0.10   # updated
