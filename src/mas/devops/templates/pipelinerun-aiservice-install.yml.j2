@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  name: "aiservice-install-{{ timestamp }}"
+  name: "{{aibroker_instance_id}}-install-{{ timestamp }}"
   labels:
     tekton.dev/pipeline: aiservice-install
 spec:
@@ -80,84 +80,7 @@ spec:
     - name: turbonomic_password
       value: "{{ turbonomic_password }}"
 {%- endif %}
-{%- if db2_action_system == "install" or db2_action_manage == "install" %}
 
-    # Dependencies - Db2 - Actions
-    # -------------------------------------------------------------------------
-    - name: db2_action_system
-      value: "{{ db2_action_system }}"
-    - name: db2_action_manage
-      value: "{{ db2_action_manage }}"
-
-    # Dependencies - Db2u Operator
-    # -------------------------------------------------------------------------
-    - name: db2_namespace
-      value: "{{ db2_namespace }}"
-    - name: db2_channel
-      value: "{{ db2_channel }}"
-    - name: db2_type
-      value: "{{ db2_type }}"
-    - name: db2_timezone
-      value: "{{ db2_timezone }}"
-  {%- if db2_meta_storage_accessmode is defined and db2_meta_storage_accessmode != "" %}
-
-    # Dependencies - Db2 - Access Mode
-    # -------------------------------------------------------------------------
-    - name: db2_meta_storage_accessmode
-      value: "{{ db2_meta_storage_accessmode }}"
-    - name: db2_backup_storage_accessmode
-      value: "{{ db2_backup_storage_accessmode }}"
-    - name: db2_logs_storage_accessmode
-      value: "{{ db2_logs_storage_accessmode }}"
-    - name: db2_temp_storage_accessmode
-      value: "{{ db2_temp_storage_accessmode }}"
-    - name: db2_data_storage_accessmode
-      value: "{{ db2_data_storage_accessmode }}"
-  {%- endif %}
-  {%- if db2_affinity_key is defined and db2_affinity_key != "" %}
-
-    # Dependencies - Db2 - Node Scheduling
-    # -------------------------------------------------------------------------
-    - name: db2_affinity_key
-      value: "{{ db2_affinity_key }}"
-    - name: db2_affinity_value
-      value: "{{ db2_affinity_value }}"
-    - name: db2_tolerate_key
-      value: "{{ db2_tolerate_key }}"
-    - name: db2_tolerate_value
-      value: "{{ db2_tolerate_value }}"
-    - name: db2_tolerate_effect
-      value: "{{ db2_tolerate_effect }}"
-  {%- endif %}
-  {%- if db2_cpu_requests is defined and db2_cpu_requests != "" %}
-
-    # Dependencies - Db2 - Memory & CPU Resources
-    # -------------------------------------------------------------------------
-    - name: db2_cpu_requests
-      value: "{{ db2_cpu_requests }}"
-    - name: db2_cpu_limits
-      value: "{{ db2_cpu_limits }}"
-    - name: db2_memory_requests
-      value: "{{ db2_memory_requests }}"
-    - name: db2_memory_limits
-      value: "{{ db2_memory_limits }}"
-  {%- endif %}
-  {%- if db2_meta_storage_size is defined and db2_meta_storage_size != "" %}
-
-    # Dependencies - Db2 - Storage Capacity
-    # -------------------------------------------------------------------------
-    - name: db2_meta_storage_size
-      value: "{{ db2_meta_storage_size }}"
-    - name: db2_backup_storage_size
-      value: "{{ db2_backup_storage_size }}"
-    - name: db2_logs_storage_size
-      value: "{{ db2_logs_storage_size }}"
-    - name: db2_temp_storage_size
-      value: "{{ db2_temp_storage_size }}"
-    - name: db2_data_storage_size
-      value: "{{ db2_data_storage_size }}"
-  {%- endif %}
-{%- endif %}
 {%- if mongodb_action is defined and mongodb_action != "" %}
 
     # Dependencies - MongoDb
@@ -187,26 +110,6 @@ spec:
     - name: ibm_mongo_admin_password
       value: "{{ ibm_mongo_admin_password }}"
   {%- endif %}
-{%- endif %}
-
-{%- if cpd_product_version is defined and cpd_product_version != "" %}
-
-    # Dependencies - CP4D
-    # -------------------------------------------------------------------------
-    - name: cpd_product_version
-      value: "{{ cpd_product_version }}"
-    - name: cpd_install_spss
-      value: "{{ cpd_install_spss }}"
-    - name: cpd_install_openscale
-      value: "{{ cpd_install_openscale }}"
-    - name: cpd_install_cognos
-      value: "{{ cpd_install_cognos }}"
-    - name: cpd_install_ws
-      value: "{{ cpd_install_ws }}"
-    - name: cpd_install_wml
-      value: "{{ cpd_install_wml }}"
-    - name: cpd_install_ae
-      value: "{{ cpd_install_ae }}"
 {%- endif %}
 
     # Dependencies - SLS
@@ -349,14 +252,6 @@ spec:
     # -------------------------------------------------------------------------
     - name: aibroker_instance_id
       value: "{{ aibroker_instance_id }}"
-{%- if mas_special_characters is defined and mas_special_characters != "" %}
-    - name: mas_special_characters
-      value: "{{ mas_special_characters }}"
-{%- endif %}
-{%- if mas_annotations is defined and mas_annotations != "" %}
-    - name: mas_annotations
-      value: "{{ mas_annotations }}"
-{%- endif %}
     - name: mas_icr_cp
       value: "{{ mas_icr_cp }}"
     - name: mas_icr_cpopen
@@ -368,20 +263,6 @@ spec:
 {%- if mas_manual_cert_mgmt is defined %}
     - name: mas_manual_cert_mgmt
       value: "{{ mas_manual_cert_mgmt }}"
-{%- endif %}
-{%- if enable_ipv6 is defined and enable_ipv6 != "" %}
-    - name: enable_ipv6
-      value: "{{ enable_ipv6 }}"
-{%- endif %}
-{%- if mas_superuser_username is defined and mas_superuser_username != "" %}
-    - name: mas_superuser_username
-      value: "{{ mas_superuser_username }}"
-    - name: mas_superuser_password
-      value: "{{ mas_superuser_password }}"
-{%- endif %}
-{%- if mas_enable_walkme is defined and mas_enable_walkme != "" %}
-    - name: mas_enable_walkme
-      value: "{{ mas_enable_walkme }}"
 {%- endif %}
 
 {%- if mas_app_channel_aibroker is defined and mas_app_channel_aibroker != "" %}
