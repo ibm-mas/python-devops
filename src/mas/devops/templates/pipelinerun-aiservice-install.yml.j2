@@ -345,10 +345,10 @@ spec:
       value: "{{ mas_add_channel }}"
 {%- endif %}
 
-    # MAS Core
+    # Common params
     # -------------------------------------------------------------------------
-    - name: mas_instance_id
-      value: "{{ mas_instance_id }}"
+    - name: aibroker_instance_id
+      value: "{{ aibroker_instance_id }}"
 {%- if mas_special_characters is defined and mas_special_characters != "" %}
     - name: mas_special_characters
       value: "{{ mas_special_characters }}"
