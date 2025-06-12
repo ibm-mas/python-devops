@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:ef293ac3cb88c6eb2dd05c42be37dbd0e664321247f576b77f8775168fba30be
+catalog_digest: sha256:cdf9c66b3e2a28e70537edfa791dedfcfe296d51f068e1ec340f335ae4f3a63d
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -70,14 +70,14 @@ mas_optimizer_version:
   8.10.x: 8.4.18  # updated
   8.11.x: 8.5.17  # updated
 mas_predict_version:
-  9.0.x: 9.0.7    # tbc
-  8.10.x: 8.8.8   # tbc
-  8.11.x: 8.9.10  # tbc
+  9.0.x: 9.0.7    # No Update
+  8.10.x: 8.8.8   # No Update
+  8.11.x: 8.9.10  # No Update
 mas_visualinspection_version:
   9.1.x-feature: 9.1.0-pre.stable_2405 # tbc
-  9.0.x: 9.0.9    # tbc
+  9.0.x: 9.0.9    # No Update
   8.10.x: 8.8.4   # No Update
-  8.11.x: 8.9.12  # tbc
+  8.11.x: 8.9.12  # No Update
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
