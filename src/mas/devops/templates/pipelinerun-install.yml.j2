@@ -676,6 +676,10 @@ spec:
     - name: mas_app_settings_default_jms
       value: "{{ mas_app_settings_default_jms }}"
   {%- endif %}
+  {%- if mas_appws_upgrade_type is defined and mas_appws_upgrade_type != "" %}
+    - name: mas_appws_upgrade_type
+      value: "{{ mas_appws_upgrade_type }}"
+  {%- endif %}
 {%- endif %}
 {%- if mas_app_channel_monitor is defined and mas_app_channel_monitor != "" %}
 
