@@ -281,8 +281,41 @@ spec:
       value: "{{ install_sls_aiservice }}"
     - name: install_dro_aiservice
       value: "{{ install_dro_aiservice }}"
-    - name: hold_aiservice_for_mas
-      value: "{{ hold_aiservice_for_mas }}"
+    - name: install_db2_aiservice
+      value: "{{ install_db2_aiservice }}"
+    - name: mas_aibroker_dro_secret_name
+      value: "{{ mas_aibroker_dro_secret_name }}"
+    - name: mas_aibroker_dro_api_key
+      value: "{{ mas_aibroker_dro_api_key }}"
+    - name: mas_aibroker_dro_url
+      value: "{{ mas_aibroker_dro_url }}"
+    - name: mas_aibroker_dro_ca_cert
+      value: "{{ mas_aibroker_dro_ca_cert }}"
+    - name: mas_aibroker_db2_username
+      value: "{{ mas_aibroker_db2_username }}"
+    - name: mas_aibroker_db2_password
+      value: "{{ mas_aibroker_db2_password }}"
+    - name: mas_aibroker_db2_jdbc_url
+      value: "{{ mas_aibroker_db2_jdbc_url }}"
+    - name: mas_aibroker_db2_ssl_enabled
+      value: "{{ mas_aibroker_db2_ssl_enabled }}"
+    - name: mas_aibroker_db2_ca_cert
+      value: "{{ mas_aibroker_db2_ca_cert }}"
+    - name: mas_aibroker_sls_secret_name
+      value: "{{ mas_aibroker_sls_secret_name }}"
+    - name: mas_aibroker_sls_registration_key
+      value: "{{ mas_aibroker_sls_registration_key }}"
+    - name: mas_aibroker_sls_url
+      value: "{{ mas_aibroker_sls_url }}"
+    - name: mas_aibroker_sls_ca_cert
+      value: "{{ mas_aibroker_sls_ca_cert }}"
+    - name: environment_type
+      value: "{{ environment_type }}"
+
+  {%- if install_db2_aiservice is defined and install_db2_aiservice == "false" %}
+    - name: db2_action_aibroker
+      value: "not_install"
+  {%- endif %}
 
 
     # AI Broker Tenant
