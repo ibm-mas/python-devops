@@ -38,7 +38,6 @@ pipelineURL = launchUpgradePipeline(self.dynamicClient, instanceId)
 print(pipelineURL)
 ```
 
-
 mas-devops-create-initial-users
 ---------------------------------------------
 
