@@ -18,6 +18,7 @@ from kubernetes.dynamic.resource import ResourceInstance
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
 from jinja2 import Environment, FileSystemLoader
+import semver
 
 from .ocp import getStorageClasses
 from .olm import getSubscription
@@ -133,6 +134,20 @@ def listMasInstances(dynClient: DynamicClient) -> list:
     return suites
 
 
+def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
+    """
+    Get the MAS workspace ID for namespace "mas-{instanceId}-core"
+    """
+    workspaceId = None
+    workspacesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Workspace")
+    workspaces = workspacesAPI.get(namespace=f"mas-{instanceId}-core")
+    if len(workspaces["items"]) > 0:
+        workspaceId = workspaces["items"][0]["metadata"]["labels"]["mas.ibm.com/workspaceId"]
+    else:
+        logger.info("There are no MAS workspaces for the provided instanceId on this cluster")
+    return workspaceId
+
+
 def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     """
     Validate that the chosen MAS instance exists
@@ -148,6 +163,41 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         return False
     except UnauthorizedError as e:
         logger.error(f"Error: Unable to verify MAS instance due to failed authorization: {e}")
+        return False
+
+
+def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: str) -> bool:
+    """
+    Validate that the chosen app instance exists
+    """
+    try:
+        # IoT has a different api version
+        operatorApiVersions = dict(iot="iot.ibm.com/v1")
+        apiVersion = operatorApiVersions[applicationId] if applicationId in operatorApiVersions else "apps.mas.ibm.com/v1"
+        operatorKinds = dict(
+            health="HealthApp",
+            predict="PredictApp",
+            monitor="MonitorApp",
+            iot="IoT",
+            visualinspection="VisualInspectionApp",
+            assist="AssistApp",
+            safety="SafetyApp",
+            manage="ManageApp",
+            hputilities="HPUtilitiesApp",
+            mso="MSOApp",
+            optimizer="OptimizerApp",
+            facilities="FacilitiesApp",
+        )
+        appAPI = dynClient.resources.get(api_version=apiVersion, kind=operatorKinds[applicationId])
+        appAPI.get(name=instanceId, namespace=f"mas-{instanceId}-{applicationId}")
+        return True
+    except NotFoundError:
+        return False
+    except ResourceNotFoundError:
+        # The MAS App CRD has not even been installed in the cluster
+        return False
+    except UnauthorizedError:
+        logger.error("Error: Unable to verify MAS app instance due to failed authorization: {e}")
         return False
 
 
@@ -256,3 +306,41 @@ def patchPendingPVC(dynClient: DynamicClient, namespace: str, pvcName: str, stor
     except NotFoundError:
         logger.error(f"PVC {pvcName} does not exist")
         return False
+
+
+def isVersionBefore(_compare_to_version, _current_version):
+    """
+    The method does a modified semantic version comparison,
+    as we want to treat any pre-release as == to the real release
+    but in strict semantic versioning it is <
+    ie. '8.6.0-pre.m1dev86' is converted to '8.6.0'
+    """
+    if _current_version is None:
+        print("Version is not informed. Returning False")
+        return False
+
+    strippedVersion = _current_version.split("-")[0]
+    if '.x' in strippedVersion:
+        strippedVersion = strippedVersion.replace('.x', '.0')
+    current_version = semver.VersionInfo.parse(strippedVersion)
+    compareToVersion = semver.VersionInfo.parse(_compare_to_version)
+    return current_version.compare(compareToVersion) < 0
+
+
+def isVersionEqualOrAfter(_compare_to_version, _current_version):
+    """
+    The method does a modified semantic version comparison,
+    as we want to treat any pre-release as == to the real release
+    but in strict semantic versioning it is <
+    ie. '8.6.0-pre.m1dev86' is converted to '8.6.0'
+    """
+    if _current_version is None:
+        print("Version is not informed. Returning False")
+        return False
+
+    strippedVersion = _current_version.split("-")[0]
+    if '.x' in strippedVersion:
+        strippedVersion = strippedVersion.replace('.x', '.0')
+    current_version = semver.VersionInfo.parse(strippedVersion)
+    compareToVersion = semver.VersionInfo.parse(_compare_to_version)
+    return current_version.compare(compareToVersion) >= 0

@@ -286,7 +286,8 @@ def testCLI() -> None:
 def launchUpgradePipeline(dynClient: DynamicClient,
                           instanceId: str,
                           skipPreCheck: bool = False,
-                          masChannel: str = "") -> str:
+                          masChannel: str = "",
+                          params: dict = {}) -> str:
     """
     Create a PipelineRun to upgrade the chosen MAS instance
     """
@@ -303,7 +304,8 @@ def launchUpgradePipeline(dynClient: DynamicClient,
         timestamp=timestamp,
         mas_instance_id=instanceId,
         skip_pre_check=skipPreCheck,
-        mas_channel=masChannel
+        mas_channel=masChannel,
+        **params
     )
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
@@ -395,6 +397,18 @@ def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
     instanceId = params["mas_instance_id"]
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-install", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
+    return pipelineURL
+
+
+def launchInstallPipelineForAiservice(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to install the Aiservice
+    """
+    instanceId = params["aibroker_instance_id"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
     return pipelineURL
