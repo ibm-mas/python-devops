@@ -1,0 +1,42 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog 250624 (PPC)
+# -----------------------------------------------------------------------------
+# In the future this won't be necessary as we'll be able to mirror from the
+# catalog itself, but not everything in the catalog supports this yet (including MAS)
+# so we need to use the CASE bundle mirror process still.
+
+catalog_digest: sha256:70b87e1fe64eb46c3796ce0aaa713b0ff3c902732078fc5297c28f7840f23d3e
+
+uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+sls_version: 3.12.0  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.6.2   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.1.x-feature: 9.1.0                  # Updated
+  9.1.x: 9.1.0                          # Updated
+  9.0.x: 9.0.12                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+mas_manage_version:
+  9.1.x-feature: 9.1.0                  # Updated
+  9.1.x: 9.1.0                          # Updated
+  9.0.x: 9.0.14                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+
+# Extra Images for UDS
+# ------------------------------------------------------------------------------
+uds_extras_version: 1.5.0
+
+# Extra Images for Mongo
+# ------------------------------------------------------------------------------
+mongo_extras_version_default: 7.0.12
+
+# Variables used to mirror additional mongo image versions
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.12

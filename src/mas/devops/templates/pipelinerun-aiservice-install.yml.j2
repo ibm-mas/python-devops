@@ -1,0 +1,480 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: "{{aibroker_instance_id}}-install-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: aiservice-install
+spec:
+  pipelineRef:
+    name: aiservice-install
+
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
+
+  params:
+    # IBM Entitlement Key
+    # -------------------------------------------------------------------------
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+{%- if skip_pre_check is defined and skip_pre_check != "" %}
+
+    # Pipeline config
+    # -------------------------------------------------------------------------
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+{%- endif %}
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+{%- if ocp_ingress_tls_secret_name is defined and ocp_ingress_tls_secret_name != "" %}
+
+    # Cluster config
+    # -------------------------------------------------------------------------
+    - name: ocp_ingress_tls_secret_name
+      value: "{{ ocp_ingress_tls_secret_name }}"
+{%- endif %}
+{%- if artifactory_username is defined and artifactory_username != "" %}
+
+    # Enable development catalogs
+    # -------------------------------------------------------------------------
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+{%- endif %}
+{%- if ibmcloud_apikey is defined and ibmcloud_resourcegroup != "" %}
+
+    # IBM Cloud
+    # -------------------------------------------------------------------------
+    - name: ibmcloud_apikey
+      value: "{{ ibmcloud_apikey }}"
+    - name: ibmcloud_resourcegroup
+      value: "{{ ibmcloud_resourcegroup }}"
+{%- endif %}
+
+    # Storage Classes
+    # -------------------------------------------------------------------------
+    - name: storage_class_rwx
+      value: "{{ storage_class_rwx }}"
+    - name: storage_class_rwo
+      value: "{{ storage_class_rwo }}"
+
+{%- if turbonomic_server_url is defined and turbonomic_server_url != "" %}
+
+    # Dependencies - Turbonomic
+    # -------------------------------------------------------------------------
+    - name: turbonomic_server_url
+      value: "{{ turbonomic_server_url }}"
+    - name: turbonomic_server_version
+      value: "{{ turbonomic_server_version }}"
+    - name: turbonomic_target_name
+      value: "{{ turbonomic_target_name }}"
+    - name: turbonomic_username
+      value: "{{ turbonomic_username }}"
+    - name: turbonomic_password
+      value: "{{ turbonomic_password }}"
+{%- endif %}
+
+{%- if mongodb_action is defined and mongodb_action != "" %}
+
+    # Dependencies - MongoDb
+    # -------------------------------------------------------------------------
+    - name: mongodb_action
+      value: "{{ mongodb_action }}"
+    - name: mongodb_namespace
+      value: "{{ mongodb_namespace }}"
+    - name: mongodb_replicas
+      value: "{{ mongodb_replicas }}"
+    - name: mongodb_cpu_requests
+      value: "{{ mongodb_cpu_requests }}"
+    - name: mongodb_provider
+      value: "{{ mongodb_provider }}"
+    - name: mongodb_version
+      value: "{{ mongodb_version }}"
+  {%- if mongodb_provider == "ibm" %}
+
+    # Dependencies - IBM Cloud MongoDb
+    # -------------------------------------------------------------------------
+    - name: ibm_mongo_name
+      value: "{{ ibm_mongo_name }}"
+    - name: ibm_mongo_resourcegroup
+      value: "{{ ibm_mongo_resourcegroup }}"
+    - name: ibm_mongo_region
+      value: "{{ ibm_mongo_region }}"
+    - name: ibm_mongo_admin_password
+      value: "{{ ibm_mongo_admin_password }}"
+  {%- endif %}
+{%- endif %}
+
+    # Dependencies - SLS
+    # -------------------------------------------------------------------------
+    - name: sls_channel
+      value: '3.x'
+{%- if sls_entitlement_file is defined and sls_entitlement_file != "" %}
+    - name: sls_entitlement_file
+      value: "{{ sls_entitlement_file }}"
+{%- endif %}
+{%- if sls_namespace is defined and sls_namespace != "" %}
+    - name: sls_namespace
+      value: "{{ sls_namespace }}"
+{%- endif %}
+{%- if sls_icr_cpopen is defined and sls_icr_cpopen != "" %}
+    - name: sls_icr_cpopen
+      value: "{{ sls_icr_cpopen }}"
+{%- endif %}
+{%- if sls_mongodb_cfg_file is defined and sls_mongodb_cfg_file != "" %}
+    - name: sls_mongodb_cfg_file
+      value: "{{ sls_mongodb_cfg_file }}"
+{%- endif %}
+{%- if sls_action is defined and sls_action != "" %}
+    - name: sls_action
+      value: "{{ sls_action }}"
+{%- endif %}
+
+
+    # Dependencies - UDS/DRO (Required)
+    # -------------------------------------------------------------------------
+    - name: uds_action
+      value: "{{ uds_action }}"
+    - name: uds_contact_email
+      value: "{{ uds_contact_email }}"
+    - name: uds_contact_firstname
+      value: "{{ uds_contact_firstname }}"
+    - name: uds_contact_lastname
+      value: "{{ uds_contact_lastname }}"
+{%- if dro_namespace is defined and dro_namespace != "" %}
+    - name: dro_namespace
+      value: "{{ dro_namespace }}"
+{%- endif %}
+
+    # MAS Catalog
+    # -------------------------------------------------------------------------
+    - name: mas_catalog_version
+      value: "{{ mas_catalog_version }}"
+{%- if mas_catalog_digest is defined and mas_catalog_digest != "" %}
+    - name: mas_catalog_digest
+      value: "{{ mas_catalog_digest }}"
+{%- endif %}
+
+    # Dependencies - Certificate Manager
+    # -------------------------------------------------------------------------
+    - name: cert_manager_provider
+      value: "{{ cert_manager_provider }}"
+    - name: cert_manager_action
+      value: "{{ cert_manager_action }}"
+{%- if dns_provider is defined and dns_provider != "" %}
+
+    # MAS DNS Integrations - General
+    # -------------------------------------------------------------------------
+    - name: dns_provider
+      value: "{{ dns_provider }}"
+  {%- if cloudflare_apitoken is defined and cloudflare_apitoken != "" %}
+
+    # MAS DNS Integrations - Cloudflare Support
+    # -------------------------------------------------------------------------
+    - name: cloudflare_email
+      value: "{{ cloudflare_email }}"
+    - name: cloudflare_apitoken
+      value: "{{ cloudflare_apitoken }}"
+    - name: cloudflare_zone
+      value: "{{ cloudflare_zone }}"
+    - name: cloudflare_subdomain
+      value: "{{ cloudflare_subdomain }}"
+  {%- endif %}
+  {%- if cis_apikey is defined and cis_apikey != "" %}
+
+    # MAS DNS Integrations - CIS Support
+    # -------------------------------------------------------------------------
+    - name: cis_email
+      value: "{{ cis_email }}"
+    - name: cis_apikey
+      value: "{{ cis_apikey }}"
+    - name: cis_crn
+      value: "{{ cis_crn }}"
+    - name: cis_subdomain
+      value: "{{ cis_subdomain }}"
+  {%- endif %}
+  {%- if cis_service_name is defined and cis_service_name != "" %}
+
+    # MAS DNS Integrations - CIS Security Enhancement Support
+    # -------------------------------------------------------------------------
+    - name: cis_service_name
+      value: "{{ cis_service_name }}"
+    - name: cis_enhanced_security
+      value: "{{ cis_enhanced_security }}"
+    - name: override_edge_certs
+      value: "{{ override_edge_certs }}"
+    - name: cis_proxy
+      value: "{{ cis_proxy }}"
+  {%- endif %}
+{%- endif %}
+{%- if aws_access_key_id is defined and aws_access_key_id != "" %}
+
+    # AWS basic info
+    # -------------------------------------------------------------------------
+    - name: aws_access_key_id
+      value: "{{ aws_access_key_id }}"
+    - name: aws_secret_access_key
+      value: "{{ aws_secret_access_key }}"
+    - name: aws_region
+      value: "{{ aws_region }}"
+{%- endif %}
+{%- if route53_hosted_zone_name is defined and route53_hosted_zone_name != "" %}
+
+    # MAS DNS Integrations - AWS Route 53
+    # -------------------------------------------------------------------------
+    - name: route53_hosted_zone_name
+      value: "{{ route53_hosted_zone_name }}"
+    - name: route53_hosted_zone_region
+      value: "{{ route53_hosted_zone_region }}"
+    - name: route53_email
+      value: "{{ route53_email }}"
+    - name: route53_subdomain
+      value: "{{ route53_subdomain }}"
+{%- endif %}
+{%- if mas_add_catalog is defined and mas_add_catalog != "" %}
+
+    # Data Dictionary
+    # -------------------------------------------------------------------------
+    - name: mas_add_catalog
+      value: "{{ mas_add_catalog }}"
+    - name: mas_add_channel
+      value: "{{ mas_add_channel }}"
+{%- endif %}
+
+    # Common params
+    # -------------------------------------------------------------------------
+    - name: aibroker_instance_id
+      value: "{{ aibroker_instance_id }}"
+    - name: mas_icr_cp
+      value: "{{ mas_icr_cp }}"
+    - name: mas_icr_cpopen
+      value: "{{ mas_icr_cpopen }}"
+{%- if mas_trust_default_cas is defined and mas_trust_default_cas != "" %}
+    - name: mas_trust_default_cas
+      value: "{{ mas_trust_default_cas }}"
+{%- endif %}
+{%- if mas_manual_cert_mgmt is defined %}
+    - name: mas_manual_cert_mgmt
+      value: "{{ mas_manual_cert_mgmt }}"
+{%- endif %}
+
+{%- if mas_app_channel_aibroker is defined and mas_app_channel_aibroker != "" %}
+
+    # AI Broker
+    # -------------------------------------------------------------------------
+    - name: mas_app_channel_aibroker
+      value: "{{ mas_app_channel_aibroker }}"
+    - name: install_minio_aiservice
+      value: "{{ install_minio_aiservice }}"
+    - name: install_mariadb_aiservice
+      value: "{{ install_mariadb_aiservice }}"
+    - name: install_mongo_aiservice
+      value: "{{ install_mongo_aiservice }}"
+    - name: install_sls_aiservice
+      value: "{{ install_sls_aiservice }}"
+    - name: install_dro_aiservice
+      value: "{{ install_dro_aiservice }}"
+    - name: install_db2_aiservice
+      value: "{{ install_db2_aiservice }}"
+    - name: mas_aibroker_dro_secret_name
+      value: "{{ mas_aibroker_dro_secret_name }}"
+    - name: mas_aibroker_dro_api_key
+      value: "{{ mas_aibroker_dro_api_key }}"
+    - name: mas_aibroker_dro_url
+      value: "{{ mas_aibroker_dro_url }}"
+    - name: mas_aibroker_dro_ca_cert
+      value: "{{ mas_aibroker_dro_ca_cert }}"
+    - name: mas_aibroker_db2_username
+      value: "{{ mas_aibroker_db2_username }}"
+    - name: mas_aibroker_db2_password
+      value: "{{ mas_aibroker_db2_password }}"
+    - name: mas_aibroker_db2_jdbc_url
+      value: "{{ mas_aibroker_db2_jdbc_url }}"
+    - name: mas_aibroker_db2_ssl_enabled
+      value: "{{ mas_aibroker_db2_ssl_enabled }}"
+    - name: mas_aibroker_db2_ca_cert
+      value: "{{ mas_aibroker_db2_ca_cert }}"
+    - name: mas_aibroker_sls_secret_name
+      value: "{{ mas_aibroker_sls_secret_name }}"
+    - name: mas_aibroker_sls_registration_key
+      value: "{{ mas_aibroker_sls_registration_key }}"
+    - name: mas_aibroker_sls_url
+      value: "{{ mas_aibroker_sls_url }}"
+    - name: mas_aibroker_sls_ca_cert
+      value: "{{ mas_aibroker_sls_ca_cert }}"
+    - name: environment_type
+      value: "{{ environment_type }}"
+
+  {%- if install_db2_aiservice is defined and install_db2_aiservice == "false" %}
+    - name: db2_action_aibroker
+      value: "not_install"
+  {%- endif %}
+
+
+    # AI Broker Tenant
+    # -------------------------------------------------------------------------
+    - name: tenant_entitlement_type
+      value: "{{ tenant_entitlement_type }}"
+    - name: tenant_entitlement_start_date
+      value: "{{ tenant_entitlement_start_date }}"
+    - name: tenant_entitlement_end_date
+      value: "{{ tenant_entitlement_end_date }}"
+    - name: mas_aibroker_tenant_s3_bucket_prefix
+      value: "{{ mas_aibroker_tenant_s3_bucket_prefix }}"
+    - name: mas_aibroker_tenant_s3_region
+      value: "{{ mas_aibroker_tenant_s3_region }}"
+    - name: mas_aibroker_tenant_s3_endpoint_url
+      value: "{{ mas_aibroker_tenant_s3_endpoint_url }}"
+    - name: mas_aibroker_tenant_s3_access_key
+      value: "{{ mas_aibroker_tenant_s3_access_key }}"
+    - name: mas_aibroker_tenant_s3_secret_key
+      value: "{{ mas_aibroker_tenant_s3_secret_key }}"
+    - name: rsl_url
+      value: "{{ rsl_url }}"
+    - name: rsl_org_id
+      value: "{{ rsl_org_id }}"
+    - name: rsl_token
+      value: "{{ rsl_token }}"
+    - name: mas_aibroker_s3_bucket_prefix
+      value: "{{ mas_aibroker_s3_bucket_prefix }}"
+    - name: mas_aibroker_s3_region
+      value: "{{ mas_aibroker_s3_region }}"
+    - name: mas_aibroker_s3_endpoint_url
+      value: "{{ mas_aibroker_s3_endpoint_url }}"
+      
+{%- endif %}
+{%- if mas_aibroker_storage_provider is defined and mas_aibroker_storage_provider != "" %}
+
+    # AI Broker - OpenData Hub Storage
+    # -------------------------------------------------------------------------
+    - name: mas_aibroker_storage_provider
+      value: "{{ mas_aibroker_storage_provider }}"
+    - name: mas_aibroker_storage_accesskey
+      value: "{{ mas_aibroker_storage_accesskey }}"
+    - name: mas_aibroker_storage_secretkey
+      value: "{{ mas_aibroker_storage_secretkey }}"
+    - name: mas_aibroker_storage_host
+      value: "{{ mas_aibroker_storage_host }}"
+    - name: mas_aibroker_storage_port
+      value: "{{ mas_aibroker_storage_port }}"
+    - name: mas_aibroker_storage_ssl
+      value: "{{ mas_aibroker_storage_ssl }}"
+    - name: mas_aibroker_storage_region
+      value: "{{ mas_aibroker_storage_region }}"
+    - name: mas_aibroker_storage_pipelines_bucket
+      value: "{{ mas_aibroker_storage_pipelines_bucket }}"
+    - name: mas_aibroker_storage_tenants_bucket
+      value: "{{ mas_aibroker_storage_tenants_bucket }}"
+    - name: mas_aibroker_storage_templates_bucket
+      value: "{{ mas_aibroker_storage_templates_bucket }}"
+    - name: mas_aibroker_tenant_name
+      value: "{{ mas_aibroker_tenant_name }}"
+    - name: minio_root_user
+      value: "{{ minio_root_user }}"
+    - name: minio_root_password
+      value: "{{ minio_root_password }}"
+
+{%- endif %}
+{%- if mas_aibroker_controller_tag is defined and mas_aibroker_controller_tag != "" %}
+
+    # AI Broker - KModels Tags
+    # -------------------------------------------------------------------------
+    - name: mas_aibroker_controller_tag
+      value: "{{ mas_aibroker_controller_tag }}"
+    - name: mas_aibroker_store_tag
+      value: "{{ mas_aibroker_store_tag }}"
+    - name: mas_aibroker_watcher_tag
+      value: "{{ mas_aibroker_watcher_tag }}"
+    - name: mas_aibroker_connector_tag
+      value: "{{ mas_aibroker_connector_tag }}"
+    - name: mas_aibroker_pipeline_steps_tag
+      value: "{{ mas_aibroker_pipeline_steps_tag }}"
+{%- endif %}
+{%- if mas_aibroker_watsonxai_apikey is defined and mas_aibroker_watsonxai_apikey != "" %}
+
+    # AI Broker - watsonX
+    # -------------------------------------------------------------------------
+    - name: mas_aibroker_watsonxai_apikey
+      value: "{{ mas_aibroker_watsonxai_apikey }}"
+    - name: mas_aibroker_watsonxai_url
+      value: "{{ mas_aibroker_watsonxai_url }}"
+    - name: mas_aibroker_watsonxai_project_id
+      value: "{{ mas_aibroker_watsonxai_project_id }}"
+    - name: mas_aibroker_watsonx_action
+      value: "{{ mas_aibroker_watsonx_action }}"
+{%- endif %}
+{%- if mas_aibroker_s3_action is defined and mas_aibroker_s3_action != "" %}
+
+    # AI Broker - S3
+    # -------------------------------------------------------------------------
+    - name: mas_aibroker_s3_action
+      value: "{{ mas_aibroker_s3_action }}"
+    - name: mas_aibroker_apikey_action
+      value: "{{ mas_aibroker_apikey_action }}"
+{%- endif %}
+{%- if mas_aibroker_db_host is defined and mas_aibroker_db_host != "" %}
+
+    # AI Broker - Database (DataSciencePipelinesApplication)
+    # -------------------------------------------------------------------------
+    - name: mas_aibroker_db_host
+      value: "{{ mas_aibroker_db_host }}"
+    - name: mas_aibroker_db_port
+      value: "{{ mas_aibroker_db_port }}"
+    - name: mas_aibroker_db_user
+      value: "{{ mas_aibroker_db_user }}"
+    - name: mas_aibroker_db_database
+      value: "{{ mas_aibroker_db_database }}"
+    - name: mas_aibroker_db_secret_name
+      value: "{{ mas_aibroker_db_secret_name }}"
+    - name: mas_aibroker_db_secret_key
+      value: "{{ mas_aibroker_db_secret_key }}"
+    - name: mas_aibroker_db_secret_value
+      value: "{{ mas_aibroker_db_secret_value }}"
+    - name: mariadb_user
+      value: "{{ mariadb_user }}"
+    - name: mariadb_password
+      value: "{{ mariadb_password }}"
+    
+{%- endif %}
+
+  workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+    - name: shared-configs
+      persistentVolumeClaim:
+        claimName: config-pvc
+
+    # User-provided configurations
+    # -------------------------------------------------------------------------
+    # Any pre-generated configs that will be copied into the
+    # shared-config during install-suite
+    - name: shared-additional-configs
+      secret:
+        secretName: pipeline-additional-configs
+
+    # SLS entitlement
+    # -------------------------------------------------------------------------
+    # The SLS entitlement key file that will be installed
+    # during install-sls
+    - name: shared-entitlement
+      secret:
+        secretName: pipeline-sls-entitlement
+
+    # PodTemplates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-pod-templates
+      secret:
+        secretName: pipeline-pod-templates
+
+    # Certificates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-certificates
+      secret:
+        secretName: pipeline-certificates
