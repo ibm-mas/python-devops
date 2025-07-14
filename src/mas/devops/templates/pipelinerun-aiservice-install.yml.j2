@@ -316,6 +316,14 @@ spec:
     - name: db2_action_aibroker
       value: "not_install"
   {%- endif %}
+  {%- if mas_aibroker_is_external_route is defined and mas_aibroker_is_external_route != "" %}
+    - name: mas_aibroker_is_external_route
+      value: "{{ mas_aibroker_is_external_route }}"
+  {%- endif %}
+  {%- if mas_aibroker_cluster_domain is defined and mas_aibroker_cluster_domain != "" %}
+    - name: mas_aibroker_cluster_domain
+      value: "{{ mas_aibroker_cluster_domain }}"
+  {%- endif %}
 
 
     # AI Broker Tenant
