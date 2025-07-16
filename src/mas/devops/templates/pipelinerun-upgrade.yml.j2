@@ -169,10 +169,6 @@ spec:
     - name: mas_app_settings_server_bundles_size
       value: "{{ mas_app_settings_server_bundles_size }}"
   {%- endif %}
-  {%- if is_full_manage is defined and is_full_manage != "" %}
-    - name: is_full_manage
-      value: "{{ is_full_manage }}"
-  {%- endif %}
   {%- if mas_workspace_id is defined and mas_workspace_id != "" %}
     - name: mas_workspace_id
       value: "{{ mas_workspace_id }}"
