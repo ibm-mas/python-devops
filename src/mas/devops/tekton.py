@@ -406,7 +406,7 @@ def launchInstallPipelineForAiservice(dynClient: DynamicClient, params: dict) ->
     """
     Create a PipelineRun to install the Aiservice
     """
-    instanceId = params["aibroker_instance_id"]
+    instanceId = params["aiservice_instance_id"]
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
 
