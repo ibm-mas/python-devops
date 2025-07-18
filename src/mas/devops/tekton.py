@@ -407,10 +407,10 @@ def launchInstallPipelineForAiservice(dynClient: DynamicClient, params: dict) ->
     Create a PipelineRun to install the Aiservice
     """
     instanceId = params["aiservice_instance_id"]
-    namespace = f"mas-{instanceId}-pipelines"
+    namespace = f"aiservice-{instanceId}-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
     return pipelineURL
 
 
