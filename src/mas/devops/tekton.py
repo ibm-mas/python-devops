@@ -180,7 +180,7 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
 
     if configureRBAC:
         # Create RBAC
-        renderedTemplate = template.render(mas_instance_id=instanceId)
+        renderedTemplate = template.render(aiservice_instance_id=instanceId)
         logger.debug(renderedTemplate)
         crb = yaml.safe_load(renderedTemplate)
         clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
