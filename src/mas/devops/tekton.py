@@ -176,7 +176,7 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
         loader=FileSystemLoader(searchpath=templateDir)
     )
     namespace = f"aiservice-{instanceId}-pipelines"
-    template = env.get_template("pipelines-rbac.yml.j2")
+    template = env.get_template("aiservice-pipelines-rbac.yml.j2")
 
     if configureRBAC:
         # Create RBAC
