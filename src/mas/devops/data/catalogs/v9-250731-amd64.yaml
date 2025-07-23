@@ -9,7 +9,7 @@ catalog_digest: sha256:98dc1a078d4ad5920265698ce41e613e25a71006f4eeb03c083b4886a
 
 # Dependencies
 # -----------------------------------------------------------------------------
-ibm_licensing_version: 4.2.14                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+ibm_licensing_version: 4.2.16                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
 common_svcs_version: 4.12.0                  # Operator version 4.12.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
 common_svcs_version_1: 4.11.0                  # Additional version 4.11.0
 
@@ -34,7 +34,7 @@ wml_version: 10.2.0                          # Operator version 5.0.0
 spark_version: 10.2.0                         # Operator version 7.3.0
 cognos_version: 27.2.0                       # Operator version 25.0.0
 couchdb_version: 1.0.13                      # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
-elasticsearch_version: 1.1.2570              # Operator version 1.1.2470
+elasticsearch_version: 1.1.2667              # Operator version 1.1.2667
 
 
 # Maximo Application Suite
