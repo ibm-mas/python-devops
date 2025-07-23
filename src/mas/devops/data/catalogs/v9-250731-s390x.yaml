@@ -23,7 +23,7 @@ mas_core_version:
 mas_manage_version:
   9.1.x-feature: 9.1.0                  # tbc
   9.1.x: 9.1.0                          # tbc
-  9.0.x: 9.0.14                         # tbc
+  9.0.x: 9.0.15                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 

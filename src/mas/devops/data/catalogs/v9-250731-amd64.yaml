@@ -43,7 +43,7 @@ mas_core_version:
   9.1.x-feature: 9.1.0 # tbc
   9.1.x: 9.1.0         # tbc
   9.0.x: 9.0.12        # tbc
-  8.10.x: 8.10.26      # tbc
+  8.10.x: 8.10.27      # Updated
   8.11.x: 8.11.23      # tbc
 mas_assist_version:
   9.1.x: 9.1.0    # No Update
@@ -67,16 +67,16 @@ mas_manage_version:
   8.10.x: 8.6.28       # Updated
   8.11.x: 8.7.21       # tbc
 mas_monitor_version:
-  9.1.x: 9.1.0 # tbc
-  9.0.x: 9.0.10   # tbc
-  8.10.x: 8.10.20 # tbc
-  8.11.x: 8.11.18 # tbc
+  9.1.x: 9.1.1 # Updated
+  9.0.x: 9.0.11   # Updated
+  8.10.x: 8.10.21 # Updated
+  8.11.x: 8.11.19 # Updated
 mas_optimizer_version:
   9.1.x-feature: 9.1.0 # tbc
-  9.1.x: 9.1.0         # tbc
-  9.0.x: 9.0.12        # tbc
-  8.10.x: 8.4.19       # tbc
-  8.11.x: 8.5.18       # tbc
+  9.1.x: 9.1.2         # Updated
+  9.0.x: 9.0.13        # Updated
+  8.10.x: 8.4.20       # Updated
+  8.11.x: 8.5.19       # Updated
 mas_predict_version:
   9.1.x: 9.1.1    # Updated
   9.0.x: 9.0.8    # Updated
