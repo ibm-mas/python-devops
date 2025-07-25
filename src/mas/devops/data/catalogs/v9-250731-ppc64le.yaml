@@ -16,8 +16,8 @@ tsm_version: 1.6.2   # Operator version 1.5.4 (https://github.ibm.com/maximoapps
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0                  # tbc
-  9.1.x: 9.1.0                          # tbc
-  9.0.x: 9.0.12                         # tbc
+  9.1.x: 9.1.1                          # Updated
+  9.0.x: 9.0.13                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:

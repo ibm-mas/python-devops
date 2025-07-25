@@ -41,8 +41,8 @@ elasticsearch_version: 1.1.2667              # Operator version 1.1.2667
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0 # tbc
-  9.1.x: 9.1.0         # tbc
-  9.0.x: 9.0.12        # tbc
+  9.1.x: 9.1.1         # Updated
+  9.0.x: 9.0.13        # Updated
   8.10.x: 8.10.27      # Updated
   8.11.x: 8.11.24      # Updated
 mas_assist_version:
