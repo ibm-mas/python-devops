@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:32723ef50636d1533879bda9cc1afb9df78ecb477bde965fdac150c9543db1f3
+catalog_digest: sha256:431f6b5dc2eea1099729de2a9790d9c5b0f5a6445db2d952bb18e752765de918
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -94,7 +94,7 @@ mas_facilities_version:
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
 mas_aibroker_version:
-  9.1.x: 9.1.1 #Updated
+  9.1.x: 9.1.2 #Updated
   9.0.x: 9.0.6
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
