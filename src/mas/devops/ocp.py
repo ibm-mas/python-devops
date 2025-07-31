@@ -61,6 +61,23 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     return True
 
 
+def getClusterVersion(dynClient: DynamicClient) -> str:
+    """
+    Get a namespace
+    """
+    clusterVersionAPI = dynClient.resources.get(api_version="config.openshift.io/v1", kind="ClusterVersion")
+
+    # Version jsonPath = .status.history[?(@.state=="Completed")].version
+    try:
+        clusterVersion = clusterVersionAPI.get(name="version")
+        for record in clusterVersion.status.history:
+            if record.state == "Completed":
+                return record.state.version
+    except NotFoundError:
+        logger.debug("Unable to retrieve ClusterVersion")
+    return None
+
+
 def getNamespace(dynClient: DynamicClient, namespace: str) -> dict:
     """
     Get a namespace

@@ -170,8 +170,47 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
                 sleep(15)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
-    namespace = f"mas-{instanceId}-pipelines"
+def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    env = Environment(
+        loader=FileSystemLoader(searchpath=templateDir)
+    )
+    namespace = f"aiservice-{instanceId}-pipelines"
+    template = env.get_template("aiservice-pipelines-rbac.yml.j2")
+
+    if configureRBAC:
+        # Create RBAC
+        renderedTemplate = template.render(aiservice_instance_id=instanceId)
+        logger.debug(renderedTemplate)
+        crb = yaml.safe_load(renderedTemplate)
+        clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
+        clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
+
+    template = env.get_template("aiservice-pipelines-pvc.yml.j2")
+    renderedTemplate = template.render(
+        aiservice_instance_id=instanceId,
+        pipeline_storage_class=storageClass,
+        pipeline_storage_accessmode=accessMode
+    )
+    logger.debug(renderedTemplate)
+    pvc = yaml.safe_load(renderedTemplate)
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    pvcAPI.apply(body=pvc, namespace=namespace)
+
+    if waitForBind:
+        logger.debug("Waiting for PVC to be bound")
+        pvcIsBound = False
+        while not pvcIsBound:
+            configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+            if configPVC.status.phase == "Bound":
+                pvcIsBound = True
+            else:
+                logger.debug("Waiting 15s before checking status of PVC again")
+                logger.debug(configPVC)
+                sleep(15)
+
+
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
     # 1. Secret/pipeline-additional-configs
@@ -402,18 +441,6 @@ def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
     return pipelineURL
 
 
-def launchInstallPipelineForAiservice(dynClient: DynamicClient, params: dict) -> str:
-    """
-    Create a PipelineRun to install the Aiservice
-    """
-    instanceId = params["aibroker_instance_id"]
-    namespace = f"mas-{instanceId}-pipelines"
-    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
-
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
-    return pipelineURL
-
-
 def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     """
     Create a PipelineRun to update the Maximo Operator Catalog
@@ -422,4 +449,16 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-update", params)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-update-{timestamp}"
+    return pipelineURL
+
+
+def launchAiServiceInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to install the AI Service
+    """
+    instanceId = params["aiservice_instance_id"]
+    namespace = f"aiservice-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
     return pipelineURL

@@ -7,6 +7,11 @@
 
 catalog_digest: sha256:028f32213d3f14405eda7e78aaec28411688272f3358c5a34f6ebed6cf46c4c3
 
+ocp_compatibility:
+  - 4.14
+  - 4.15
+  - 4.16
+
 # Dependencies
 # -----------------------------------------------------------------------------
 ibm_licensing_version: 4.2.10                 # Operator version 4.2.7 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
