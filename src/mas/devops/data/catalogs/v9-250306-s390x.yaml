@@ -7,6 +7,11 @@
 
 catalog_digest: sha256:a9f4a2a8aa4ec25b68ff6a1592c0773f730564a833b14eef5585a077e37c203a
 
+ocp_compatibility:
+  - 4.14
+  - 4.15
+  - 4.16
+
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.11.1 # Updated                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.6.1  # No Update              # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
