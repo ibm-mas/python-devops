@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:cf03a9bcfacaf9c354078dfb2f97c166bfb1a6f0776680b52b7325cc469ffb31
+catalog_digest: tbc
 
 ocp_compatibility:
   - 4.15
@@ -46,14 +46,14 @@ elasticsearch_version: 1.1.2570              # Operator version 1.1.2470
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.1.x-feature: 9.1.0 # Updated
-  9.1.x: 9.1.0         # Updated
-  9.0.x: 9.0.12        # Updated
-  8.10.x: 8.10.26      # Updated
-  8.11.x: 8.11.23      # Updated
+  9.1.x-feature: 9.1.0 # tbc
+  9.1.x: 9.1.0         # tbc
+  9.0.x: 9.0.12        # tbc
+  8.10.x: 8.10.26      # tbc
+  8.11.x: 8.11.23      # tbc
 mas_assist_version:
-  9.1.x: 9.1.0    # Updated
-  9.0.x: 9.0.6    # Updated
+  9.1.x: 9.1.0    # tbc
+  9.0.x: 9.0.6    # tbc
   8.10.x: 8.7.8   # No Update
   8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
@@ -62,40 +62,40 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # No Update
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.1.x: 9.1.0    # Updated
-  9.0.x: 9.0.9    # Updated
-  8.10.x: 8.7.23  # Updated
-  8.11.x: 8.8.19  # Updated
+  9.1.x: 9.1.0    # tbc
+  9.0.x: 9.0.9    # tbc
+  8.10.x: 8.7.23  # tbc
+  8.11.x: 8.8.19  # tbc
 mas_manage_version:
-  9.1.x-feature: 9.1.0 # Updated
-  9.1.x: 9.1.0         # Updated
-  9.0.x: 9.0.14        # Updated
-  8.10.x: 8.6.27       # Updated
-  8.11.x: 8.7.21       # Updated
+  9.1.x-feature: 9.1.0 # tbc
+  9.1.x: 9.1.0         # tbc
+  9.0.x: 9.0.14        # tbc
+  8.10.x: 8.6.27       # tbc
+  8.11.x: 8.7.21       # tbc
 mas_monitor_version:
-  9.1.x: 9.1.0 # Updated
-  9.0.x: 9.0.10   # updated
-  8.10.x: 8.10.20 # updated
-  8.11.x: 8.11.18 # updated
+  9.1.x: 9.1.0 # tbc
+  9.0.x: 9.0.10   # tbc
+  8.10.x: 8.10.20 # tbc
+  8.11.x: 8.11.18 # tbc
 mas_optimizer_version:
-  9.1.x-feature: 9.1.0 # Updated
-  9.1.x: 9.1.0         # Updated
-  9.0.x: 9.0.12        # Updated
-  8.10.x: 8.4.19       # Updated
-  8.11.x: 8.5.18       # Updated
+  9.1.x-feature: 9.1.0 # tbc
+  9.1.x: 9.1.0         # tbc
+  9.0.x: 9.0.12        # tbc
+  8.10.x: 8.4.19       # tbc
+  8.11.x: 8.5.18       # tbc
 mas_predict_version:
-  9.1.x: 9.1.0    # Updated
+  9.1.x: 9.1.0    # tbc
   9.0.x: 9.0.7    # No Update
   8.10.x: 8.8.8   # No Update
   8.11.x: 8.9.10  # No Update
 mas_visualinspection_version:
-  9.1.x-feature: 9.1.0 # Updated
-  9.1.x: 9.1.0         # Updated
+  9.1.x-feature: 9.1.0 # tbc
+  9.1.x: 9.1.0         # tbc
   9.0.x: 9.0.9         # No Update
   8.10.x: 8.8.4        # No Update
   8.11.x: 8.9.12       # No Update
 mas_facilities_version:
-  9.1.x: 9.1.0    # Updated
+  9.1.x: 9.1.0    # tbc
   9.0.x: ""       # Not Supported
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
