@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 250828 (Z)
+# Case bundle configuration for IBM Maximo Operator Catalog 250731 (Z)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:c333930526cac73445bb3de16aa9b4bb3778d6aaeb947ac45b486fb45f0c7054
+catalog_digest: sha256:b6e78dda5018b383e2814522c253de9cd3b121ea434e55927dc31001d7ec8c55
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.0  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)

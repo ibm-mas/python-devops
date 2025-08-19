@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 250828 (PPC)
+# Case bundle configuration for IBM Maximo Operator Catalog 250731 (PPC)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:79fb3b3b7ede5b9068f78dbf2ed0e0916cde3aa3bc8cf8ea16a373a4ae8dca59
+catalog_digest: sha256:300827ce82f7d11ae5f0f281ae9b75ee8bee8ee4b1cb7ba039c6b7f9e964c57d
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.0  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
@@ -16,14 +16,14 @@ tsm_version: 1.6.2   # Operator version 1.5.4 (https://github.ibm.com/maximoapps
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0                  # tbc
-  9.1.x: 9.1.1                          # tbc
-  9.0.x: 9.0.13                         # tbc
+  9.1.x: 9.1.1                          # Updated
+  9.0.x: 9.0.13                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
   9.1.x-feature: 9.1.0                  # tbc
-  9.1.x: 9.1.1                          # tbc
-  9.0.x: 9.0.15                         # tbc
+  9.1.x: 9.1.1                          # Updated
+  9.0.x: 9.0.15                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
