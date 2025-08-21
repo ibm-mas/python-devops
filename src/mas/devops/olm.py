@@ -40,7 +40,7 @@ def getPackageManifest(dynClient: DynamicClient, packageName: str, catalogSource
     return manifestResource
 
 
-def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namespace: str):
+def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namespace: str, installMode: str = "OwnNamespace"):
     # Create a new OperatorGroup if necessary
     operatorGroupsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1", kind="OperatorGroup")
     operatorGroupList = operatorGroupsAPI.get(namespace=namespace)
@@ -49,7 +49,8 @@ def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namesp
         template = env.get_template("operatorgroup.yml.j2")
         renderedTemplate = template.render(
             name="operatorgroup",
-            namespace=namespace
+            namespace=namespace,
+            installMode=installMode
         )
         operatorGroup = yaml.safe_load(renderedTemplate)
         operatorGroupsAPI.apply(body=operatorGroup, namespace=namespace)
@@ -70,7 +71,7 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
     return subscriptions.items[0]
 
 
-def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None):
+def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None, installMode: str = "OwnNamespace"):
     """
     Usage:
       createSubscription(dynClient, "testns1", "sub1", "ibm-sls")  # use default channel, & auto-detect CatalogSource
@@ -101,7 +102,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     # Create the Namespace & OperatorGroup if necessary
     logger.debug(f"Setting up OperatorGroup in {namespace}")
     createNamespace(dynClient, namespace)
-    ensureOperatorGroupExists(dynClient, env, namespace)
+    ensureOperatorGroupExists(dynClient, env, namespace, installMode)
 
     # Create (or update) the subscription
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
