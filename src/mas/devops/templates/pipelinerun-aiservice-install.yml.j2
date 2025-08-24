@@ -213,16 +213,7 @@ spec:
     - name: rsl_token
       value: "{{ rsl_token }}"
 
-    # S3 Buckets
-    # -------------------------------------------------------------------------
-    - name: aiservice_s3_bucket_prefix
-      value: "{{ aiservice_s3_bucket_prefix }}"
-    - name: aiservice_s3_region
-      value: "{{ aiservice_s3_region }}"
-    - name: aiservice_s3_endpoint_url
-      value: "{{ aiservice_s3_endpoint_url }}"
-
-    # AI Service - OpenData Hub Storage
+    # S3
     # -------------------------------------------------------------------------
     - name: aiservice_s3_provider
       value: "{{ aiservice_s3_provider }}"
@@ -238,6 +229,11 @@ spec:
       value: "{{ aiservice_s3_ssl }}"
     - name: aiservice_s3_region
       value: "{{ aiservice_s3_region }}"
+    - name: aiservice_s3_endpoint_url
+      value: "{{ aiservice_s3_endpoint_url }}"
+
+    - name: aiservice_s3_bucket_prefix
+      value: "{{ aiservice_s3_bucket_prefix }}"
 
     - name: aiservice_s3_pipelines_bucket
       value: "{{ aiservice_s3_pipelines_bucket }}"
