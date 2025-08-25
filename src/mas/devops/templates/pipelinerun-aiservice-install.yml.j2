@@ -193,16 +193,6 @@ spec:
       value: "{{ tenant_entitlement_start_date }}"
     - name: tenant_entitlement_end_date
       value: "{{ tenant_entitlement_end_date }}"
-    - name: aiservice_tenant_s3_bucket_prefix
-      value: "{{ aiservice_tenant_s3_bucket_prefix }}"
-    - name: aiservice_tenant_s3_region
-      value: "{{ aiservice_tenant_s3_region }}"
-    - name: aiservice_tenant_s3_endpoint_url
-      value: "{{ aiservice_tenant_s3_endpoint_url }}"
-    - name: aiservice_tenant_s3_access_key
-      value: "{{ aiservice_tenant_s3_access_key }}"
-    - name: aiservice_tenant_s3_secret_key
-      value: "{{ aiservice_tenant_s3_secret_key }}"
 
     # RSL
     # -------------------------------------------------------------------------
@@ -213,38 +203,29 @@ spec:
     - name: rsl_token
       value: "{{ rsl_token }}"
 
-    # S3 Buckets
+    # S3
     # -------------------------------------------------------------------------
-    - name: aiservice_s3_bucket_prefix
-      value: "{{ aiservice_s3_bucket_prefix }}"
+    - name: aiservice_s3_accesskey
+      value: "{{ aiservice_s3_accesskey }}"
+    - name: aiservice_s3_secretkey
+      value: "{{ aiservice_s3_secretkey }}"
+    - name: aiservice_s3_host
+      value: "{{ aiservice_s3_host }}"
+    - name: aiservice_s3_port
+      value: "{{ aiservice_s3_port }}"
+    - name: aiservice_s3_ssl
+      value: "{{ aiservice_s3_ssl }}"
     - name: aiservice_s3_region
       value: "{{ aiservice_s3_region }}"
-    - name: aiservice_s3_endpoint_url
-      value: "{{ aiservice_s3_endpoint_url }}"
+    - name: aiservice_s3_bucket_prefix
+      value: "{{ aiservice_s3_bucket_prefix }}"
 
-    # AI Service - OpenData Hub Storage
-    # -------------------------------------------------------------------------
-    - name: aiservice_storage_provider
-      value: "{{ aiservice_storage_provider }}"
-    - name: aiservice_storage_accesskey
-      value: "{{ aiservice_storage_accesskey }}"
-    - name: aiservice_storage_secretkey
-      value: "{{ aiservice_storage_secretkey }}"
-    - name: aiservice_storage_host
-      value: "{{ aiservice_storage_host }}"
-    - name: aiservice_storage_port
-      value: "{{ aiservice_storage_port }}"
-    - name: aiservice_storage_ssl
-      value: "{{ aiservice_storage_ssl }}"
-    - name: aiservice_storage_region
-      value: "{{ aiservice_storage_region }}"
-
-    - name: aiservice_storage_pipelines_bucket
-      value: "{{ aiservice_storage_pipelines_bucket }}"
-    - name: aiservice_storage_tenants_bucket
-      value: "{{ aiservice_storage_tenants_bucket }}"
-    - name: aiservice_storage_templates_bucket
-      value: "{{ aiservice_storage_templates_bucket }}"
+    - name: aiservice_s3_pipelines_bucket
+      value: "{{ aiservice_s3_pipelines_bucket }}"
+    - name: aiservice_s3_tenants_bucket
+      value: "{{ aiservice_s3_tenants_bucket }}"
+    - name: aiservice_s3_templates_bucket
+      value: "{{ aiservice_s3_templates_bucket }}"
 
     - name: minio_root_user
       value: "{{ minio_root_user }}"
@@ -262,16 +243,6 @@ spec:
       value: "{{ aiservice_watsonxai_project_id }}"
     - name: aiservice_watsonx_action
       value: "{{ aiservice_watsonx_action }}"
-
-{%- if aiservice_s3_action is defined and aiservice_s3_action != "" %}
-
-    # AI Service - S3
-    # -------------------------------------------------------------------------
-    - name: aiservice_s3_action
-      value: "{{ aiservice_s3_action }}"
-    - name: aiservice_apikey_action
-      value: "{{ aiservice_apikey_action }}"
-{%- endif %}
 
   workspaces:
     # The generated configuration files
