@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:428c6f99f6274129daac7af91129701809d559e3071326807adb7a8c6f0a7494
+catalog_digest: sha256:78233ae2d92057d3819e29faffbf6b29ca57197b91f8e873cfbe026cb460d7ed
 
 ocp_compatibility:
   - 4.15
@@ -37,7 +37,7 @@ wml_version: 10.2.0                          # Operator version 5.0.0
 # ccs_build: +20240528.144404.460            # ibm-ccs from version 9.0.0 requires the build version
 # datarefinery_build: +20240517.202103.146
 
-spark_version: 10.2.0                         # Operator version 7.3.0
+spark_version: 10.2.0                        # Operator version 7.3.0
 cognos_version: 27.2.0                       # Operator version 25.0.0
 couchdb_version: 1.0.13                      # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
 elasticsearch_version: 1.1.2667              # Operator version 1.1.2667
@@ -47,8 +47,8 @@ elasticsearch_version: 1.1.2667              # Operator version 1.1.2667
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.1.x-feature: 9.1.0 # Updated
-  9.1.x: 9.1.1         # Not Updated
-  9.0.x: 9.0.13        # Not Updated
+  9.1.x: 9.1.2         # Updated
+  9.0.x: 9.0.14        # Updated
   8.10.x: 8.10.28      # Updated
   8.11.x: 8.11.25      # Updated
 mas_assist_version:
