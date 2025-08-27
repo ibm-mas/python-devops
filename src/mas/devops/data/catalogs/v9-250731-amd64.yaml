@@ -93,9 +93,12 @@ mas_facilities_version:
   9.0.x: ""       # Not Supported
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
-mas_aibroker_version:
-  9.1.x: 9.1.4 # Updated
-  9.0.x: 9.0.6
+
+# Maximo AI Service
+# ------------------------------------------------------------------------------
+aiservice_version:
+  9.1.x: ""  # Not Ready Yet
+
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
 uds_extras_version: 1.5.0
