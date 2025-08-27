@@ -369,6 +369,8 @@ spec:
     # -------------------------------------------------------------------------
     - name: dns_provider
       value: "{{ dns_provider }}"
+    - name: ocp_ingress
+      value: "{{ ocp_ingress }}"
   {%- if cloudflare_apitoken is defined and cloudflare_apitoken != "" %}
 
     # MAS DNS Integrations - Cloudflare Support
