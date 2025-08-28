@@ -5,12 +5,12 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:896c840c733cc1e611bbaf7c7611debf9f6e641a72925fbaae22b69e6f462f99
+catalog_digest: sha256:8d6f205e59ac55155db6cf348029d52c035236bd60c8d212dcf2634e0a716cb1
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.2  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.0   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-
+db2u_version: 7.2.0+20250522.212407.15144    # Operator version 110509.0.2 to find the version 7.2.0, search CASE_VERSION in db2u, catalog.yaml into ibm-maximo-operator-catalog (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
