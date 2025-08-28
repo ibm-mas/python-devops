@@ -99,11 +99,6 @@ mas_facilities_version:
   9.0.x: ""       # Not Supported
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
-ibm-aiservice_version:
-  9.1.x: 9.1.5    # Updated
-  9.0.x: ""       # Not Supported
-  8.10.x: ""      # Not Supported
-  8.11.x: ""      # Not Supported
 
 
 # Maximo AI Service
