@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:ea42e59ba04a7fc27b23e9dbbf54ac76a8536efd99db18896bbe6522c830e66e
+catalog_digest: sha256:adea6ac79804698267a11806cbc93b4a4a650fb3dac6ed619d590d9d8469bda3
 
 ocp_compatibility:
   - 4.15
@@ -25,7 +25,7 @@ ibm_zen_version: 6.1.1+20250218.180746.89    # For CPD5 ibm-zen has to be explic
 db2u_version: 7.2.0+20250522.212407.15144    # Operator version 110509.0.2 to find the version 7.2.0, search CASE_VERSION in db2u, catalog.yaml into ibm-maximo-operator-catalog (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.1                          # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+sls_version: 3.12.2                          # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.0                           # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 dd_version: 1.1.19                           # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
@@ -99,6 +99,12 @@ mas_facilities_version:
   9.0.x: ""       # Not Supported
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
+ibm-aiservice_version:
+  9.1.x: 9.1.5    # Updated
+  9.0.x: ""       # Not Supported
+  8.10.x: ""      # Not Supported
+  8.11.x: ""      # Not Supported
+
 
 # Maximo AI Service
 # ------------------------------------------------------------------------------
