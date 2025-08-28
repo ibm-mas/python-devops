@@ -5,10 +5,10 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:dcf15092dae089665404029109f63e5b4fcfedfac7f43cbcc8ef93fae2764f7c
+catalog_digest: sha256:efad4bbc7791ba7ed28fccfb2cff44ea7ec49b29f05556762cc65f319fcc8e14
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.1  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+sls_version: 3.12.2  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.0   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 
 
