@@ -101,6 +101,8 @@ mas_facilities_version:
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
 
+# Maximo AI Service
+# ------------------------------------------------------------------------------
 aiservice_version:
   9.1.x: ""  # Not Ready Yet
 
