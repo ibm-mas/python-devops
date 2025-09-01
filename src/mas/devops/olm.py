@@ -196,9 +196,9 @@ def _deleteFailedCsv(dynClient: DynamicClient, name: str, namespace: str):
 
     conditionsSortedByTimestamp = sorted(subscriptionResource.status.conditions, key=lambda item: item['lastTransitionTime'], reverse=True)
     if conditionsSortedByTimestamp[0]['reason'] == 'ConstraintsNotSatisfiable':
-        message=conditionsSortedByTimestamp[0]['message']
-        captureGroup=r"clusterserviceversion\s+([a-zA-Z0-9\-\.]+)"
-        csvName=search(captureGroup, message)
+        message = conditionsSortedByTimestamp[0]['message']
+        captureGroup = r"clusterserviceversion\s+([a-zA-Z0-9\-\.]+)"
+        csvName = search(captureGroup, message)
 
         csvAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="ClusterServiceVersion")
         csvAPI.delete(name=csvName, namespace=namespace)
