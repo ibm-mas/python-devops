@@ -11,6 +11,7 @@
 import logging
 from time import sleep
 from os import path
+from re import search
 
 from kubernetes.dynamic.exceptions import NotFoundError
 from openshift.dynamic import DynamicClient
@@ -152,6 +153,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     while installPlanPhase != "Complete":
         installPlanResource = installPlanAPI.get(name=installPlanName, namespace=namespace)
         installPlanPhase = installPlanResource.status.phase
+        _deleteFailedCsv(dynClient, name=name, namespace=namespace)
         sleep(30)
 
     # Wait for Subscription to complete
@@ -186,3 +188,17 @@ def _findAndDeleteResources(api, resourceType: str, labelSelector: str, namespac
         for item in resources.items:
             logger.info(f"Deleting {resourceType} {item.metadata.name}")
             api.delete(name=item.metadata.name, namespace=namespace)
+
+
+def _deleteFailedCsv(dynClient: DynamicClient, name: str, namespace: str):
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    subscriptionResource = subscriptionsAPI.get(name=name, namespace=namespace)
+
+    conditionsSortedByTimestamp = sorted(subscriptionResource.status.conditions, key=lambda item: item['lastTransitionTime'], reverse=True)
+    if conditionsSortedByTimestamp[0]['reason'] == 'ConstraintsNotSatisfiable':
+        message=conditionsSortedByTimestamp[0]['message']
+        captureGroup=r"clusterserviceversion\s+([a-zA-Z0-9\-\.]+)"
+        csvName=search(captureGroup, message)
+
+        csvAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="ClusterServiceVersion")
+        csvAPI.delete(name=csvName, namespace=namespace)
