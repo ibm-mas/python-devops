@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: TBc
+catalog_digest: sha256:6a18fa3fac8c9f826f18b4f2aeacbe97f180a1f2e8efd4bae5846f0b2b359752
 
 ocp_compatibility:
   - 4.15
@@ -104,7 +104,7 @@ mas_facilities_version:
 # Maximo AI Service
 # ------------------------------------------------------------------------------
 aiservice_version:
-  9.1.x: 9.1.5  # New
+  9.1.x: 9.1.6  # New
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
