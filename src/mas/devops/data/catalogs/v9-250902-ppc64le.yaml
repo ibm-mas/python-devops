@@ -15,15 +15,15 @@ db2u_version: 7.2.0+20250522.212407.15144    # Operator version 110509.0.2 to fi
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.1.x-feature: 9.1.0                  # tbc
-  9.1.x: 9.1.2                          # Updated
-  9.0.x: 9.0.14                         # Updated
+  9.1.x-feature: 9.1.0                  # No Update
+  9.1.x: 9.1.2                          # No Update
+  9.0.x: 9.0.14                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.1.x-feature: 9.1.0                  # tbc
-  9.1.x: 9.1.2                          # Updated
-  9.0.x: 9.0.16                         # Updated
+  9.1.x-feature: 9.1.0                  # No Update
+  9.1.x: 9.1.2                          # No Update
+  9.0.x: 9.0.16                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
