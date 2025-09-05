@@ -94,7 +94,7 @@ def getNamespace(dynClient: DynamicClient, namespace: str) -> dict:
     return {}
 
 
-def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
+def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabels: bool = False) -> bool:
     """
     Create a namespace if it does not exist
     """
@@ -110,6 +110,10 @@ def createNamespace(dynClient: DynamicClient, namespace: str) -> bool:
                 "name": namespace
             }
         }
+        if kyvernoLabels is not None:
+            nsObj["metadata"]["labels"] = {
+                "ibm.com/kyverno": "audit"
+            }
         namespaceAPI.create(body=nsObj)
         logger.debug(f"Created namespace {namespace}")
     return True
