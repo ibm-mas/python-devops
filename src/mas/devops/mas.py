@@ -134,6 +134,22 @@ def listMasInstances(dynClient: DynamicClient) -> list:
     return suites
 
 
+def listAiServiceInstances(dynClient: DynamicClient) -> list:
+    """
+    Get a list of AI Service instances on the cluster
+    """
+    api = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceApp")
+
+    instances = api.get().to_dict()['items']
+    if len(instances) > 0:
+        logger.info(f"There are {len(instances)} AI Service instances installed on this cluster:")
+        for instance in instances:
+            logger.info(f" * {instance['metadata']['name']} v{instance['status']['versions']['reconciled']}")
+    else:
+        logger.info("There are no AI Service instances installed on this cluster")
+    return instances
+
+
 def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
     """
     Get the MAS workspace ID for namespace "mas-{instanceId}-core"
