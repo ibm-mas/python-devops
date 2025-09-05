@@ -94,7 +94,7 @@ def getNamespace(dynClient: DynamicClient, namespace: str) -> dict:
     return {}
 
 
-def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabel: str) -> bool:
+def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabel: str = '') -> bool:
     """
     Create a namespace if it does not exist
     """
