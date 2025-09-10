@@ -105,7 +105,7 @@ def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabel: str 
         if kyvernoLabel is not None:
             if ns.metadata.labels is None or "ibm.com/kyverno" not in ns.metadata.labels.keys() or ns.metadata.labels["ibm.com/kyverno"] != kyvernoLabel:
                 logger.info(f"Patching namespace with Kyverno Labels ibm.com/kyverno: {kyvernoLabel}")
-                body = {"metadata":{"labels":{"ibm.com/kyverno": kyvernoLabel}}}
+                body = {"metadata": {"labels": {"ibm.com/kyverno": kyvernoLabel}}}
                 namespaceAPI.patch(
                     name=namespace,
                     body=body,
