@@ -162,11 +162,9 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         if subscriptionResource.status.state == "AtLatestKnown":
             logger.debug(f"Subscription ready for {name} in {namespace}  ")
             return subscriptionResource
-         
+
         logger.debug(f"Subscription ready not yet for {name} in {namespace} ")
         sleep(30)
-
-   
 
 
 def deleteSubscription(dynClient: DynamicClient, namespace: str, packageName: str) -> None:
