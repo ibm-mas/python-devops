@@ -100,8 +100,17 @@ def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabel: str 
     """
     namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
     try:
-        namespaceAPI.get(name=namespace)
-        logger.debug(f"Namespace {namespace} already exists")
+        ns = namespaceAPI.get(name=namespace)
+        logger.info(f"Namespace {namespace} already exists")
+        if kyvernoLabel is not None:
+            if ns.metadata.labels is None or "ibm.com/kyverno" not in ns.metadata.labels.keys() or ns.metadata.labels["ibm.com/kyverno"] != kyvernoLabel:
+                logger.info(f"Patching namespace with Kyverno Labels ibm.com/kyverno: {kyvernoLabel}")
+                body = {"metadata": {"labels": {"ibm.com/kyverno": kyvernoLabel}}}
+                namespaceAPI.patch(
+                    name=namespace,
+                    body=body,
+                    content_type="application/merge-patch+json"
+                )
     except NotFoundError:
         nsObj = {
             "apiVersion": "v1",
