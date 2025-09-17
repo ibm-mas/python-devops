@@ -164,7 +164,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
             logger.debug(f"Subscription {name} in {namespace} reached state: {state}")
             return subscriptionResource
 
-        logger.debug(f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying...")        
+        logger.debug(f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying...")
         sleep(30)
 
 
