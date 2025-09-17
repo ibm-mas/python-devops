@@ -158,12 +158,13 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     logger.debug(f"Waiting for Subscription {name} in {namespace}")
     while True:
         subscriptionResource = subscriptionsAPI.get(name=name, namespace=namespace)
+        state = getattr(subscriptionResource.status, "state", None)
 
-        if subscriptionResource.status.state == "AtLatestKnown":
-            logger.debug(f"Subscription ready for {name} in {namespace}  ")
+        if state == "AtLatestKnown":
+            logger.debug(f"Subscription {name} in {namespace} reached state: {state}")
             return subscriptionResource
 
-        logger.debug(f"Subscription ready not yet for {name} in {namespace} ")
+        logger.debug(f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying...")        
         sleep(30)
 
 
