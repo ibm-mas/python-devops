@@ -123,16 +123,29 @@ def listMasInstances(dynClient: DynamicClient) -> list:
     """
     Get a list of MAS instances on the cluster
     """
-    suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
+    return listInstances(dynClient, "core.mas.ibm.com/v1", "Suite")
 
-    suites = suitesAPI.get().to_dict()['items']
-    if len(suites) > 0:
-        logger.info(f"There are {len(suites)} MAS instances installed on this cluster:")
-        for suite in suites:
-            logger.info(f" * {suite['metadata']['name']} v{suite['status']['versions']['reconciled']}")
+
+def listAiServiceInstances(dynClient: DynamicClient) -> list:
+    """
+    Get a list of AI Service instances on the cluster
+    """
+    return listInstances(dynClient, "aiservice.ibm.com/v1", "AIServiceApp")
+
+
+def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
+    """
+    Get a list of instances of a particular CR on the cluster
+    """
+    api = dynClient.resources.get(api_version=apiVersion, kind=kind)
+    instances = api.get().to_dict()['items']
+    if len(instances) > 0:
+        logger.info(f"There are {len(instances)} {kind} instances installed on this cluster:")
+    for instance in instances:
+        logger.info(f" * {instance['metadata']['name']} v{instance['status']['versions']['reconciled']}")
     else:
-        logger.info("There are no MAS instances installed on this cluster")
-    return suites
+        logger.info(f"There are no {kind} instances installed on this cluster")
+    return instances
 
 
 def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
