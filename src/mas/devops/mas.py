@@ -178,6 +178,7 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         logger.error(f"Error: Unable to verify MAS instance due to failed authorization: {e}")
         return False
 
+
 def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     """
     Validate that the chosen AI Service instance exists
@@ -196,6 +197,7 @@ def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     except UnauthorizedError as e:
         logger.error(f"Error: Unable to verify AI Service instance due to failed authorization: {e}")
         return False
+
 
 def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: str) -> bool:
     """
@@ -242,6 +244,7 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
     else:
         return masSubscription.spec.channel
 
+
 def getAiserviceChannel(dynClient: DynamicClient, instanceId: str) -> str:
     """
     Get the AI Service channel from the subscription
@@ -251,6 +254,7 @@ def getAiserviceChannel(dynClient: DynamicClient, instanceId: str) -> str:
         return None
     else:
         return aiserviceSubscription.spec.channel
+
 
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
     if secretName is None:
