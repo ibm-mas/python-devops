@@ -15,7 +15,7 @@ ocp_compatibility:
 
 # Dependencies
 # -----------------------------------------------------------------------------
-ibm_licensing_version: 4.2.16                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+ibm_licensing_version: 4.2.17                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
 common_svcs_version: 4.12.0                  # Operator version 4.12.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
 common_svcs_version_1: 4.11.0                  # Additional version 4.11.0
 
