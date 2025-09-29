@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:66ee4a36798ae875564efea83e6656302a76772bde833f46f3917a5dcfe76fb4
+catalog_digest: sha256:984fde70dda6e3a5db3256f5c9a68c1eedaaf21f3182b57694c032fc20bd817e
 
 ocp_compatibility:
   - 4.15
@@ -15,7 +15,7 @@ ocp_compatibility:
 
 # Dependencies
 # -----------------------------------------------------------------------------
-ibm_licensing_version: 4.2.16                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+ibm_licensing_version: 4.2.17                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
 common_svcs_version: 4.12.0                  # Operator version 4.12.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
 common_svcs_version_1: 4.11.0                  # Additional version 4.11.0
 
