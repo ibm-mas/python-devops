@@ -465,10 +465,10 @@ def launchAiServiceInstallPipeline(dynClient: DynamicClient, params: dict) -> st
 
 
 def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
-                          aiserviceInstanceId: str,
-                          skipPreCheck: bool = False,
-                          masChannel: str = "",
-                          params: dict = {}) -> str:
+                                   aiserviceInstanceId: str,
+                                   skipPreCheck: bool = False,
+                                   masChannel: str = "",
+                                   params: dict = {}) -> str:
     """
     Create a PipelineRun to upgrade the chosen AI Service instance
     """
