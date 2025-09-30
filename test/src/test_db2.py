@@ -274,6 +274,32 @@ def test_check_reg_cfg(mocker):
     ])
 
 
+def test_check_reg_cfg_with_empty_value_in_cr(mocker):
+
+    mock_db2_pod_exec_db2set = mocker.patch("mas.devops.db2.db2_pod_exec_db2set")
+    mock_db2_pod_exec_db2set.return_value = '''
+    DB2AUTH=OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD
+    DB2_FMP_COMM_HEAPSZ=65536 [O]
+  '''
+
+    db2_instance_cr = dict(
+        spec=dict(
+            environment=dict(
+                instance=dict(
+                    registry=dict(
+                        DB2AUTH='WRONG',
+                        NOTFOUNDINOUTPUT="",
+                    )
+                )
+            )
+        )
+    )
+
+    assert set(db2.check_reg_cfg(db2_instance_cr, None, None, None)) == set([
+        "[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"
+    ])
+
+
 @pytest.mark.parametrize("test_case_name, expected_failures", [
     # This test case simulates what will happen when we run the validate_db2_config using the IoT Db2uInstance CR
     # as we have it today in fvtsaas after the CR settings have been applied successfully to DB2
