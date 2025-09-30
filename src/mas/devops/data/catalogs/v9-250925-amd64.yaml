@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:62e02117554b94b36b5154a73a43aa360f56e282367425eb4eb3b5f5e3dcdff2
+catalog_digest: sha256:b82d0d15ecaa9df4be417926af0b8545a761e5bea6d59112d51f917aa7604fe9
 
 ocp_compatibility:
   - 4.15
@@ -46,7 +46,7 @@ elasticsearch_version: 1.1.2667              # Operator version 1.1.2667
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: "" # TBC
+  9.2.x-feature: 9.2.0-pre.stable_11883 # Updated
   9.1.x-feature: 9.1.0 # No Update
   9.1.x: 9.1.4         # Updated
   9.0.x: 9.0.15        # Updated
@@ -68,7 +68,7 @@ mas_iot_version:
   8.10.x: 8.7.26   # Updated
   8.11.x: 8.8.22   # Updated
 mas_manage_version:
-  9.2.x-feature: "" # TBC
+  9.2.x-feature: 9.2.0-pre.stable_13752 # Updated
   9.1.x-feature: 9.1.0 # No Update
   9.1.x: 9.1.2         # No Update
   9.0.x: 9.0.17        # Updated
