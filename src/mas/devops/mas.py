@@ -225,6 +225,41 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
         return masSubscription.spec.channel
 
 
+def getAppsSubscriptionChannel(dynClient: DynamicClient, instanceId: str) -> list:
+    """
+    Return list of installed apps with their subscribed channel
+    """
+    try:
+        installedApps = []
+        appKinds = [
+            "assist",
+            "facilities",
+            "health",
+            "hputilities",
+            "iot",
+            "manage",
+            "monitor",
+            "mso",
+            "optimizer",
+            "safety",
+            "predict",
+            "visualinspection",
+            "aibroker"
+        ]
+        for appKind in appKinds:
+            appSubscription = getSubscription(dynClient, f"mas-{instanceId}-{appKind}", f"ibm-mas-{appKind}")
+            if appSubscription is not None:
+                installedApps.append({"appId": appKind, "channel": appSubscription.spec.channel})
+        return installedApps
+    except NotFoundError:
+        return []
+    except ResourceNotFoundError:
+        return []
+    except UnauthorizedError:
+        logger.error("Error: Unable to get MAS app subscriptions due to failed authorization: {e}")
+        return []
+
+
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
     if secretName is None:
         secretName = "ibm-entitlement"

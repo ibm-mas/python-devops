@@ -237,10 +237,12 @@ def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
     for cr_k, cr_v in reg_cfg_cr.items():
         # regex ignores any trailing [O] (which indicates the param has been overridden I think)
         matches = re.search(fr"{cr_k}=(.*?)(?:\s\[O\])?$", reg_cfg_pod, re.MULTILINE)
-        if matches is None:
+        if matches is None and cr_v != '':
             failures.append(f"[registry cfg] {cr_k} not found in output of db2set command")
             continue
-        pod_v = matches.group(1)
+        pod_v = ''
+        if cr_v != '':
+            pod_v = matches.group(1)
 
         if not cr_pod_v_matches(cr_k, cr_v, pod_v):
             failures.append(f"[registry cfg] {cr_k}: {cr_v} != {pod_v}")
