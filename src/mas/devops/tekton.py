@@ -467,7 +467,7 @@ def launchAiServiceInstallPipeline(dynClient: DynamicClient, params: dict) -> st
 def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
                                    aiserviceInstanceId: str,
                                    skipPreCheck: bool = False,
-                                   masChannel: str = "",
+                                   aiserviceChannel: str = "",
                                    params: dict = {}) -> str:
     """
     Create a PipelineRun to upgrade the chosen AI Service instance
@@ -480,12 +480,12 @@ def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir)
     )
-    template = env.get_template("pipelinerun-upgrade.yml.j2")
+    template = env.get_template("pipelinerun-aiservice-upgrade.yml.j2")
     renderedTemplate = template.render(
         timestamp=timestamp,
-        mas_instance_id=aiserviceInstanceId,
+        aiservice_instance_id=aiserviceInstanceId,
         skip_pre_check=skipPreCheck,
-        mas_channel=masChannel,
+        aiservice_channel=aiserviceChannel,
         **params
     )
     logger.debug(renderedTemplate)
