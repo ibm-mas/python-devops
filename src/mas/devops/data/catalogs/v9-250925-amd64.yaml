@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:dfad6765c3d4ec5a4ca5f0eb8b8954565c5bb1fc07a8093fdaf9f88a9658ddaa
+catalog_digest: sha256:db5ac0b24bc6c0cb2af8eebcf529fee8ce944196d49aaf7448a00b6e9ffa8d96
 
 ocp_compatibility:
   - 4.15
@@ -70,7 +70,7 @@ mas_iot_version:
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_13752 # Updated
   9.1.x-feature: 9.1.0 # No Update
-  9.1.x: 9.1.2         # No Update
+  9.1.x: 9.1.3         # No Update
   9.0.x: 9.0.17        # Updated
   8.10.x: 8.6.30       # Updated
   8.11.x: 8.7.24       # Updated
@@ -144,4 +144,4 @@ cpd_product_version_default: 5.1.3
 # Extra Images for kmodels
 # ------------------------------------------------------------------------------
 kmodels_extras_version_default: 1.0.14
-
+manage_extras_913: 9.1.3
