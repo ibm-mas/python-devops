@@ -151,14 +151,19 @@ def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
         try:
             crd = crdAPI.get(name=crdName)
             conditions = crd.status.conditions
-            for condition in conditions:
-                if condition.type == "Established":
-                    if condition.status == "True":
-                        foundReadyCRD = True
-                    else:
-                        logger.debug(f"Waiting 5s for {crdName} CRD to be ready before checking again ...")
-                        sleep(5)
-                        continue
+            if conditions is None:
+                logger.debug(f"Looking for status.conditions to be available to iterate for {crdName}")
+                sleep(5)
+                continue
+            else:
+                for condition in conditions:
+                    if condition.type == "Established":
+                        if condition.status == "True":
+                            foundReadyCRD = True
+                        else:
+                            logger.debug(f"Waiting 5s for {crdName} CRD to be ready before checking again ...")
+                            sleep(5)
+                            continue
         except NotFoundError:
             logger.debug(f"Waiting 5s for {crdName} CRD to be installed before checking again ...")
             sleep(5)
