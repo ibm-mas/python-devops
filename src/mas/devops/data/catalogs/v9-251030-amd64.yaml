@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:dc97e7876b0752bf965f53108f211efff9e4e2fe9897c0fd2e74fae5cf225c5f
+catalog_digest: sha256:1496bedc8413c6ace88d60fa343ba261ba9950be3cca472280fbc71c2ce2ffdb
 
 ocp_compatibility:
   - 4.15
@@ -27,7 +27,7 @@ events_version: 5.0.1                        # Operator version 5.0.1 (https://g
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.2                          # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.1                           # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-dd_version: 1.1.19                           # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
+dd_version: 1.1.20                           # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 wsl_version: 10.2.0                          # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
 wsl_runtimes_version: 10.3.0                 # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
@@ -84,10 +84,10 @@ mas_optimizer_version:
   8.10.x: 8.4.23       # Updated
   8.11.x: 8.5.22       # Updated
 mas_predict_version:
-  9.1.x: 9.1.2    # Need to update
-  9.0.x: 9.0.9    # Need to update
-  8.10.x: 8.8.10  # Need to update
-  8.11.x: 8.9.12  # Need to update
+  9.1.x: 9.1.3     # Updated
+  9.0.x: 9.0.10    # Updated
+  8.10.x: 8.8.11   # Updated
+  8.11.x: 8.9.13   # Updated
 mas_visualinspection_version:
   9.1.x: 9.1.3         # No update for 251030
   9.0.x: 9.0.13        # Updated
