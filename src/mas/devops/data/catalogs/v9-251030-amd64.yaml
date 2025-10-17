@@ -89,7 +89,7 @@ mas_predict_version:
   8.10.x: 8.8.10  # Need to update
   8.11.x: 8.9.12  # Need to update
 mas_visualinspection_version:
-  9.1.x: 9.1.3         # Need to update
+  9.1.x: 9.1.3         # No update for 251030
   9.0.x: 9.0.13        # Updated
   8.10.x: 8.8.4        # No Update
   8.11.x: 8.9.16       # Updated
