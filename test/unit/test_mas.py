@@ -23,10 +23,10 @@ CATALOG_DISPLAY_NAME_INVALID = 'invalidCatalogName'
 IMAGE = 'testImage'
 
 
-##############################################################################
+# -----------------------------------------------------------------------------
 # WARNING: All tests must be written with strictly no external dependencies.
 # Mocks must be used in place of any calls to OpenShift API etc.
-##############################################################################
+# -----------------------------------------------------------------------------
 
 
 @pytest.fixture(autouse=True)
@@ -36,19 +36,29 @@ def dynamic_client(client):
 
 
 def test_get_current_catalog_success(dynamic_client):
-    client = dynamic_client()
-    resources = MagicMock()
+    # 1. Create a mock catalogsource resources API
     catalog_api = MagicMock()
+
+    # 2. Create a mock kubernetes resources API and attach the mock catalogsource API
+    resources = MagicMock()
     resources.get.side_effect = lambda **kwargs: catalog_api if kwargs['api_version'] == 'operators.coreos.com/v1alpha1' \
         and kwargs['kind'] == 'CatalogSource' else None
+
+    # 3. Create a mock client using the mock resources API
+    client = dynamic_client()
     client.resources = resources
-    catalog = MagicMock()
-    catalog_api.get.side_effect = lambda **kwargs: catalog if kwargs['name'] == 'ibm-operator-catalog' \
-        and kwargs['namespace'] == 'openshift-marketplace' else None
+
+    # 4. Create a mock catalogsource API response for the catalogsource mock
     spec = MagicMock()
-    catalog.spec = spec
     spec.displayName = CATALOG_DISPLAY_NAME_VALID
     spec.image = IMAGE
+    catalog = MagicMock()
+    catalog.spec = spec
+
+    catalog_api.get.side_effect = lambda **kwargs: catalog if kwargs['name'] == 'ibm-operator-catalog' \
+        and kwargs['namespace'] == 'openshift-marketplace' else None
+
+    # 5. Call the mock API
     current_catalog = mas.getCurrentCatalog(client)
     assert current_catalog['displayName'] == CATALOG_DISPLAY_NAME_VALID
     assert current_catalog['catalogId'] == CATALOG_ID
