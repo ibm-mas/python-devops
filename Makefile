@@ -19,7 +19,7 @@ build: venv
 # package which is linked to the files you are editing so there is no need to
 # re-install after each change.
 unit-test:
-	. venv/bin/activate && pytest test/unit
+	. venv/bin/activate && pytest test/src/mock
 
 lint: venv
 	rm -f README.rst
