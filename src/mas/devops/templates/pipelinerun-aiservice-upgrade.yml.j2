@@ -1,0 +1,56 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: "{{ aiservice_instance_id }}-upgrade-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: aiservice-upgrade
+spec:
+  pipelineRef:
+    name: aiservice-upgrade
+
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
+
+  params:
+    # Target AI Service Instance
+    # -------------------------------------------------------------------------
+    - name: aiservice_instance_id
+      value: "{{ aiservice_instance_id }}"
+    - name: aiservice_channel
+      value: "{{ aiservice_channel }}"
+
+    # IBM Entitlement Key
+    # -------------------------------------------------------------------------
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+
+{%- if skip_pre_check is defined and skip_pre_check != "" %}
+    # Skip pre-check
+    # -------------------------------------------------------------------------
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+{%- endif %}
+{%- if artifactory_username is defined and artifactory_username != "" %}
+
+    # Enable development catalogs
+    # -------------------------------------------------------------------------
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+{%- endif %}
+
+  workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+    - name: shared-configs
+      persistentVolumeClaim:
+        claimName: config-pvc
+
+    # PodTemplates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-pod-templates
+      secret:
+        secretName: pipeline-pod-templates

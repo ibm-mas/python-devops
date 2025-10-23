@@ -70,6 +70,12 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
             result.rwo = "ocs-external-storagecluster-ceph-rbd"
             result.rwx = "ocs-external-storagecluster-cephfs"
             break
+        elif storageClass.metadata.name == "longhorn":
+            result.provider = "longhorn"
+            result.providerName = "Longhorn"
+            result.rwo = "longhorn"
+            result.rwx = "longhorn"
+            break
         elif storageClass.metadata.name == "nfs-client":
             result.provider = "nfs"
             result.providerName = "NFS Client"
@@ -179,6 +185,26 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         return False
 
 
+def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
+    """
+    Validate that the chosen AI Service instance exists
+    """
+    try:
+        aiserviceAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceApp")
+        aiserviceAPI.get(name=instanceId, namespace=f"aiservice-{instanceId}")
+        return True
+    except NotFoundError:
+        print("NOT FOUND")
+        return False
+    except ResourceNotFoundError:
+        # The AIServiceApp CRD has not even been installed in the cluster
+        print("RESOURCE NOT FOUND")
+        return False
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to verify AI Service instance due to failed authorization: {e}")
+        return False
+
+
 def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: str) -> bool:
     """
     Validate that the chosen app instance exists
@@ -223,6 +249,52 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
         return None
     else:
         return masSubscription.spec.channel
+
+
+def getAppsSubscriptionChannel(dynClient: DynamicClient, instanceId: str) -> list:
+    """
+    Return list of installed apps with their subscribed channel
+    """
+    try:
+        installedApps = []
+        appKinds = [
+            "assist",
+            "facilities",
+            "health",
+            "hputilities",
+            "iot",
+            "manage",
+            "monitor",
+            "mso",
+            "optimizer",
+            "safety",
+            "predict",
+            "visualinspection",
+            "aibroker"
+        ]
+        for appKind in appKinds:
+            appSubscription = getSubscription(dynClient, f"mas-{instanceId}-{appKind}", f"ibm-mas-{appKind}")
+            if appSubscription is not None:
+                installedApps.append({"appId": appKind, "channel": appSubscription.spec.channel})
+        return installedApps
+    except NotFoundError:
+        return []
+    except ResourceNotFoundError:
+        return []
+    except UnauthorizedError:
+        logger.error("Error: Unable to get MAS app subscriptions due to failed authorization: {e}")
+        return []
+
+
+def getAiserviceChannel(dynClient: DynamicClient, instanceId: str) -> str:
+    """
+    Get the AI Service channel from the subscription
+    """
+    aiserviceSubscription = getSubscription(dynClient, f"aiservice-{instanceId}", "ibm-aiservice")
+    if aiserviceSubscription is None:
+        return None
+    else:
+        return aiserviceSubscription.spec.channel
 
 
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
