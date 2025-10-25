@@ -19,7 +19,8 @@ from mas.devops.slack import SlackUtil
 def notifyProvisionFyre(rc: int) -> bool:
     name = os.getenv("CLUSTER_NAME", None)
     if name is None:
-        print("CLUSTER_NAME env var must all be set")
+        print("CLUSTER_NAME env var must be set")
+        sys.exit(1)
 
     if rc == 0:
         url = os.getenv("OCP_CLUSTER_URL", None)
@@ -28,15 +29,17 @@ def notifyProvisionFyre(rc: int) -> bool:
 
         if url is None or username is None or password is None:
             print("OCP_CLUSTER_URL, OCP_USERNAME, and OCP_PASSWORD env vars must all be set")
+            sys.exit(1)
 
         message = [
-            SlackUtil.buildSection(f":glyph-ok: *Your IBM DevIT Fyre OCP cluster ({name}) is ready to use*"),
+            SlackUtil.buildSection(f":glyph-ok: *Your IBM DevIT Fyre OCP cluster ({name}) is ready*"),
             SlackUtil.buildSection(f"{url}"),
             SlackUtil.buildSection(f"- Username: `{username}`\n - Password: `{password}`")
         ]
     else:
         message = [
             SlackUtil.buildSection(f":glyph-fail: *Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy*"),
+            SlackUtil.buildSection("https://beta.fyre.ibm.com/development/vms")
         ]
 
     response = SlackUtil.postMessageBlocks("#bot-test", message)
@@ -45,6 +48,7 @@ def notifyProvisionFyre(rc: int) -> bool:
 
 
 if __name__ == "__main__":
+    # If SLACK_TOKEN env var is not set then silently exit taking no action
     SLACK_TOKEN = os.getenv("SLACK_TOKEN", None)
     if SLACK_TOKEN is None:
         sys.exit(0)
