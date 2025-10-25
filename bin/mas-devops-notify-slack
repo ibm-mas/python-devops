@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+# *****************************************************************************
+# Copyright (c) 2025 IBM Corporation and other Contributors.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+#
+# *****************************************************************************
+
+import argparse
+import os
+import sys
+from mas.devops.slack import SlackUtil
+
+
+def notifyProvisionFyre(rc: int) -> bool:
+    name = os.getenv("CLUSTER_NAME", None)
+    if name is None:
+        print("CLUSTER_NAME env var must all be set")
+
+    if rc == 0:
+        url = os.getenv("OCP_CLUSTER_URL", None)
+        username = os.getenv("OCP_USERNAME", None)
+        password = os.getenv("OCP_PASSWORD", None)
+
+        if url is None or username is None or password is None:
+            print("OCP_CLUSTER_URL, OCP_USERNAME, and OCP_PASSWORD env vars must all be set")
+
+        message = [
+            SlackUtil.buildSection(f":glyph-ok: *Your IBM DevIT Fyre OCP cluster ({name}) is ready to use*"),
+            SlackUtil.buildSection(f"{url}"),
+            SlackUtil.buildSection(f"- Username: `{username}`\n - Password: `{password}`")
+        ]
+    else:
+        message = [
+            SlackUtil.buildSection(f":glyph-fail: *Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy*"),
+        ]
+
+    response = SlackUtil.postMessageBlocks("#bot-test", message)
+
+    return response.data.get("ok", False)
+
+
+if __name__ == "__main__":
+    SLACK_TOKEN = os.getenv("SLACK_TOKEN", None)
+    if SLACK_TOKEN is None:
+        sys.exit(0)
+
+    # Initialize the properties we need
+    parser = argparse.ArgumentParser()
+
+    # Primary Options
+    parser.add_argument("--action", required=True)
+    parser.add_argument("--rc", required=True, type=int)
+    args, unknown = parser.parse_known_args()
+
+    if args.action == "ocp-provision-fyre":
+        notifyProvisionFyre(args.rc)
