@@ -16,7 +16,7 @@ import sys
 from mas.devops.slack import SlackUtil
 
 
-def notifyProvisionFyre(rc: int) -> bool:
+def notifyProvisionFyre(channel: str, rc: int) -> bool:
     name = os.getenv("CLUSTER_NAME", None)
     if name is None:
         print("CLUSTER_NAME env var must be set")
@@ -42,15 +42,16 @@ def notifyProvisionFyre(rc: int) -> bool:
             SlackUtil.buildSection("https://beta.fyre.ibm.com/development/vms")
         ]
 
-    response = SlackUtil.postMessageBlocks("#bot-test", message)
+    response = SlackUtil.postMessageBlocks(channel, message)
 
     return response.data.get("ok", False)
 
 
 if __name__ == "__main__":
-    # If SLACK_TOKEN env var is not set then silently exit taking no action
+    # If SLACK_TOKEN or SLACK_CHANNEL env vars are not set then silently exit taking no action
     SLACK_TOKEN = os.getenv("SLACK_TOKEN", None)
-    if SLACK_TOKEN is None:
+    SLACK_CHANNEL = os.getenv("SLACK_CHANNEL", None)
+    if SLACK_TOKEN is None or SLACK_CHANNEL is None:
         sys.exit(0)
 
     # Initialize the properties we need
@@ -62,4 +63,4 @@ if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
     if args.action == "ocp-provision-fyre":
-        notifyProvisionFyre(args.rc)
+        notifyProvisionFyre(SLACK_CHANNEL, args.rc)
