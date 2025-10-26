@@ -70,6 +70,12 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
             result.rwo = "ocs-external-storagecluster-ceph-rbd"
             result.rwx = "ocs-external-storagecluster-cephfs"
             break
+        elif storageClass.metadata.name == "longhorn":
+            result.provider = "longhorn"
+            result.providerName = "Longhorn"
+            result.rwo = "longhorn"
+            result.rwx = "longhorn"
+            break
         elif storageClass.metadata.name == "nfs-client":
             result.provider = "nfs"
             result.providerName = "NFS Client"
