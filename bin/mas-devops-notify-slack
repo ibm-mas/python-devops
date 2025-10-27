@@ -22,6 +22,13 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
         print("CLUSTER_NAME env var must be set")
         sys.exit(1)
 
+    # Support optional metadata from standard IBM CD Toolchains environment variables
+    toolchainLink = ""
+    toolchainUrl = os.getenv("TOOLCHAIN_PIPELINERUN_URL", None)
+    toolchainTriggerName = os.getenv("TOOLCHAIN_TRIGGER_NAME", None)
+    if toolchainUrl is not None and toolchainTriggerName is not None:
+        toolchainLink = f" | <{toolchainUrl}|Pipeline Run>"
+
     if rc == 0:
         url = os.getenv("OCP_CLUSTER_URL", None)
         username = os.getenv("OCP_USERNAME", None)
@@ -32,18 +39,18 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
             sys.exit(1)
 
         message = [
-            SlackUtil.buildSection(f":glyph-ok: *Your IBM DevIT Fyre OCP cluster ({name}) is ready*"),
+            SlackUtil.buildHeader(f":glyph-ok: Your IBM DevIT Fyre OCP cluster ({name}) is ready"),
             SlackUtil.buildSection(f"{url}"),
-            SlackUtil.buildSection(f"- Username: `{username}`\n - Password: `{password}`")
+            SlackUtil.buildSection(f"- Username: `{username}`\n - Password: `{password}`"),
+            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
     else:
         message = [
-            SlackUtil.buildSection(f":glyph-fail: *Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy*"),
-            SlackUtil.buildSection("https://beta.fyre.ibm.com/development/vms")
+            SlackUtil.buildHeader(f":glyph-fail: Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy"),
+            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
 
     response = SlackUtil.postMessageBlocks(channel, message)
-
     return response.data.get("ok", False)
 
 
