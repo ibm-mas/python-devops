@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2025 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -62,7 +62,8 @@ setup(
         'jinja2',                  # BSD License
         'jinja2-base64-filters',   # MIT License
         'semver',                  # BSD License
-        'boto3'                    # Apache Software License
+        'boto3',                   # Apache Software License
+        'slack_sdk',               # MIT License
     ],
     extras_require={
         'dev': [
@@ -90,6 +91,7 @@ setup(
     scripts=[
         'bin/mas-devops-db2-validate-config',
         'bin/mas-devops-create-initial-users-for-saas',
-        'bin/mas-devops-saas-job-cleaner'
+        'bin/mas-devops-saas-job-cleaner',
+        'bin/mas-devops-notify-slack',
     ]
 )
