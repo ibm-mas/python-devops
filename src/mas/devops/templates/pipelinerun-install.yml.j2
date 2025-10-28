@@ -539,6 +539,10 @@ spec:
     - name: mas_enable_walkme
       value: "{{ mas_enable_walkme }}"
 {%- endif %}
+{%- if mas_report_adoption_metrics is defined and mas_report_adoption_metrics != "" %}
+    - name: mas_report_adoption_metrics
+      value: "{{ mas_report_adoption_metrics }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
