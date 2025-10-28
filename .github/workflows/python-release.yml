@@ -34,6 +34,7 @@ jobs:
         env:
           OCP_TOKEN: ${{ secrets.OCP_TOKEN }}
           OCP_SERVER: ${{ secrets.OCP_SERVER }}
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
         run: |
           kubectl config set-cluster my-cluster --server=$OCP_SERVER
           kubectl config set-credentials my-user --token=$OCP_TOKEN
