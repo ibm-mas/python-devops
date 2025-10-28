@@ -1533,7 +1533,6 @@ def test_await_mas_application_availability(user_utils, requests_mock):
 
     def json_callback(request, context):
         nonlocal attempt
-        nonlocal return_values
         ret = return_values[attempt]
         attempt = attempt + 1
         return ret
