@@ -30,12 +30,12 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
         toolchainLink = f" | <{toolchainUrl}|Pipeline Run>"
 
     if rc == 0:
-        url = os.getenv("OCP_CLUSTER_URL", None)
+        url = os.getenv("OCP_CONSOLE_URL", None)
         username = os.getenv("OCP_USERNAME", None)
         password = os.getenv("OCP_PASSWORD", None)
 
         if url is None or username is None or password is None:
-            print("OCP_CLUSTER_URL, OCP_USERNAME, and OCP_PASSWORD env vars must all be set")
+            print("OCP_CONSOLE_URL, OCP_USERNAME, and OCP_PASSWORD env vars must all be set")
             sys.exit(1)
 
         message = [
