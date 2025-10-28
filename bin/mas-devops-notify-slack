@@ -56,9 +56,9 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
 
 if __name__ == "__main__":
     # If SLACK_TOKEN or SLACK_CHANNEL env vars are not set then silently exit taking no action
-    SLACK_TOKEN = os.getenv("SLACK_TOKEN", None)
-    SLACK_CHANNEL = os.getenv("SLACK_CHANNEL", None)
-    if SLACK_TOKEN is None or SLACK_CHANNEL is None:
+    SLACK_TOKEN = os.getenv("SLACK_TOKEN", "")
+    SLACK_CHANNEL = os.getenv("SLACK_CHANNEL", "")
+    if SLACK_TOKEN == "" or SLACK_CHANNEL == "":
         sys.exit(0)
 
     # Initialize the properties we need
