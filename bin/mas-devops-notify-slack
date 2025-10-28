@@ -41,7 +41,7 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
         message = [
             SlackUtil.buildHeader(f":glyph-ok: Your IBM DevIT Fyre OCP cluster ({name}) is ready"),
             SlackUtil.buildSection(f"{url}"),
-            SlackUtil.buildSection(f"- Username: `{username}`\n - Password: `{password}`"),
+            SlackUtil.buildSection(f"- Username: `{username}`\n- Password: `{password}`"),
             SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
     else:
