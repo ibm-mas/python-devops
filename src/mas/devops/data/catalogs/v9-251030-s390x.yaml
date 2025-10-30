@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:c4c44d56288f6bd51d6642b58604c54e9e358c72544cf03babf0728cb77999a3
+catalog_digest: sha256:799ac815a86985f5b3ab191d3939590cdc46e59c7f6aea0293fe4ea39bd754b2
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.2  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
