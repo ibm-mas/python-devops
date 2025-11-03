@@ -35,7 +35,7 @@ uds_extras_version: 1.5.0
 
 # Extra Images for Mongo
 # ------------------------------------------------------------------------------
-mongo_extras_version_default: 7.0.12
+mongo_extras_version_default: 8.0.13
 
 # Variables used to mirror additional mongo image versions
 mongo_extras_version_4: 4.4.21
