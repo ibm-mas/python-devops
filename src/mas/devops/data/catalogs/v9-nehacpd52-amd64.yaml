@@ -19,8 +19,8 @@ ibm_licensing_version: 4.2.17                # Operator version 4.2.14 (https://
 common_svcs_version: 4.12.0                  # Operator version 4.12.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
 common_svcs_version_1: 4.11.0                  # Additional version 4.11.0
 
-cp4d_platform_version: 6.2.0                 # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
-ibm_zen_version: 6.2.0                       # For CPD5 ibm-zen has to be explicitily mirrored
+cp4d_platform_version: 5.2.0+20250709.170324               # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+ibm_zen_version: 6.2.0+20250530.152516.232                     # For CPD5 ibm-zen has to be explicitily mirrored
 
 db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
