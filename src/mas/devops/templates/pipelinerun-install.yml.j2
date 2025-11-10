@@ -543,6 +543,10 @@ spec:
     - name: mas_enable_walkme
       value: "{{ mas_enable_walkme }}"
 {%- endif %}
+{%- if mas_routing_mode is defined and mas_routing_mode != "" %}
+    - name: mas_routing_mode
+      value: "{{ mas_routing_mode }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------

@@ -100,8 +100,17 @@ def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabel: str 
     """
     namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
     try:
-        namespaceAPI.get(name=namespace)
-        logger.debug(f"Namespace {namespace} already exists")
+        ns = namespaceAPI.get(name=namespace)
+        logger.info(f"Namespace {namespace} already exists")
+        if kyvernoLabel is not None:
+            if ns.metadata.labels is None or "ibm.com/kyverno" not in ns.metadata.labels.keys() or ns.metadata.labels["ibm.com/kyverno"] != kyvernoLabel:
+                logger.info(f"Patching namespace with Kyverno Labels ibm.com/kyverno: {kyvernoLabel}")
+                body = {"metadata": {"labels": {"ibm.com/kyverno": kyvernoLabel}}}
+                namespaceAPI.patch(
+                    name=namespace,
+                    body=body,
+                    content_type="application/merge-patch+json"
+                )
     except NotFoundError:
         nsObj = {
             "apiVersion": "v1",
@@ -142,14 +151,19 @@ def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
         try:
             crd = crdAPI.get(name=crdName)
             conditions = crd.status.conditions
-            for condition in conditions:
-                if condition.type == "Established":
-                    if condition.status == "True":
-                        foundReadyCRD = True
-                    else:
-                        logger.debug(f"Waiting 5s for {crdName} CRD to be ready before checking again ...")
-                        sleep(5)
-                        continue
+            if conditions is None:
+                logger.debug(f"Looking for status.conditions to be available to iterate for {crdName}")
+                sleep(5)
+                continue
+            else:
+                for condition in conditions:
+                    if condition.type == "Established":
+                        if condition.status == "True":
+                            foundReadyCRD = True
+                        else:
+                            logger.debug(f"Waiting 5s for {crdName} CRD to be ready before checking again ...")
+                            sleep(5)
+                            continue
         except NotFoundError:
             logger.debug(f"Waiting 5s for {crdName} CRD to be installed before checking again ...")
             sleep(5)
