@@ -69,6 +69,10 @@ spec:
     - name: mongodb_v7_upgrade
       value: "{{ mongodb_v7_upgrade }}"
 {%- endif %}
+{%- if mongodb_v8_upgrade is defined and mongodb_v8_upgrade != "" %}
+    - name: mongodb_v8_upgrade
+      value: "{{ mongodb_v8_upgrade }}"
+{%- endif %}
 {%- endif %}
 {%- if kafka_namespace is defined and kafka_namespace != "" %}
 

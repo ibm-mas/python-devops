@@ -356,6 +356,10 @@ spec:
     - name: mas_catalog_digest
       value: "{{ mas_catalog_digest }}"
 {%- endif %}
+{%- if mas_app_cfg_retries is defined and mas_app_cfg_retries != "" %}
+    - name: mas_app_cfg_retries
+      value: "{{ mas_app_cfg_retries }}"
+{%- endif%}
 
     # Dependencies - Certificate Manager
     # -------------------------------------------------------------------------
@@ -538,6 +542,10 @@ spec:
 {%- if mas_enable_walkme is defined and mas_enable_walkme != "" %}
     - name: mas_enable_walkme
       value: "{{ mas_enable_walkme }}"
+{%- endif %}
+{%- if mas_routing_mode is defined and mas_routing_mode != "" %}
+    - name: mas_routing_mode
+      value: "{{ mas_routing_mode }}"
 {%- endif %}
 
     # MAS Workspace
