@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:e749bcb637d323ddb29b1f23481742a46ad800d484c53fe5b010058374f93156
+catalog_digest: sha256:fca163529e3e69a76a2b6f8d18fda556a9b38d3d6095128fdf90acec2f5d6743
 
 ocp_compatibility:
 - 4.15
@@ -53,8 +53,8 @@ mas_core_version:
   8.10.x: 8.10.30      # Need to update
   8.11.x: 8.11.27      # Need to update
 mas_assist_version:
-  9.1.x: 9.1.4     # Need to update
-  9.0.x: 9.0.10    # Need to update
+  9.1.x: 9.1.5     # Need to update
+  9.0.x: 9.0.11    # Need to update
   8.10.x: 8.7.8   # No Update
   8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
@@ -79,21 +79,21 @@ mas_monitor_version:
   8.10.x: 8.10.24 # Need to update
   8.11.x: 8.11.22 # Need to update
 mas_optimizer_version:
-  9.2.x-feature: 9.2.0-pre.stable_2382 # Need to update
-  9.1.x: 9.1.5         # Need to update
-  9.0.x: 9.0.16        # Need to update
-  8.10.x: 8.4.23       # Need to update
-  8.11.x: 8.5.22       # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_3097 # Need to update
+  9.1.x: 9.1.6         # Need to update
+  9.0.x: 9.0.17        # Need to update
+  8.10.x: 8.4.24       # Need to update
+  8.11.x: 8.5.23       # Need to update
 mas_predict_version:
   9.1.x: 9.1.3     # Need to update
   9.0.x: 9.0.10    # Need to update
   8.10.x: 8.8.11   # Need to update
   8.11.x: 8.9.13   # Need to update
 mas_visualinspection_version:
-  9.1.x: 9.1.3         # Need to update
-  9.0.x: 9.0.13        # Need to update
+  9.1.x: 9.1.4         # Need to update
+  9.0.x: 9.0.14        # Need to update
   8.10.x: 8.8.4        # No Update
-  8.11.x: 8.9.16       # Need to update
+  8.11.x: 8.9.17       # Need to update
 mas_facilities_version:
   9.1.x: 9.1.4    # Need to update
   9.0.x: ""       # Not Supported
