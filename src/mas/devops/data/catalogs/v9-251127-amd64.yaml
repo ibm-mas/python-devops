@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:6df6a1f1878bdd77977a78bd3b801469171a9383ab3ad4d77043237c79e2cc79
+catalog_digest: sha256:8a94a46a949a33031318a24e119325c21236eb61f100d33255bd4418833af603
 
 ocp_compatibility:
 - 4.15
@@ -63,21 +63,21 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # Need to update
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.1.x: 9.1.4     # Need to update
-  9.0.x: 9.0.13    # Need to update
-  8.10.x: 8.7.27   # Need to update
-  8.11.x: 8.8.23   # Need to update
+  9.1.x: 9.1.5     # Need to update
+  9.0.x: 9.0.14    # Need to update
+  8.10.x: 8.7.28   # Need to update
+  8.11.x: 8.8.24   # Need to update
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_14287 # Need to update
-  9.1.x: 9.1.5         # Need to update
+  9.1.x: 9.1.6         # Need to update
   9.0.x: 9.0.18        # Need to update
   8.10.x: 8.6.31       # Need to update
   8.11.x: 8.7.25       # Need to update
 mas_monitor_version:
-  9.1.x: 9.1.4    # Need to update
-  9.0.x: 9.0.14   # Need to update
-  8.10.x: 8.10.24 # Need to update
-  8.11.x: 8.11.22 # Need to update
+  9.1.x: 9.1.5    # Need to update
+  9.0.x: 9.0.15   # Need to update
+  8.10.x: 8.10.25 # Need to update
+  8.11.x: 8.11.23 # Need to update
 mas_optimizer_version:
   9.2.x-feature: 9.2.0-pre.stable_3097 # Need to update
   9.1.x: 9.1.6         # Need to update
