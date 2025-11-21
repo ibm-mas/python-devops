@@ -78,6 +78,14 @@ def getClusterVersion(dynClient: DynamicClient) -> str:
     return None
 
 
+def isClusterVersionInRange(version: str, releases: list[str]) -> bool:
+    if releases is not None:
+        for release in releases:
+            if version.startswith(f"{release}."):
+                return True
+    return False
+
+
 def getNamespace(dynClient: DynamicClient, namespace: str) -> dict:
     """
     Get a namespace
