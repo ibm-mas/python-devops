@@ -15,6 +15,17 @@ import yaml
 from mas.devops import ocp
 
 
+def test_is_cluster_in_range():
+    assert ocp.isClusterVersionInRange("4.1.6", None) is False
+    assert ocp.isClusterVersionInRange("4.1.6", []) is False
+    assert ocp.isClusterVersionInRange("4.1.6", ["4.16", "4.17", "4.18"]) is False
+    assert ocp.isClusterVersionInRange("4.12.6", ["4.16", "4.17", "4.18"]) is False
+    assert ocp.isClusterVersionInRange("4.15.6", ["4.16", "4.17", "4.18"]) is False
+    assert ocp.isClusterVersionInRange("4.16.0", ["4.16", "4.17", "4.18"]) is True
+    assert ocp.isClusterVersionInRange("4.18.1", ["4.16", "4.17", "4.18"]) is True
+    assert ocp.isClusterVersionInRange("5.0.0", ["4.16", "4.17", "4.18"]) is False
+
+
 def test_execInPod_success(mocker):
 
     mock_CoreV1Api = mocker.patch('kubernetes.client.CoreV1Api')
