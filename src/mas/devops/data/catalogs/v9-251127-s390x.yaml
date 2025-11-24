@@ -23,7 +23,7 @@ mas_core_version:
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_14287 # Updated
   9.1.x: 9.1.6                          # Updated
-  9.0.x: 9.0.18                         # Updated
+  9.0.x: 9.0.19                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
