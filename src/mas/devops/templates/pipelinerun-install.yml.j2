@@ -274,10 +274,6 @@ spec:
     # -------------------------------------------------------------------------
     - name: cpd_product_version
       value: "{{ cpd_product_version }}"
-    - name: cpd_install_spss
-      value: "{{ cpd_install_spss }}"
-    - name: cpd_install_openscale
-      value: "{{ cpd_install_openscale }}"
     - name: cpd_install_cognos
       value: "{{ cpd_install_cognos }}"
     - name: cpd_install_ws
@@ -314,16 +310,16 @@ spec:
 {%- endif %}
 
 
-    # Dependencies - UDS/DRO (Required)
+    # Dependencies - DRO (Required)
     # -------------------------------------------------------------------------
-    - name: uds_action
-      value: "{{ uds_action }}"
-    - name: uds_contact_email
-      value: "{{ uds_contact_email }}"
-    - name: uds_contact_firstname
-      value: "{{ uds_contact_firstname }}"
-    - name: uds_contact_lastname
-      value: "{{ uds_contact_lastname }}"
+    - name: dro_action
+      value: "{{ dro_action }}"
+    - name: dro_contact_email
+      value: "{{ dro_contact_email }}"
+    - name: dro_contact_firstname
+      value: "{{ dro_contact_firstname }}"
+    - name: dro_contact_lastname
+      value: "{{ dro_contact_lastname }}"
 {%- if dro_namespace is defined and dro_namespace != "" %}
     - name: dro_namespace
       value: "{{ dro_namespace }}"
@@ -356,6 +352,10 @@ spec:
     - name: mas_catalog_digest
       value: "{{ mas_catalog_digest }}"
 {%- endif %}
+{%- if mas_app_cfg_retries is defined and mas_app_cfg_retries != "" %}
+    - name: mas_app_cfg_retries
+      value: "{{ mas_app_cfg_retries }}"
+{%- endif%}
 
     # Dependencies - Certificate Manager
     # -------------------------------------------------------------------------
@@ -538,6 +538,10 @@ spec:
 {%- if mas_enable_walkme is defined and mas_enable_walkme != "" %}
     - name: mas_enable_walkme
       value: "{{ mas_enable_walkme }}"
+{%- endif %}
+{%- if mas_routing_mode is defined and mas_routing_mode != "" %}
+    - name: mas_routing_mode
+      value: "{{ mas_routing_mode }}"
 {%- endif %}
 
     # MAS Workspace

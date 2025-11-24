@@ -69,6 +69,10 @@ spec:
     - name: mongodb_v7_upgrade
       value: "{{ mongodb_v7_upgrade }}"
 {%- endif %}
+{%- if mongodb_v8_upgrade is defined and mongodb_v8_upgrade != "" %}
+    - name: mongodb_v8_upgrade
+      value: "{{ mongodb_v8_upgrade }}"
+{%- endif %}
 {%- endif %}
 {%- if kafka_namespace is defined and kafka_namespace != "" %}
 
@@ -87,19 +91,6 @@ spec:
       value: "{{ cert_manager_provider }}"
     - name: cert_manager_action
       value: "{{ cert_manager_action }}"
-{%- endif %}
-{%- if dro_migration is defined and dro_migration != "" %}
-
-    # UDS to DRO migration
-    # -------------------------------------------------------------------------
-    - name: dro_migration
-      value: "{{ dro_migration }}"
-    - name: uds_storage_class
-      value: "{{ dro_storage_class }}"
-    - name: uds_action
-      value: "{{ uds_action }}"
-    - name: dro_namespace
-      value: "{{ dro_namespace }}"
 {%- endif %}
 {%- if grafana_v5_upgrade is defined and grafana_v5_upgrade != "" %}
 
@@ -123,12 +114,8 @@ spec:
       value: "{{ cp4d_update_ws }}"
     - name: cp4d_update_wml
       value: "{{ cp4d_update_wml }}"
-    - name: cp4d_update_wos
-      value: "{{ cp4d_update_wos }}"
     - name: cp4d_update_spark
       value: "{{ cp4d_update_spark }}"
-    - name: cp4d_update_spss
-      value: "{{ cp4d_update_spss }}"
     - name: cp4d_update_cognos
       value: "{{ cp4d_update_cognos }}"
 
