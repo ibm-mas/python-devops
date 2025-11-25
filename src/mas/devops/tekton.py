@@ -449,7 +449,6 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     return pipelineURL
 
 
-
 def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
                                    aiserviceInstanceId: str,
                                    skipPreCheck: bool = False,
