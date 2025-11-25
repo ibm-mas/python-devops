@@ -278,10 +278,6 @@ spec:
     # -------------------------------------------------------------------------
     - name: cpd_product_version
       value: "{{ cpd_product_version }}"
-    - name: cpd_install_spss
-      value: "{{ cpd_install_spss }}"
-    - name: cpd_install_openscale
-      value: "{{ cpd_install_openscale }}"
     - name: cpd_install_cognos
       value: "{{ cpd_install_cognos }}"
     - name: cpd_install_ws
@@ -373,6 +369,10 @@ spec:
     - name: mas_catalog_digest
       value: "{{ mas_catalog_digest }}"
 {%- endif %}
+{%- if mas_app_cfg_retries is defined and mas_app_cfg_retries != "" %}
+    - name: mas_app_cfg_retries
+      value: "{{ mas_app_cfg_retries }}"
+{%- endif%}
 
     # Dependencies - Certificate Manager
     # -------------------------------------------------------------------------

@@ -8,6 +8,7 @@
 catalog_digest: sha256:db5ac0b24bc6c0cb2af8eebcf529fee8ce944196d49aaf7448a00b6e9ffa8d96
 
 ocp_compatibility:
+  - 4.14
   - 4.15
   - 4.16
   - 4.17

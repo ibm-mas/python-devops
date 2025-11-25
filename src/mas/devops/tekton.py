@@ -357,12 +357,10 @@ def launchUpgradePipeline(dynClient: DynamicClient,
 def launchUninstallPipeline(dynClient: DynamicClient,
                             instanceId: str,
                             droNamespace: str,
-                            certManagerProvider: str = "redhat",
                             uninstallCertManager: bool = False,
                             uninstallGrafana: bool = False,
                             uninstallCatalog: bool = False,
-                            uninstallCommonServices: bool = False,
-                            uninstallUDS: bool = False,
+                            uninstallDRO: bool = False,
                             uninstallMongoDb: bool = False,
                             uninstallSLS: bool = False) -> str:
     """
@@ -380,24 +378,21 @@ def launchUninstallPipeline(dynClient: DynamicClient,
 
     grafanaAction = "uninstall" if uninstallGrafana else "none"
     certManagerAction = "uninstall" if uninstallCertManager else "none"
-    commonServicesAction = "uninstall" if uninstallCommonServices else "none"
     ibmCatalogAction = "uninstall" if uninstallCatalog else "none"
     mongoDbAction = "uninstall" if uninstallMongoDb else "none"
     slsAction = "uninstall" if uninstallSLS else "none"
-    udsAction = "uninstall" if uninstallUDS else "none"
+    droAction = "uninstall" if uninstallDRO else "none"
 
     # Render the pipelineRun
     renderedTemplate = template.render(
         timestamp=timestamp,
         mas_instance_id=instanceId,
         grafana_action=grafanaAction,
-        cert_manager_provider=certManagerProvider,
         cert_manager_action=certManagerAction,
-        common_services_action=commonServicesAction,
         ibm_catalogs_action=ibmCatalogAction,
         mongodb_action=mongoDbAction,
         sls_action=slsAction,
-        uds_action=udsAction,
+        dro_action=droAction,
         dro_namespace=droNamespace
     )
     logger.debug(renderedTemplate)
