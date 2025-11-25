@@ -429,15 +429,17 @@ def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: st
     return timestamp
 
 
-def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
+def launchInstallPipeline(dynClient: DynamicClient, params: dict, standalone_aiservice_install: str = "false") -> str:
     """
-    Create a PipelineRun to install the chosen MAS instance (and selected dependencies)
+    Create a PipelineRun to install the chosen MAS ( or AI Service ) instance (and selected dependencies)
     """
-    instanceId = params["mas_instance_id"]
-    namespace = f"mas-{instanceId}-pipelines"
+    applicationType = "aiservice" if standalone_aiservice_install == "true" else "mas"
+    params["applicationType"] = applicationType
+    instanceId = params[f"{applicationType}_instance_id"]
+    namespace = f"{applicationType}-{instanceId}-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-install", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/{applicationType}-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
     return pipelineURL
 
 
@@ -451,17 +453,6 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-update-{timestamp}"
     return pipelineURL
 
-
-def launchAiServiceInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
-    """
-    Create a PipelineRun to install the AI Service
-    """
-    instanceId = params["aiservice_instance_id"]
-    namespace = f"aiservice-{instanceId}-pipelines"
-    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
-
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
-    return pipelineURL
 
 
 def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
