@@ -8,7 +8,6 @@
 catalog_digest: sha256:3fce7a6fd2aaafd40597178512d7a4722f28252baec8ac5d4f41edafbd432d7d
 
 ocp_compatibility:
-- 4.15
 - 4.16
 - 4.17
 - 4.18
@@ -142,4 +141,3 @@ cpd_product_version_default: 5.1.3
 # ------------------------------------------------------------------------------
 kmodels_extras_version_default: 1.0.14
 
-manage_extras_913: 9.1.3

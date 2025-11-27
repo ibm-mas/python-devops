@@ -7,6 +7,12 @@
 
 catalog_digest: sha256:73ab06c7642922daff44fbc1cc67fb89bc387ae96cf9d87e0c15511f8a6425c4
 
+ocp_compatibility:
+- 4.16
+- 4.17
+- 4.18
+- 4.19
+
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.3  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.2   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
@@ -40,3 +46,4 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
+mongo_extras_version_8: 8.0.13
