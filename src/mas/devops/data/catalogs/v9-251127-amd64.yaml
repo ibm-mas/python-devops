@@ -60,7 +60,7 @@ mas_assist_version:
 mas_hputilities_version:
   9.1.x: ""       # Not Supported
   9.0.x: ""       # Not Supported
-  8.10.x: 8.6.7   # Updated
+  8.10.x: 8.6.7   # No Update
   8.11.x: ""      # Not Supported
 mas_iot_version:
   9.1.x: 9.1.5     # Updated
