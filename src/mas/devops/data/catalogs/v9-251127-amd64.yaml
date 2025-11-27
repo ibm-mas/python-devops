@@ -81,9 +81,9 @@ mas_monitor_version:
 mas_optimizer_version:
   9.2.x-feature: 9.2.0-pre.stable_3097 # Updated
   9.1.x: 9.1.6         # Updated
-  9.0.x: 9.0.17        # Updated
-  8.10.x: 8.4.24       # Updated
-  8.11.x: 8.5.23       # Updated
+  9.0.x: 9.0.16        # No Update
+  8.10.x: 8.4.23       # No Update
+  8.11.x: 8.5.22       # No Update
 mas_predict_version:
   9.1.x: 9.1.3     # Not release for 251127
   9.0.x: 9.0.10    # Not release for 251127
