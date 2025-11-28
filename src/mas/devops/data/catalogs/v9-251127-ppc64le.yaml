@@ -1,0 +1,49 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog 251127 (PPC)
+# -----------------------------------------------------------------------------
+# In the future this won't be necessary as we'll be able to mirror from the
+# catalog itself, but not everything in the catalog supports this yet (including MAS)
+# so we need to use the CASE bundle mirror process still.
+
+catalog_digest: sha256:73ab06c7642922daff44fbc1cc67fb89bc387ae96cf9d87e0c15511f8a6425c4
+
+ocp_compatibility:
+- 4.16
+- 4.17
+- 4.18
+- 4.19
+
+uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+sls_version: 3.12.3  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.2   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.2 to find the version 7.2.0, search CASE_VERSION in db2u, catalog.yaml into ibm-maximo-operator-catalog (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.2.x-feature: 9.2.0-pre.stable_4447  # Updated
+  9.1.x: 9.1.6                          # Updated
+  9.0.x: 9.0.17                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+mas_manage_version:
+  9.2.x-feature: 9.2.0-pre.stable_4817  # Updated
+  9.1.x: 9.1.6                          # Updated
+  9.0.x: 9.0.19                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+
+# Extra Images for UDS
+# ------------------------------------------------------------------------------
+uds_extras_version: 1.5.0
+
+# Extra Images for Mongo
+# ------------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.13
+
+# Variables used to mirror additional mongo image versions
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.12
+mongo_extras_version_8: 8.0.13

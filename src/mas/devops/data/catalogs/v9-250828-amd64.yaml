@@ -42,7 +42,7 @@ spark_version: 10.2.0                        # Operator version 7.3.0
 cognos_version: 27.2.0                       # Operator version 25.0.0
 couchdb_version: 1.0.13                      # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
 elasticsearch_version: 1.1.2667              # Operator version 1.1.2667
-
+minio_version: RELEASE.2025-06-13T11-33-47Z
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
