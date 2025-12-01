@@ -22,7 +22,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, getStorageClassVolumeBindingMode
 from .mas import waitForPVC, patchPendingPVC
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,6 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         pvcAPI.apply(body=pvc, namespace=namespace)
 
         # Automatically determine if we should wait for PVC binding based on storage class
-        from .ocp import getStorageClassVolumeBindingMode
         volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
         waitForBind = (volumeBindingMode == "Immediate")
         
@@ -205,7 +204,6 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
     pvcAPI.apply(body=pvc, namespace=namespace)
 
     # Automatically determine if we should wait for PVC binding based on storage class
-    from .ocp import getStorageClassVolumeBindingMode
     volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
     waitForBind = (volumeBindingMode == "Immediate")
     
