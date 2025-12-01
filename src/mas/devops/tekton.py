@@ -206,7 +206,7 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
     # Automatically determine if we should wait for PVC binding based on storage class
     volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
     waitForBind = (volumeBindingMode == "Immediate")
-    
+
     if waitForBind:
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
         pvcIsBound = False
