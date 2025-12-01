@@ -140,5 +140,6 @@ cpd_product_version_default: 5.1.3
 # Extra Images for kmodels
 # ------------------------------------------------------------------------------
 kmodels_extras_version_default: 1.0.14
+minio_version: RELEASE.2025-06-13T11-33-47Z
 
 manage_extras_913: 9.1.3
