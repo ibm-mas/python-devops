@@ -156,11 +156,9 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         pvc = yaml.safe_load(renderedTemplate)
         pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
         pvcAPI.apply(body=pvc, namespace=namespace)
-
         # Automatically determine if we should wait for PVC binding based on storage class
         volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
         waitForBind = (volumeBindingMode == "Immediate")
-        
         if waitForBind:
             logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
             pvcIsBound = False
