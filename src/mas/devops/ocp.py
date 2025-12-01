@@ -231,11 +231,11 @@ def getStorageClasses(dynClient: DynamicClient) -> list:
 def getStorageClassVolumeBindingMode(dynClient: DynamicClient, storageClassName: str) -> str:
     """
     Get the volumeBindingMode for a storage class.
-    
+
     Args:
         dynClient: OpenShift dynamic client
         storageClassName: Name of the storage class
-        
+
     Returns:
         str: "Immediate" or "WaitForFirstConsumer" (defaults to "Immediate" if not found)
     """
