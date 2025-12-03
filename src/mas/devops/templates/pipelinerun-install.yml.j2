@@ -226,6 +226,10 @@ spec:
       value: "{{ kafka_namespace }}"
     - name: kafka_version
       value: "{{ kafka_version }}"
+    - name: kafka_storage_class
+      value: "{{ kafka_storage_class }}"
+    - name: zookeeper_storage_class
+      value: "{{ zookeeper_storage_class }}"
   {%- if kafka_provider == "aws" %}
 
     # Dependencies - AWS MSK
