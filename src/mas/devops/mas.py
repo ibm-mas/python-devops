@@ -37,7 +37,8 @@ def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
     else:
         IDMSApi = dynClient.resources.get(api_version="config.openshift.io/v1", kind="ImageDigestMirrorSet")
         masIDMS = IDMSApi.get(label_selector="mas.ibm.com/idmsContent=ibm")
-        return len(masIDMS.items) > 0
+        aiserviceIDMS = IDMSApi.get(label_selector="aiservice.ibm.com/idmsContent=ibm")
+        return len(masIDMS.items) + len(aiserviceIDMS.items) > 0
 
 
 def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:

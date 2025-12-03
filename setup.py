@@ -67,12 +67,12 @@ setup(
     ],
     extras_require={
         'dev': [
-            'build',        # MIT License
-            'flake8',       # MIT License
-            'pytest',       # MIT License
-            'pytest-mock',  # MIT License
+            'build',          # MIT License
+            'flake8',         # MIT License
+            'pytest',         # MIT License
+            'pytest-mock',    # MIT License
             'requests-mock',  # Apache Software License
-            'setuptools',    # MIT License
+            'setuptools',     # MIT License
         ]
     },
     classifiers=[
@@ -81,9 +81,7 @@ setup(
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Communications',
         'Topic :: Internet',
         'Topic :: Software Development :: Libraries :: Python Modules'
