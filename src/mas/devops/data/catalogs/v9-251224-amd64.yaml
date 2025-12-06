@@ -1,5 +1,5 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 251030 (AMD64)
+# Case bundle configuration for IBM Maximo Operator Catalog 251224 (AMD64)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
@@ -8,10 +8,10 @@
 catalog_digest: sha256:b23d1c6d4b901da4fe1e8e2d3b42affbfcbac0ebbb8506a2d7e9634005ff924f        #TBC
 
 ocp_compatibility:
-  - 4.16
-  - 4.17
-  - 4.18
-  - 4.19
+- 4.16
+- 4.17
+- 4.18
+- 4.19
 
 # Dependencies
 # -----------------------------------------------------------------------------
