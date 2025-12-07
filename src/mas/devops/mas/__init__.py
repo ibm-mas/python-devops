@@ -1,9 +1,9 @@
-from apps import (  # noqa: F401
+from .apps import (  # noqa: F401
     verifyAppInstance,
     getAppsSubscriptionChannel
 )
 
-from suite import (  # noqa: F401
+from .suite import (  # noqa: F401
     isAirgapInstall,
     getDefaultStorageClasses,
     getCurrentCatalog,
