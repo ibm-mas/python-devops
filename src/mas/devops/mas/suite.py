@@ -181,7 +181,7 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
     else:
         logger.info(f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}'")
 
-    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "..", "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir),
         extensions=["jinja2_base64_filters.Base64Filters"]
