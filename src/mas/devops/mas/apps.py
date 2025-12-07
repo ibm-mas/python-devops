@@ -98,7 +98,15 @@ def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: 
     return getAppResource(dynClient, instanceId, applicationId) is not None
 
 
-def waitForAppReady(dynClient: DynamicClient, instanceId: str, applicationId: str, workspaceId: str = None, retries: int = 100, delay: int = 600) -> bool:
+def waitForAppReady(
+        dynClient: DynamicClient,
+        instanceId: str,
+        applicationId: str,
+        workspaceId: str = None,
+        retries: int = 100,
+        delay: int = 600,
+        debugLogFunction=logger.debug,
+        infoLogFunction=logger.info) -> bool:
     """
     Docstring for waitForAppReady
 
@@ -117,6 +125,7 @@ def waitForAppReady(dynClient: DynamicClient, instanceId: str, applicationId: st
     :return: Description
     :rtype: bool
     """
+
     resourceName = f"{APP_KINDS[applicationId]}/{instanceId}"
     if workspaceId is not None:
         resourceName = f"{APPWS_KINDS[applicationId]}/{instanceId}-{workspaceId}"
@@ -125,43 +134,43 @@ def waitForAppReady(dynClient: DynamicClient, instanceId: str, applicationId: st
     appStatus = None
 
     attempt = 0
-    logger.info(f"Polling for {resourceName} to report ready state")
+    infoLogFunction(f"Polling for {resourceName} to report ready state with {delay}s delay and {retries} retry limit")
 
     while attempt < retries:
         attempt += 1
         appCR = getAppResource(dynClient, instanceId, applicationId, workspaceId)
 
         if appCR is None:
-            logger.info(f"[{attempt}/{retries}] {resourceName} does not exist")
+            infoLogFunction(f"[{attempt}/{retries}] {resourceName} does not exist")
         else:
             appStatus = appCR.status
             if appStatus is None:
-                logger.info(f"[{attempt}/{retries}] {resourceName} has no status")
+                infoLogFunction(f"[{attempt}/{retries}] {resourceName} has no status")
             else:
                 if appStatus.conditions is None:
-                    logger.info(f"[{attempt}/{retries}] {resourceName} has no status conditions")
+                    infoLogFunction(f"[{attempt}/{retries}] {resourceName} has no status conditions")
                 else:
                     foundReadyCondition: bool = False
                     for condition in appStatus.conditions:
                         if condition.type == "Ready":
                             foundReadyCondition = True
                             if condition.status == "True":
-                                logger.info(f"[{attempt}/{retries}] {resourceName} is in ready state: {condition.message}")
-                                logger.debug(f"CR status={json.dumps(appStatus.to_dict())}")
+                                infoLogFunction(f"[{attempt}/{retries}] {resourceName} is in ready state: {condition.message}")
+                                debugLogFunction(f"{resourceName} status={json.dumps(appStatus.to_dict())}")
                                 return True
                             else:
-                                logger.info(f"[{attempt}/{retries}] {resourceName} is not in ready state: {condition.message}")
+                                infoLogFunction(f"[{attempt}/{retries}] {resourceName} is not in ready state: {condition.message}")
                             continue
                     if not foundReadyCondition:
-                        logger.info(f"[{attempt}/{retries}] {resourceName} has no ready status condition")
+                        infoLogFunction(f"[{attempt}/{retries}] {resourceName} has no ready status condition")
         sleep(delay)
 
     # If we made it this far it means that the application was not ready in time
     logger.warning(f"Retry limit reached polling for {resourceName} to report ready state")
     if appStatus is None:
-        logger.debug("No CR status available")
+        infoLogFunction(f"No {resourceName} status available")
     else:
-        logger.debug(f"CR status={json.dumps(appStatus.to_dict())}")
+        debugLogFunction(f"{resourceName} status={json.dumps(appStatus.to_dict())}")
     return False
 
 
