@@ -1,6 +1,7 @@
 from .apps import (  # noqa: F401
     verifyAppInstance,
-    getAppsSubscriptionChannel
+    getAppsSubscriptionChannel,
+    waitForAppReady
 )
 
 from .suite import (  # noqa: F401
