@@ -59,12 +59,6 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
             result.rwo = "ibmc-block-gold"
             result.rwx = "ibmc-file-gold-gid"
             break
-        # if storageClass.metadata.name in ["ibmc-vpc-file-min-iops", "ibmc-vpc-block-10iops-tier"]:
-        #     result.provider = "ibmc-vpc"
-        #     result.providerName = "IBMCloud VPC Storage"
-        #     result.rwo = "ibmc-vpc-block-10iops-tier"
-        #     result.rwx = "ibmc-vpc-file-min-iops"
-        #     break
         elif storageClass.metadata.name in ["ocs-storagecluster-ceph-rbd", "ocs-storagecluster-cephfs"]:
             result.provider = "ocs"
             result.providerName = "OpenShift Container Storage"
