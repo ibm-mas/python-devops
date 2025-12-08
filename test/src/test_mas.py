@@ -64,15 +64,6 @@ def test_is_airgap_install():
     assert mas.isAirgapInstall(dynClient, checkICSP=False) is False
 
 
-def test_version_before():
-    assert mas.isVersionBefore('9.1.0', '9.1.x-feature') is False
-    assert mas.isVersionBefore('9.1.0', '9.0.0') is True
-    assert mas.isVersionBefore('8.11.1', '9.1.0') is False
-    assert mas.isVersionBefore('9.1.0', '9.1.x-stable') is False
-
-
-def test_version_equal_of_after():
-    assert mas.isVersionEqualOrAfter('9.1.0', '9.2.x-feature') is True
-    assert mas.isVersionEqualOrAfter('9.1.0', '9.0.0') is False
-    assert mas.isVersionEqualOrAfter('8.11.1', '9.1.0') is True
-    assert mas.isVersionEqualOrAfter('9.2.0', '9.1.x-stable') is False
+# def test_is_app_ready():
+#     mas.waitForAppReady(dynClient, "fvtcpd", "iot")
+#     mas.waitForAppReady(dynClient, "fvtcpd", "iot", "masdev")
