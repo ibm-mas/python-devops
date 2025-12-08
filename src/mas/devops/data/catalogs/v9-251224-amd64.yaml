@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: TBC
+catalog_digest: sha256:b23d1c6d4b901da4fe1e8e2d3b42affbfcbac0ebbb8506a2d7e9634005ff924f        #TBC
 
 ocp_compatibility:
 - 4.16
@@ -15,12 +15,12 @@ ocp_compatibility:
 
 # Dependencies
 # -----------------------------------------------------------------------------
-ibm_licensing_version: 4.2.18                # Operator version 4.2.18 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
-common_svcs_version: 4.12.0                  # Operator version 4.12.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
+ibm_licensing_version: 4.2.17                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+common_svcs_version: 4.13.0                  # Operator version 4.13.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
 common_svcs_version_1: 4.11.0                  # Additional version 4.11.0
 
-cp4d_platform_version: 5.1.1                 # Operator version 5.1.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
-ibm_zen_version: 6.1.1+20250218.180746.89    # For CPD5 ibm-zen has to be explicitily mirrored
+cp4d_platform_version: 5.2.0+20250709.170324               # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+ibm_zen_version: 6.2.0+20250530.152516.232                     # For CPD5 ibm-zen has to be explicitily mirrored
 
 db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
@@ -29,19 +29,20 @@ sls_version: 3.12.3                          # Operator version 3.10.0 (https://
 tsm_version: 1.7.2                           # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 dd_version: 1.1.20                           # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
-wsl_version: 10.2.0                          # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
-wsl_runtimes_version: 10.3.0                 # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
-wml_version: 10.2.0                          # Operator version 5.0.0
+wsl_version: 11.0.0+20250521.202913.73                      # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
+wsl_runtimes_version: 11.0.0+20250515.090949.21               # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
+wml_version: 11.0.0+20250530.193146.282                             # Operator version 5.2.0
+postgress_version: 5.16.0+20250827.110911.2626                # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d 
 
 # Why are these commented out?
-# ccs_build: +20240528.144404.460            # ibm-ccs from version 9.0.0 requires the build version
+ccs_build: 11.0.0+20250605.130237.468           
 # datarefinery_build: +20240517.202103.146
 
-spark_version: 10.2.0                        # Operator version 7.3.0
-cognos_version: 27.2.0                       # Operator version 25.0.0
-couchdb_version: 1.0.13                      # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
+spark_version: 11.0.0+20250604.163055.2097                      # Operator version 5.2.0
+cognos_version: 28.0.0+20250515.175459.10054                     # Operator version 25.0.0
+couchdb_version: 1.0.13                     # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
 elasticsearch_version: 1.1.2667              # Operator version 1.1.2667
-
+opensearch_version: 1.1.2494                 # Operator version 1.1.2494
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -135,7 +136,7 @@ amlen_extras_version: 1.1.3
 
 # Default Cloud Pak for Data version
 # ------------------------------------------------------------------------------
-cpd_product_version_default: 5.1.3
+cpd_product_version_default: 5.2.0
 
 manage_extras_913: 9.1.3
 minio_version: RELEASE.2025-06-13T11-33-47Z
