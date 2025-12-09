@@ -242,6 +242,7 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         logger.debug(f"CRD does not exist: {crdName}")
         return False
 
+
 def getCR(dynClient: DynamicClient, cr_api_version: str, cr_kind: str, cr_name: str, namespace: str = None) -> dict:
     """
     Get a Custom Resource
@@ -259,6 +260,7 @@ def getCR(dynClient: DynamicClient, cr_api_version: str, cr_kind: str, cr_name: 
 
     return {}
 
+
 def getSecret(dynClient: DynamicClient, namespace: str, secret_name: str) -> dict:
     """
     Get a Secret
@@ -271,6 +273,7 @@ def getSecret(dynClient: DynamicClient, namespace: str, secret_name: str) -> dic
     except NotFoundError:
         logger.debug(f"Secret {secret_name} does not exist in namespace {namespace}")
     return {}
+
 
 def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str):
     """
@@ -295,6 +298,7 @@ def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str)
         # If not found, create it
         logger.debug(f"Creating new {kind} '{name}' in namespace '{namespace}'")
         resource.create(body=resource_dict, namespace=namespace)
+
 
 def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
     """
