@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:b23d1c6d4b901da4fe1e8e2d3b42affbfcbac0ebbb8506a2d7e9634005ff924f        #TBC
+catalog_digest: sha256:a4a7f44b87b56aa28f860c21b531b7cbb251874dd8b5eb92cadc59dc612a3466
 
 ocp_compatibility:
 - 4.16
@@ -105,6 +105,7 @@ mas_facilities_version:
 # ------------------------------------------------------------------------------
 aiservice_version:
   9.1.x: 9.1.9  # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_6225 # Updated
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
