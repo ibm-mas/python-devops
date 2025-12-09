@@ -287,7 +287,7 @@ def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str)
     try:
         resource = dynClient.resources.get(api_version=api_version, kind=kind)
         # Try to get the existing resource
-        existing_resource = resource.get(name=name, namespace=namespace)
+        resource.get(name=name, namespace=namespace)
         # If found, update it
         logger.debug(f"Updating existing {kind} '{name}' in namespace '{namespace}'")
         resource.patch(body=resource_dict, namespace=namespace, name=name)
