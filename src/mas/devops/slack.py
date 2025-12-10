@@ -39,8 +39,8 @@ class SlackUtilMeta(type):
 
     # Post message to Slack
     # -----------------------------------------------------------------------------
-    def postMessageBlocks(cls, channelName: str, messageBlocks: list, threadId: str = None) -> SlackResponse:
-        if threadId is None:
+    def postMessageBlocks(cls, channelName: str, messageBlocks: list, threadId: str = "") -> SlackResponse:
+        if threadId == "":
             logger.debug(f"Posting {len(messageBlocks)} block message to {channelName} in Slack")
             response = cls.client.chat_postMessage(
                 channel=channelName,
@@ -108,12 +108,12 @@ class SlackUtilMeta(type):
         return response
 
     def createMessagePermalink(
-        cls, slackResponse: SlackResponse = None, channelId: str = None, messageTimestamp: str = None, domain: str = "ibm-mas"
+        cls, slackResponse: SlackResponse = None, channelId: str = "", messageTimestamp: str = "", domain: str = "ibm-mas"
     ) -> str:
         if slackResponse is not None:
             channelId = slackResponse["channel"]
             messageTimestamp = slackResponse["ts"]
-        elif channelId is None or messageTimestamp is None:
+        elif channelId == "" or messageTimestamp == "":
             raise Exception("Either channelId and messageTimestamp, or slackReponse params must be provided")
 
         return f"https://{domain}.slack.com/archives/{channelId}/p{messageTimestamp.replace('.', '')}"

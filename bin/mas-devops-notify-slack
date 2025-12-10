@@ -29,7 +29,7 @@ def _getToolchainLink() -> str:
         toolchainLink = f"<{toolchainUrl}|{toolchainTriggerName}>"
         return toolchainLink
     return ""
-    
+
 
 def notifyProvisionFyre(channel: str, rc: int) -> bool:
     """Send Slack notification about Fyre OCP cluster provisioning status."""
@@ -61,7 +61,7 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
     return response.data.get("ok", False)
 
 
-def notifyProvisionRoks(channel: str, rc: int) -> bool:
+def notifyProvisionRoks(channel: str, rc: int, additionalDetails: str = "") -> bool:
     """Send Slack notification about ROKS cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -77,6 +77,8 @@ def notifyProvisionRoks(channel: str, rc: int) -> bool:
             SlackUtil.buildSection(f"{url}"),
             SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
         ]
+        if additionalDetails != "":
+            message.append(SlackUtil.buildSection(additionalDetails))
     else:
         message = [
             SlackUtil.buildHeader(f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"),
@@ -100,9 +102,14 @@ if __name__ == "__main__":
     # Primary Options
     parser.add_argument("--action", required=True)
     parser.add_argument("--rc", required=True, type=int)
+    parser.add_argument("--add-details")
+    
     args, unknown = parser.parse_known_args()
 
     if args.action == "ocp-provision-fyre":
         notifyProvisionFyre(SLACK_CHANNEL, args.rc)
     elif args.action == "ocp-provision-roks":
-        notifyProvisionRoks(SLACK_CHANNEL, args.rc)
+        if args.add_details:
+            notifyProvisionRoks(SLACK_CHANNEL, args.rc, args.add_details)
+        else:
+            notifyProvisionRoks(SLACK_CHANNEL, args.rc)
