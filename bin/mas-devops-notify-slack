@@ -30,8 +30,20 @@ def _getToolchainLink() -> str:
         return toolchainLink
     return ""
 
+def _broadcast(channels: str, message: list):
+    channelList = [ch.strip() for ch in channels.split(",")]
+    responses = []
+    for channel in channelList:
+        try:
+            response = SlackUtil.postMessageBlocks(channel, message)
+            responses.append(response.data.get("ok", False))
+        except Exception as e:
+            print(f"Failed to send message to channel {channel}: {e}")
+            responses.append(False)
+    return all(responses) if responses else True
+    
 
-def notifyProvisionFyre(channel: str, rc: int) -> bool:
+def notifyProvisionFyre(channels: str, rc: int) -> bool:
     """Send Slack notification about Fyre OCP cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -57,11 +69,10 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
             SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
 
-    response = SlackUtil.postMessageBlocks(channel, message)
-    return response.data.get("ok", False)
+    return _broadcast(channels, message)
 
 
-def notifyProvisionRoks(channel: str, rc: int, additionalDetails: str = "") -> bool:
+def notifyProvisionRoks(channels: str, rc: int, additionalDetails: str = "") -> bool:
     """Send Slack notification about ROKS cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -85,8 +96,7 @@ def notifyProvisionRoks(channel: str, rc: int, additionalDetails: str = "") -> b
             SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
         ]
 
-    response = SlackUtil.postMessageBlocks(channel, message)
-    return response.data.get("ok", False)
+    return _broadcast(channels, message)
 
 
 if __name__ == "__main__":
