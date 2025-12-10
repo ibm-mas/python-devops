@@ -15,19 +15,26 @@ import os
 import sys
 from mas.devops.slack import SlackUtil
 
-
-def notifyProvisionFyre(channel: str, rc: int) -> bool:
-    name = os.getenv("CLUSTER_NAME", None)
-    if name is None:
+def _getClusterName() -> str:
+    name = os.getenv("CLUSTER_NAME", "")
+    if name == "":
         print("CLUSTER_NAME env var must be set")
         sys.exit(1)
+    return name
 
-    # Support optional metadata from standard IBM CD Toolchains environment variables
-    toolchainLink = ""
+def _getToolchainLink() -> str:
     toolchainUrl = os.getenv("TOOLCHAIN_PIPELINERUN_URL", None)
     toolchainTriggerName = os.getenv("TOOLCHAIN_TRIGGER_NAME", None)
     if toolchainUrl is not None and toolchainTriggerName is not None:
-        toolchainLink = f" | <{toolchainUrl}|Pipeline Run>"
+        toolchainLink = f"<{toolchainUrl}|{toolchainTriggerName}>"
+        return toolchainLink
+    return ""
+    
+
+def notifyProvisionFyre(channel: str, rc: int) -> bool:
+    """Send Slack notification about Fyre OCP cluster provisioning status."""
+    name = _getClusterName()
+    toolchainLink = _getToolchainLink()
 
     if rc == 0:
         url = os.getenv("OCP_CONSOLE_URL", None)
@@ -54,6 +61,32 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
     return response.data.get("ok", False)
 
 
+def notifyProvisionRoks(channel: str, rc: int) -> bool:
+    """Send Slack notification about ROKS cluster provisioning status."""
+    name = _getClusterName()
+    toolchainLink = _getToolchainLink()
+
+    if rc == 0:
+        url = os.getenv("OCP_CONSOLE_URL", None)
+        if url is None:
+            print("OCP_CONSOLE_URL env var must be set")
+            sys.exit(1)
+
+        message = [
+            SlackUtil.buildHeader(f":glyph-ok: Your IBM Cloud ROKS cluster ({name}) is ready"),
+            SlackUtil.buildSection(f"{url}"),
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
+        ]
+    else:
+        message = [
+            SlackUtil.buildHeader(f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"),
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
+        ]
+
+    response = SlackUtil.postMessageBlocks(channel, message)
+    return response.data.get("ok", False)
+
+
 if __name__ == "__main__":
     # If SLACK_TOKEN or SLACK_CHANNEL env vars are not set then silently exit taking no action
     SLACK_TOKEN = os.getenv("SLACK_TOKEN", "")
@@ -71,3 +104,5 @@ if __name__ == "__main__":
 
     if args.action == "ocp-provision-fyre":
         notifyProvisionFyre(SLACK_CHANNEL, args.rc)
+    elif args.action == "ocp-provision-roks":
+        notifyProvisionRoks(SLACK_CHANNEL, args.rc)
