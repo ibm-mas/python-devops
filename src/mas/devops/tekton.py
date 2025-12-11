@@ -22,14 +22,11 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, getStorageClassVolumeBindingMode
-from .mas import waitForPVC, patchPendingPVC
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClassVolumeBindingMode
 
 logger = logging.getLogger(__name__)
 
 
-# customStorageClassName is used when no default Storageclass is available on cluster,
-# openshift-pipelines creates PVC which looks for default. customStorageClassName is patched into PVC when default is unavailable.
 def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:
     """
     Install the OpenShift Pipelines Operator and wait for it to be ready to use
@@ -86,6 +83,8 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
         logger.error("OpenShift Pipelines Webhook is NOT installed and ready")
         return False
 
+    # Workaround for bug in OpenShift Pipelines/Tekton
+    # -------------------------------------------------------------------------
     # Wait for the postgredb-tekton-results-postgres-0 PVC to be ready
     # this PVC doesn't come up when there's no default storage class is in the cluster,
     # this is causing the pvc to be in pending state and causing the tekton-results-postgres statefulSet in pending,
@@ -98,13 +97,65 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
         logger.info("OpenShift Pipelines postgres is installed and ready")
         return True
     else:
-        patchedPVC = patchPendingPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0", storageClassName=customStorageClassName)
-        if patchedPVC:
+        tektonPVCisReady = addMissingStorageClassToTektonPVC(
+            dynClient=dynClient,
+            namespace="openshift-pipelines",
+            pvcName="postgredb-tekton-results-postgres-0",
+            storageClassName=customStorageClassName
+        )
+        if tektonPVCisReady:
             logger.info("OpenShift Pipelines postgres is installed and ready")
             return True
         else:
             logger.error("OpenShift Pipelines postgres PVC is NOT ready")
             return False
+
+
+def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str) -> bool:
+    """
+    OpenShift Pipelines has a problem when there is no default storage class defined in a cluster, this function
+    patches the PVC used to store pipeline results to add a specific storage class into the PVC spec and waits for the
+    PVC to be bound.
+
+    :param dynClient: Kubernetes client, required to work with PVC
+    :type dynClient: DynamicClient
+    :param namespace: Namespace where OpenShift Pipelines is installed
+    :type namespace: str
+    :param pvcName: Name of the PVC that we want to fix
+    :type pvcName: str
+    :param storageClassName: Name of the storage class that we want to update the PVC to reference
+    :type storageClassName: str
+    :return: Description
+    :rtype: bool
+    """
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    try:
+        pvc = pvcAPI.get(name=pvcName, namespace=namespace)
+        if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
+            pvc.spec.storageClassName = storageClassName
+            pvcAPI.patch(body=pvc, namespace=namespace)
+
+            maxRetries = 60
+            foundReadyPVC = False
+            retries = 0
+            while not foundReadyPVC and retries < maxRetries:
+                retries += 1
+                try:
+                    patchedPVC = pvcAPI.get(name=pvcName, namespace=namespace)
+                    if patchedPVC.status.phase == "Bound":
+                        foundReadyPVC = True
+                    else:
+                        logger.debug(f"Waiting 5s for PVC {pvcName} to be bound before checking again ...")
+                        sleep(5)
+                except NotFoundError:
+                    logger.error(f"The patched PVC {pvcName} does not exist.")
+                    return False
+
+            return foundReadyPVC
+
+    except NotFoundError:
+        logger.error(f"PVC {pvcName} does not exist")
+        return False
 
 
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:

@@ -267,6 +267,42 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         return False
 
 
+def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
+    """
+    Get a list of instances of a particular CR on the cluster
+    """
+    api = dynClient.resources.get(api_version=apiVersion, kind=kind)
+    instances = api.get().to_dict()['items']
+    if len(instances) > 0:
+        logger.info(f"There are {len(instances)} {kind} instances installed on this cluster:")
+    for instance in instances:
+        logger.info(f" * {instance['metadata']['name']} v{instance['status']['versions']['reconciled']}")
+    else:
+        logger.info(f"There are no {kind} instances installed on this cluster")
+    return instances
+
+
+def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    maxRetries = 60
+    foundReadyPVC = False
+    retries = 0
+    while not foundReadyPVC and retries < maxRetries:
+        retries += 1
+        try:
+            pvc = pvcAPI.get(name=pvcName, namespace=namespace)
+            if pvc.status.phase == "Bound":
+                foundReadyPVC = True
+            else:
+                logger.debug(f"Waiting 5s for PVC {pvcName} to be ready before checking again ...")
+                sleep(5)
+        except NotFoundError:
+            logger.debug(f"Waiting 5s for PVC {pvcName} to be created before checking again ...")
+            sleep(5)
+
+    return foundReadyPVC
+
+
 # Assisted by WCA@IBM
 # Latest GenAI contribution: ibm/granite-8b-code-instruct
 def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
