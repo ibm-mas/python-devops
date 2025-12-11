@@ -35,8 +35,9 @@ def _broadcast(channels: str, message: list):
     responses = []
     for channel in channelList:
         try:
-            response = SlackUtil.postMessageBlocks(channel, message)
-            responses.append(response.data.get("ok", False))
+            if channel:
+                response = SlackUtil.postMessageBlocks(channel, message)
+                responses.append(response.data.get("ok", False))
         except Exception as e:
             print(f"Failed to send message to channel {channel}: {e}")
             responses.append(False)
