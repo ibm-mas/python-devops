@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-{%- if applicationType is defined and applicationType == "mas" %}
+{%- if mas_instance_id is defined and mas_instance_id != "" %}
   name: "{{mas_instance_id}}-install-{{ timestamp }}"
 {%- else %}
   name: "{{aiservice_instance_id}}-install-{{ timestamp }}"
@@ -312,20 +312,6 @@ spec:
     - name: sls_action
       value: "{{ sls_action }}"
 {%- endif %}
-{%- if aiservice_sls_url is defined and aiservice_sls_url != "" %}
-
-    # Remote SLS
-    # -------------------------------------------------------------------------
-    - name: aiservice_sls_secret_name
-      value: "{{ aiservice_sls_secret_name }}"
-    - name: aiservice_sls_registration_key
-      value: "{{ aiservice_sls_registration_key }}"
-    - name: aiservice_sls_url
-      value: "{{ aiservice_sls_url }}"
-    - name: aiservice_sls_ca_cert
-      value: "{{ aiservice_sls_ca_cert }}"
-{%- endif %}
-
 
     # Dependencies - DRO (Required)
     # -------------------------------------------------------------------------
