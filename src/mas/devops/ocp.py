@@ -293,9 +293,8 @@ def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str)
         resource = dynClient.resources.get(api_version=api_version, kind=kind)
         # Try to get the existing resource
         resource.get(name=name, namespace=namespace)
-        # If found, update it
-        logger.debug(f"Updating existing {kind} '{name}' in namespace '{namespace}'")
-        resource.patch(body=resource_dict, namespace=namespace, name=name)
+        # If found, skip creation
+        logger.debug(f"{kind} '{name}' already exists in namespace '{namespace}', skipping creation.")
     except NotFoundError:
         # If not found, create it
         logger.debug(f"Creating new {kind} '{name}' in namespace '{namespace}'")
