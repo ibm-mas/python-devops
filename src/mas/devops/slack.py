@@ -39,73 +39,93 @@ class SlackUtilMeta(type):
 
     # Post message to Slack
     # -----------------------------------------------------------------------------
-    def postMessageBlocks(cls, channelName: str, messageBlocks: list, threadId: str = "") -> SlackResponse:
-        if threadId == "":
-            logger.debug(f"Posting {len(messageBlocks)} block message to {channelName} in Slack")
-            response = cls.client.chat_postMessage(
-                channel=channelName,
-                blocks=messageBlocks,
-                text="Summary text unavailable",
-                mrkdwn=True,
-                parse="none",
-                unfurl_links=False,
-                unfurl_media=False,
-                link_names=True,
-                as_user=True,
-            )
-        else:
-            logger.debug(f"Posting {len(messageBlocks)} block message to {channelName} on thread {threadId} in Slack")
-            response = cls.client.chat_postMessage(
-                channel=channelName,
-                thread_ts=threadId,
-                blocks=messageBlocks,
-                text="Summary text unavailable",
-                mrkdwn=True,
-                parse="none",
-                unfurl_links=False,
-                unfurl_media=False,
-                link_names=True,
-                as_user=True,
-            )
+    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str = "") -> SlackResponse | list[SlackResponse]:
+        responses = []
 
-        if not response["ok"]:
-            logger.warning(response.data)
-            logger.warning("Failed to call Slack API")
-        return response
+        if isinstance(channelList, str):
+            channelList = [channelList]
+        for channel in channelList:
+            logger.info(f"{channel}")
+            try:
+                if threadId == "":
+                    logger.debug(f"Posting {len(messageBlocks)} block message to {channel} in Slack")
+                    response = cls.client.chat_postMessage(
+                        channel=channel,
+                        blocks=messageBlocks,
+                        text="Summary text unavailable",
+                        mrkdwn=True,
+                        parse="none",
+                        unfurl_links=False,
+                        unfurl_media=False,
+                        link_names=True,
+                        as_user=True,
+                    )
+                else:
+                    logger.debug(f"Posting {len(messageBlocks)} block message to {channel} on thread {threadId} in Slack")
+                    response = cls.client.chat_postMessage(
+                        channel=channel,
+                        thread_ts=threadId,
+                        blocks=messageBlocks,
+                        text="Summary text unavailable",
+                        mrkdwn=True,
+                        parse="none",
+                        unfurl_links=False,
+                        unfurl_media=False,
+                        link_names=True,
+                        as_user=True,
+                    )
 
-    def postMessageText(cls, channelName, message, attachments=None, threadId=None):
-        if threadId is None:
-            logger.debug(f"Posting message to {channelName} in Slack")
-            response = cls.client.chat_postMessage(
-                channel=channelName,
-                text=message,
-                attachments=attachments,
-                mrkdwn=True,
-                parse="none",
-                unfurl_links=False,
-                unfurl_media=False,
-                link_names=True,
-                as_user=True,
-            )
-        else:
-            logger.debug(f"Posting message to {channelName} on thread {threadId} in Slack")
-            response = cls.client.chat_postMessage(
-                channel=channelName,
-                thread_ts=threadId,
-                text=message,
-                attachments=attachments,
-                mrkdwn=True,
-                parse="none",
-                unfurl_links=False,
-                unfurl_media=False,
-                link_names=True,
-                as_user=True,
-            )
+                if not response["ok"]:
+                    logger.warning(response.data)
+                    logger.warning("Failed to call Slack API")
+                responses.append(response)
+            except Exception as e:
+                logger.error(f"Fail to send a message to {channel}: {e}")
+                raise
 
-        if not response["ok"]:
-            logger.warning(response.data)
-            logger.warning("Failed to call Slack API")
-        return response
+        return responses if len(responses) > 1 else responses[0]
+
+    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str = "") -> SlackResponse | list[SlackResponse]:
+        responses: list[str] = []
+
+        if isinstance(channelList, str):
+            channelList = [channelList]
+
+        for channel in channelList:
+            if threadId == "":
+                logger.debug(f"Posting message to {channel} in Slack")
+                response = cls.client.chat_postMessage(
+                    channel=channel,
+                    text=message,
+                    attachments=attachments,
+                    mrkdwn=True,
+                    parse="none",
+                    unfurl_links=False,
+                    unfurl_media=False,
+                    link_names=True,
+                    as_user=True,
+                )
+            else:
+                logger.debug(f"Posting message to {channel} on thread {threadId} in Slack")
+                response = cls.client.chat_postMessage(
+                    channel=channel,
+                    thread_ts=threadId,
+                    text=message,
+                    attachments=attachments,
+                    mrkdwn=True,
+                    parse="none",
+                    unfurl_links=False,
+                    unfurl_media=False,
+                    link_names=True,
+                    as_user=True,
+                )
+
+            if not response["ok"]:
+                logger.warning(response.data)
+                logger.warning("Failed to call Slack API")
+            responses.append(response)
+
+        return responses if len(responses) > 1 else responses[0]
 
     def createMessagePermalink(
         cls, slackResponse: SlackResponse = None, channelId: str = "", messageTimestamp: str = "", domain: str = "ibm-mas"

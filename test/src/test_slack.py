@@ -21,3 +21,16 @@ def testSendMessage():
     assert response.data["ok"] is True
 
     assert "ts" in response.data
+
+
+def testBroadcast():
+    responses = SlackUtil.postMessageText(["#bot-test", "#bot-test"], "mas-devops unittest")
+
+    for response in responses:
+        assert "channel" in response.data
+        assert response.data["channel"] == "C06453F9KFC"
+
+        assert "ok" in response.data
+        assert response.data["ok"] is True
+
+        assert "ts" in response.data

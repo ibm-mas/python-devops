@@ -30,21 +30,8 @@ def _getToolchainLink() -> str:
         return toolchainLink
     return ""
 
-def _broadcast(channels: str, message: list):
-    channelList = [ch.strip() for ch in channels.split(",")]
-    responses = []
-    for channel in channelList:
-        try:
-            if channel:
-                response = SlackUtil.postMessageBlocks(channel, message)
-                responses.append(response.data.get("ok", False))
-        except Exception as e:
-            print(f"Failed to send message to channel {channel}: {e}")
-            responses.append(False)
-    return all(responses) if responses else True
-    
 
-def notifyProvisionFyre(channels: str, rc: int) -> bool:
+def notifyProvisionFyre(channels: list[str], rc: int, additionalMsg: str = "") -> bool:
     """Send Slack notification about Fyre OCP cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -64,16 +51,21 @@ def notifyProvisionFyre(channels: str, rc: int) -> bool:
             SlackUtil.buildSection(f"- Username: `{username}`\n- Password: `{password}`"),
             SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
+        if additionalMsg:
+            message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
             SlackUtil.buildHeader(f":glyph-fail: Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy"),
             SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
+    
+    response = SlackUtil.postMessageBlocks(channels, message)
+    if isinstance(response, list):
+        return all([res.data.get("ok", False) for res in response])
+    return response.data.get("ok", False)
 
-    return _broadcast(channels, message)
 
-
-def notifyProvisionRoks(channels: str, rc: int, additionalDetails: str = "") -> bool:
+def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str = "") -> bool:
     """Send Slack notification about ROKS cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -89,15 +81,18 @@ def notifyProvisionRoks(channels: str, rc: int, additionalDetails: str = "") -> 
             SlackUtil.buildSection(f"{url}"),
             SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
         ]
-        if additionalDetails != "":
-            message.append(SlackUtil.buildSection(additionalDetails))
+        if additionalMsg:
+            message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
             SlackUtil.buildHeader(f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"),
             SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
         ]
 
-    return _broadcast(channels, message)
+    response = SlackUtil.postMessageBlocks(channels, message)
+    if isinstance(response, list):
+        return all([res.data.get("ok", False) for res in response])
+    return response.data.get("ok", False)
 
 
 if __name__ == "__main__":
@@ -106,21 +101,21 @@ if __name__ == "__main__":
     SLACK_CHANNEL = os.getenv("SLACK_CHANNEL", "")
     if SLACK_TOKEN == "" or SLACK_CHANNEL == "":
         sys.exit(0)
-
+    
+    # Parse comma-separated channel list
+    channelList = [ch.strip() for ch in SLACK_CHANNEL.split(",")]
+    
     # Initialize the properties we need
     parser = argparse.ArgumentParser()
 
     # Primary Options
     parser.add_argument("--action", required=True)
     parser.add_argument("--rc", required=True, type=int)
-    parser.add_argument("--add-details")
+    parser.add_argument("--msg", required=False, default="")
     
     args, unknown = parser.parse_known_args()
 
     if args.action == "ocp-provision-fyre":
-        notifyProvisionFyre(SLACK_CHANNEL, args.rc)
+        notifyProvisionFyre(channelList, args.rc, args.msg)
     elif args.action == "ocp-provision-roks":
-        if args.add_details:
-            notifyProvisionRoks(SLACK_CHANNEL, args.rc, args.add_details)
-        else:
-            notifyProvisionRoks(SLACK_CHANNEL, args.rc)
+        notifyProvisionRoks(channelList, args.rc, args.msg)
