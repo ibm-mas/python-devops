@@ -475,11 +475,11 @@ def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: st
     return timestamp
 
 
-def launchInstallPipeline(dynClient: DynamicClient, params: dict, standalone_aiservice_install: str = "false") -> str:
+def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
     """
     Create a PipelineRun to install the chosen MAS ( or AI Service ) instance (and selected dependencies)
     """
-    applicationType = "aiservice" if standalone_aiservice_install == "true" else "mas"
+    applicationType = "aiservice" if not params.get("mas_instance_id") else "mas"
     params["applicationType"] = applicationType
     instanceId = params[f"{applicationType}_instance_id"]
     namespace = f"{applicationType}-{instanceId}-pipelines"

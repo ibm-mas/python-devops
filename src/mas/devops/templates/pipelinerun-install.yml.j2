@@ -800,10 +800,6 @@ spec:
 
     # AI Service
     # -------------------------------------------------------------------------
-  {%- if standalone_aiservice_install is defined and standalone_aiservice_install != "" %}
-    - name: standalone_aiservice_install
-      value: "{{ standalone_aiservice_install }}"
-  {%- endif %}
     - name: aiservice_instance_id
       value: "{{ aiservice_instance_id }}"
     - name: aiservice_channel
