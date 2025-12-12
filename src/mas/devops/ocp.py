@@ -257,6 +257,8 @@ def getCR(dynClient: DynamicClient, cr_api_version: str, cr_kind: str, cr_name: 
         return cr
     except NotFoundError:
         logger.debug(f"CR {cr_name} of kind {cr_kind} does not exist in namespace {namespace}")
+    except Exception as e:
+        logger.debug(f"Error retrieving CR {cr_name} of kind {cr_kind} in namespace {namespace}: {e}")
 
     return {}
 
