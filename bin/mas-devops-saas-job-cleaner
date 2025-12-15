@@ -46,7 +46,6 @@ if __name__ == "__main__":
     ch.setFormatter(chFormatter)
     logger.addHandler(ch)
 
-
     limit = args.limit
     label = args.label
     dry_run = args.dry_run
