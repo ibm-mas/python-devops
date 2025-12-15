@@ -39,7 +39,7 @@ class SlackUtilMeta(type):
 
     # Post message to Slack
     # -----------------------------------------------------------------------------
-    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str=None) -> SlackResponse | list[SlackResponse]:
+    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str = None) -> SlackResponse | list[SlackResponse]:
         responses: list[SlackResponse] = []
 
         if isinstance(channelList, str):
@@ -84,7 +84,7 @@ class SlackUtilMeta(type):
 
         return responses if len(responses) > 1 else responses[0]
 
-    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str=None) -> SlackResponse | list[SlackResponse]:
+    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str = None) -> SlackResponse | list[SlackResponse]:
         responses: list[SlackResponse] = []
 
         if isinstance(channelList, str):

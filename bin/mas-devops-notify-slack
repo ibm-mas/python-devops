@@ -33,7 +33,7 @@ def _getToolchainLink() -> str:
     return ""
 
 
-def notifyProvisionFyre(channels: list[str], rc: int, additionalMsg: str=None) -> bool:
+def notifyProvisionFyre(channels: list[str], rc: int, additionalMsg: str = None) -> bool:
     """Send Slack notification about Fyre OCP cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -60,14 +60,14 @@ def notifyProvisionFyre(channels: list[str], rc: int, additionalMsg: str=None) -
             SlackUtil.buildHeader(f":glyph-fail: Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy"),
             SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
-    
+
     response = SlackUtil.postMessageBlocks(channels, message)
     if isinstance(response, list):
         return all([res.data.get("ok", False) for res in response])
     return response.data.get("ok", False)
 
 
-def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str=None) -> bool:
+def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str = None) -> bool:
     """Send Slack notification about ROKS cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -103,10 +103,10 @@ if __name__ == "__main__":
     SLACK_CHANNEL = os.getenv("SLACK_CHANNEL", "")
     if SLACK_TOKEN == "" or SLACK_CHANNEL == "":
         sys.exit(0)
-    
+
     # Parse comma-separated channel list
     channelList = [ch.strip() for ch in SLACK_CHANNEL.split(",")]
-    
+
     # Initialize the properties we need
     parser = argparse.ArgumentParser()
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--action", required=True)
     parser.add_argument("--rc", required=True, type=int)
     parser.add_argument("--msg", required=False, default=None)
-    
+
     args, unknown = parser.parse_known_args()
 
     if args.action == "ocp-provision-fyre":
