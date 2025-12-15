@@ -39,14 +39,14 @@ class SlackUtilMeta(type):
 
     # Post message to Slack
     # -----------------------------------------------------------------------------
-    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str=None) -> SlackResponse | list[SlackResponse]:
         responses: list[SlackResponse] = []
 
         if isinstance(channelList, str):
             channelList = [channelList]
         for channel in channelList:
             try:
-                if threadId == "":
+                if threadId is None:
                     logger.debug(f"Posting {len(messageBlocks)} block message to {channel} in Slack")
                     response = cls.client.chat_postMessage(
                         channel=channel,
@@ -84,14 +84,14 @@ class SlackUtilMeta(type):
 
         return responses if len(responses) > 1 else responses[0]
 
-    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str=None) -> SlackResponse | list[SlackResponse]:
         responses: list[SlackResponse] = []
 
         if isinstance(channelList, str):
             channelList = [channelList]
 
         for channel in channelList:
-            if threadId == "":
+            if threadId is None:
                 logger.debug(f"Posting message to {channel} in Slack")
                 response = cls.client.chat_postMessage(
                     channel=channel,
