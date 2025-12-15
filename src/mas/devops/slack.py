@@ -39,13 +39,12 @@ class SlackUtilMeta(type):
 
     # Post message to Slack
     # -----------------------------------------------------------------------------
-    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str = "") -> SlackResponse | list[SlackResponse]:
-        responses = []
+    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+        responses: list[SlackResponse] = []
 
         if isinstance(channelList, str):
             channelList = [channelList]
         for channel in channelList:
-            logger.info(f"{channel}")
             try:
                 if threadId == "":
                     logger.debug(f"Posting {len(messageBlocks)} block message to {channel} in Slack")
@@ -85,8 +84,8 @@ class SlackUtilMeta(type):
 
         return responses if len(responses) > 1 else responses[0]
 
-    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str = "") -> SlackResponse | list[SlackResponse]:
-        responses: list[str] = []
+    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+        responses: list[SlackResponse] = []
 
         if isinstance(channelList, str):
             channelList = [channelList]
@@ -128,7 +127,7 @@ class SlackUtilMeta(type):
         return responses if len(responses) > 1 else responses[0]
 
     def createMessagePermalink(
-        cls, slackResponse: SlackResponse = None, channelId: str = "", messageTimestamp: str = "", domain: str = "ibm-mas"
+        cls, slackResponse: SlackResponse = None, channelId: str = None, messageTimestamp: str = None, domain: str = "ibm-mas"
     ) -> str:
         if slackResponse is not None:
             channelId = slackResponse["channel"]
