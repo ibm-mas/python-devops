@@ -12,7 +12,7 @@ from mas.devops.slack import SlackUtil
 
 
 def testSendMessage():
-    response = SlackUtil.postMessageText("#bot-test", "mas-devops unittest")
+    response = SlackUtil.postMessageText("#bot-test", "mas-devops postMessageTest() unittest")
 
     assert "channel" in response.data
     assert response.data["channel"] == "C06453F9KFC"
@@ -24,8 +24,8 @@ def testSendMessage():
 
 
 def testBroadcast():
-    responses = SlackUtil.postMessageText(["#bot-test", "#bot-test"], "mas-devops unittest")
-
+    responses = SlackUtil.postMessageText(["#bot-test", "#bot-test"], "mas-devops postMessageText() broadcast unittest")
+    assert len(responses) == 2
     for response in responses:
         assert "channel" in response.data
         assert response.data["channel"] == "C06453F9KFC"
