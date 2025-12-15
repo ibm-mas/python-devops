@@ -132,7 +132,7 @@ class SlackUtilMeta(type):
         if slackResponse is not None:
             channelId = slackResponse["channel"]
             messageTimestamp = slackResponse["ts"]
-        elif channelId == "" or messageTimestamp == "":
+        elif channelId is None or messageTimestamp is None:
             raise Exception("Either channelId and messageTimestamp, or slackReponse params must be provided")
 
         return f"https://{domain}.slack.com/archives/{channelId}/p{messageTimestamp.replace('.', '')}"
