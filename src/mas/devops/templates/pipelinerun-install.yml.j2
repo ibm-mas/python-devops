@@ -93,21 +93,6 @@ spec:
       value: "{{ eck_remote_es_password }}"
   {%- endif %}
 {%- endif %}
-{%- if turbonomic_server_url is defined and turbonomic_server_url != "" %}
-
-    # Dependencies - Turbonomic
-    # -------------------------------------------------------------------------
-    - name: turbonomic_server_url
-      value: "{{ turbonomic_server_url }}"
-    - name: turbonomic_server_version
-      value: "{{ turbonomic_server_version }}"
-    - name: turbonomic_target_name
-      value: "{{ turbonomic_target_name }}"
-    - name: turbonomic_username
-      value: "{{ turbonomic_username }}"
-    - name: turbonomic_password
-      value: "{{ turbonomic_password }}"
-{%- endif %}
 {%- if db2_action_system == "install" or db2_action_manage == "install" %}
 
     # Dependencies - Db2 - Actions
