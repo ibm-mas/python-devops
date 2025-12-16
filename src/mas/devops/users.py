@@ -759,17 +759,23 @@ class MASUserUtils():
         for (email, csv) in secret_json.items():
             values = csv.split(",")
 
-            if len(values) != 3:
-                raise Exception(f"Wrong number of CSV values for {email} (expected 3 but got {len(values)})")
+            if len(values) != 3 and len(values) != 4:
+                raise Exception(f"Wrong number of CSV values for {email} (expected 3 or 4 but got {len(values)})")
 
             user_type = values[0].strip()
             given_name = values[1].strip()
             family_name = values[2].strip()
 
+            if len(values) == 4:
+                id = values[3].strip()
+            else:
+                id = email
+
             user = {
                 "email": email,
                 "given_name": given_name,
-                "family_name": family_name
+                "family_name": family_name,
+                "id": id
             }
             if user_type == "primary":
                 primary.append(user)
@@ -880,6 +886,7 @@ class MASUserUtils():
             is_workspace_admin = True
             application_role = "ADMIN"
             facilities_role = "PREMIUM"
+            manage_role = "MANAGEUSER"
             # TODO: check which security groups primary users should be members of
             manage_security_groups = ["MAXADMIN"]
         elif user_type == "SECONDARY":
@@ -896,6 +903,7 @@ class MASUserUtils():
             is_workspace_admin = False
             application_role = "USER"
             facilities_role = "BASE"
+            manage_role = "MANAGEUSER"
             # TODO: check which security groups secondary users should be members of
             manage_security_groups = []
         else:
@@ -930,9 +938,8 @@ class MASUserUtils():
         for mas_application_id in self.mas_workspace_application_ids:
             self.await_mas_application_availability(mas_application_id)
             if mas_application_id == "manage":
-                # special case for manage; role is always "MANAGEUSER"
-                role = "MANAGEUSER"
-            if mas_application_id == "facilities":
+                role = manage_role
+            elif mas_application_id == "facilities":
                 role = facilities_role
             else:
                 # otherwise grant the user the appropriate role for their user_type
