@@ -16,18 +16,27 @@ import sys
 from mas.devops.slack import SlackUtil
 
 
-def notifyProvisionFyre(channel: str, rc: int) -> bool:
-    name = os.getenv("CLUSTER_NAME", None)
-    if name is None:
+def _getClusterName() -> str:
+    name = os.getenv("CLUSTER_NAME", "")
+    if name == "":
         print("CLUSTER_NAME env var must be set")
         sys.exit(1)
+    return name
 
-    # Support optional metadata from standard IBM CD Toolchains environment variables
-    toolchainLink = ""
+
+def _getToolchainLink() -> str:
     toolchainUrl = os.getenv("TOOLCHAIN_PIPELINERUN_URL", None)
     toolchainTriggerName = os.getenv("TOOLCHAIN_TRIGGER_NAME", None)
     if toolchainUrl is not None and toolchainTriggerName is not None:
-        toolchainLink = f" | <{toolchainUrl}|Pipeline Run>"
+        toolchainLink = f"<{toolchainUrl}|{toolchainTriggerName}>"
+        return toolchainLink
+    return ""
+
+
+def notifyProvisionFyre(channels: list[str], rc: int, additionalMsg: str = None) -> bool:
+    """Send Slack notification about Fyre OCP cluster provisioning status."""
+    name = _getClusterName()
+    toolchainLink = _getToolchainLink()
 
     if rc == 0:
         url = os.getenv("OCP_CONSOLE_URL", None)
@@ -44,13 +53,47 @@ def notifyProvisionFyre(channel: str, rc: int) -> bool:
             SlackUtil.buildSection(f"- Username: `{username}`\n- Password: `{password}`"),
             SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
+        if additionalMsg is not None:
+            message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
             SlackUtil.buildHeader(f":glyph-fail: Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy"),
             SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
         ]
 
-    response = SlackUtil.postMessageBlocks(channel, message)
+    response = SlackUtil.postMessageBlocks(channels, message)
+    if isinstance(response, list):
+        return all([res.data.get("ok", False) for res in response])
+    return response.data.get("ok", False)
+
+
+def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str = None) -> bool:
+    """Send Slack notification about ROKS cluster provisioning status."""
+    name = _getClusterName()
+    toolchainLink = _getToolchainLink()
+
+    if rc == 0:
+        url = os.getenv("OCP_CONSOLE_URL", None)
+        if url is None:
+            print("OCP_CONSOLE_URL env var must be set")
+            sys.exit(1)
+
+        message = [
+            SlackUtil.buildHeader(f":glyph-ok: Your IBM Cloud ROKS cluster ({name}) is ready"),
+            SlackUtil.buildSection(f"{url}"),
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
+        ]
+        if additionalMsg is not None:
+            message.append(SlackUtil.buildSection(additionalMsg))
+    else:
+        message = [
+            SlackUtil.buildHeader(f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"),
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
+        ]
+
+    response = SlackUtil.postMessageBlocks(channels, message)
+    if isinstance(response, list):
+        return all([res.data.get("ok", False) for res in response])
     return response.data.get("ok", False)
 
 
@@ -61,13 +104,20 @@ if __name__ == "__main__":
     if SLACK_TOKEN == "" or SLACK_CHANNEL == "":
         sys.exit(0)
 
+    # Parse comma-separated channel list
+    channelList = [ch.strip() for ch in SLACK_CHANNEL.split(",")]
+
     # Initialize the properties we need
     parser = argparse.ArgumentParser()
 
     # Primary Options
     parser.add_argument("--action", required=True)
     parser.add_argument("--rc", required=True, type=int)
+    parser.add_argument("--msg", required=False, default=None)
+
     args, unknown = parser.parse_known_args()
 
     if args.action == "ocp-provision-fyre":
-        notifyProvisionFyre(SLACK_CHANNEL, args.rc)
+        notifyProvisionFyre(channelList, args.rc, args.msg)
+    elif args.action == "ocp-provision-roks":
+        notifyProvisionRoks(channelList, args.rc, args.msg)

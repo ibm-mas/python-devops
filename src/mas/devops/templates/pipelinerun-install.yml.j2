@@ -2,7 +2,11 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
+{%- if mas_instance_id is defined and mas_instance_id != "" %}
   name: "{{mas_instance_id}}-install-{{ timestamp }}"
+{%- else %}
+  name: "{{aiservice_instance_id}}-install-{{ timestamp }}"
+{%- endif %}
   labels:
     tekton.dev/pipeline: mas-install
 spec:
@@ -293,7 +297,6 @@ spec:
     - name: sls_action
       value: "{{ sls_action }}"
 {%- endif %}
-
 
     # Dependencies - DRO (Required)
     # -------------------------------------------------------------------------
@@ -762,6 +765,96 @@ spec:
       value: "{{ mas_ws_facilities_config_map_name }}"
 {%- endif %}
 
+{%- endif %}
+
+{%- if aiservice_instance_id is defined and aiservice_instance_id != "" %}
+
+    # AI Service
+    # -------------------------------------------------------------------------
+    - name: aiservice_instance_id
+      value: "{{ aiservice_instance_id }}"
+    - name: aiservice_channel
+      value: "{{ aiservice_channel }}"
+    - name: db2_action_aiservice
+      value: "{{ db2_action_aiservice }}"
+
+    - name: environment_type
+      value: "{{ environment_type }}"
+
+    # AI Service Tenant
+    # -------------------------------------------------------------------------
+    - name: tenant_entitlement_type
+      value: "{{ tenant_entitlement_type }}"
+    - name: tenant_entitlement_start_date
+      value: "{{ tenant_entitlement_start_date }}"
+    - name: tenant_entitlement_end_date
+      value: "{{ tenant_entitlement_end_date }}"
+
+    # RSL
+    # -------------------------------------------------------------------------
+    - name: rsl_url
+      value: "{{ rsl_url }}"
+    - name: rsl_org_id
+      value: "{{ rsl_org_id }}"
+    - name: rsl_token
+      value: "{{ rsl_token }}"
+
+    # S3
+    # -------------------------------------------------------------------------
+    - name: aiservice_s3_accesskey
+      value: "{{ aiservice_s3_accesskey }}"
+    - name: aiservice_s3_secretkey
+      value: "{{ aiservice_s3_secretkey }}"
+    - name: aiservice_s3_host
+      value: "{{ aiservice_s3_host }}"
+    - name: aiservice_s3_port
+      value: "{{ aiservice_s3_port }}"
+    - name: aiservice_s3_ssl
+      value: "{{ aiservice_s3_ssl }}"
+    - name: aiservice_s3_region
+      value: "{{ aiservice_s3_region }}"
+    - name: aiservice_s3_bucket_prefix
+      value: "{{ aiservice_s3_bucket_prefix }}"
+
+    - name: aiservice_s3_tenants_bucket
+      value: "{{ aiservice_s3_tenants_bucket }}"
+    - name: aiservice_s3_templates_bucket
+      value: "{{ aiservice_s3_templates_bucket }}"
+
+    - name: minio_root_user
+      value: "{{ minio_root_user }}"
+    - name: minio_root_password
+      value: "{{ minio_root_password }}"
+
+    # AI Service - ODH
+    # -------------------------------------------------------------------------
+    - name: aiservice_odh_model_deployment_type
+      value: "{{ aiservice_odh_model_deployment_type }}"
+
+    # AI Service - watsonX
+    # -------------------------------------------------------------------------
+    - name: aiservice_watsonxai_apikey
+      value: "{{ aiservice_watsonxai_apikey }}"
+    - name: aiservice_watsonxai_url
+      value: "{{ aiservice_watsonxai_url }}"
+    - name: aiservice_watsonxai_project_id
+      value: "{{ aiservice_watsonxai_project_id }}"
+    - name: aiservice_watsonx_action
+      value: "{{ aiservice_watsonx_action }}"
+    - name: aiservice_watsonxai_ca_crt
+      value: "{{ aiservice_watsonxai_ca_crt }}"
+    - name: aiservice_watsonxai_instance_id
+      value: "{{ aiservice_watsonxai_instance_id }}"
+    - name: aiservice_watsonxai_username
+      value: "{{ aiservice_watsonxai_username }}"
+    - name: aiservice_watsonxai_version
+      value: "{{ aiservice_watsonxai_version }}"
+    - name: aiservice_watsonxai_deployment_id
+      value: "{{ aiservice_watsonxai_deployment_id }}"
+    - name: aiservice_watsonxai_space_id
+      value: "{{ aiservice_watsonxai_space_id }}"
+    - name: aiservice_watsonxai_on_prem
+      value: "{{ aiservice_watsonxai_on_prem }}"
 {%- endif %}
 
   workspaces:
