@@ -90,10 +90,10 @@ mas_predict_version:
   8.10.x: 8.8.11   # Need to update
   8.11.x: 8.9.13   # Need to update
 mas_visualinspection_version:
-  9.1.x: 9.1.4         # Need to update
-  9.0.x: 9.0.14        # Need to update
+  9.1.x: 9.1.5         # Updated
+  9.0.x: 9.0.15        # Updated
   8.10.x: 8.8.4        # No Update
-  8.11.x: 8.9.17       # Need to update
+  8.11.x: 8.9.18       # Updated
 mas_facilities_version:
   9.1.x: 9.1.6    # Updated
   9.0.x: ""       # Not Supported
