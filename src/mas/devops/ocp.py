@@ -252,7 +252,7 @@ def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
     if len(instances) > 0:
         logger.info(f"There are {len(instances)} {kind} instances installed on this cluster:")
     for instance in instances:
-        logger.info(f" * {instance['metadata']['name']} v{instance['status']['versions']['reconciled']}")
+        logger.info(f" * {instance['metadata']['name']} v{instance.get('status', {}).get('versions', {}).get('reconciled', 'N/A')}")
     else:
         logger.info(f"There are no {kind} instances installed on this cluster")
     return instances
