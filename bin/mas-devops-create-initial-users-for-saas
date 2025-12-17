@@ -10,21 +10,18 @@
 #
 # *****************************************************************************
 
+from mas.devops.users import MASUserUtils
+from botocore.exceptions import ClientError
+import boto3
+import sys
+import json
+import yaml
 from kubernetes import client, config
 from kubernetes.config.config_exception import ConfigException
 import argparse
 import logging
 import urllib3
 urllib3.disable_warnings()
-import yaml
-import json
-import sys
-
-import boto3
-from botocore.exceptions import ClientError
-
-from mas.devops.users import MASUserUtils
-
 
 
 if __name__ == "__main__":
@@ -37,7 +34,6 @@ if __name__ == "__main__":
     parser.add_argument("--coreapi-port", required=False, default=443)
     parser.add_argument("--admin-dashboard-port", required=False, default=443)
     parser.add_argument("--manage-api-port", required=False, default=443)
-
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--initial-users-yaml-file")
@@ -66,7 +62,6 @@ if __name__ == "__main__":
     admin_dashboard_port = args.admin_dashboard_port
     manage_api_port = args.manage_api_port
 
-
     logger.info("Configuration:")
     logger.info("--------------")
     logger.info(f"mas_instance_id:           {mas_instance_id}")
@@ -88,7 +83,6 @@ if __name__ == "__main__":
         config.load_kube_config()
         logger.debug("Loaded kubeconfig file")
 
-
     user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient(), coreapi_port=coreapi_port, admin_dashboard_port=admin_dashboard_port, manage_api_port=manage_api_port)
 
     if initial_users_secret_name is not None:
@@ -100,7 +94,7 @@ if __name__ == "__main__":
             service_name='secretsmanager',
         )
         try:
-            initial_users_secret = aws_sm_client.get_secret_value( # pragma: allowlist secret
+            initial_users_secret = aws_sm_client.get_secret_value(  # pragma: allowlist secret
                 SecretId=initial_users_secret_name
             )
         except ClientError as e:
@@ -109,7 +103,7 @@ if __name__ == "__main__":
                 sys.exit(0)
 
             raise Exception(f"Failed to fetch secret {initial_users_secret_name}: {str(e)}")
-        
+
         secret_json = json.loads(initial_users_secret['SecretString'])
         initial_users = user_utils.parse_initial_users_from_aws_secret_json(secret_json)
     elif initial_users_yaml_file is not None:
@@ -117,8 +111,7 @@ if __name__ == "__main__":
             initial_users = yaml.safe_load(file)
     else:
         raise Exception("Something unexpected happened")
-    
-    
+
     result = user_utils.create_initial_users_for_saas(initial_users)
 
     # if user details were sourced from an AWS SM secret, remove the completed entries from the secret
@@ -133,14 +126,13 @@ if __name__ == "__main__":
         if has_updates:
             logger.info(f"Updating secret {initial_users_secret_name}")
             try:
-                aws_sm_client.update_secret( # pragma: allowlist secret
+                aws_sm_client.update_secret(  # pragma: allowlist secret
                     SecretId=initial_users_secret_name,
                     SecretString=json.dumps(secret_json)
                 )
             except ClientError as e:
                 raise Exception(f"Failed to update secret {initial_users_secret_name}: {str(e)}")
-            
 
     if len(result["failed"]) > 0:
-        failed_user_ids = list(map(lambda u : u["email"], result["failed"]))
+        failed_user_ids = list(map(lambda u: u["email"], result["failed"]))
         raise Exception(f"Sync failed for the following user IDs {failed_user_ids}")

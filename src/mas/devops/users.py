@@ -759,17 +759,23 @@ class MASUserUtils():
         for (email, csv) in secret_json.items():
             values = csv.split(",")
 
-            if len(values) != 3:
-                raise Exception(f"Wrong number of CSV values for {email} (expected 3 but got {len(values)})")
+            if len(values) != 3 and len(values) != 4:
+                raise Exception(f"Wrong number of CSV values for {email} (expected 3 or 4 but got {len(values)})")
 
             user_type = values[0].strip()
             given_name = values[1].strip()
             family_name = values[2].strip()
 
+            if len(values) == 4:
+                id = values[3].strip()
+            else:
+                id = email
+
             user = {
                 "email": email,
                 "given_name": given_name,
-                "family_name": family_name
+                "family_name": family_name,
+                "id": id
             }
             if user_type == "primary":
                 primary.append(user)
@@ -817,7 +823,7 @@ class MASUserUtils():
         for primary_user in primary_users:
             self.logger.info("")
             try:
-                self.logger.info(f"Syncing primary user {primary_user['email']}")
+                self.logger.info(f"Syncing primary user with email {primary_user['email']}")
                 self.create_initial_user_for_saas(primary_user, "PRIMARY")
                 completed.append(primary_user)
                 self.logger.info(f"Completed sync of primary user {primary_user['email']}")
@@ -829,7 +835,7 @@ class MASUserUtils():
             self.logger.info("")
             try:
                 self.logger.info("")
-                self.logger.info(f"Syncing secondary user {secondary_user['email']}")
+                self.logger.info(f"Syncing secondary user with email {secondary_user['email']}")
                 self.create_initial_user_for_saas(secondary_user, "SECONDARY")
                 completed.append(secondary_user)
                 self.logger.info(f"Completed sync of secondary user {secondary_user['email']}")
@@ -855,8 +861,13 @@ class MASUserUtils():
         user_given_name = user["given_name"]
         user_family_name = user["family_name"]
 
-        user_id = user_email
-        username = user_email
+        if "id" in user:
+            user_id = user["id"]
+        else:
+            # default to email if no id provided
+            user_id = user_email
+
+        username = user_id
         # display_name = re.search('^([^@]+)@', user_email).group(1) # local part of the email
         display_name = f"{user_given_name} {user_family_name}"
 
@@ -874,6 +885,8 @@ class MASUserUtils():
             }
             is_workspace_admin = True
             application_role = "ADMIN"
+            facilities_role = "PREMIUM"
+            manage_role = "MANAGEUSER"
             # TODO: check which security groups primary users should be members of
             manage_security_groups = ["MAXADMIN"]
         elif user_type == "SECONDARY":
@@ -889,6 +902,8 @@ class MASUserUtils():
             }
             is_workspace_admin = False
             application_role = "USER"
+            facilities_role = "BASE"
+            manage_role = "MANAGEUSER"
             # TODO: check which security groups secondary users should be members of
             manage_security_groups = []
         else:
@@ -906,6 +921,8 @@ class MASUserUtils():
                     "primary": True
                 }
             ],
+            "phoneNumbers": [],
+            "addresses": [],
             "displayName": display_name,
             "issuer": "local",
             "permissions": permissions,
@@ -921,8 +938,9 @@ class MASUserUtils():
         for mas_application_id in self.mas_workspace_application_ids:
             self.await_mas_application_availability(mas_application_id)
             if mas_application_id == "manage":
-                # special case for manage; role is always "MANAGEUSER"
-                role = "MANAGEUSER"
+                role = manage_role
+            elif mas_application_id == "facilities":
+                role = facilities_role
             else:
                 # otherwise grant the user the appropriate role for their user_type
                 role = application_role
