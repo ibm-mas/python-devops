@@ -53,8 +53,8 @@ mas_core_version:
   8.10.x: 8.10.31      # Need to update
   8.11.x: 8.11.28      # Need to update
 mas_assist_version:
-  9.1.x: 9.1.5     # Need to update
-  9.0.x: 9.0.11    # Need to update
+  9.1.x: 9.1.6     # Updated
+  9.0.x: 9.0.12    # Updated
   8.10.x: 8.7.8   # No Update
   8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
@@ -63,32 +63,32 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # No Update
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.1.x: 9.1.5     # Need to update
-  9.0.x: 9.0.14    # Need to update
-  8.10.x: 8.7.28   # Need to update
-  8.11.x: 8.8.24   # Need to update
+  9.1.x: 9.1.6     # Updated
+  9.0.x: 9.0.15    # Updated
+  8.10.x: 8.7.29   # Updated
+  8.11.x: 8.8.25   # Updated
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_4817 # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_6856 # Updated
   9.1.x: 9.1.7         # Updated
   9.0.x: 9.0.20        # Updated
   8.10.x: 8.6.33       # Updated
   8.11.x: 8.7.27       # Updated
 mas_monitor_version:
-  9.1.x: 9.1.5    # Need to update
-  9.0.x: 9.0.15   # Need to update
-  8.10.x: 8.10.25 # Need to update
-  8.11.x: 8.11.23 # Need to update
+  9.1.x: 9.1.6    # Updated
+  9.0.x: 9.0.16   # Updated
+  8.10.x: 8.10.26 # Updated
+  8.11.x: 8.11.24 # Updated
 mas_optimizer_version:
-  9.2.x-feature: 9.2.0-pre.stable_3097 # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_5162 # Updated
   9.1.x: 9.1.7         # Updated
   9.0.x: 9.0.17        # Updated
   8.10.x: 8.4.25       # Updated
   8.11.x: 8.5.24       # Updated
 mas_predict_version:
-  9.1.x: 9.1.3     # Need to update
-  9.0.x: 9.0.10    # Need to update
-  8.10.x: 8.8.11   # Need to update
-  8.11.x: 8.9.13   # Need to update
+  9.1.x: 9.1.4     # Updated
+  9.0.x: 9.0.11    # Updated
+  8.10.x: 8.8.12   # Updated
+  8.11.x: 8.9.14   # Updated
 mas_visualinspection_version:
   9.1.x: 9.1.5         # Updated
   9.0.x: 9.0.15        # Updated
@@ -104,8 +104,9 @@ mas_facilities_version:
 # Maximo AI Service
 # ------------------------------------------------------------------------------
 aiservice_version:
-  9.1.x: 9.1.9  # Need to update
-  9.2.x-feature: 9.2.0-pre.stable_6225 # Updated
+  9.2.x-feature: 9.2.0-pre.stable_6741 # Updated
+  9.1.x: 9.1.10  # Updated
+ 
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
