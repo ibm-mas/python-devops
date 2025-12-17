@@ -570,6 +570,14 @@ spec:
       value: "{{ mas_app_channel_manage }}"
     - name: mas_appws_components
       value: "{{ mas_appws_components }}"
+  {%- if manage_bind_aiservice_instance_id is defined and manage_bind_aiservice_instance_id != "" %}
+    - name: manage_bind_aiservice_instance_id
+      value: "{{ manage_bind_aiservice_instance_id }}"
+  {%- endif %}
+  {%- if manage_bind_aiservice_tenant_id is defined and manage_bind_aiservice_tenant_id != "" %}
+    - name: manage_bind_aiservice_tenant_id
+      value: "{{ manage_bind_aiservice_tenant_id }}"
+  {%- endif %}
   {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
     - name: mas_appws_bindings_health_wsl_flag
       value: "{{ mas_appws_bindings_health_wsl_flag }}"

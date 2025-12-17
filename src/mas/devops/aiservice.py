@@ -44,6 +44,31 @@ def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         logger.error(f"Error: Unable to verify AI Service instance due to failed authorization: {e}")
         return False
 
+def listAiServiceTenantInstances(dynClient: DynamicClient) -> list:
+    """
+    Get a list of AI Service Tenant instances on the cluster
+    """
+    return listInstances(dynClient, "aiservice.ibm.com/v1", "AIServiceTenant")
+
+
+def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, tenantId: str) -> bool:
+    """
+    Validate that the chosen AI Service Tenant exists
+    """
+    try:
+        aiserviceTenantAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceTenant")
+        aiserviceTenantAPI.get(name=f"aiservice-{instanceId}-{tenantId}", namespace=f"aiservice-{instanceId}")
+        return True
+    except NotFoundError:
+        print("NOT FOUND")
+        return False
+    except ResourceNotFoundError:
+        # The AIServiceApp CRD has not even been installed in the cluster
+        print("RESOURCE NOT FOUND")
+        return False
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to verify AI Service Tenant due to failed authorization: {e}")
+        return False
 
 def getAiserviceChannel(dynClient: DynamicClient, instanceId: str) -> str:
     """
