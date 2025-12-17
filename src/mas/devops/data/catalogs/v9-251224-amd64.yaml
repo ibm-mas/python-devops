@@ -90,6 +90,7 @@ mas_predict_version:
   8.10.x: 8.8.12   # Updated
   8.11.x: 8.9.14   # Updated
 mas_visualinspection_version:
+  9.2.x-feature: 9.2.0-pre.stable_6198 # Updated
   9.1.x: 9.1.5         # Updated
   9.0.x: 9.0.15        # Updated
   8.10.x: 8.8.4        # No Update
