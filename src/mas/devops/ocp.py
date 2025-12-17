@@ -390,3 +390,68 @@ def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: 
     logger.debug(f"stdout: \n----------------------------------------------------------------\n{stdout}\n----------------------------------------------------------------\n")
 
     return stdout
+
+
+def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username: str, password: str) -> dict:
+    """
+    Update the global pull secret in openshift-config namespace with new registry credentials.
+
+    Args:
+        dynClient: OpenShift Dynamic Client
+        registryUrl: Registry URL (e.g., "myregistry.com:5000")
+        username: Registry username
+        password: Registry password
+
+    Returns:
+        dict: Updated secret information
+    """
+    import json
+    import base64
+
+    logger.info(f"Updating global pull secret with credentials for {registryUrl}")
+
+    # Get the existing pull secret
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+    try:
+        pullSecret = secretsAPI.get(name="pull-secret", namespace="openshift-config")
+    except NotFoundError:
+        raise Exception("Global pull-secret not found in openshift-config namespace")
+
+    # Convert to dict to allow modifications
+    secretDict = pullSecret.to_dict()
+
+    # Decode the existing dockerconfigjson
+    dockerConfigJson = secretDict['data'].get(".dockerconfigjson", "")
+    dockerConfig = json.loads(base64.b64decode(dockerConfigJson).decode('utf-8'))
+
+    # Create auth string (username:password base64 encoded)
+    authString = base64.b64encode(f"{username}:{password}".encode('utf-8')).decode('utf-8')
+
+    # Add or update the registry credentials
+    if "auths" not in dockerConfig:
+        dockerConfig["auths"] = {}
+
+    dockerConfig["auths"][registryUrl] = {
+        "username": username,
+        "password": password,
+        "email": username,
+        "auth": authString
+    }
+
+    # Encode back to base64
+    updatedDockerConfig = base64.b64encode(json.dumps(dockerConfig).encode('utf-8')).decode('utf-8')
+
+    # Update the secret dict
+    secretDict['data'][".dockerconfigjson"] = updatedDockerConfig
+
+    # Apply the updated secret
+    updatedSecret = secretsAPI.apply(body=secretDict, namespace="openshift-config")
+
+    logger.info(f"Successfully updated global pull secret with credentials for {registryUrl}")
+
+    return {
+        "name": updatedSecret.metadata.name,
+        "namespace": updatedSecret.metadata.namespace,
+        "registry": registryUrl,
+        "changed": True
+    }
