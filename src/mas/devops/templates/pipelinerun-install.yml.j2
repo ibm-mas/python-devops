@@ -275,8 +275,10 @@ spec:
 
     # Dependencies - SLS
     # -------------------------------------------------------------------------
+{%- if sls_channel is defined and sls_channel != "" %}
     - name: sls_channel
-      value: '3.x'
+      value: "{{ sls_channel }}"
+{%- endif %}
 {%- if sls_entitlement_file is defined and sls_entitlement_file != "" %}
     - name: sls_entitlement_file
       value: "{{ sls_entitlement_file }}"
