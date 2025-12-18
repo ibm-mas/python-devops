@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:297530c2f8cef00183a762f3674d8c83dcb0649f8205d2da5649edef34ef88ca
+catalog_digest: sha256:bce0ed4496dcde3f51b9a91740a7670187c378de3a670b6d6a030f57310fb847
 
 ocp_compatibility:
 - 4.16
@@ -47,7 +47,7 @@ opensearch_version: 1.1.2494                 # Operator version 1.1.2494
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_4447 # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_6280 # Updated
   9.1.x: 9.1.7         # Updated
   9.0.x: 9.0.18        # Updated
   8.10.x: 8.10.31      # Need to update
