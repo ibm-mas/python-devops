@@ -1573,7 +1573,8 @@ def test_parse_initial_users_from_aws_secret_json(user_utils):
         {
             "user1@example.com": "primary,joe,bloggs",
             "user2@example.com": "  primary     ,   ben     ,   bob  ",
-            "user3@example.com": "secondary     ,bill,  bibb"
+            "user3@example.com": "secondary     ,bill,  bibb",
+            "user4@example.com": "primary     ,bab,  bub,user4"
         }
     )
 
@@ -1583,19 +1584,28 @@ def test_parse_initial_users_from_aws_secret_json(user_utils):
                 {
                     "email": "user1@example.com",
                     "given_name": "joe",
-                    "family_name": "bloggs"
+                    "family_name": "bloggs",
+                    "id": "user1@example.com",
                 },
                 {
                     "email": "user2@example.com",
                     "given_name": "ben",
-                    "family_name": "bob"
+                    "family_name": "bob",
+                    "id": "user2@example.com",
+                },
+                {
+                    "email": "user4@example.com",
+                    "given_name": "bab",
+                    "family_name": "bub",
+                    "id": "user4",
                 }
             ],
             "secondary": [
                 {
                     "email": "user3@example.com",
                     "given_name": "bill",
-                    "family_name": "bibb"
+                    "family_name": "bibb",
+                    "id": "user3@example.com",
                 }
             ]
         }
@@ -1607,7 +1617,7 @@ def test_parse_initial_users_from_aws_secret_json(user_utils):
         user_utils.parse_initial_users_from_aws_secret_json({
             "user1@example.com": "primary"
         })
-    assert "Wrong number of CSV values for user1@example.com (expected 3 but got 1)" == str(excinfo.value)
+    assert "Wrong number of CSV values for user1@example.com (expected 3 or 4 but got 1)" == str(excinfo.value)
 
     with pytest.raises(Exception) as excinfo:
         user_utils.parse_initial_users_from_aws_secret_json({
@@ -1642,32 +1652,64 @@ def test_create_initial_user_for_saas_unsupported_type(user_utils):
 # Assisted by watsonx Code Assistant
 
 
-@pytest.mark.parametrize("user_type, permissions, entitlement, is_workspace_admin, application_role, manage_security_groups", [
+@pytest.mark.parametrize("user_type, user_id, user_email, permissions, entitlement, is_workspace_admin, application_role, manage_role, facilities_role, manage_security_groups", [
     (
         "PRIMARY",
+        None,
+        "bill.bob@acme.com",
         {"systemAdmin": False, "userAdmin": True, "apikeyAdmin": False},
         {"application": "PREMIUM", "admin": "ADMIN_BASE", "alwaysReserveLicense": True},
         True,
         "ADMIN",
+        "MANAGEUSER",
+        "PREMIUM",
+        ["MAXADMIN"]
+    ),
+    (
+        "PRIMARY",
+        "billbob",
+        "bill.bob@acme.com",
+        {"systemAdmin": False, "userAdmin": True, "apikeyAdmin": False},
+        {"application": "PREMIUM", "admin": "ADMIN_BASE", "alwaysReserveLicense": True},
+        True,
+        "ADMIN",
+        "MANAGEUSER",
+        "PREMIUM",
         ["MAXADMIN"]
     ),
     (
         "SECONDARY",
+        None,
+        "bab.bon@acme.com",
         {"systemAdmin": False, "userAdmin": False, "apikeyAdmin": False},
         {"application": "BASE", "admin": "NONE", "alwaysReserveLicense": True},
         False,
         "USER",
+        "MANAGEUSER",
+        "BASE",
+        []
+    ),
+    (
+        "SECONDARY",
+        "babbon",
+        "bab.bon@acme.com",
+        {"systemAdmin": False, "userAdmin": False, "apikeyAdmin": False},
+        {"application": "BASE", "admin": "NONE", "alwaysReserveLicense": True},
+        False,
+        "USER",
+        "MANAGEUSER",
+        "BASE",
         []
     )
 ])
 def test_create_initial_user_for_saas(
-    user_type, permissions, entitlement, is_workspace_admin, application_role, manage_security_groups,
+    user_type, user_id, user_email, permissions, entitlement, is_workspace_admin, application_role, manage_role, facilities_role, manage_security_groups,
     user_utils, requests_mock
 ):
     user_utils.get_or_create_user = MagicMock()
     user_utils.link_user_to_local_idp = MagicMock()
     user_utils.add_user_to_workspace = MagicMock()
-    mas_workspace_application_ids = ["manage", "iot"]
+    mas_workspace_application_ids = ["manage", "iot", "facilities"]
     user_utils.get_mas_applications_in_workspace = MagicMock(return_value=map(lambda x: {"id": x}, mas_workspace_application_ids))
     user_utils.await_mas_application_availability = MagicMock()
     user_utils.set_user_application_permission = MagicMock()
@@ -1676,20 +1718,24 @@ def test_create_initial_user_for_saas(
     user_utils.create_or_get_manage_api_key_for_user = MagicMock(return_value=manage_api_key)
     user_utils.add_user_to_manage_group = MagicMock()
 
-    user_email = "bill.bob@acme.com"
     user_given_name = "billy"
     user_family_name = "bobby"
-    user_id = user_email
-    username = user_email
     display_name = f"{user_given_name} {user_family_name}"
 
-    user_utils.create_initial_user_for_saas({
+    initial_users = {
         "email": user_email,
         "given_name": user_given_name,
         "family_name": user_family_name
-    },
-        user_type
-    )
+    }
+
+    if user_id is None:
+        user_id = user_email
+    else:
+        initial_users["id"] = user_id
+
+    username = user_id
+
+    user_utils.create_initial_user_for_saas(initial_users, user_type)
 
     user_utils.get_or_create_user.assert_called_once_with({
         "id": user_id,
@@ -1703,6 +1749,8 @@ def test_create_initial_user_for_saas(
                 "primary": True
             }
         ],
+        "phoneNumbers": [],
+        "addresses": [],
         "displayName": display_name,
         "issuer": "local",
         "permissions": permissions,
@@ -1714,12 +1762,14 @@ def test_create_initial_user_for_saas(
     user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
     user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
     user_utils.set_user_application_permission.assert_has_calls([
-        call(user_id, "manage", "MANAGEUSER"),
+        call(user_id, "manage", manage_role),
         call(user_id, "iot", application_role),
+        call(user_id, "facilities", facilities_role),
     ])
     user_utils.check_user_sync.assert_has_calls([
         call(user_id, "manage"),
-        call(user_id, "iot")
+        call(user_id, "iot"),
+        call(user_id, "facilities")
     ])
 
     if len(manage_security_groups) > 0:
