@@ -81,14 +81,14 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str = None)
         message = [
             SlackUtil.buildHeader(f":glyph-ok: Your IBM Cloud ROKS cluster ({name}) is ready"),
             SlackUtil.buildSection(f"{url}"),
-            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}")
         ]
         if additionalMsg is not None:
             message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
             SlackUtil.buildHeader(f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"),
-            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard>{toolchainLink}")
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}")
         ]
 
     response = SlackUtil.postMessageBlocks(channels, message)
