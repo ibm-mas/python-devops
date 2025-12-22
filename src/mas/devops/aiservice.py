@@ -44,6 +44,7 @@ def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         logger.error(f"Error: Unable to verify AI Service instance due to failed authorization: {e}")
         return False
 
+
 def listAiServiceTenantInstances(dynClient: DynamicClient) -> list:
     """
     Get a list of AI Service Tenant instances on the cluster
@@ -69,6 +70,7 @@ def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, ten
     except UnauthorizedError as e:
         logger.error(f"Error: Unable to verify AI Service Tenant due to failed authorization: {e}")
         return False
+
 
 def getAiserviceChannel(dynClient: DynamicClient, instanceId: str) -> str:
     """
