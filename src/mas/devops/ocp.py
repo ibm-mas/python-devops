@@ -317,8 +317,12 @@ def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
 
 
 def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
+    """
+    We will allow up to 10 minutes for a PVC to report a successful binding
+    """
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
-    maxRetries = 60
+    maxRetries = 20
+    retryDelaySeconds = 30
     foundReadyPVC = False
     retries = 0
     while not foundReadyPVC and retries < maxRetries:
@@ -328,11 +332,11 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
             if pvc.status.phase == "Bound":
                 foundReadyPVC = True
             else:
-                logger.debug(f"Waiting 5s for PVC {pvcName} to be ready before checking again ...")
-                sleep(5)
+                logger.debug(f"Waiting {retryDelaySeconds}s for PVC {pvcName} to be bound before checking again ...")
+                sleep(retryDelaySeconds)
         except NotFoundError:
-            logger.debug(f"Waiting 5s for PVC {pvcName} to be created before checking again ...")
-            sleep(5)
+            logger.debug(f"Waiting {retryDelaySeconds}s for PVC {pvcName} to be created before checking again ...")
+            sleep(retryDelaySeconds)
 
     return foundReadyPVC
 
