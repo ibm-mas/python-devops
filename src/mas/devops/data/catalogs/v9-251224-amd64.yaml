@@ -50,7 +50,7 @@ mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_6976 # Updated
   9.1.x: 9.1.7         # Updated
   9.0.x: 9.0.18        # Updated
-  8.10.x: 8.10.31      # Need to update
+  8.10.x: 8.10.32      # Updated
   8.11.x: 8.11.29      # Updated
 mas_assist_version:
   9.1.x: 9.1.6     # Updated
