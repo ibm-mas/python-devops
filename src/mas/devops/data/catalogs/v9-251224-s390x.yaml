@@ -14,8 +14,8 @@ ocp_compatibility:
 - 4.19
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.3  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.2   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+sls_version: 3.12.4  # Operator version 3.12.4 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.2   # Operator version 1.7.2 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 db2u_version: 7.3.1+20250821.161005.16793     # Operator version 110509.0.2 to find the version 7.2.0, search CASE_VERSION in db2u, catalog.yaml into ibm-maximo-operator-catalog (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
