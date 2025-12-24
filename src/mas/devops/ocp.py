@@ -269,6 +269,16 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
     retries = 0
     while not foundReadyPVC and retries < maxRetries:
         retries += 1
+        # After 5 retries increase the delay to 1 minute
+        # After 10 retries increase the delay to 2 minutes
+        # After 15 retries increase the delay to 5 minutes
+        if retries == 5:
+            retryDelaySeconds = 60
+        elif retries == 10:
+            retryDelaySeconds = 120
+        elif retries == 15:
+            retryDelaySeconds = 300
+
         try:
             pvc = pvcAPI.get(name=pvcName, namespace=namespace)
             if pvc.status.phase == "Bound":
