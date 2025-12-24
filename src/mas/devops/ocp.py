@@ -272,11 +272,11 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
         # After 5 retries increase the delay to 1 minute
         # After 10 retries increase the delay to 2 minutes
         # After 15 retries increase the delay to 5 minutes
-        if retries == 5:
+        if retries == 6:
             retryDelaySeconds = 60
-        elif retries == 10:
+        elif retries == 11:
             retryDelaySeconds = 120
-        elif retries == 15:
+        elif retries == 16:
             retryDelaySeconds = 300
 
         try:
