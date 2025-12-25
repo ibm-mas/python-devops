@@ -55,19 +55,27 @@ APPWS_KINDS = dict(
 
 def getAppResource(dynClient: DynamicClient, instanceId: str, applicationId: str, workspaceId: str = None) -> bool:
     """
-    Get the application or workspace Custom Resource
+    Retrieve a MAS application or workspace custom resource.
 
-    :param dynClient: Description
-    :type dynClient: DynamicClient
-    :param instanceId: Description
-    :type instanceId: str
-    :param applicationId: Description
-    :type applicationId: str
-    :return: Description
-    :rtype: bool
-    :type workspaceId: str
-    :return: Description
-    :rtype: bool
+    This function fetches either an application-level CR (e.g., ManageApp) or a
+    workspace-level CR (e.g., ManageWorkspace) depending on whether workspaceId is provided.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier (e.g., "inst1").
+        applicationId (str): The MAS application identifier (e.g., "manage", "iot", "monitor").
+        workspaceId (str, optional): The workspace identifier. If provided, retrieves workspace CR.
+                                    Defaults to None (retrieves application CR).
+
+    Returns:
+        ResourceInstance: The custom resource object if found, None otherwise.
+                         Returns None if the resource doesn't exist, CRD is missing, or authorization fails.
+
+    Example:
+        >>> # Get application CR
+        >>> app = getAppResource(client, "inst1", "manage")
+        >>> # Get workspace CR
+        >>> workspace = getAppResource(client, "inst1", "manage", "masdev")
     """
 
     apiVersion = APP_API_VERSIONS[applicationId] if applicationId in APP_API_VERSIONS else "apps.mas.ibm.com/v1"
@@ -93,7 +101,19 @@ def getAppResource(dynClient: DynamicClient, instanceId: str, applicationId: str
 
 def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: str) -> bool:
     """
-    Validate that the chosen app instance exists
+    Verify that a MAS application instance exists in the cluster.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier.
+        applicationId (str): The MAS application identifier (e.g., "manage", "iot").
+
+    Returns:
+        bool: True if the application instance exists, False otherwise.
+
+    Example:
+        >>> if verifyAppInstance(client, "inst1", "manage"):
+        ...     print("Manage application is installed")
     """
     return getAppResource(dynClient, instanceId, applicationId) is not None
 
@@ -108,22 +128,33 @@ def waitForAppReady(
         debugLogFunction=logger.debug,
         infoLogFunction=logger.info) -> bool:
     """
-    Docstring for waitForAppReady
+    Wait for a MAS application or workspace to reach ready state.
 
-    :param dynClient: Description
-    :type dynClient: DynamicClient
-    :param instanceId: Description
-    :type instanceId: str
-    :param applicationId: Description
-    :type applicationId: str
-    :param workspaceId: Description
-    :type workspaceId: str
-    :param retries: Description
-    :type retries: int
-    :param delay: Description
-    :type delay: int
-    :return: Description
-    :rtype: bool
+    This function polls the application/workspace custom resource until its Ready condition
+    status becomes True, or until the retry limit is reached. It checks the status.conditions
+    array for a condition with type="Ready" and status="True".
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier.
+        applicationId (str): The MAS application identifier (e.g., "manage", "iot").
+        workspaceId (str, optional): The workspace identifier. If provided, waits for workspace CR.
+                                    Defaults to None (waits for application CR).
+        retries (int, optional): Maximum number of polling attempts. Defaults to 100.
+        delay (int, optional): Delay in seconds between polling attempts. Defaults to 600 (10 minutes).
+        debugLogFunction (callable, optional): Function for debug logging. Defaults to logger.debug.
+        infoLogFunction (callable, optional): Function for info logging. Defaults to logger.info.
+
+    Returns:
+        bool: True if the resource reaches ready state within the retry limit, False otherwise.
+
+    Example:
+        >>> # Wait for Manage application to be ready
+        >>> if waitForAppReady(client, "inst1", "manage", retries=50, delay=300):
+        ...     print("Manage is ready")
+        >>> # Wait for Manage workspace to be ready
+        >>> if waitForAppReady(client, "inst1", "manage", "masdev", retries=50):
+        ...     print("Manage workspace is ready")
     """
 
     resourceName = f"{APP_KINDS[applicationId]}/{instanceId}"
@@ -176,7 +207,25 @@ def waitForAppReady(
 
 def getAppsSubscriptionChannel(dynClient: DynamicClient, instanceId: str) -> list:
     """
-    Return list of installed apps with their subscribed channel
+    Retrieve the OLM subscription channels for all installed MAS applications.
+
+    This function queries the Operator Lifecycle Manager subscriptions for each known
+    MAS application and returns a list of installed applications with their update channels.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier.
+
+    Returns:
+        list: List of dictionaries with 'appId' and 'channel' keys for each installed app.
+              Returns empty list if no apps are found or if errors occur.
+
+    Example:
+        >>> apps = getAppsSubscriptionChannel(client, "inst1")
+        >>> for app in apps:
+        ...     print(f"{app['appId']}: {app['channel']}")
+        manage: 8.7.x
+        iot: 8.8.x
     """
     try:
         installedApps = []

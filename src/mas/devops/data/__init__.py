@@ -7,12 +7,38 @@
 # http://www.eclipse.org/legal/epl-v10.html
 #
 # *****************************************************************************
+"""
+IBM Operator Catalog data management module.
+
+This module provides functions to access and query IBM Operator Catalog definitions
+stored as YAML files. Catalogs contain operator version information and are organized
+by version tag and architecture.
+"""
+
 import yaml
 from glob import glob
 from os import path
 
 
-def getCatalog(name: str) -> dict:
+def getCatalog(name: str) -> dict | None:
+    """
+    Load a specific IBM Operator Catalog definition by name.
+
+    This function reads a catalog YAML file from the catalogs directory and returns
+    its contents as a dictionary.
+
+    Args:
+        name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v8-240528-amd64").
+
+    Returns:
+        dict: The catalog definition dictionary containing operator versions and metadata.
+              Returns None if the catalog file doesn't exist.
+
+    Example:
+        >>> catalog = getCatalog("v9-241205-amd64")
+        >>> if catalog:
+        ...     print(f"Catalog version: {catalog.get('version')}")
+    """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
     catalogFileName = f"{name}.yaml"
@@ -26,6 +52,26 @@ def getCatalog(name: str) -> dict:
 
 
 def listCatalogTags(arch="amd64") -> list:
+    """
+    List all available IBM Operator Catalog tags for a specific architecture.
+
+    This function scans the catalogs directory and returns a sorted list of all
+    catalog tags matching the specified architecture.
+
+    Args:
+        arch (str, optional): The target architecture (e.g., "amd64", "s390x", "ppc64le").
+                             Defaults to "amd64".
+
+    Returns:
+        list: Sorted list of catalog tag strings (e.g., ["v8-240528-amd64", "v9-241205-amd64"]).
+              Returns empty list if no catalogs are found for the architecture.
+
+    Example:
+        >>> tags = listCatalogTags("amd64")
+        >>> print(f"Available catalogs: {len(tags)}")
+        >>> for tag in tags[-3:]:  # Show last 3
+        ...     print(tag)
+    """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
     yamlFiles = glob(path.join(modulePath, "catalogs", f"*-{arch}.yaml"))
@@ -35,7 +81,27 @@ def listCatalogTags(arch="amd64") -> list:
     return result
 
 
-def getNewestCatalogTag(arch="amd64") -> str:
+def getNewestCatalogTag(arch="amd64") -> str | None:
+    """
+    Get the most recent IBM Operator Catalog tag for a specific architecture.
+
+    This function returns the newest (last in sorted order) catalog tag available
+    for the specified architecture.
+
+    Args:
+        arch (str, optional): The target architecture (e.g., "amd64", "s390x", "ppc64le").
+                             Defaults to "amd64".
+
+    Returns:
+        str: The newest catalog tag (e.g., "v9-241205-amd64").
+             Returns None if no catalogs are found for the architecture.
+
+    Example:
+        >>> newest = getNewestCatalogTag("amd64")
+        >>> if newest:
+        ...     print(f"Latest catalog: {newest}")
+        ...     catalog = getCatalog(newest)
+    """
     catalogs = listCatalogTags(arch)
     if len(catalogs) == 0:
         return None

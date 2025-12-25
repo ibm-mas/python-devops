@@ -19,12 +19,57 @@ import itertools
 
 
 class JobCleaner:
+    """
+    Kubernetes Job cleanup utility for managing ArgoCD-style job retention.
+
+    This class provides functionality to clean up old Kubernetes Job resources while
+    retaining the most recent job in each cleanup group. Jobs are grouped by a label
+    and only the newest job (by creation timestamp) in each group is preserved.
+
+    This is useful for ArgoCD applications where auto_delete is not enabled but you
+    still want to prevent job accumulation.
+
+    Attributes:
+        k8s_client (client.api_client.ApiClient): Kubernetes API client.
+        batch_v1_api (client.BatchV1Api): Kubernetes Batch V1 API interface.
+        logger (logging.Logger): Logger instance for this class.
+
+    Example:
+        >>> from kubernetes import client, config
+        >>> config.load_kube_config()
+        >>> k8s_client = client.ApiClient()
+        >>> cleaner = JobCleaner(k8s_client)
+        >>> cleaner.cleanup_jobs("argocd.argoproj.io/instance", limit=100, dry_run=False)
+    """
+
     def __init__(self, k8s_client: client.api_client.ApiClient):
+        """
+        Initialize the JobCleaner with a Kubernetes API client.
+
+        Args:
+            k8s_client (client.api_client.ApiClient): Kubernetes API client for cluster operations.
+        """
         self.k8s_client = k8s_client
         self.batch_v1_api = client.BatchV1Api(self.k8s_client)
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def _get_all_cleanup_groups(self, label: str, limit: int):
+        """
+        Retrieve all unique cleanup groups across all namespaces.
+
+        This internal method queries all jobs with the specified label and extracts
+        unique (namespace, group_id) pairs for processing.
+
+        Args:
+            label (str): The label key used to identify and group jobs.
+            limit (int): Maximum number of jobs to retrieve per API call (pagination).
+
+        Returns:
+            set: Set of tuples containing (namespace, cleanup_group_id) pairs.
+
+        Note:
+            This method pages through all jobs to avoid loading everything into memory at once.
+        """
         # set of tuples (namespace, cleanup_group_id)
         cleanup_groups = set()
         _continue = None
@@ -44,6 +89,24 @@ class JobCleaner:
                 return cleanup_groups
 
     def _get_all_jobs(self, namespace: str, group_id: str, label: str, limit: int):
+        """
+        Retrieve all jobs for a specific cleanup group in a namespace.
+
+        This internal method pages through all jobs matching the group ID and chains
+        the results together for efficient iteration.
+
+        Args:
+            namespace (str): The Kubernetes namespace to query.
+            group_id (str): The cleanup group identifier from the label value.
+            label (str): The label key used to filter jobs.
+            limit (int): Maximum number of jobs to retrieve per API call (pagination).
+
+        Returns:
+            itertools.chain: Chained iterator of job items across all pages.
+
+        Note:
+            Jobs are not loaded entirely into memory; iterators are chained for efficiency.
+        """
         # page through all jobs in this namespace and group, and chain together all the resulting iterators
         job_items_iters = []
         _continue = None
@@ -60,6 +123,34 @@ class JobCleaner:
                 return itertools.chain(*job_items_iters)
 
     def cleanup_jobs(self, label: str, limit: int, dry_run: bool):
+        """
+        Clean up old Kubernetes Jobs, retaining only the newest in each group.
+
+        This method identifies all cleanup groups (by label), then for each group,
+        sorts jobs by creation timestamp and deletes all except the most recent one.
+        The cleanup process is eventually consistent and handles race conditions gracefully.
+
+        Args:
+            label (str): The label key used to identify and group jobs (e.g., "argocd.argoproj.io/instance").
+            limit (int): Maximum number of jobs to retrieve per API call for pagination.
+            dry_run (bool): If True, simulate the cleanup without actually deleting jobs.
+
+        Returns:
+            None
+
+        Note:
+            - Only the newest job in each group is retained
+            - Deletion uses "Foreground" propagation policy
+            - The process is eventually consistent; race conditions are handled gracefully
+            - Progress is logged for each cleanup group
+
+        Example:
+            >>> cleaner.cleanup_jobs("argocd.argoproj.io/instance", limit=100, dry_run=True)
+            Found 5 unique (namespace, cleanup group ID) pairs, processing ...
+            0) my-app-sync mas-inst1-core
+            SKIP   my-app-sync-abc123   2024-01-15 10:30:00
+            PURGE  my-app-sync-xyz789   2024-01-14 09:20:00   SUCCESS
+        """
         dry_run_param = None
         if dry_run:
             dry_run_param = "All"
