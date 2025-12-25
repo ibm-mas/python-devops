@@ -31,13 +31,6 @@ def listAiServiceInstances(dynClient: DynamicClient) -> list:
     Returns:
         list: A list of dictionaries representing AI Service instances.
               Returns an empty list if no instances are found or if errors occur.
-
-    Example:
-        >>> from openshift.dynamic import DynamicClient
-        >>> client = DynamicClient(...)
-        >>> instances = listAiServiceInstances(client)
-        >>> for instance in instances:
-        ...     print(f"Instance: {instance['metadata']['name']}")
     """
     return listInstances(dynClient, "aiservice.ibm.com/v1", "AIServiceApp")
 
@@ -58,13 +51,6 @@ def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         bool: True if the instance exists and is accessible, False otherwise.
               Returns False if the instance is not found, the CRD doesn't exist,
               or authorization fails.
-
-    Example:
-        >>> from openshift.dynamic import DynamicClient
-        >>> client = DynamicClient(...)
-        >>> exists = verifyAiServiceInstance(client, "aiservice-inst1")
-        >>> if exists:
-        ...     print("AI Service instance found")
     """
     try:
         aiserviceAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceApp")
@@ -95,13 +81,6 @@ def listAiServiceTenantInstances(dynClient: DynamicClient) -> list:
     Returns:
         list: A list of dictionaries representing AI Service Tenant instances.
               Returns an empty list if no tenant instances are found or if errors occur.
-
-    Example:
-        >>> from openshift.dynamic import DynamicClient
-        >>> client = DynamicClient(...)
-        >>> tenants = listAiServiceTenantInstances(client)
-        >>> for tenant in tenants:
-        ...     print(f"Tenant: {tenant['metadata']['name']}")
     """
     return listInstances(dynClient, "aiservice.ibm.com/v1", "AIServiceTenant")
 
@@ -123,13 +102,6 @@ def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, ten
         bool: True if the tenant exists and is accessible, False otherwise.
               Returns False if the tenant is not found, the CRD doesn't exist,
               or authorization fails.
-
-    Example:
-        >>> from openshift.dynamic import DynamicClient
-        >>> client = DynamicClient(...)
-        >>> exists = verifyAiServiceTenantInstance(client, "aiservice-inst1", "tenant1")
-        >>> if exists:
-        ...     print("AI Service Tenant found")
     """
     try:
         aiserviceTenantAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceTenant")
@@ -161,13 +133,6 @@ def getAiserviceChannel(dynClient: DynamicClient, instanceId: str) -> str | None
     Returns:
         str: The channel name (e.g., "v1.0", "stable") if the subscription exists,
              None if the subscription is not found.
-
-    Example:
-        >>> from openshift.dynamic import DynamicClient
-        >>> client = DynamicClient(...)
-        >>> channel = getAiserviceChannel(client, "aiservice-inst1")
-        >>> if channel:
-        ...     print(f"AI Service is on channel: {channel}")
     """
     aiserviceSubscription = getSubscription(dynClient, f"aiservice-{instanceId}", "ibm-aiservice")
     if aiserviceSubscription is None:

@@ -29,16 +29,6 @@ def isVersionBefore(_compare_to_version, _current_version):
     Note:
         This differs from strict semantic versioning where pre-release versions
         are considered less than their base version.
-
-    Example:
-        >>> isVersionBefore("8.6.0", "8.5.0")
-        False
-        >>> isVersionBefore("8.6.0", "8.7.0")
-        True
-        >>> isVersionBefore("8.6.0", "8.6.0-pre.m1dev86")
-        False
-        >>> isVersionBefore("8.6.0", "8.6.x")
-        False
     """
     if _current_version is None:
         print("Version is not informed. Returning False")
@@ -73,18 +63,6 @@ def isVersionEqualOrAfter(_compare_to_version, _current_version):
     Note:
         This differs from strict semantic versioning where pre-release versions
         are considered less than their base version.
-
-    Example:
-        >>> isVersionEqualOrAfter("8.6.0", "8.7.0")
-        True
-        >>> isVersionEqualOrAfter("8.6.0", "8.5.0")
-        False
-        >>> isVersionEqualOrAfter("8.6.0", "8.6.0")
-        True
-        >>> isVersionEqualOrAfter("8.6.0", "8.6.0-pre.m1dev86")
-        True
-        >>> isVersionEqualOrAfter("8.6.0", "8.6.x")
-        True
     """
     if _current_version is None:
         print("Version is not informed. Returning False")

@@ -140,9 +140,6 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     Raises:
         OLMException: If the package is not available in any catalog
         NotFoundError: If resources cannot be created
-
-    Example:
-        applySubscription(dynClient, "my-namespace", "ibm-sls")  # use defaults
     """
     if catalogSourceNamespace is None:
         catalogSourceNamespace = "openshift-marketplace"

@@ -33,13 +33,6 @@ class JobCleaner:
         k8s_client (client.api_client.ApiClient): Kubernetes API client.
         batch_v1_api (client.BatchV1Api): Kubernetes Batch V1 API interface.
         logger (logging.Logger): Logger instance for this class.
-
-    Example:
-        >>> from kubernetes import client, config
-        >>> config.load_kube_config()
-        >>> k8s_client = client.ApiClient()
-        >>> cleaner = JobCleaner(k8s_client)
-        >>> cleaner.cleanup_jobs("argocd.argoproj.io/instance", limit=100, dry_run=False)
     """
 
     def __init__(self, k8s_client: client.api_client.ApiClient):
@@ -143,13 +136,6 @@ class JobCleaner:
             - Deletion uses "Foreground" propagation policy
             - The process is eventually consistent; race conditions are handled gracefully
             - Progress is logged for each cleanup group
-
-        Example:
-            >>> cleaner.cleanup_jobs("argocd.argoproj.io/instance", limit=100, dry_run=True)
-            Found 5 unique (namespace, cleanup group ID) pairs, processing ...
-            0) my-app-sync mas-inst1-core
-            SKIP   my-app-sync-abc123   2024-01-15 10:30:00
-            PURGE  my-app-sync-xyz789   2024-01-14 09:20:00   SUCCESS
         """
         dry_run_param = None
         if dry_run:

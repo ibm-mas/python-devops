@@ -39,13 +39,6 @@ class MASUserUtils():
         mas_workspace_id (str): The workspace identifier within the MAS instance.
         mas_core_namespace (str): Kubernetes namespace for MAS core components.
         manage_namespace (str): Kubernetes namespace for Manage application.
-
-    Example:
-        >>> from kubernetes import client, config
-        >>> config.load_kube_config()
-        >>> k8s_client = client.ApiClient()
-        >>> mas_utils = MASUserUtils("inst1", "masdev", k8s_client)
-        >>> user = mas_utils.get_user("user@example.com")
     """
 
     MAXADMIN = "MAXADMIN"
@@ -208,11 +201,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the API returns an unexpected status code.
-
-        Example:
-            >>> user = mas_utils.get_user("user@example.com")
-            >>> if user:
-            ...     print(f"User: {user['displayName']}")
         """
         self.logger.debug(f"Getting user {user_id}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -251,34 +239,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If user creation fails with an unexpected status code.
-
-        Example:
-            >>> user_payload = {
-            ...     "id": "user@example.com",
-            ...     "status": {"active": True},
-            ...     "username": "user@example.com",
-            ...     "owner": "local",
-            ...     "emails": [{
-            ...         "value": "user@example.com",
-            ...         "type": "Work",
-            ...         "primary": True
-            ...     }],
-            ...     "displayName": "John Doe",
-            ...     "issuer": "local",
-            ...     "permissions": {
-            ...         "systemAdmin": False,
-            ...         "userAdmin": True,
-            ...         "apikeyAdmin": False
-            ...     },
-            ...     "entitlement": {
-            ...         "application": "PREMIUM",
-            ...         "admin": "ADMIN_BASE",
-            ...         "alwaysReserveLicense": True
-            ...     },
-            ...     "givenName": "John",
-            ...     "familyName": "Doe"
-            ... }
-            >>> user = mas_utils.get_or_create_user(user_payload)
         """
         existing_user = self.get_user(payload["id"])
 
@@ -324,10 +284,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the update fails or user doesn't exist.
-
-        Example:
-            >>> updated_payload = {"id": "user@example.com", "displayName": "Jane Doe"}
-            >>> user = mas_utils.update_user(updated_payload)
         """
         user_id = payload["id"]
         self.logger.debug(f"Updating user {user_id}")
@@ -364,9 +320,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the update fails or user doesn't exist.
-
-        Example:
-            >>> user = mas_utils.update_user_display_name("user@example.com", "Jane Smith")
         """
         self.logger.debug(f"Updating user display name {user_id} to {display_name}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -410,9 +363,6 @@ class MASUserUtils():
         Note:
             The API response contains a generated user token which is intentionally not logged
             or returned for security reasons.
-
-        Example:
-            >>> mas_utils.link_user_to_local_idp("user@example.com", email_password=True)
         """
 
         # For the sake of idempotency, check if the user already has a local identity
@@ -462,11 +412,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the user doesn't exist (404) or the API call fails.
-
-        Example:
-            >>> workspaces = mas_utils.get_user_workspaces("user@example.com")
-            >>> for ws in workspaces:
-            ...     print(f"Workspace: {ws['id']}")
         """
         self.logger.debug(f"Getting workspaces for user {user_id}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}/workspaces"
@@ -505,9 +450,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the operation fails.
-
-        Example:
-            >>> mas_utils.add_user_to_workspace("user@example.com", is_workspace_admin=True)
         """
         workspaces = self.get_user_workspaces(user_id)
         for workspace in workspaces:
@@ -553,11 +495,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the API call fails with an unexpected status code.
-
-        Example:
-            >>> perms = mas_utils.get_user_application_permissions("user@example.com", "manage")
-            >>> if perms:
-            ...     print(f"Role: {perms.get('role')}")
         """
         self.logger.debug(f"Getting user {user_id} permissions for application {application_id}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
@@ -596,9 +533,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the operation fails.
-
-        Example:
-            >>> mas_utils.set_user_application_permission("user@example.com", "manage", "ADMIN")
         """
 
         existing_permissions = self.get_user_application_permissions(user_id, application_id)
@@ -649,9 +583,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If sync doesn't complete within the timeout period.
-
-        Example:
-            >>> mas_utils.check_user_sync("user@example.com", "manage", timeout_secs=300)
         """
         t_end = time.time() + timeout_secs
         self.logger.info(f"Awaiting user {user_id} sync status \"SUCCESS\" for app {application_id}: {t_end - time.time():.2f} seconds remaining")
@@ -692,9 +623,6 @@ class MASUserUtils():
         Note:
             The "/v3/users/utils/resync" API is only available in MAS Core >= 9.1.
             This implementation uses a no-op profile update for backward compatibility.
-
-        Example:
-            >>> mas_utils.resync_users(["user1@example.com", "user2@example.com"])
         """
         self.logger.info(f"Issuing resync request(s) for user(s) {user_ids}")
 
@@ -726,10 +654,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If API key creation/retrieval fails or if the key is unexpectedly not found.
-
-        Example:
-            >>> api_key = mas_utils.create_or_get_manage_api_key_for_user("MAXADMIN", temporary=True)
-            >>> print(f"API Key: {api_key['apikey']}")
         """
         self.logger.debug(f"Attempting to create Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
@@ -800,11 +724,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the API call fails.
-
-        Example:
-            >>> api_key = mas_utils.get_manage_api_key_for_user("user@example.com")
-            >>> if api_key:
-            ...     print(f"Key expires: {api_key.get('expiration')}")
         """
         self.logger.debug(f"Getting Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
@@ -848,11 +767,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If deletion fails (except for 404 which is treated as success).
-
-        Example:
-            >>> api_key = mas_utils.get_manage_api_key_for_user("user@example.com")
-            >>> if api_key:
-            ...     mas_utils.delete_manage_api_key(api_key)
         """
         self.logger.info(f"Deleting Manage API Key for user {manage_api_key['userid']}")
 
@@ -895,10 +809,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the API call fails.
-
-        Example:
-            >>> api_key = mas_utils.create_or_get_manage_api_key_for_user("MAXADMIN")
-            >>> group_id = mas_utils.get_manage_group_id("MAXADMIN", api_key)
         """
         self.logger.debug(f"Getting ID for Manage group with name {group_name}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup"
@@ -942,10 +852,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the group doesn't exist or the API call fails.
-
-        Example:
-            >>> api_key = mas_utils.create_or_get_manage_api_key_for_user("MAXADMIN")
-            >>> is_member = mas_utils.is_user_in_manage_group("MAXADMIN", "user@example.com", api_key)
         """
         self.logger.debug(f"Checking if {user_id} is a member of Manage group with name {group_name}")
 
@@ -994,10 +900,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the operation fails.
-
-        Example:
-            >>> api_key = mas_utils.create_or_get_manage_api_key_for_user("MAXADMIN")
-            >>> mas_utils.add_user_to_manage_group("user@example.com", "MAXADMIN", api_key)
         """
 
         if self.is_user_in_manage_group(group_name, user_id, manage_api_key):
@@ -1047,11 +949,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the API call fails.
-
-        Example:
-            >>> apps = mas_utils.get_mas_applications_in_workspace()
-            >>> for app in apps:
-            ...     print(f"App: {app['id']}")
         """
         self.logger.debug(f"Getting MAS Applications in workspace {self.mas_workspace_id}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications"
@@ -1080,10 +977,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the API call fails.
-
-        Example:
-            >>> app_status = mas_utils.get_mas_application_availability("manage")
-            >>> print(f"Ready: {app_status['ready']}, Available: {app_status['available']}")
         """
         self.logger.debug(f"Getting availability of MAS Application {mas_application_id} in workspace {self.mas_workspace_id}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{mas_application_id}"
@@ -1116,9 +1009,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If the application doesn't become available within the timeout period.
-
-        Example:
-            >>> mas_utils.await_mas_application_availability("manage", timeout_secs=300)
         """
         t_end = time.time() + timeout_secs
         self.logger.info(f"Waiting for {mas_application_id} to become ready and available: {t_end - time.time():.2f} seconds remaining")
@@ -1148,14 +1038,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If CSV format is invalid or user_type is not "primary" or "secondary".
-
-        Example:
-            >>> secret = {
-            ...     "admin@example.com": "primary,John,Doe",
-            ...     "user@example.com": "secondary,Jane,Smith,jsmith"
-            ... }
-            >>> users = mas_utils.parse_initial_users_from_aws_secret_json(secret)
-            >>> print(len(users['users']['primary']))  # 1
         """
         primary = []
         secondary = []
@@ -1220,20 +1102,6 @@ class MASUserUtils():
 
         Raises:
             Exception: If input validation fails.
-
-        Example:
-            >>> initial_users = {
-            ...     "users": {
-            ...         "primary": [
-            ...             {"email": "admin@example.com", "given_name": "John", "family_name": "Doe"}
-            ...         ],
-            ...         "secondary": [
-            ...             {"email": "user@example.com", "given_name": "Jane", "family_name": "Smith"}
-            ...         ]
-            ...     }
-            ... }
-            >>> result = mas_utils.create_initial_users_for_saas(initial_users)
-            >>> print(f"Completed: {len(result['completed'])}, Failed: {len(result['failed'])}")
         """
 
         # Validate input
@@ -1331,14 +1199,6 @@ class MASUserUtils():
             - Regular workspace access
             - USER role for most apps, MANAGEUSER for Manage
             - No security group memberships
-
-        Example:
-            >>> user = {
-            ...     "email": "admin@example.com",
-            ...     "given_name": "John",
-            ...     "family_name": "Doe"
-            ... }
-            >>> mas_utils.create_initial_user_for_saas(user, "PRIMARY")
         """
         if "email" not in user:
             raise Exception("'email' not found in at least one of the user defs")

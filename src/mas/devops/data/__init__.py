@@ -33,11 +33,6 @@ def getCatalog(name: str) -> dict | None:
     Returns:
         dict: The catalog definition dictionary containing operator versions and metadata.
               Returns None if the catalog file doesn't exist.
-
-    Example:
-        >>> catalog = getCatalog("v9-241205-amd64")
-        >>> if catalog:
-        ...     print(f"Catalog version: {catalog.get('version')}")
     """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
@@ -65,12 +60,6 @@ def listCatalogTags(arch="amd64") -> list:
     Returns:
         list: Sorted list of catalog tag strings (e.g., ["v8-240528-amd64", "v9-241205-amd64"]).
               Returns empty list if no catalogs are found for the architecture.
-
-    Example:
-        >>> tags = listCatalogTags("amd64")
-        >>> print(f"Available catalogs: {len(tags)}")
-        >>> for tag in tags[-3:]:  # Show last 3
-        ...     print(tag)
     """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
@@ -95,12 +84,6 @@ def getNewestCatalogTag(arch="amd64") -> str | None:
     Returns:
         str: The newest catalog tag (e.g., "v9-241205-amd64").
              Returns None if no catalogs are found for the architecture.
-
-    Example:
-        >>> newest = getNewestCatalogTag("amd64")
-        >>> if newest:
-        ...     print(f"Latest catalog: {newest}")
-        ...     catalog = getCatalog(newest)
     """
     catalogs = listCatalogTags(arch)
     if len(catalogs) == 0:

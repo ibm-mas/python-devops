@@ -39,10 +39,6 @@ def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
 
     Returns:
         bool: True if air-gap configuration is detected, False otherwise.
-
-    Example:
-        >>> if isAirgapInstall(client):
-        ...     print("Air-gapped installation detected")
     """
     if checkICSP:
         try:
@@ -76,12 +72,6 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
                         - rwo (str): Storage class name for RWO volumes
                         - rwx (str): Storage class name for RWX volumes
                         All attributes are None if no recognized provider is found.
-
-    Example:
-        >>> storage = getDefaultStorageClasses(client)
-        >>> if storage.provider:
-        ...     print(f"Provider: {storage.providerName}")
-        ...     print(f"RWO: {storage.rwo}, RWX: {storage.rwx}")
     """
     result = SimpleNamespace(
         provider=None,
@@ -156,12 +146,6 @@ def getCurrentCatalog(dynClient: DynamicClient) -> dict:
              - image (str): Catalog image reference
              - catalogId (str): Parsed catalog identifier (e.g., "v9-241205-amd64")
              Returns None if the catalog is not found.
-
-    Example:
-        >>> catalog = getCurrentCatalog(client)
-        >>> if catalog:
-        ...     print(f"Catalog: {catalog['catalogId']}")
-        ...     print(f"Image: {catalog['image']}")
     """
     catalogsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="CatalogSource")
     try:
@@ -201,11 +185,6 @@ def listMasInstances(dynClient: DynamicClient) -> list:
     Returns:
         list: A list of dictionaries representing MAS Suite instances.
               Returns an empty list if no instances are found or if errors occur.
-
-    Example:
-        >>> instances = listMasInstances(client)
-        >>> for instance in instances:
-        ...     print(f"MAS Instance: {instance['metadata']['name']}")
     """
     return listInstances(dynClient, "core.mas.ibm.com/v1", "Suite")
 
@@ -223,11 +202,6 @@ def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
 
     Returns:
         str: The workspace ID if found, None if no workspaces exist for the instance.
-
-    Example:
-        >>> workspace_id = getWorkspaceId(client, "inst1")
-        >>> if workspace_id:
-        ...     print(f"Workspace ID: {workspace_id}")
     """
     workspaceId = None
     workspacesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Workspace")
@@ -251,10 +225,6 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         bool: True if the instance exists and is accessible, False otherwise.
               Returns False if the instance is not found, the CRD doesn't exist,
               or authorization fails.
-
-    Example:
-        >>> if verifyMasInstance(client, "inst1"):
-        ...     print("MAS instance found")
     """
     try:
         suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
@@ -284,11 +254,6 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
     Returns:
         str: The channel name (e.g., "8.11.x", "9.0.x") if the subscription exists,
              None if the subscription is not found.
-
-    Example:
-        >>> channel = getMasChannel(client, "inst1")
-        >>> if channel:
-        ...     print(f"MAS is on channel: {channel}")
     """
     masSubscription = getSubscription(dynClient, f"mas-{instanceId}-core", "ibm-mas")
     if masSubscription is None:
@@ -315,15 +280,6 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
 
     Returns:
         ResourceInstance: The created or updated Secret resource.
-
-    Example:
-        >>> secret = updateIBMEntitlementKey(
-        ...     client,
-        ...     "mas-inst1-core",
-        ...     "cp",
-        ...     "your-entitlement-key"
-        ... )
-        >>> print(f"Secret {secret.metadata.name} updated")
     """
     if secretName is None:
         secretName = "ibm-entitlement"

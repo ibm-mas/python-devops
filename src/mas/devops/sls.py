@@ -33,12 +33,6 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
 
     Raises:
         No exceptions are raised; all errors are caught and logged internally.
-
-    Example:
-        >>> from openshift.dynamic import DynamicClient
-        >>> client = DynamicClient(...)
-        >>> instances = listSLSInstances(client)
-        >>> print(f"Found {len(instances)} SLS instances")
     """
     try:
         slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
@@ -72,14 +66,6 @@ def findSLSByNamespace(namespace: str, instances: list = None, dynClient: Dynami
     Returns:
         bool: True if an SLS instance is found in the specified namespace, False otherwise.
               Also returns False if neither instances nor dynClient is provided.
-
-    Example:
-        >>> # Using pre-fetched instances
-        >>> instances = listSLSInstances(client)
-        >>> exists = findSLSByNamespace("ibm-sls", instances=instances)
-        >>>
-        >>> # Using dynamic client
-        >>> exists = findSLSByNamespace("ibm-sls", dynClient=client)
     """
     if not instances and not dynClient:
         return False

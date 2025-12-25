@@ -70,12 +70,6 @@ def getAppResource(dynClient: DynamicClient, instanceId: str, applicationId: str
     Returns:
         ResourceInstance: The custom resource object if found, None otherwise.
                          Returns None if the resource doesn't exist, CRD is missing, or authorization fails.
-
-    Example:
-        >>> # Get application CR
-        >>> app = getAppResource(client, "inst1", "manage")
-        >>> # Get workspace CR
-        >>> workspace = getAppResource(client, "inst1", "manage", "masdev")
     """
 
     apiVersion = APP_API_VERSIONS[applicationId] if applicationId in APP_API_VERSIONS else "apps.mas.ibm.com/v1"
@@ -110,10 +104,6 @@ def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: 
 
     Returns:
         bool: True if the application instance exists, False otherwise.
-
-    Example:
-        >>> if verifyAppInstance(client, "inst1", "manage"):
-        ...     print("Manage application is installed")
     """
     return getAppResource(dynClient, instanceId, applicationId) is not None
 
@@ -147,14 +137,6 @@ def waitForAppReady(
 
     Returns:
         bool: True if the resource reaches ready state within the retry limit, False otherwise.
-
-    Example:
-        >>> # Wait for Manage application to be ready
-        >>> if waitForAppReady(client, "inst1", "manage", retries=50, delay=300):
-        ...     print("Manage is ready")
-        >>> # Wait for Manage workspace to be ready
-        >>> if waitForAppReady(client, "inst1", "manage", "masdev", retries=50):
-        ...     print("Manage workspace is ready")
     """
 
     resourceName = f"{APP_KINDS[applicationId]}/{instanceId}"
@@ -219,13 +201,6 @@ def getAppsSubscriptionChannel(dynClient: DynamicClient, instanceId: str) -> lis
     Returns:
         list: List of dictionaries with 'appId' and 'channel' keys for each installed app.
               Returns empty list if no apps are found or if errors occur.
-
-    Example:
-        >>> apps = getAppsSubscriptionChannel(client, "inst1")
-        >>> for app in apps:
-        ...     print(f"{app['appId']}: {app['channel']}")
-        manage: 8.7.x
-        iot: 8.8.x
     """
     try:
         installedApps = []
