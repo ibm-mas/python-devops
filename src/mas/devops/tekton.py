@@ -29,7 +29,21 @@ logger = logging.getLogger(__name__)
 
 def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:
     """
-    Install the OpenShift Pipelines Operator and wait for it to be ready to use
+    Install the OpenShift Pipelines Operator and wait for it to be ready to use.
+
+    Creates the operator subscription, waits for the CRD and webhook to be ready,
+    and handles PVC storage class configuration if needed.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        customStorageClassName (str, optional): Custom storage class name for Tekton PVC. Defaults to None.
+
+    Returns:
+        bool: True if installation is successful, False otherwise
+
+    Raises:
+        NotFoundError: If the package manifest is not found
+        UnprocessibleEntityError: If the subscription cannot be created
     """
     packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
@@ -195,15 +209,19 @@ def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, 
 
 def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
     """
-    Install/update the MAS tekton pipeline and task definitions
+    Install or update MAS Tekton pipeline and task definitions from a YAML file.
 
-    Unfortunately there's no API equivalent of what the kubectl CLI gives
-    us with the ability to just apply a file containing a mix of resource types
+    Uses kubectl to apply a YAML file containing multiple resource types.
 
-    https://github.com/gtaylor/kubeconfig-python/
+    Parameters:
+        namespace (str): The namespace to apply the definitions to
+        yamlFile (str): Path to the YAML file containing Tekton definitions
 
-    Throws:
-    - kubeconfig.exceptions.KubectlCommandError
+    Returns:
+        None
+
+    Raises:
+        kubeconfig.exceptions.KubectlCommandError: If kubectl command fails
     """
     result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
     for line in result.split("\n"):
@@ -211,6 +229,26 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
 
 
 def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+    """
+    Prepare a namespace for MAS pipelines by creating RBAC and PVC resources.
+
+    Creates cluster-wide or instance-specific pipeline namespace with necessary
+    role bindings and persistent volume claims.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        instanceId (str, optional): MAS instance ID. If None, creates cluster-wide namespace. Defaults to None.
+        storageClass (str, optional): Storage class for the PVC. Defaults to None.
+        accessMode (str, optional): Access mode for the PVC. Defaults to None.
+        waitForBind (bool, optional): Whether to wait for PVC to bind. Defaults to True.
+        configureRBAC (bool, optional): Whether to configure RBAC. Defaults to True.
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir)
@@ -257,6 +295,26 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
 
 
 def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+    """
+    Prepare a namespace for AI Service pipelines by creating RBAC and PVC resources.
+
+    Creates AI Service-specific pipeline namespace with necessary role bindings
+    and persistent volume claims.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        instanceId (str, optional): AI Service instance ID. Defaults to None.
+        storageClass (str, optional): Storage class for the PVC. Defaults to None.
+        accessMode (str, optional): Access mode for the PVC. Defaults to None.
+        waitForBind (bool, optional): Whether to wait for PVC to bind. Defaults to True.
+        configureRBAC (bool, optional): Whether to configure RBAC. Defaults to True.
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir)
@@ -297,6 +355,26 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
 
 
 def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
+    """
+    Create or update secrets required for MAS installation pipelines.
+
+    Creates four secrets in the specified namespace: pipeline-additional-configs,
+    pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to create secrets in
+        slsLicenseFile (str, optional): SLS license file content. Defaults to None (empty secret).
+        additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
+        certs (str, optional): Certificate data. Defaults to None (empty secret).
+        podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If secrets cannot be created
+    """
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
     # 1. Secret/pipeline-additional-configs
@@ -490,6 +568,23 @@ def launchUninstallPipeline(dynClient: DynamicClient,
 
 
 def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: str, params: dict) -> str:
+    """
+    Launch a Tekton PipelineRun from a template.
+
+    Creates a PipelineRun resource by rendering a Jinja2 template with the provided parameters.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to create the PipelineRun in
+        templateName (str): Name of the template file (without .yml.j2 extension)
+        params (dict): Parameters to pass to the template
+
+    Returns:
+        str: Timestamp string used in the PipelineRun name (format: YYMMDD-HHMM)
+
+    Raises:
+        NotFoundError: If the template or namespace is not found
+    """
     pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
@@ -512,7 +607,20 @@ def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: st
 
 def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
     """
-    Create a PipelineRun to install the chosen MAS ( or AI Service ) instance (and selected dependencies)
+    Create a PipelineRun to install a MAS or AI Service instance with selected dependencies.
+
+    Automatically detects whether to install MAS or AI Service based on the presence
+    of mas_instance_id in params.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Installation parameters including instance ID and configuration
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
     """
     applicationType = "aiservice" if not params.get("mas_instance_id") else "mas"
     params["applicationType"] = applicationType
@@ -526,7 +634,17 @@ def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
 
 def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     """
-    Create a PipelineRun to update the Maximo Operator Catalog
+    Create a PipelineRun to update the Maximo Operator Catalog.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Update parameters
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
     """
     namespace = "mas-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-update", params)
