@@ -22,6 +22,21 @@ logger = logging.getLogger(__name__)
 
 
 def get_db2u_instance_cr(custom_objects_api: client.CustomObjectsApi, mas_instance_id: str, mas_app_id: str, database_role='primary') -> dict:
+    """
+    Retrieve the Db2uInstance custom resource for a specific MAS application database.
+
+    Parameters:
+        custom_objects_api (client.CustomObjectsApi): Kubernetes custom objects API client
+        mas_instance_id (str): The ID of the MAS instance
+        mas_app_id (str): The ID of the MAS application (e.g., "manage", "iot")
+        database_role (str, optional): The database role, either 'primary' or 'standby'. Defaults to 'primary'.
+
+    Returns:
+        dict: The Db2uInstance custom resource as a dictionary
+
+    Raises:
+        kubernetes.client.exceptions.ApiException: If the custom resource is not found or cannot be retrieved
+    """
     cr_name = {'primary': f"db2wh-{mas_instance_id}-{mas_app_id}", 'standby': f"db2wh-{mas_instance_id}-{mas_app_id}-sdb"}[database_role]
     namespace = f"db2u-{mas_instance_id}"
     logger.debug(f"Getting Db2uInstance CR {cr_name} in {namespace}")
@@ -38,28 +53,103 @@ def get_db2u_instance_cr(custom_objects_api: client.CustomObjectsApi, mas_instan
 
 
 def db2_pod_exec(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, command: list, database_role='primary') -> str:
+    """
+    Execute a command in a DB2 pod for a specific MAS application database.
+
+    Parameters:
+        core_v1_api (client.CoreV1Api): Kubernetes Core V1 API client
+        mas_instance_id (str): The ID of the MAS instance
+        mas_app_id (str): The ID of the MAS application (e.g., "manage", "iot")
+        command (list): The command to execute as a list of strings
+        database_role (str, optional): The database role, either 'primary' or 'standby'. Defaults to 'primary'.
+
+    Returns:
+        str: The standard output from the command execution
+
+    Raises:
+        Exception: If the command execution fails
+    """
     pod_name = {'primary': f"c-db2wh-{mas_instance_id}-{mas_app_id}-db2u-0", 'standby': f"c-db2wh-{mas_instance_id}-{mas_app_id}-sdb-db2u-0"}[database_role]
     namespace = f"db2u-{mas_instance_id}"
     return execInPod(core_v1_api, pod_name, namespace, command)
 
 
 def db2_pod_exec_db2_get_db_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, db_name: str, database_role='primary') -> str:
+    """
+    Execute 'db2 get db cfg' command in a DB2 pod to retrieve database configuration.
+
+    Parameters:
+        core_v1_api (client.CoreV1Api): Kubernetes Core V1 API client
+        mas_instance_id (str): The ID of the MAS instance
+        mas_app_id (str): The ID of the MAS application (e.g., "manage", "iot")
+        db_name (str): The name of the database to query
+        database_role (str, optional): The database role, either 'primary' or 'standby'. Defaults to 'primary'.
+
+    Returns:
+        str: The output of the 'db2 get db cfg' command
+
+    Raises:
+        Exception: If the command execution fails
+    """
     command = ["su", "-lc", f"db2 get db cfg for {db_name}", "db2inst1"]
     return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command, database_role)
 
 
 def db2_pod_exec_db2_get_dbm_cfg(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> str:
+    """
+    Execute 'db2 get dbm cfg' command in a DB2 pod to retrieve database manager configuration.
+
+    Parameters:
+        core_v1_api (client.CoreV1Api): Kubernetes Core V1 API client
+        mas_instance_id (str): The ID of the MAS instance
+        mas_app_id (str): The ID of the MAS application (e.g., "manage", "iot")
+        database_role (str, optional): The database role, either 'primary' or 'standby'. Defaults to 'primary'.
+
+    Returns:
+        str: The output of the 'db2 get dbm cfg' command
+
+    Raises:
+        Exception: If the command execution fails
+    """
     command = ["su", "-lc", "db2 get dbm cfg", "db2inst1"]
     return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command, database_role)
 
 
 def db2_pod_exec_db2set(core_v1_api: client.CoreV1Api, mas_instance_id: str, mas_app_id: str, database_role='primary') -> str:
+    """
+    Execute 'db2set' command in a DB2 pod to retrieve registry configuration variables.
+
+    Parameters:
+        core_v1_api (client.CoreV1Api): Kubernetes Core V1 API client
+        mas_instance_id (str): The ID of the MAS instance
+        mas_app_id (str): The ID of the MAS application (e.g., "manage", "iot")
+        database_role (str, optional): The database role, either 'primary' or 'standby'. Defaults to 'primary'.
+
+    Returns:
+        str: The output of the 'db2set' command
+
+    Raises:
+        Exception: If the command execution fails
+    """
     command = ["su", "-lc", "db2set", "db2inst1"]
     return db2_pod_exec(core_v1_api, mas_instance_id, mas_app_id, command, database_role)
 
 
 def cr_pod_v_matches(cr_k: str, cr_v: str, pod_v: str) -> bool:
+    """
+    Compare a configuration value from the Db2uInstance CR with the actual value from the DB2 pod.
 
+    This function handles special cases where the CR and pod values are expressed differently
+    even when they represent the same configuration (e.g., "8192 AUTOMATIC" vs "AUTOMATIC(8192)").
+
+    Parameters:
+        cr_k (str): The configuration parameter key/name
+        cr_v (str): The configuration value from the Db2uInstance CR
+        pod_v (str): The actual configuration value from the DB2 pod
+
+    Returns:
+        bool: True if the values match (considering special cases), False otherwise
+    """
     logger.debug(f"[{cr_k}] '{cr_v}' ~= '{pod_v}'")
     # special cases where cr_v and pod_v values are expressed differently even if they mean the same thing
     if cr_k in ["MIRRORLOGPATH"]:
@@ -257,7 +347,26 @@ def check_reg_cfg(db2u_instance_cr: dict, core_v1_api: client.CoreV1Api, mas_ins
 
 
 def validate_db2_config(k8s_client: client.api_client.ApiClient, mas_instance_id: str, mas_app_id: str, database_role='primary'):
+    """
+    Validate that the DB2 configuration in the Db2uInstance CR matches the actual configuration in the DB2 pods.
 
+    This function orchestrates validation of database configuration (db cfg), database manager
+    configuration (dbm cfg), and registry configuration (db2set) by comparing values from the
+    Db2uInstance custom resource against the actual running configuration in DB2.
+
+    Parameters:
+        k8s_client (client.api_client.ApiClient): Kubernetes API client
+        mas_instance_id (str): The ID of the MAS instance
+        mas_app_id (str): The ID of the MAS application (e.g., "manage", "iot")
+        database_role (str, optional): The database role, either 'primary' or 'standby'. Defaults to 'primary'.
+
+    Returns:
+        None: Logs results and raises an exception if any validation checks fail
+
+    Raises:
+        Exception: If any configuration mismatches are detected between the CR and actual DB2 configuration.
+                  The exception contains a dict with 'message' and 'details' keys listing all failures.
+    """
     core_v1_api = client.CoreV1Api(k8s_client)
     custom_objects_api = client.CustomObjectsApi(k8s_client)
 
