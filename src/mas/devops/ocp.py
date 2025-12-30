@@ -377,9 +377,43 @@ def getStorageClasses(dynClient: DynamicClient) -> list:
 
 
 def getClusterIssuers(dynClient: DynamicClient) -> list:
-    clusterIssuerAPI = dynClient.resources.get(api_version="cert-manager.io", kind="ClusterIssuer")
+    """
+    Get all ClusterIssuers in the cluster.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+
+    Returns:
+        list: List of ClusterIssuers resources
+
+    Raises:
+        NotFoundError: If ClusterIssuers cannot be retrieved
+    """
+    clusterIssuerAPI = dynClient.resources.get(api_version="cert-manager.io/v1", kind="ClusterIssuer")
     clusterIssuers = clusterIssuerAPI.get().items
     return clusterIssuers
+
+
+def getClusterIssuer(dynClient: DynamicClient, name: str) -> str:
+    """
+    Get a specific ClusterIssuer by name.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        name (str): The name of the ClusterIssuer to retrieve
+
+    Returns:
+        ClusterIssuer: The ClusterIssuer resource, or None if not found
+
+    Raises:
+        NotFoundError: If the ClusterIssuer does not exist (caught and returns None)
+    """
+    try:
+        clusterIssuerAPI = dynClient.resources.get(api_version="cert-manager.io/v1", kind="ClusterIssuer")
+        clusterIssuer = clusterIssuerAPI.get(name=name)
+        return clusterIssuer
+    except NotFoundError:
+        return None
 
 
 def isSNO(dynClient: DynamicClient) -> bool:
