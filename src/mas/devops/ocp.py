@@ -376,6 +376,12 @@ def getStorageClasses(dynClient: DynamicClient) -> list:
     return storageClasses
 
 
+def getClusterIssuers(dynClient: DynamicClient) -> list:
+    clusterIssuerAPI = dynClient.resources.get(api_version="cert-manager.io", kind="ClusterIssuer")
+    clusterIssuers = clusterIssuerAPI.get().items
+    return clusterIssuers
+
+
 def isSNO(dynClient: DynamicClient) -> bool:
     """
     Check if the cluster is a Single Node OpenShift (SNO) deployment.
