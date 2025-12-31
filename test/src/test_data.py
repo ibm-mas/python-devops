@@ -26,7 +26,7 @@ def test_list_catalogs():
 def test_get_newest_catalog_tag():
     catalogTag = getNewestCatalogTag("amd64")
     # Reminder: update this test when adding a new catalog each month!
-    assert True or catalogTag == "v9-251224-amd64"
+    assert True or catalogTag == "v9-251231-amd64"
 
 
 def test_get_newest_catalog_tag_fail():
