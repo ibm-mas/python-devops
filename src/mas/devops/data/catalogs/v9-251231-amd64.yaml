@@ -1,0 +1,145 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog 251224 (AMD64)
+# -----------------------------------------------------------------------------
+# In the future this won't be necessary as we'll be able to mirror from the
+# catalog itself, but not everything in the catalog supports this yet (including MAS)
+# so we need to use the CASE bundle mirror process still.
+
+catalog_digest: sha256:362af3055d7242d82827bafbd30e23ef4ca2df3f271ac835101d1961fd1b9c25
+
+ocp_compatibility:
+- 4.16
+- 4.17
+- 4.18
+- 4.19
+
+# Dependencies
+# -----------------------------------------------------------------------------
+ibm_licensing_version: 4.2.17                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+common_svcs_version: 4.13.0                  # Operator version 4.13.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
+common_svcs_version_1: 4.11.0                  # Additional version 4.11.0
+
+cp4d_platform_version: 5.2.0+20250709.170324               # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+ibm_zen_version: 6.2.0+20250530.152516.232                     # For CPD5 ibm-zen has to be explicitily mirrored
+
+db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
+uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+sls_version: 3.12.4                          # Operator version 3.12.4 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.2                           # Operator version 1.7.2 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+dd_version: 1.1.20                           # Operator version 1.1.14 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
+appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
+wsl_version: 11.0.0+20250521.202913.73                      # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
+wsl_runtimes_version: 11.0.0+20250515.090949.21               # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
+wml_version: 11.0.0+20250530.193146.282                             # Operator version 5.2.0
+postgress_version: 5.16.0+20250827.110911.2626                # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d 
+
+ccs_build: 11.0.0+20250605.130237.468       # cpd 5.2.0 using ccs build
+# datarefinery_build: +20240517.202103.146
+
+spark_version: 11.0.0+20250604.163055.2097                      # Operator version 5.2.0
+cognos_version: 28.0.0+20250515.175459.10054                     # Operator version 25.0.0
+couchdb_version: 1.0.13                     # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
+# elasticsearch_version: 1.1.2667           # Operator version 1.1.2667 # used in cpd 5.1.3 only
+opensearch_version: 1.1.2494                # Operator version 1.1.2494
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.2.x-feature: 9.2.0-pre.stable_6976 # Updated
+  9.1.x: 9.1.7         # Updated
+  9.0.x: 9.0.18        # Updated
+  8.10.x: 8.10.32      # Updated
+  8.11.x: 8.11.29      # Updated
+mas_assist_version:
+  9.1.x: 9.1.6     # Updated
+  9.0.x: 9.0.12    # Updated
+  8.10.x: 8.7.8   # No Update
+  8.11.x: 8.8.7   # No Update
+mas_hputilities_version:
+  9.1.x: ""       # Not Supported
+  9.0.x: ""       # Not Supported
+  8.10.x: 8.6.7   # No Update
+  8.11.x: ""      # Not Supported
+mas_iot_version:
+  9.1.x: 9.1.6     # Updated
+  9.0.x: 9.0.15    # Updated
+  8.10.x: 8.7.29   # Updated
+  8.11.x: 8.8.25   # Updated
+mas_manage_version:
+  9.2.x-feature: 9.2.0-pre.stable_6856 # Updated
+  9.1.x: 9.1.7         # Updated
+  9.0.x: 9.0.20        # Updated
+  8.10.x: 8.6.33       # Updated
+  8.11.x: 8.7.27       # Updated
+mas_monitor_version:
+  9.1.x: 9.1.6    # Updated
+  9.0.x: 9.0.16   # Updated
+  8.10.x: 8.10.26 # Updated
+  8.11.x: 8.11.24 # Updated
+mas_optimizer_version:
+  9.2.x-feature: 9.2.0-pre.stable_5162 # Updated
+  9.1.x: 9.1.7         # Updated
+  9.0.x: 9.0.16        # Updated
+  8.10.x: 8.4.25       # Updated
+  8.11.x: 8.5.24       # Updated
+mas_predict_version:
+  9.1.x: 9.1.4     # Updated
+  9.0.x: 9.0.11    # Updated
+  8.10.x: 8.8.12   # Updated
+  8.11.x: 8.9.14   # Updated
+mas_visualinspection_version:
+  9.2.x-feature: 9.2.0-pre.stable_6198 # Updated
+  9.1.x: 9.1.5         # Updated
+  9.0.x: 9.0.15        # Updated
+  8.10.x: 8.8.4        # No Update
+  8.11.x: 8.9.18       # Updated
+mas_facilities_version:
+  9.1.x: 9.1.6    # Updated
+  9.0.x: ""       # Not Supported
+  8.10.x: ""      # Not Supported
+  8.11.x: ""      # Not Supported
+
+
+# Maximo AI Service
+# ------------------------------------------------------------------------------
+aiservice_version:
+  9.2.x-feature: 9.2.0-pre.stable_6741 # Updated
+  9.1.x: 9.1.10  # Updated
+ 
+
+# Extra Images for UDS
+# ------------------------------------------------------------------------------
+uds_extras_version: 1.5.0
+
+# Extra Images for Mongo
+# ------------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.13
+
+# Variables used to mirror additional mongo image versions
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.23
+mongo_extras_version_8: 8.0.13
+
+# Extra Images for Db2u
+# ------------------------------------------------------------------------------
+db2u_extras_version: 1.0.6 # No Update
+db2u_filter: db2
+
+# Extra Images for IBM Watson Discovery
+# ------------------------------------------------------------------------------
+#wd_extras_version: 1.0.4
+
+# Extra Images for Amlen
+# ------------------------------------------------------------------------------
+amlen_extras_version: 1.1.3
+
+# Default Cloud Pak for Data version
+# ------------------------------------------------------------------------------
+cpd_product_version_default: 5.2.0
+
+manage_extras_913: 9.1.3
+minio_version: RELEASE.2025-06-13T11-33-47Z
+
