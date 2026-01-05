@@ -105,24 +105,58 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     # due to these resources not coming up, the MAS pre-install check in the pipeline times out checking the health of this statefulSet,
     # causing failure in pipeline.
     # Refer https://github.com/ibm-mas/cli/issues/1511
-    logger.debug("Waiting for postgredb-tekton-results-postgres-0 PVC to be ready")
-    foundReadyPVC = waitForPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
-    if foundReadyPVC:
-        logger.info("OpenShift Pipelines postgres is installed and ready")
+    logger.debug("Checking postgredb-tekton-results-postgres-0 PVC status")
+    
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    pvcName = "postgredb-tekton-results-postgres-0"
+    pvcNamespace = "openshift-pipelines"
+    
+    # Wait briefly for PVC to be created (max 30 seconds)
+    maxInitialRetries = 6
+    pvc = None
+    for retry in range(maxInitialRetries):
+        try:
+            pvc = pvcAPI.get(name=pvcName, namespace=pvcNamespace)
+            break
+        except NotFoundError:
+            if retry < maxInitialRetries - 1:
+                logger.debug(f"Waiting 5s for PVC {pvcName} to be created (attempt {retry + 1}/{maxInitialRetries})...")
+                sleep(5)
+    
+    if pvc is None:
+        logger.error(f"PVC {pvcName} was not created after {maxInitialRetries * 5} seconds")
+        return False
+    
+    # Check if PVC is already bound
+    if pvc.status.phase == "Bound":
+        logger.info("OpenShift Pipelines postgres PVC is already bound and ready")
         return True
-    else:
+    
+    # Check if PVC is pending without a storage class - needs immediate patching
+    if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
+        logger.info("PVC is pending without storage class, attempting to patch immediately...")
         tektonPVCisReady = addMissingStorageClassToTektonPVC(
             dynClient=dynClient,
-            namespace="openshift-pipelines",
-            pvcName="postgredb-tekton-results-postgres-0",
+            namespace=pvcNamespace,
+            pvcName=pvcName,
             storageClassName=customStorageClassName
         )
         if tektonPVCisReady:
             logger.info("OpenShift Pipelines postgres is installed and ready")
             return True
         else:
-            logger.error("OpenShift Pipelines postgres PVC is NOT ready")
+            logger.error("OpenShift Pipelines postgres PVC is NOT ready after patching")
             return False
+    
+    # PVC exists with storage class but not bound yet - wait for it to bind
+    logger.debug(f"PVC has storage class '{pvc.spec.storageClassName}', waiting for it to be bound...")
+    foundReadyPVC = waitForPVC(dynClient, namespace=pvcNamespace, pvcName=pvcName)
+    if foundReadyPVC:
+        logger.info("OpenShift Pipelines postgres is installed and ready")
+        return True
+    else:
+        logger.error("OpenShift Pipelines postgres PVC is NOT ready")
+        return False
 
 
 def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
