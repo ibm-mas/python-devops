@@ -179,3 +179,31 @@ def listOCPVersions() -> list:
     ocp_versions = ocp_data.get("ocp_versions", {})
     # Sort versions numerically (4.12, 4.13, etc.)
     return sorted(ocp_versions.keys(), key=lambda v: [int(x) for x in v.split(".")])
+
+
+def getCatalogEditorial(catalog_tag: str) -> dict | None:
+    """
+    Get editorial content (What's New and Known Issues) for a specific catalog.
+
+    This function retrieves the editorial metadata from a catalog definition,
+    which includes "What's New" highlights and "Known Issues" information.
+
+    Args:
+        catalog_tag (str): The catalog tag (e.g., "v9-251231-amd64").
+
+    Returns:
+        dict: Dictionary with 'whats_new' and 'known_issues' keys containing
+              markdown-formatted strings. Returns None if catalog doesn't exist
+              or has no editorial content.
+
+    Example:
+        >>> editorial = getCatalogEditorial("v9-251231-amd64")
+        >>> if editorial:
+        ...     print(editorial['whats_new'])
+        ...     print(editorial['known_issues'])
+    """
+    catalog = getCatalog(catalog_tag)
+    if not catalog:
+        return None
+
+    return catalog.get("editorial")

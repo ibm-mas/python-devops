@@ -143,3 +143,11 @@ cpd_product_version_default: 5.1.3
 kmodels_extras_version_default: 1.0.14
 minio_version: RELEASE.2025-06-13T11-33-47Z
 
+
+editorial:
+  whats_new: |
+    - **Security updates and bug fixes**
+        - IBM Maximo AI Service v9.1
+  known_issues: |
+    - Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
+    - Customers running **Maximo Manage v8.7** with the Civil application in a disconnected environment are advised to skip this update due to a packaging error which will result in a failure to pull the `extension-civil` container image
