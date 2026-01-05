@@ -103,14 +103,6 @@ def getOCPLifecycleData() -> dict | None:
     Returns:
         dict: The OCP lifecycle data dictionary with version information.
               Returns None if the ocp.yaml file doesn't exist.
-
-    Example:
-        >>> data = getOCPLifecycleData()
-        >>> if data:
-        ...     versions = data.get('ocp_versions', {})
-        ...     ocp_416 = versions.get('4.16', {})
-        ...     print(ocp_416.get('ga_date'))
-        'June 27, 2024'
     """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
@@ -137,16 +129,6 @@ def getOCPVersion(version: str) -> dict | None:
     Returns:
         dict: Dictionary containing 'ga_date', 'standard_support', and 'extended_support'.
               Returns None if the version is not found or OCP data doesn't exist.
-
-    Example:
-        >>> version_info = getOCPVersion("4.16")
-        >>> if version_info:
-        ...     print(f"GA: {version_info['ga_date']}")
-        ...     print(f"Standard Support: {version_info['standard_support']}")
-        ...     print(f"Extended Support: {version_info['extended_support']}")
-        GA: June 27, 2024
-        Standard Support: December 27, 2025
-        Extended Support: June 27, 2027
     """
     ocp_data = getOCPLifecycleData()
     if not ocp_data:
@@ -166,11 +148,6 @@ def listOCPVersions() -> list:
     Returns:
         list: Sorted list of OCP version strings (e.g., ["4.12", "4.13", "4.14", ...]).
               Returns empty list if OCP data doesn't exist.
-
-    Example:
-        >>> versions = listOCPVersions()
-        >>> print(versions)
-        ['4.12', '4.13', '4.14', '4.15', '4.16', '4.17', '4.18', '4.19']
     """
     ocp_data = getOCPLifecycleData()
     if not ocp_data:
@@ -193,14 +170,8 @@ def getCatalogEditorial(catalog_tag: str) -> dict | None:
 
     Returns:
         dict: Dictionary with 'whats_new' and 'known_issues' keys containing
-              markdown-formatted strings. Returns None if catalog doesn't exist
+              structured lists. Returns None if catalog doesn't exist
               or has no editorial content.
-
-    Example:
-        >>> editorial = getCatalogEditorial("v9-251231-amd64")
-        >>> if editorial:
-        ...     print(editorial['whats_new'])
-        ...     print(editorial['known_issues'])
     """
     catalog = getCatalog(catalog_tag)
     if not catalog:
