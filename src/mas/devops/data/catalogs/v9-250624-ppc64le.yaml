@@ -48,14 +48,17 @@ mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
 
 editorial:
-  whats_new: |
-    - **New feature release**
-        - IBM Maximo Application Suite Core Platform v9.1
-        - IBM Maximo Manage v9.1
-    - **Security updates and bug fixes**
-        - IBM Maximo Application Suite Core Platform v9.0
-        - IBM Maximo Manage v9.0
-        - IBM Suite License Service v3
-        - IBM Truststore Manager v1.7
-    
-    - **Openshift 4.18 support** Openshift Container Platform 4.18 support has been added. Refer OCP 4.18 release notes [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/release_notes/index)
+  whats_new:
+  - title: '**New feature release**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.1
+    - IBM Maximo Manage v9.1
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.0
+    - IBM Maximo Manage v9.0
+    - IBM Suite License Service v3
+    - IBM Truststore Manager v1.7
+  - title: '**Openshift 4.18 support** Openshift Container Platform 4.18 support has been added. Refer OCP 4.18 release notes [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/release_notes/index)'
+    details: []
+  known_issues: []

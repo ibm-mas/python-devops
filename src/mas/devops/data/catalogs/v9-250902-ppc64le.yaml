@@ -49,5 +49,7 @@ mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
 
 editorial:
-  whats_new: |
-    - NA
+  whats_new:
+  - title: NA
+    details: []
+  known_issues: []
