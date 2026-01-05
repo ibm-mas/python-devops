@@ -130,12 +130,12 @@ def getOCPVersion(version: str) -> dict | None:
         dict: Dictionary containing 'ga_date', 'standard_support', and 'extended_support'.
               Returns None if the version is not found or OCP data doesn't exist.
     """
-    ocp_data = getOCPLifecycleData()
-    if not ocp_data:
+    ocpData = getOCPLifecycleData()
+    if not ocpData:
         return None
 
-    ocp_versions = ocp_data.get("ocp_versions", {})
-    return ocp_versions.get(version)
+    ocpVersions = ocpData.get("ocp_versions", {})
+    return ocpVersions.get(version)
 
 
 def listOCPVersions() -> list:
@@ -149,16 +149,16 @@ def listOCPVersions() -> list:
         list: Sorted list of OCP version strings (e.g., ["4.12", "4.13", "4.14", ...]).
               Returns empty list if OCP data doesn't exist.
     """
-    ocp_data = getOCPLifecycleData()
-    if not ocp_data:
+    ocpData = getOCPLifecycleData()
+    if not ocpData:
         return []
 
-    ocp_versions = ocp_data.get("ocp_versions", {})
+    ocpVersions = ocpData.get("ocp_versions", {})
     # Sort versions numerically (4.12, 4.13, etc.)
-    return sorted(ocp_versions.keys(), key=lambda v: [int(x) for x in v.split(".")])
+    return sorted(ocpVersions.keys(), key=lambda v: [int(x) for x in v.split(".")])
 
 
-def getCatalogEditorial(catalog_tag: str) -> dict | None:
+def getCatalogEditorial(catalogTag: str) -> dict | None:
     """
     Get editorial content (What's New and Known Issues) for a specific catalog.
 
@@ -166,14 +166,14 @@ def getCatalogEditorial(catalog_tag: str) -> dict | None:
     which includes "What's New" highlights and "Known Issues" information.
 
     Args:
-        catalog_tag (str): The catalog tag (e.g., "v9-251231-amd64").
+        catalogTag (str): The catalog tag (e.g., "v9-251231-amd64").
 
     Returns:
         dict: Dictionary with 'whats_new' and 'known_issues' keys containing
               structured lists. Returns None if catalog doesn't exist
               or has no editorial content.
     """
-    catalog = getCatalog(catalog_tag)
+    catalog = getCatalog(catalogTag)
     if not catalog:
         return None
 
