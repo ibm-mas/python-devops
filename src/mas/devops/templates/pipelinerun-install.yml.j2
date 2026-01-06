@@ -275,8 +275,10 @@ spec:
 
     # Dependencies - SLS
     # -------------------------------------------------------------------------
+{%- if sls_channel is defined and sls_channel != "" %}
     - name: sls_channel
-      value: '3.x'
+      value: "{{ sls_channel }}"
+{%- endif %}
 {%- if sls_entitlement_file is defined and sls_entitlement_file != "" %}
     - name: sls_entitlement_file
       value: "{{ sls_entitlement_file }}"
@@ -570,6 +572,14 @@ spec:
       value: "{{ mas_app_channel_manage }}"
     - name: mas_appws_components
       value: "{{ mas_appws_components }}"
+  {%- if manage_bind_aiservice_instance_id is defined and manage_bind_aiservice_instance_id != "" %}
+    - name: manage_bind_aiservice_instance_id
+      value: "{{ manage_bind_aiservice_instance_id }}"
+  {%- endif %}
+  {%- if manage_bind_aiservice_tenant_id is defined and manage_bind_aiservice_tenant_id != "" %}
+    - name: manage_bind_aiservice_tenant_id
+      value: "{{ manage_bind_aiservice_tenant_id }}"
+  {%- endif %}
   {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
     - name: mas_appws_bindings_health_wsl_flag
       value: "{{ mas_appws_bindings_health_wsl_flag }}"
@@ -650,19 +660,19 @@ spec:
       value: "{{ mas_app_settings_customization_archive_password }}"
     {%- endif %}
   {%- endif %}
-  {%- if mas_app_settings_crypto_key is defined and mas_app_settings_crypto_key != "" %}
-    - name: mas_app_settings_crypto_key
-      value: "{{ mas_app_settings_crypto_key }}"
-    - name: mas_app_settings_cryptox_key
-      value: "{{ mas_app_settings_cryptox_key }}"
-    - name: mas_app_settings_old_crypto_key
-      value: "{{ mas_app_settings_old_crypto_key }}"
-    - name: mas_app_settings_old_cryptox_key
-      value: "{{ mas_app_settings_old_cryptox_key }}"
+  {%- if mas_manage_encryptionsecret_crypto_key is defined and mas_manage_encryptionsecret_crypto_key != "" %}
+    - name: mas_manage_encryptionsecret_crypto_key
+      value: "{{ mas_manage_encryptionsecret_crypto_key }}"
+    - name: mas_manage_encryptionsecret_cryptox_key
+      value: "{{ mas_manage_encryptionsecret_cryptox_key }}"
+    - name: mas_manage_encryptionsecret_old_crypto_key
+      value: "{{ mas_manage_encryptionsecret_old_crypto_key }}"
+    - name: mas_manage_encryptionsecret_old_cryptox_key
+      value: "{{ mas_manage_encryptionsecret_old_cryptox_key }}"
   {%- endif %}
-  {%- if mas_app_settings_override_encryption_secrets_flag is defined and mas_app_settings_override_encryption_secrets_flag != "" %}
-    - name: mas_app_settings_override_encryption_secrets_flag
-      value: "{{ mas_app_settings_override_encryption_secrets_flag }}"
+  {%- if mas_manage_ws_db_encryptionsecret is defined and mas_manage_ws_db_encryptionsecret != "" %}
+    - name: mas_manage_ws_db_encryptionsecret
+      value: "{{ mas_manage_ws_db_encryptionsecret }}"
   {%- endif %}
   {%- if mas_app_settings_default_jms is defined and mas_app_settings_default_jms != "" %}
     - name: mas_app_settings_default_jms

@@ -73,6 +73,12 @@ setup(
             'pytest-mock',    # MIT License
             'requests-mock',  # Apache Software License
             'setuptools',     # MIT License
+        ],
+        'docs': [
+            'mkdocs',                      # BSD License
+            'mkdocs-material',             # MIT License
+            'mkdocstrings[python]',        # ISC License
+            'pymdown-extensions',          # MIT License
         ]
     },
     classifiers=[

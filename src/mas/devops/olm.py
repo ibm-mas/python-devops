@@ -28,8 +28,22 @@ class OLMException(Exception):
 
 
 def getPackageManifest(dynClient: DynamicClient, packageName: str, catalogSourceNamespace: str = "openshift-marketplace"):
-    # Assert that the PackageManifest exists
-    # -----------------------------------------------------------------------------
+    """
+    Get the PackageManifest for an operator package.
+
+    Retrieves package information including available channels and catalog source.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        packageName (str): Name of the operator package (e.g., "ibm-mas-operator")
+        catalogSourceNamespace (str, optional): Namespace containing the catalog source. Defaults to "openshift-marketplace".
+
+    Returns:
+        PackageManifest: The package manifest resource, or None if not found
+
+    Raises:
+        NotFoundError: If the package manifest is not found (caught and returns None)
+    """
     packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
     try:
         manifestResource = packagemanifestAPI.get(name=packageName, namespace=catalogSourceNamespace)
@@ -41,7 +55,23 @@ def getPackageManifest(dynClient: DynamicClient, packageName: str, catalogSource
 
 
 def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namespace: str, installMode: str = "OwnNamespace"):
-    # Create a new OperatorGroup if necessary
+    """
+    Ensure an OperatorGroup exists in the specified namespace.
+
+    Creates a new OperatorGroup if one doesn't already exist in the namespace.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        env (Environment): Jinja2 environment for template rendering
+        namespace (str): The namespace to check/create the OperatorGroup in
+        installMode (str, optional): The install mode for the OperatorGroup. Defaults to "OwnNamespace".
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If resources cannot be accessed
+    """
     operatorGroupsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1", kind="OperatorGroup")
     operatorGroupList = operatorGroupsAPI.get(namespace=namespace)
     if len(operatorGroupList.items) == 0:
@@ -59,6 +89,22 @@ def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namesp
 
 
 def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
+    """
+    Get the Subscription for an operator package in a namespace.
+
+    Searches for subscriptions using label selector based on package name and namespace.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to search in
+        packageName (str): Name of the operator package
+
+    Returns:
+        Subscription: The subscription resource, or None if not found
+
+    Raises:
+        NotFoundError: If no subscription is found (returns None)
+    """
     labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
     logger.debug(f"Get Subscription for {packageName} in {namespace}")
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
@@ -73,8 +119,27 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
 
 def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None, installMode: str = "OwnNamespace"):
     """
-    Usage:
-      createSubscription(dynClient, "testns1", "sub1", "ibm-sls")  # use default channel, & auto-detect CatalogSource
+    Create or update an operator subscription in a namespace.
+
+    Automatically detects default channel and catalog source from PackageManifest if not provided.
+    Ensures an OperatorGroup exists before creating the subscription.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to create the subscription in
+        packageName (str): Name of the operator package (e.g., "ibm-mas-operator")
+        packageChannel (str, optional): Subscription channel. Auto-detected if None. Defaults to None.
+        catalogSource (str, optional): Catalog source name. Auto-detected if None. Defaults to None.
+        catalogSourceNamespace (str, optional): Namespace of the catalog source. Defaults to "openshift-marketplace".
+        config (dict, optional): Additional subscription configuration. Defaults to None.
+        installMode (str, optional): Install mode for the OperatorGroup. Defaults to "OwnNamespace".
+
+    Returns:
+        Subscription: The created or updated subscription resource
+
+    Raises:
+        OLMException: If the package is not available in any catalog
+        NotFoundError: If resources cannot be created
     """
     if catalogSourceNamespace is None:
         catalogSourceNamespace = "openshift-marketplace"

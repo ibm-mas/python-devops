@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:362af3055d7242d82827bafbd30e23ef4ca2df3f271ac835101d1961fd1b9c25
+catalog_digest: sha256:ecad371a50e030ce93ca00d73ef3b8b95f1305158800a077758c74ff4cf65623
 
 ocp_compatibility:
 - 4.16
@@ -114,14 +114,14 @@ uds_extras_version: 1.5.0
 
 # Extra Images for Mongo
 # ------------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.13
+mongo_extras_version_default: 8.0.17
 
 # Variables used to mirror additional mongo image versions
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.13
+mongo_extras_version_8: 8.0.17
 
 # Extra Images for Db2u
 # ------------------------------------------------------------------------------
