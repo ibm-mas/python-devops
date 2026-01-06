@@ -90,3 +90,91 @@ def getNewestCatalogTag(arch="amd64") -> str | None:
         return None
     else:
         return catalogs[-1]
+
+
+def getOCPLifecycleData() -> dict | None:
+    """
+    Load OpenShift Container Platform lifecycle data.
+
+    This function reads the OCP lifecycle YAML file containing General Availability dates,
+    Standard Support end dates, and Extended Update Support (EUS) end dates for various
+    OCP versions.
+
+    Returns:
+        dict: The OCP lifecycle data dictionary with version information.
+              Returns None if the ocp.yaml file doesn't exist.
+    """
+    moduleFile = path.abspath(__file__)
+    modulePath = path.dirname(moduleFile)
+    ocpFileName = "ocp.yaml"
+
+    pathToOCP = path.join(modulePath, ocpFileName)
+    if not path.exists(pathToOCP):
+        return None
+
+    with open(pathToOCP) as stream:
+        return yaml.safe_load(stream)
+
+
+def getOCPVersion(version: str) -> dict | None:
+    """
+    Get lifecycle information for a specific OCP version.
+
+    This function retrieves the General Availability date, Standard Support end date,
+    and Extended Update Support (EUS) end date for a specific OpenShift version.
+
+    Args:
+        version (str): The OCP version (e.g., "4.16", "4.17").
+
+    Returns:
+        dict: Dictionary containing 'ga_date', 'standard_support', and 'extended_support'.
+              Returns None if the version is not found or OCP data doesn't exist.
+    """
+    ocpData = getOCPLifecycleData()
+    if not ocpData:
+        return None
+
+    ocpVersions = ocpData.get("ocp_versions", {})
+    return ocpVersions.get(version)
+
+
+def listOCPVersions() -> list:
+    """
+    List all OCP versions with lifecycle data available.
+
+    This function returns a sorted list of all OpenShift Container Platform versions
+    that have lifecycle information defined.
+
+    Returns:
+        list: Sorted list of OCP version strings (e.g., ["4.12", "4.13", "4.14", ...]).
+              Returns empty list if OCP data doesn't exist.
+    """
+    ocpData = getOCPLifecycleData()
+    if not ocpData:
+        return []
+
+    ocpVersions = ocpData.get("ocp_versions", {})
+    # Sort versions numerically (4.12, 4.13, etc.)
+    return sorted(ocpVersions.keys(), key=lambda v: [int(x) for x in v.split(".")])
+
+
+def getCatalogEditorial(catalogTag: str) -> dict | None:
+    """
+    Get editorial content (What's New and Known Issues) for a specific catalog.
+
+    This function retrieves the editorial metadata from a catalog definition,
+    which includes "What's New" highlights and "Known Issues" information.
+
+    Args:
+        catalogTag (str): The catalog tag (e.g., "v9-251231-amd64").
+
+    Returns:
+        dict: Dictionary with 'whats_new' and 'known_issues' keys containing
+              structured lists. Returns None if catalog doesn't exist
+              or has no editorial content.
+    """
+    catalog = getCatalog(catalogTag)
+    if not catalog:
+        return None
+
+    return catalog.get("editorial")

@@ -47,3 +47,12 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
+
+editorial:
+  whats_new:
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.0 and 9.1
+    - IBM Maximo Manage v9.0 and 9.1
+    - IBM Suite License Service v3.12
+  known_issues: []
