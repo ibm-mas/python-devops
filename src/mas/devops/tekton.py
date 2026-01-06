@@ -106,11 +106,11 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     # causing failure in pipeline.
     # Refer https://github.com/ibm-mas/cli/issues/1511
     logger.debug("Checking postgredb-tekton-results-postgres-0 PVC status")
-    
+
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
     pvcName = "postgredb-tekton-results-postgres-0"
     pvcNamespace = "openshift-pipelines"
-    
+
     # Wait briefly for PVC to be created (max 30 seconds)
     maxInitialRetries = 6
     pvc = None
@@ -122,16 +122,16 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
             if retry < maxInitialRetries - 1:
                 logger.debug(f"Waiting 5s for PVC {pvcName} to be created (attempt {retry + 1}/{maxInitialRetries})...")
                 sleep(5)
-    
+
     if pvc is None:
         logger.error(f"PVC {pvcName} was not created after {maxInitialRetries * 5} seconds")
         return False
-    
+
     # Check if PVC is already bound
     if pvc.status.phase == "Bound":
         logger.info("OpenShift Pipelines postgres PVC is already bound and ready")
         return True
-    
+
     # Check if PVC is pending without a storage class - needs immediate patching
     if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
         logger.info("PVC is pending without storage class, attempting to patch immediately...")
@@ -147,7 +147,7 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
         else:
             logger.error("OpenShift Pipelines postgres PVC is NOT ready after patching")
             return False
-    
+
     # PVC exists with storage class but not bound yet - wait for it to bind
     logger.debug(f"PVC has storage class '{pvc.spec.storageClassName}', waiting for it to be bound...")
     foundReadyPVC = waitForPVC(dynClient, namespace=pvcNamespace, pvcName=pvcName)
@@ -178,15 +178,15 @@ def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, 
     """
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
     storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
-    
+
     try:
         pvc = pvcAPI.get(name=pvcName, namespace=namespace)
-        
+
         # Check if PVC is pending and has no storage class
         if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
             # Determine which storage class to use
             targetStorageClass = None
-            
+
             if storageClassName is not None:
                 # Verify the provided storage class exists
                 try:
@@ -195,7 +195,7 @@ def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, 
                     logger.info(f"Using provided storage class '{storageClassName}' for PVC {pvcName}")
                 except NotFoundError:
                     logger.warning(f"Provided storage class '{storageClassName}' not found, will try to detect available storage class")
-            
+
             # If no valid custom storage class, try to detect one
             if targetStorageClass is None:
                 logger.warning("No storage class provided or provided storage class not found, attempting to use first available storage class")
@@ -207,7 +207,7 @@ def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, 
                 else:
                     logger.error(f"Unable to set storageClassName in PVC {pvcName}. No storage classes available in the cluster.")
                     return False
-            
+
             # Patch the PVC with the storage class
             pvc.spec.storageClassName = targetStorageClass
             logger.info(f"Patching PVC {pvcName} with storageClassName: {targetStorageClass}")
