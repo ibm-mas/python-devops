@@ -111,8 +111,8 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     pvcName = "postgredb-tekton-results-postgres-0"
     pvcNamespace = "openshift-pipelines"
 
-    # Wait briefly for PVC to be created (max 30 seconds)
-    maxInitialRetries = 6
+    # Wait briefly for PVC to be created (max 5 minutes)
+    maxInitialRetries = 60
     pvc = None
     for retry in range(maxInitialRetries):
         try:
@@ -124,7 +124,7 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
                 sleep(5)
 
     if pvc is None:
-        logger.error(f"PVC {pvcName} was not created after {maxInitialRetries * 5} seconds")
+        logger.error(f"PVC {pvcName} was not created after {maxInitialRetries * 5} seconds (5 minutes)")
         return False
 
     # Check if PVC is already bound
