@@ -251,13 +251,18 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         if waitForBind:
             logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
             pvcIsBound = False
+            logger.info(msg=f"pvcIsBound={pvcIsBound}") # need to remove
             while not pvcIsBound:
                 configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                logger.info(f"configPVC: {configPVC}") # need to remove
+                logger.info(f"configPVC.status.phase: {configPVC.status.phase}") # need to remove
                 if configPVC.status.phase == "Bound":
+                    logger.info(f"pvcIsBound: {pvcIsBound}") # need to remove
                     pvcIsBound = True
                 else:
                     logger.debug("Waiting 15s before checking status of PVC again")
                     logger.debug(configPVC)
+                    logger.info(f"Else part 265: {configPVC}") # need to remove
                     sleep(15)
         else:
             logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
