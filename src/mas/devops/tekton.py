@@ -255,7 +255,7 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
             while not pvcIsBound:
                 configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
                 logger.info(f"configPVC: {configPVC}")  # need to remove
-                logger.info(f"configPVC.status.phase: {configPVC.status.phase}") # need to remove
+                logger.info(f"configPVC.status.phase: {configPVC.status.phase}")  # need to remove
                 if configPVC.status.phase == "Bound":
                     logger.info(f"pvcIsBound: {pvcIsBound}")  # need to remove
                     pvcIsBound = True
