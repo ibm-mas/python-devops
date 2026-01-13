@@ -20,7 +20,7 @@ class TestCreateBackupDirectories:
         """Test creating a single backup directory"""
         test_dir = tmp_path / "backup1"
         result = createBackupDirectories([str(test_dir)])
-        
+
         assert result is True
         assert test_dir.exists()
         assert test_dir.is_dir()
@@ -34,7 +34,7 @@ class TestCreateBackupDirectories:
         ]
         paths = [str(d) for d in test_dirs]
         result = createBackupDirectories(paths)
-        
+
         assert result is True
         for test_dir in test_dirs:
             assert test_dir.exists()
@@ -44,7 +44,7 @@ class TestCreateBackupDirectories:
         """Test creating nested backup directories"""
         nested_dir = tmp_path / "level1" / "level2" / "level3"
         result = createBackupDirectories([str(nested_dir)])
-        
+
         assert result is True
         assert nested_dir.exists()
         assert nested_dir.is_dir()
@@ -53,9 +53,9 @@ class TestCreateBackupDirectories:
         """Test creating a directory that already exists"""
         test_dir = tmp_path / "existing"
         test_dir.mkdir()
-        
+
         result = createBackupDirectories([str(test_dir)])
-        
+
         assert result is True
         assert test_dir.exists()
 
@@ -67,18 +67,18 @@ class TestCreateBackupDirectories:
     def test_create_directory_permission_error(self, mocker):
         """Test handling of permission errors"""
         mock_makedirs = mocker.patch('os.makedirs', side_effect=PermissionError("Permission denied"))
-        
+
         result = createBackupDirectories(["/invalid/path"])
-        
+
         assert result is False
         mock_makedirs.assert_called_once()
 
     def test_create_directory_os_error(self, mocker):
         """Test handling of OS errors"""
         mocker.patch('os.makedirs', side_effect=OSError("OS error"))
-        
+
         result = createBackupDirectories(["/some/path"])
-        
+
         assert result is False
 
 
@@ -89,12 +89,12 @@ class TestCopyContentsToYamlFile:
         """Test writing a simple dictionary to YAML file"""
         test_file = tmp_path / "test.yaml"
         content = {"key1": "value1", "key2": "value2"}
-        
+
         result = copyContentsToYamlFile(str(test_file), content)
-        
+
         assert result is True
         assert test_file.exists()
-        
+
         with open(test_file, 'r') as f:
             loaded_content = yaml.safe_load(f)
         assert loaded_content == content
@@ -110,9 +110,9 @@ class TestCopyContentsToYamlFile:
             },
             "list": [1, 2, 3]
         }
-        
+
         result = copyContentsToYamlFile(str(test_file), content)
-        
+
         assert result is True
         with open(test_file, 'r') as f:
             loaded_content = yaml.safe_load(f)
@@ -122,9 +122,9 @@ class TestCopyContentsToYamlFile:
         """Test writing an empty dictionary"""
         test_file = tmp_path / "empty.yaml"
         content = {}
-        
+
         result = copyContentsToYamlFile(str(test_file), content)
-        
+
         assert result is True
         with open(test_file, 'r') as f:
             loaded_content = yaml.safe_load(f)
@@ -135,14 +135,14 @@ class TestCopyContentsToYamlFile:
         test_file = tmp_path / "overwrite.yaml"
         old_content = {"old": "data"}
         new_content = {"new": "data"}
-        
+
         # Write initial content
         with open(test_file, 'w') as f:
             yaml.dump(old_content, f)
-        
+
         # Overwrite with new content
         result = copyContentsToYamlFile(str(test_file), new_content)
-        
+
         assert result is True
         with open(test_file, 'r') as f:
             loaded_content = yaml.safe_load(f)
@@ -153,17 +153,17 @@ class TestCopyContentsToYamlFile:
         """Test writing to a file in a non-existent directory"""
         test_file = tmp_path / "nonexistent" / "test.yaml"
         content = {"key": "value"}
-        
+
         result = copyContentsToYamlFile(str(test_file), content)
-        
+
         assert result is False
 
     def test_write_permission_error(self, mocker):
         """Test handling of permission errors during write"""
         mocker.patch('builtins.open', side_effect=PermissionError("Permission denied"))
-        
+
         result = copyContentsToYamlFile("/invalid/path.yaml", {"key": "value"})
-        
+
         assert result is False
 
     def test_write_with_special_characters(self, tmp_path):
@@ -174,9 +174,9 @@ class TestCopyContentsToYamlFile:
             "unicode": "café ☕",
             "quotes": "value with 'quotes' and \"double quotes\""
         }
-        
+
         result = copyContentsToYamlFile(str(test_file), content)
-        
+
         assert result is True
         with open(test_file, 'r') as f:
             loaded_content = yaml.safe_load(f)
@@ -204,9 +204,9 @@ class TestFilterResourceData:
             },
             "spec": {"replicas": 3}
         }
-        
+
         result = filterResourceData(data)
-        
+
         assert "name" in result["metadata"]
         assert "namespace" in result["metadata"]
         assert "annotations" not in result["metadata"]
@@ -228,9 +228,9 @@ class TestFilterResourceData:
                 "conditions": []
             }
         }
-        
+
         result = filterResourceData(data)
-        
+
         assert "status" not in result
         assert "spec" in result
         assert "metadata" in result
@@ -244,9 +244,9 @@ class TestFilterResourceData:
                 "labels": {"app": "test"}
             }
         }
-        
+
         result = filterResourceData(data)
-        
+
         assert "name" in result["metadata"]
         assert "labels" in result["metadata"]
         assert "uid" not in result["metadata"]
@@ -258,9 +258,9 @@ class TestFilterResourceData:
             "kind": "Resource",
             "spec": {"replicas": 3}
         }
-        
+
         result = filterResourceData(data)
-        
+
         assert "metadata" not in result
         assert "spec" in result
         assert "apiVersion" in result
@@ -271,9 +271,9 @@ class TestFilterResourceData:
             "metadata": {},
             "spec": {"replicas": 3}
         }
-        
+
         result = filterResourceData(data)
-        
+
         assert "metadata" in result
         assert result["metadata"] == {}
 
@@ -291,9 +291,9 @@ class TestFilterResourceData:
                 "key2": "value2"
             }
         }
-        
+
         result = filterResourceData(data)
-        
+
         assert result["apiVersion"] == "v1"
         assert result["kind"] == "ConfigMap"
         assert result["data"] == {"key1": "value1", "key2": "value2"}
@@ -308,14 +308,14 @@ class TestFilterResourceData:
             },
             "status": {"phase": "Running"}
         }
-        
+
         result = filterResourceData(data)
-        
+
         # Due to shallow copy, nested metadata dict is modified in original
         # but top-level status is not (it's deleted from copy only)
         assert "uid" not in data["metadata"]  # Modified due to shallow copy
         assert "status" in data  # Not modified (top-level key)
-        
+
         # Result should not have uid and status
         assert "uid" not in result["metadata"]
         assert "status" not in result
@@ -345,9 +345,9 @@ class TestFilterResourceData:
                 "readyReplicas": 3
             }
         }
-        
+
         result = filterResourceData(data)
-        
+
         # Check preserved fields
         assert result["apiVersion"] == "apps/v1"
         assert result["kind"] == "Deployment"
@@ -355,7 +355,7 @@ class TestFilterResourceData:
         assert result["metadata"]["namespace"] == "default"
         assert result["metadata"]["labels"] == {"app": "myapp"}
         assert result["spec"]["replicas"] == 3
-        
+
         # Check removed fields
         assert "annotations" not in result["metadata"]
         assert "creationTimestamp" not in result["metadata"]

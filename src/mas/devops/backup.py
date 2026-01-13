@@ -38,14 +38,14 @@ def copyContentsToYamlFile(file_path: str, content: dict) -> bool:
         # Create a custom dumper that uses literal style for multi-line strings
         class LiteralDumper(yaml.SafeDumper):
             pass
-        
+
         def str_representer(dumper, data):
             if '\n' in data:
                 return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
-        
+
         LiteralDumper.add_representer(str, str_representer)
-        
+
         with open(file_path, 'w') as yaml_file:
             yaml.dump(content, yaml_file, default_flow_style=False, Dumper=LiteralDumper)
         return True
@@ -75,7 +75,7 @@ def filterResourceData(data: dict) -> dict:
 
     if 'status' in filteredCopy:
         del filteredCopy['status']
-    
+
     return filteredCopy
 
 
@@ -83,17 +83,17 @@ def extract_secrets_from_dict(data, secret_names=None):
     """
     Recursively extract secret names from a dictionary structure.
     Looks for keys named 'secretName' and collects their values.
-    
+
     Args:
         data: Dictionary to search
         secret_names: Set to collect secret names (created if None)
-    
+
     Returns:
         Set of secret names found
     """
     if secret_names is None:
         secret_names = set()
-    
+
     if isinstance(data, dict):
         for key, value in data.items():
             # Check if this key is 'secretName' and has a string value
@@ -102,12 +102,12 @@ def extract_secrets_from_dict(data, secret_names=None):
             # Recursively search nested structures
             elif isinstance(value, (dict, list)):
                 extract_secrets_from_dict(value, secret_names)
-    
+
     elif isinstance(data, list):
         for item in data:
             if isinstance(item, (dict, list)):
                 extract_secrets_from_dict(item, secret_names)
-    
+
     return secret_names
 
 
@@ -116,7 +116,7 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
     Backup resources of a given kind in a namespace.
     If name is provided, backs up that specific resource.
     If name is None, backs up all resources of that kind.
-    
+
     Args:
         dynClient: Kubernetes dynamic client
         namespace: Namespace to backup from
@@ -124,7 +124,7 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
         api_version: API version (e.g., 'config.mas.ibm.com/v1')
         backup_path: Path to save backup files
         name: Optional specific resource name
-    
+
     Returns:
         tuple: (backed_up_count: int, not_found_count: int, failed_count: int, discovered_secrets: set)
     """
@@ -132,10 +132,10 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
     backed_up_count = 0
     not_found_count = 0
     failed_count = 0
-    
+
     try:
         resourceAPI = dynClient.resources.get(api_version=api_version, kind=kind)
-        
+
         if name:
             # Backup specific named resource
             logger.info(f"Backing up {kind} '{name}' from namespace '{namespace}' (API version: {api_version})")
@@ -156,19 +156,19 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
             logger.info(f"Backing up all {kind} resources from namespace '{namespace}' (API version: {api_version})")
             resources = resourceAPI.get(namespace=namespace)
             resources_to_process = resources.items
-        
+
         # Process each resource
         for resource in resources_to_process:
             resource_name = resource["metadata"]["name"]
             resource_dict = resource.to_dict()
-            
+
             # Extract secrets from this resource if it's not a Secret itself
             if kind != 'Secret':
                 secrets = extract_secrets_from_dict(resource_dict.get('spec', {}))
                 if secrets:
                     logger.info(f"Found {len(secrets)} secret reference(s) in {kind} '{resource_name}': {', '.join(sorted(secrets))}")
                     discovered_secrets.update(secrets)
-            
+
             # Backup the resource
             resource_file_path = f"{backup_path}/{resource_name}.yaml"
             filtered_resource = filterResourceData(resource_dict)
@@ -178,14 +178,14 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
             else:
                 logger.error(f"Failed to back up {kind} '{resource_name}' to '{resource_file_path}'")
                 failed_count += 1
-        
+
         if backed_up_count > 0:
             logger.info(f"Successfully backed up {backed_up_count} {kind} resource(s)")
         elif not name:
             logger.info(f"No {kind} resources found in namespace '{namespace}'")
-        
+
         return (backed_up_count, not_found_count, failed_count, discovered_secrets)
-        
+
     except NotFoundError:
         if name:
             logger.info(f"{kind} '{name}' not found in namespace '{namespace}'")
