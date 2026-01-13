@@ -555,12 +555,10 @@ spec:
     - name: mas_app_settings_iot_mqttbroker_pvc_storage_class
       value: "{{ mas_app_settings_iot_mqttbroker_pvc_storage_class }}"
 {%- endif %}
-{%- if install_arcgis is defined and install_arcgis != "" %}
+{%- if mas_arcgis_channel is defined and mas_arcgis_channel != "" and mas_arcgis_channel %}
 
     # IBM Maximo Location Services for Esri (arcgis)
     # -------------------------------------------------------------------------
-    - name: install_arcgis
-      value: "{{ install_arcgis }}"
     - name: mas_arcgis_channel
       value: "{{ mas_arcgis_channel }}"
 {%- endif %}
