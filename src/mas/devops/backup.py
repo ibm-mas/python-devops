@@ -64,6 +64,7 @@ def filterResourceData(data: dict) -> dict:
         'generation',
         'resourceVersion',
         'selfLink',
+        'ownerReferences'
         'uid',
         'managedFields'
     ]
