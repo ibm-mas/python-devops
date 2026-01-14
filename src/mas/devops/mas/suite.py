@@ -313,3 +313,47 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
 
     secret = secretsAPI.apply(body=secret, namespace=namespace)
     return secret
+
+
+def getMasPublicClusterIssuer(dynClient: DynamicClient, instanceId: str) -> str | None:
+    """
+    Retrieve the Public Cluster Issuer for a MAS instance.
+
+    This function queries the Suite custom resource and attempts to retrieve the
+    certificate issuer name from spec.certificateIssuer.name. If the keys don't exist,
+    it returns the default issuer name.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier to use.
+
+    Returns:
+        str: The name of the cluster issuer used for the passed in MAS Instance.
+             Returns the default "mas-{instanceId}-core-public-issuer" if the suite
+             doesn't specify a custom issuer, or None if the suite is not found.
+    """
+    try:
+        suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
+        suite = suitesAPI.get(name=instanceId, namespace=f"mas-{instanceId}-core")
+
+        # Check if spec.certificateIssuer.name exists
+        if hasattr(suite, 'spec') and hasattr(suite.spec, 'certificateIssuer') and hasattr(suite.spec.certificateIssuer, 'name'):
+            issuerName = suite.spec.certificateIssuer.name
+            logger.debug(f"Found custom certificate issuer: {issuerName}")
+            return issuerName
+        
+        # Keys don't exist, return default
+        defaultIssuer = f"mas-{instanceId}-core-public-issuer"
+        logger.debug(f"No custom certificate issuer found, using default: {defaultIssuer}")
+        return defaultIssuer
+
+    except NotFoundError:
+        logger.warning(f"Suite instance '{instanceId}' not found")
+        return None
+    except ResourceNotFoundError:
+        # The MAS Suite CRD has not even been installed in the cluster
+        logger.warning("MAS Suite CRD not found in the cluster")
+        return None
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to retrieve MAS instance due to failed authorization: {e}")
+        return None

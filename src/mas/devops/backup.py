@@ -111,19 +111,22 @@ def extract_secrets_from_dict(data, secret_names=None):
     return secret_names
 
 
-def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_version: str, backup_path: str, name=None) -> tuple:
+def backupResources(dynClient: DynamicClient, kind: str, api_version: str, backup_path: str, namespace=None, name=None, labels=None) -> tuple:
     """
-    Backup resources of a given kind in a namespace.
+    Backup resources of a given kind.
     If name is provided, backs up that specific resource.
     If name is None, backs up all resources of that kind.
+    If namespace is None, backs up cluster-level resources.
+    If labels is provided, filters resources by label selectors.
 
     Args:
         dynClient: Kubernetes dynamic client
-        namespace: Namespace to backup from
-        kind: Resource kind (e.g., 'MongoCfg', 'Secret')
+        kind: Resource kind (e.g., 'MongoCfg', 'Secret', 'ClusterRole')
         api_version: API version (e.g., 'config.mas.ibm.com/v1')
         backup_path: Path to save backup files
+        namespace: Optional namespace to backup from (None for cluster-level resources)
         name: Optional specific resource name
+        labels: Optional list of label selectors (e.g., ['app=myapp', 'env=prod'])
 
     Returns:
         tuple: (backed_up_count: int, not_found_count: int, failed_count: int, discovered_secrets: set)
@@ -133,28 +136,49 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
     not_found_count = 0
     failed_count = 0
 
+    # Build label selector string if labels provided
+    label_selector = None
+    if labels:
+        label_selector = ','.join(labels)
+
+    # Determine scope description for logging
+    scope_desc = f"namespace '{namespace}'" if namespace else "cluster-level"
+    label_desc = f" with labels [{label_selector}]" if label_selector else ""
+
     try:
         resourceAPI = dynClient.resources.get(api_version=api_version, kind=kind)
 
         if name:
             # Backup specific named resource
-            logger.info(f"Backing up {kind} '{name}' from namespace '{namespace}' (API version: {api_version})")
+            logger.info(f"Backing up {kind} '{name}' from {scope_desc} (API version: {api_version}){label_desc}")
             try:
-                resource = resourceAPI.get(name=name, namespace=namespace)
+                if namespace:
+                    resource = resourceAPI.get(name=name, namespace=namespace)
+                else:
+                    resource = resourceAPI.get(name=name)
+                
                 if resource:
                     resources_to_process = [resource]
                 else:
-                    logger.info(f"{kind} '{name}' not found in namespace '{namespace}', skipping backup")
+                    logger.info(f"{kind} '{name}' not found in {scope_desc}, skipping backup")
                     not_found_count = 1
                     return (backed_up_count, not_found_count, failed_count, discovered_secrets)
             except NotFoundError:
-                logger.error(f"{kind} '{name}' not found in namespace '{namespace}', skipping backup")
+                logger.error(f"{kind} '{name}' not found in {scope_desc}, skipping backup")
                 not_found_count = 1
                 return (backed_up_count, not_found_count, failed_count, discovered_secrets)
         else:
             # Backup all resources of this kind
-            logger.info(f"Backing up all {kind} resources from namespace '{namespace}' (API version: {api_version})")
-            resources = resourceAPI.get(namespace=namespace)
+            logger.info(f"Backing up all {kind} resources from {scope_desc} (API version: {api_version}){label_desc}")
+            
+            # Build get parameters
+            get_params = {}
+            if namespace:
+                get_params['namespace'] = namespace
+            if label_selector:
+                get_params['label_selector'] = label_selector
+            
+            resources = resourceAPI.get(**get_params)
             resources_to_process = resources.items
 
         # Process each resource
@@ -170,7 +194,9 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
                     discovered_secrets.update(secrets)
 
             # Backup the resource
-            resource_file_path = f"{backup_path}/{resource_name}.yaml"
+            resource_backup_path = f"{backup_path}/resources/{kind.lower()}s"
+            createBackupDirectories([resource_backup_path])
+            resource_file_path = f"{resource_backup_path}/{resource_name}.yaml"
             filtered_resource = filterResourceData(resource_dict)
             if copyContentsToYamlFile(resource_file_path, filtered_resource):
                 logger.info(f"Successfully backed up {kind} '{resource_name}' to '{resource_file_path}'")
@@ -182,16 +208,16 @@ def backupResources(dynClient: DynamicClient, namespace: str, kind: str, api_ver
         if backed_up_count > 0:
             logger.info(f"Successfully backed up {backed_up_count} {kind} resource(s)")
         elif not name:
-            logger.info(f"No {kind} resources found in namespace '{namespace}'")
+            logger.info(f"No {kind} resources found in {scope_desc}{label_desc}")
 
         return (backed_up_count, not_found_count, failed_count, discovered_secrets)
 
     except NotFoundError:
         if name:
-            logger.info(f"{kind} '{name}' not found in namespace '{namespace}'")
+            logger.info(f"{kind} '{name}' not found in {scope_desc}")
             not_found_count = 1
         else:
-            logger.info(f"No {kind} resources found in namespace '{namespace}'")
+            logger.info(f"No {kind} resources found in {scope_desc}{label_desc}")
         return (backed_up_count, not_found_count, failed_count, discovered_secrets)
     except Exception as e:
         logger.error(f"Error backing up {kind} resources: {e}")

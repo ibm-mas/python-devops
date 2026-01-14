@@ -9,8 +9,10 @@
 # *****************************************************************************
 
 import yaml
+from unittest.mock import MagicMock, Mock
+from openshift.dynamic.exceptions import NotFoundError
 
-from mas.devops.backup import createBackupDirectories, copyContentsToYamlFile, filterResourceData
+from mas.devops.backup import createBackupDirectories, copyContentsToYamlFile, filterResourceData, backupResources, extract_secrets_from_dict
 
 
 class TestCreateBackupDirectories:
@@ -370,5 +372,531 @@ class TestFilterResourceData:
         data = {}
         result = filterResourceData(data)
         assert result == {}
+
+
+class TestExtractSecretsFromDict:
+    """Tests for extract_secrets_from_dict function"""
+
+    def test_extract_single_secret(self):
+        """Test extracting a single secret name"""
+        data = {
+            "spec": {
+                "secretName": "my-secret"
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == {"my-secret"}
+
+    def test_extract_multiple_secrets(self):
+        """Test extracting multiple secret names"""
+        data = {
+            "spec": {
+                "database": {
+                    "secretName": "db-secret"
+                },
+                "auth": {
+                    "secretName": "auth-secret"
+                }
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == {"db-secret", "auth-secret"}
+
+    def test_extract_secrets_from_list(self):
+        """Test extracting secrets from list structures"""
+        data = {
+            "spec": {
+                "volumes": [
+                    {"secretName": "secret1"},
+                    {"secretName": "secret2"},
+                    {"configMap": "not-a-secret"}
+                ]
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == {"secret1", "secret2"}
+
+    def test_extract_nested_secrets(self):
+        """Test extracting deeply nested secrets"""
+        data = {
+            "level1": {
+                "level2": {
+                    "level3": {
+                        "secretName": "deep-secret"
+                    }
+                }
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == {"deep-secret"}
+
+    def test_no_secrets_found(self):
+        """Test when no secrets are present"""
+        data = {
+            "spec": {
+                "replicas": 3,
+                "image": "myapp:latest"
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == set()
+
+    def test_empty_dict(self):
+        """Test with empty dictionary"""
+        result = extract_secrets_from_dict({})
+        assert result == set()
+
+    def test_ignore_empty_secret_name(self):
+        """Test that empty string secret names are ignored"""
+        data = {
+            "spec": {
+                "secretName": "",
+                "other": {
+                    "secretName": "valid-secret"
+                }
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == {"valid-secret"}
+
+    def test_ignore_non_string_secret_name(self):
+        """Test that non-string secret names are ignored"""
+        data = {
+            "spec": {
+                "secretName": 123,
+                "other": {
+                    "secretName": "valid-secret"
+                }
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == {"valid-secret"}
+
+    def test_duplicate_secrets(self):
+        """Test that duplicate secret names are deduplicated"""
+        data = {
+            "spec": {
+                "volume1": {"secretName": "shared-secret"},
+                "volume2": {"secretName": "shared-secret"},
+                "volume3": {"secretName": "unique-secret"}
+            }
+        }
+        result = extract_secrets_from_dict(data)
+        assert result == {"shared-secret", "unique-secret"}
+
+
+class TestBackupResources:
+    """Tests for backupResources function"""
+
+    def test_backup_single_namespaced_resource(self, tmp_path, mocker):
+        """Test backing up a single namespaced resource by name"""
+        backup_path = str(tmp_path / "backup")
+        
+        # Mock resource data
+        mock_resource = {
+            "metadata": {
+                "name": "test-resource",
+                "namespace": "test-ns",
+                "uid": "abc-123"
+            },
+            "spec": {"replicas": 3}
+        }
+        
+        # Create mock resource object with to_dict method
+        mock_resource_obj = MagicMock()
+        mock_resource_obj.__getitem__ = lambda self, key: mock_resource[key]
+        mock_resource_obj.to_dict.return_value = mock_resource
+        
+        # Mock the dynamic client
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_resource_obj
+        mock_client.resources.get.return_value = mock_api
+        
+        # Mock the helper functions
+        mocker.patch('mas.devops.backup.copyContentsToYamlFile', return_value=True)
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path=backup_path,
+            namespace="test-ns",
+            name="test-resource"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 1
+        assert not_found == 0
+        assert failed == 0
+        assert secrets == set()
+
+    def test_backup_multiple_namespaced_resources(self, tmp_path, mocker):
+        """Test backing up all resources of a kind in a namespace"""
+        backup_path = str(tmp_path / "backup")
+        
+        # Mock multiple resources
+        mock_resources = [
+            {
+                "metadata": {"name": "resource1", "namespace": "test-ns"},
+                "spec": {"data": "value1"}
+            },
+            {
+                "metadata": {"name": "resource2", "namespace": "test-ns"},
+                "spec": {"data": "value2"}
+            }
+        ]
+        
+        # Create mock resource objects
+        mock_resource_objs = []
+        for res in mock_resources:
+            mock_obj = MagicMock()
+            mock_obj.__getitem__ = lambda self, key, r=res: r[key]
+            mock_obj.to_dict.return_value = res
+            mock_resource_objs.append(mock_obj)
+        
+        # Mock the response with items
+        mock_response = MagicMock()
+        mock_response.items = mock_resource_objs
+        
+        # Mock the dynamic client
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_response
+        mock_client.resources.get.return_value = mock_api
+        
+        mocker.patch('mas.devops.backup.copyContentsToYamlFile', return_value=True)
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path=backup_path,
+            namespace="test-ns"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 2
+        assert not_found == 0
+        assert failed == 0
+
+    def test_backup_cluster_level_resource(self, tmp_path, mocker):
+        """Test backing up cluster-level resources (no namespace)"""
+        backup_path = str(tmp_path / "backup")
+        
+        mock_resource = {
+            "metadata": {"name": "cluster-role"},
+            "rules": [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["*"]}]
+        }
+        
+        mock_resource_obj = MagicMock()
+        mock_resource_obj.__getitem__ = lambda self, key: mock_resource[key]
+        mock_resource_obj.to_dict.return_value = mock_resource
+        
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_resource_obj
+        mock_client.resources.get.return_value = mock_api
+        
+        mocker.patch('mas.devops.backup.copyContentsToYamlFile', return_value=True)
+        
+        result = backupResources(
+            mock_client,
+            kind="ClusterRole",
+            api_version="rbac.authorization.k8s.io/v1",
+            backup_path=backup_path,
+            name="cluster-role"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 1
+        assert not_found == 0
+        assert failed == 0
+
+    def test_backup_with_label_selector(self, tmp_path, mocker):
+        """Test backing up resources with label selectors"""
+        backup_path = str(tmp_path / "backup")
+        
+        mock_resource = {
+            "metadata": {
+                "name": "labeled-resource",
+                "namespace": "test-ns",
+                "labels": {"app": "myapp", "env": "prod"}
+            },
+            "spec": {}
+        }
+        
+        mock_resource_obj = MagicMock()
+        mock_resource_obj.__getitem__ = lambda self, key: mock_resource[key]
+        mock_resource_obj.to_dict.return_value = mock_resource
+        
+        mock_response = MagicMock()
+        mock_response.items = [mock_resource_obj]
+        
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_response
+        mock_client.resources.get.return_value = mock_api
+        
+        mocker.patch('mas.devops.backup.copyContentsToYamlFile', return_value=True)
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path=backup_path,
+            namespace="test-ns",
+            labels=["app=myapp", "env=prod"]
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 1
+        assert not_found == 0
+        assert failed == 0
+        
+        # Verify label selector was passed correctly
+        mock_api.get.assert_called_once_with(namespace="test-ns", label_selector="app=myapp,env=prod")
+
+    def test_backup_resource_not_found_by_name(self, mocker):
+        """Test handling when a specific named resource is not found"""
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.side_effect = NotFoundError(Mock())
+        mock_client.resources.get.return_value = mock_api
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path="/tmp/backup",
+            namespace="test-ns",
+            name="nonexistent"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 0
+        assert not_found == 1
+        assert failed == 0
+        assert secrets == set()
+
+    def test_backup_no_resources_found(self, mocker):
+        """Test when no resources of the kind exist"""
+        mock_response = MagicMock()
+        mock_response.items = []
+        
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_response
+        mock_client.resources.get.return_value = mock_api
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path="/tmp/backup",
+            namespace="test-ns"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 0
+        assert not_found == 0
+        assert failed == 0
+
+    def test_backup_discovers_secrets(self, tmp_path, mocker):
+        """Test that secrets are discovered from resource specs"""
+        backup_path = str(tmp_path / "backup")
+        
+        mock_resource = {
+            "metadata": {"name": "app-deployment", "namespace": "test-ns"},
+            "spec": {
+                "template": {
+                    "spec": {
+                        "volumes": [
+                            {"secretName": "db-credentials"},
+                            {"secretName": "api-key"}
+                        ]
+                    }
+                }
+            }
+        }
+        
+        mock_resource_obj = MagicMock()
+        mock_resource_obj.__getitem__ = lambda self, key: mock_resource[key]
+        mock_resource_obj.to_dict.return_value = mock_resource
+        
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_resource_obj
+        mock_client.resources.get.return_value = mock_api
+        
+        mocker.patch('mas.devops.backup.copyContentsToYamlFile', return_value=True)
+        
+        result = backupResources(
+            mock_client,
+            kind="Deployment",
+            api_version="apps/v1",
+            backup_path=backup_path,
+            namespace="test-ns",
+            name="app-deployment"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 1
+        assert secrets == {"db-credentials", "api-key"}
+
+    def test_backup_secret_does_not_discover_itself(self, tmp_path, mocker):
+        """Test that backing up Secrets doesn't try to discover secrets"""
+        backup_path = str(tmp_path / "backup")
+        
+        mock_resource = {
+            "metadata": {"name": "my-secret", "namespace": "test-ns"},
+            "data": {"password": "encoded-value"}
+        }
+        
+        mock_resource_obj = MagicMock()
+        mock_resource_obj.__getitem__ = lambda self, key: mock_resource[key]
+        mock_resource_obj.to_dict.return_value = mock_resource
+        
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_resource_obj
+        mock_client.resources.get.return_value = mock_api
+        
+        mocker.patch('mas.devops.backup.copyContentsToYamlFile', return_value=True)
+        
+        result = backupResources(
+            mock_client,
+            kind="Secret",
+            api_version="v1",
+            backup_path=backup_path,
+            namespace="test-ns",
+            name="my-secret"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 1
+        assert secrets == set()  # Should not discover secrets from Secret resources
+
+    def test_backup_write_failure(self, tmp_path, mocker):
+        """Test handling when writing backup file fails"""
+        backup_path = str(tmp_path / "backup")
+        
+        mock_resource = {
+            "metadata": {"name": "test-resource", "namespace": "test-ns"},
+            "spec": {}
+        }
+        
+        mock_resource_obj = MagicMock()
+        mock_resource_obj.__getitem__ = lambda self, key: mock_resource[key]
+        mock_resource_obj.to_dict.return_value = mock_resource
+        
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_resource_obj
+        mock_client.resources.get.return_value = mock_api
+        
+        # Mock copyContentsToYamlFile to fail
+        mocker.patch('mas.devops.backup.copyContentsToYamlFile', return_value=False)
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path=backup_path,
+            namespace="test-ns",
+            name="test-resource"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 0
+        assert not_found == 0
+        assert failed == 1
+
+    def test_backup_api_exception(self, mocker):
+        """Test handling of general API exceptions"""
+        mock_client = MagicMock()
+        mock_client.resources.get.side_effect = Exception("API error")
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path="/tmp/backup",
+            namespace="test-ns"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 0
+        assert not_found == 0
+        assert failed == 1
+
+    def test_backup_mixed_success_and_failure(self, tmp_path, mocker):
+        """Test backing up multiple resources with mixed success/failure"""
+        backup_path = str(tmp_path / "backup")
+        
+        mock_resources = [
+            {
+                "metadata": {"name": "resource1", "namespace": "test-ns"},
+                "spec": {}
+            },
+            {
+                "metadata": {"name": "resource2", "namespace": "test-ns"},
+                "spec": {}
+            },
+            {
+                "metadata": {"name": "resource3", "namespace": "test-ns"},
+                "spec": {}
+            }
+        ]
+        
+        mock_resource_objs = []
+        for res in mock_resources:
+            mock_obj = MagicMock()
+            mock_obj.__getitem__ = lambda self, key, r=res: r[key]
+            mock_obj.to_dict.return_value = res
+            mock_resource_objs.append(mock_obj)
+        
+        mock_response = MagicMock()
+        mock_response.items = mock_resource_objs
+        
+        mock_client = MagicMock()
+        mock_api = MagicMock()
+        mock_api.get.return_value = mock_response
+        mock_client.resources.get.return_value = mock_api
+        
+        # Mock copyContentsToYamlFile to succeed for first two, fail for third
+        mock_copy = mocker.patch('mas.devops.backup.copyContentsToYamlFile')
+        mock_copy.side_effect = [True, True, False]
+        
+        result = backupResources(
+            mock_client,
+            kind="ConfigMap",
+            api_version="v1",
+            backup_path=backup_path,
+            namespace="test-ns"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 2
+        assert not_found == 0
+        assert failed == 1
+
+    def test_backup_resource_kind_not_found(self, mocker):
+        """Test when the resource kind itself is not found in the API"""
+        mock_client = MagicMock()
+        mock_client.resources.get.side_effect = NotFoundError(Mock())
+        
+        result = backupResources(
+            mock_client,
+            kind="NonExistentKind",
+            api_version="v1",
+            backup_path="/tmp/backup",
+            namespace="test-ns"
+        )
+        
+        backed_up, not_found, failed, secrets = result
+        assert backed_up == 0
+        assert not_found == 0
+        assert failed == 0
 
 # Made with Bob
