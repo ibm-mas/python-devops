@@ -341,7 +341,7 @@ def getMasPublicClusterIssuer(dynClient: DynamicClient, instanceId: str) -> str 
             issuerName = suite.spec.certificateIssuer.name
             logger.debug(f"Found custom certificate issuer: {issuerName}")
             return issuerName
-        
+
         # Keys don't exist, return default
         defaultIssuer = f"mas-{instanceId}-core-public-issuer"
         logger.debug(f"No custom certificate issuer found, using default: {defaultIssuer}")

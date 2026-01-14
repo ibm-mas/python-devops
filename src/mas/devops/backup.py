@@ -156,7 +156,7 @@ def backupResources(dynClient: DynamicClient, kind: str, api_version: str, backu
                     resource = resourceAPI.get(name=name, namespace=namespace)
                 else:
                     resource = resourceAPI.get(name=name)
-                
+
                 if resource:
                     resources_to_process = [resource]
                 else:
@@ -170,14 +170,14 @@ def backupResources(dynClient: DynamicClient, kind: str, api_version: str, backu
         else:
             # Backup all resources of this kind
             logger.info(f"Backing up all {kind} resources from {scope_desc} (API version: {api_version}){label_desc}")
-            
+
             # Build get parameters
             get_params = {}
             if namespace:
                 get_params['namespace'] = namespace
             if label_selector:
                 get_params['label_selector'] = label_selector
-            
+
             resources = resourceAPI.get(**get_params)
             resources_to_process = resources.items
 
