@@ -83,7 +83,7 @@ def filterResourceData(data: dict) -> dict:
 def extract_secrets_from_dict(data, secret_names=None):
     """
     Recursively extract secret names from a dictionary structure.
-    Looks for keys named 'secretName' and collects their values.
+    Looks for keys like 'secretName' and 'secretRef.name' and collects their values.
 
     Args:
         data: Dictionary to search
@@ -98,8 +98,12 @@ def extract_secrets_from_dict(data, secret_names=None):
     if isinstance(data, dict):
         for key, value in data.items():
             # Check if this key is 'secretName' and has a string value
-            if key == 'secretName' and isinstance(value, str) and value:
+            if (key == 'secretName' or 'secretname' in key.lower()) and isinstance(value, str) and value:
                 secret_names.add(value)
+            # Check if this key contains 'secretRef' and contains a 'name' field
+            elif 'SecretRef' in key and isinstance(value, dict):
+                if 'name' in value and isinstance(value['name'], str) and value['name']:
+                    secret_names.add(value['name'])
             # Recursively search nested structures
             elif isinstance(value, (dict, list)):
                 extract_secrets_from_dict(value, secret_names)
