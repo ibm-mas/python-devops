@@ -77,3 +77,16 @@ def findSLSByNamespace(namespace: str, instances: list = None, dynClient: Dynami
         if namespace in instance['metadata']['namespace']:
             return True
     return False
+
+def getSLSRegistrationDetails(namespace: str, name: str, dynClient: DynamicClient):
+    try:
+        slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
+        slsInstance = slsAPI.get(name=name, namespace=namespace)
+        if hasattr(slsInstance, 'status') and hasattr(slsInstance.status, 'licenseId') and hasattr(slsInstance.status, 'registrationKey'):
+            return dict(
+                registrationKey=slsInstance.status.registrationKey,
+                licenseId=slsInstance.status.licenseId
+            )
+    except NotFoundError:
+        logger.info(f"No SLS '{name}' found in namespace {namespace}.'")
+    return dict()
