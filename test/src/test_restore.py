@@ -28,13 +28,13 @@ class TestLoadYamlFile:
                 'namespace': 'test-ns'
             }
         }
-        
+
         yaml_file = tmp_path / "test.yaml"
         with open(yaml_file, 'w') as f:
             yaml.dump(yaml_content, f)
-        
+
         result = loadYamlFile(str(yaml_file))
-        
+
         assert result is not None
         assert result['kind'] == 'ConfigMap'
         assert result['metadata']['name'] == 'test-config'
@@ -43,33 +43,33 @@ class TestLoadYamlFile:
         """Test loading an empty YAML file"""
         yaml_file = tmp_path / "empty.yaml"
         yaml_file.write_text("")
-        
+
         result = loadYamlFile(str(yaml_file))
-        
+
         assert result is None
 
     def test_load_nonexistent_file(self):
         """Test loading a non-existent file"""
         result = loadYamlFile("/nonexistent/path/file.yaml")
-        
+
         assert result is None
 
     def test_load_invalid_yaml_file(self, tmp_path):
         """Test loading an invalid YAML file"""
         yaml_file = tmp_path / "invalid.yaml"
         yaml_file.write_text("invalid: yaml: content: [")
-        
+
         result = loadYamlFile(str(yaml_file))
-        
+
         assert result is None
 
     def test_load_yaml_with_multiple_documents(self, tmp_path):
         """Test loading YAML file with multiple documents returns None (not supported)"""
         yaml_file = tmp_path / "multi.yaml"
         yaml_file.write_text("---\nkey1: value1\n---\nkey2: value2")
-        
+
         result = loadYamlFile(str(yaml_file))
-        
+
         # yaml.safe_load() doesn't support multiple documents, so it should return None
         assert result is None
 
@@ -96,12 +96,12 @@ class TestRestoreResource:
                 'key': 'value'
             }
         }
-        
+
         # Resource doesn't exist
         self.mock_resource_api.get.side_effect = NotFoundError(Mock())
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is True
         assert name == 'test-config'
         assert status is None
@@ -119,12 +119,12 @@ class TestRestoreResource:
                 'name': 'test-namespace'
             }
         }
-        
+
         # Resource doesn't exist
         self.mock_resource_api.get.side_effect = NotFoundError(Mock())
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is True
         assert name == 'test-namespace'
         assert status is None
@@ -145,7 +145,7 @@ class TestRestoreResource:
                 'key': 'new-value'
             }
         }
-        
+
         # Resource exists
         existing_resource = {
             'metadata': {
@@ -154,9 +154,9 @@ class TestRestoreResource:
             }
         }
         self.mock_resource_api.get.return_value = existing_resource
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=True)
-        
+
         assert success is True
         assert name == 'test-config'
         assert status == 'updated'
@@ -177,13 +177,13 @@ class TestRestoreResource:
                 'namespace': 'test-ns'
             }
         }
-        
+
         # Resource exists
         existing_resource = {'metadata': {'name': 'test-config'}}
         self.mock_resource_api.get.return_value = existing_resource
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=False)
-        
+
         assert success is True
         assert name == 'test-config'
         assert status == 'skipped'
@@ -200,16 +200,16 @@ class TestRestoreResource:
                 'namespace': 'original-ns'
             }
         }
-        
+
         # Resource doesn't exist
         self.mock_resource_api.get.side_effect = NotFoundError(Mock())
-        
+
         success, name, status = restoreResource(
             self.mock_client,
             resource_data,
             namespace='override-ns'
         )
-        
+
         assert success is True
         self.mock_resource_api.create.assert_called_once_with(
             body=resource_data,
@@ -224,9 +224,9 @@ class TestRestoreResource:
                 'name': 'test-resource'
             }
         }
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is False
         assert name == 'test-resource'
         assert 'missing required fields' in status.lower()
@@ -239,9 +239,9 @@ class TestRestoreResource:
                 'name': 'test-resource'
             }
         }
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is False
         assert name == 'test-resource'
         assert 'missing required fields' in status.lower()
@@ -253,9 +253,9 @@ class TestRestoreResource:
             'kind': 'ConfigMap',
             'metadata': {}
         }
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is False
         assert name == 'unknown'
         assert 'missing required fields' in status.lower()
@@ -270,14 +270,14 @@ class TestRestoreResource:
                 'namespace': 'test-ns'
             }
         }
-        
+
         # Resource doesn't exist
         self.mock_resource_api.get.side_effect = NotFoundError(Mock())
         # Create fails
         self.mock_resource_api.create.side_effect = Exception("Create failed")
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is False
         assert name == 'test-config'
         assert 'Failed to create' in status
@@ -293,15 +293,15 @@ class TestRestoreResource:
                 'namespace': 'test-ns'
             }
         }
-        
+
         # Resource exists
         existing_resource = {'metadata': {'name': 'test-config'}}
         self.mock_resource_api.get.return_value = existing_resource
         # Patch fails
         self.mock_resource_api.patch.side_effect = Exception("Patch failed")
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=True)
-        
+
         assert success is False
         assert name == 'test-config'
         assert 'Failed to update' in status
@@ -316,12 +316,12 @@ class TestRestoreResource:
                 'name': 'test-config'
             }
         }
-        
+
         # Getting resource API fails
         self.mock_client.resources.get.side_effect = Exception("API not found")
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is False
         assert name == 'test-config'
         assert 'Error restoring resource' in status
@@ -335,13 +335,13 @@ class TestRestoreResource:
                 'name': 'test-namespace'
             }
         }
-        
+
         # Resource exists
         existing_resource = {'metadata': {'name': 'test-namespace'}}
         self.mock_resource_api.get.return_value = existing_resource
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=True)
-        
+
         assert success is True
         assert name == 'test-namespace'
         assert status == 'updated'
@@ -358,9 +358,9 @@ class TestRestoreResource:
             'kind': 'ConfigMap'
             # Missing metadata entirely
         }
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is False
         assert name == 'unknown'
         assert 'missing required fields' in status.lower()
@@ -385,12 +385,12 @@ class TestRestoreResource:
                 'replicas': 3
             }
         }
-        
+
         # Resource doesn't exist
         self.mock_resource_api.get.side_effect = NotFoundError(Mock())
-        
+
         success, name, status = restoreResource(self.mock_client, resource_data)
-        
+
         assert success is True
         assert name == 'test-deployment'
         assert status is None

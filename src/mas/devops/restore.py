@@ -18,10 +18,10 @@ logger = logging.getLogger(name=__name__)
 def loadYamlFile(file_path: str):
     """
     Load YAML content from a file
-    
+
     Args:
         file_path: Path to the YAML file
-        
+
     Returns:
         dict: Parsed YAML content or None if error
     """
@@ -40,13 +40,13 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
     If the resource exists and replace_resource is True, it will be updated (replaced).
     If the resource exists and replace_resource is False, it will be skipped.
     If the resource doesn't exist, it will be created.
-    
+
     Args:
         dynClient: Kubernetes dynamic client
         resource_data: Dictionary containing the resource definition
         namespace: Optional namespace override (uses resource's namespace if not provided)
         replace_resource: If True, replace existing resources; if False, skip them (default: True)
-        
+
     Returns:
         tuple: (success: bool, resource_name: str, status_message: str or None)
         - success: True if created, updated, or skipped; False if failed
@@ -60,18 +60,18 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
         metadata = resource_data.get('metadata', {})
         resource_name = metadata.get('name')
         resource_namespace = namespace or metadata.get('namespace')
-        
+
         if not kind or not api_version or not resource_name:
             error_msg = "Resource missing required fields (kind, apiVersion, or name)"
             logger.error(error_msg)
             return (False, resource_name or 'unknown', error_msg)
-        
+
         # Get the resource API
         resourceAPI = dynClient.resources.get(api_version=api_version, kind=kind)
-        
+
         # Determine scope description for logging
         scope_desc = f"namespace '{resource_namespace}'" if resource_namespace else "cluster-level"
-        
+
         # Check if resource already exists
         resource_exists = False
         existing_resource = None
@@ -83,14 +83,14 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
             resource_exists = existing_resource is not None
         except NotFoundError:
             resource_exists = False
-        
+
         # Apply the resource (create, update, or skip)
         try:
             if resource_exists:
                 if replace_resource:
                     # Resource exists - update it using strategic merge patch
                     logger.info(f"Patching existing {kind} '{resource_name}' in {scope_desc}")
-                    
+
                     if resource_namespace:
                         resourceAPI.patch(body=resource_data, name=resource_name, namespace=resource_namespace, content_type='application/merge-patch+json')
                     else:
@@ -115,7 +115,7 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
             error_msg = f"Failed to {action} {kind} '{resource_name}': {e}"
             logger.error(error_msg)
             return (False, resource_name, error_msg)
-            
+
     except Exception as e:
         error_msg = f"Error restoring resource: {e}"
         logger.error(error_msg)
