@@ -64,7 +64,7 @@ def filterResourceData(data: dict) -> dict:
         'generation',
         'resourceVersion',
         'selfLink',
-        'ownerReferences'
+        'ownerReferences',
         'uid',
         'managedFields'
     ]
@@ -228,3 +228,5 @@ def backupResources(dynClient: DynamicClient, kind: str, api_version: str, backu
         logger.error(f"Error backing up {kind} resources: {e}")
         failed_count = 1
         return (backed_up_count, not_found_count, failed_count, discovered_secrets)
+
+
