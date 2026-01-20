@@ -93,7 +93,7 @@ spec:
       value: "{{ eck_remote_es_password }}"
   {%- endif %}
 {%- endif %}
-{%- if db2_action_system == "install" or db2_action_manage == "install" %}
+{%- if db2_action_system == "install" or db2_action_manage == "install" or db2_action_aiservice == "install" %}
 
     # Dependencies - Db2 - Actions
     # -------------------------------------------------------------------------
@@ -103,6 +103,8 @@ spec:
       value: "{{ db2_action_manage }}"
     - name: db2_action_facilities
       value: "{{ db2_action_facilities}}"
+    - name: db2_action_aiservice
+      value: "{{ db2_action_aiservice }}"   
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -783,10 +785,6 @@ spec:
       value: "{{ aiservice_instance_id }}"
     - name: aiservice_channel
       value: "{{ aiservice_channel }}"
-    - name: db2_action_aiservice
-      value: "{{ db2_action_aiservice }}"
-    - name: db2_channel
-      value: "{{ db2_channel }}"
 
     - name: environment_type
       value: "{{ environment_type }}"
