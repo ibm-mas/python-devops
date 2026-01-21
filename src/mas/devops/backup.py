@@ -77,6 +77,13 @@ def filterResourceData(data: dict) -> dict:
     if 'status' in filteredCopy:
         del filteredCopy['status']
 
+    # Remove labels with uid
+    # this will cause problem when restoring the backup
+    if 'metadata' in filteredCopy and 'labels' in filteredCopy['metadata']:
+        for key in list(filteredCopy['metadata']['labels'].keys()):
+            if "uid" in key.lower():
+                filteredCopy['metadata']['labels'].pop(key)
+
     return filteredCopy
 
 
