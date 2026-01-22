@@ -48,10 +48,10 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_6976 # Need to update
-  9.1.x: 9.1.7         # Need to update 
-  9.0.x: 9.0.18        # Need to update
-  8.10.x: 8.10.32      # Need to update
-  8.11.x: 8.11.29      # Need to update
+  9.1.x: 9.1.8         # Updated 
+  9.0.x: 9.0.19        # Updated
+  8.10.x: 8.10.33      # Updated
+  8.11.x: 8.11.30      # Updated
 mas_assist_version:
   9.1.x: 9.1.7     # Updated
   9.0.x: 9.0.13    # Updated
@@ -63,16 +63,16 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # No Update
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.1.x: 9.1.6     # Need to update
-  9.0.x: 9.0.15    # Need to update
-  8.10.x: 8.7.29   # Need to update
-  8.11.x: 8.8.25   # Need to update
+  9.1.x: 9.1.7     # Updated
+  9.0.x: 9.0.16    # Updated
+  8.10.x: 8.7.30   # Updated
+  8.11.x: 8.8.26   # Updated
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_6856 # Need to update
-  9.1.x: 9.1.7         # Need to update
-  9.0.x: 9.0.20        # Need to update
-  8.10.x: 8.6.33       # Need to update
-  8.11.x: 8.7.27       # Need to update
+  9.1.x: 9.1.8         # Updated
+  9.0.x: 9.0.21        # Updated 
+  8.10.x: 8.6.34       # Updated
+  8.11.x: 8.7.28       # Updated
 mas_monitor_version:
   9.1.x: 9.1.7    # Updated
   9.0.x: 9.0.17   # Updated
