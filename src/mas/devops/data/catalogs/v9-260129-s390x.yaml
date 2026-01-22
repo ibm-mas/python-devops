@@ -22,14 +22,14 @@ db2u_version: 7.5.1+20251217.121408.18568    # Operator version 110509.0.7 to fi
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_6976  # Need to update
-  9.1.x: 9.1.7                          # Need to update
-  9.0.x: 9.0.18                         # Need to update
+  9.1.x: 9.1.8                          # Updated
+  9.0.x: 9.0.19                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_6856  # Need to update
-  9.1.x: 9.1.7                          # Need to update
-  9.0.x: 9.0.20                         # Need to update
+  9.1.x: 9.1.8                          # Updated
+  9.0.x: 9.0.21                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
