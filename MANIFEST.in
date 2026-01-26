@@ -1,3 +1,4 @@
 include src/mas/devops/templates/*.json.j2
 include src/mas/devops/templates/*.yml.j2
 include src/mas/devops/data/catalogs/*.yaml
+include src/mas/devops/data/*.yaml
