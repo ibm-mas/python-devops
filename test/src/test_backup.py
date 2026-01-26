@@ -898,5 +898,3 @@ class TestBackupResources:
         assert backed_up == 0
         assert not_found == 0
         assert failed == 0
-
-# Made with Bob
