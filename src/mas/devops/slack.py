@@ -270,6 +270,128 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit divider element
         """
+    def createThreadConfigMap(cls, namespace: str, pipelineRunName: str, channelId: str, threadId: str, pipelineName: str) -> bool:
+        """
+        Create a ConfigMap to store Slack thread information for a pipeline run.
+
+        Parameters:
+            namespace (str): Kubernetes namespace for the ConfigMap
+            pipelineRunName (str): Unique identifier for the pipeline run
+            channelId (str): Slack channel ID where the thread was created
+            threadId (str): Slack thread timestamp
+            pipelineName (str): Name of the pipeline (install/update/upgrade/uninstall)
+
+        Returns:
+            bool: True if ConfigMap was created successfully, False otherwise
+        """
+        try:
+            from kubernetes import client, config
+            from datetime import datetime
+            
+            # Load Kubernetes configuration
+            try:
+                config.load_incluster_config()
+            except:
+                config.load_kube_config()
+            
+            v1 = client.CoreV1Api()
+            
+            configmap_name = f"slack-thread-{pipelineRunName}"
+            configmap = client.V1ConfigMap(
+                metadata=client.V1ObjectMeta(
+                    name=configmap_name,
+                    namespace=namespace
+                ),
+                data={
+                    "threadId": threadId,
+                    "channelId": channelId,
+                    "pipelineName": pipelineName,
+                    "startTime": datetime.utcnow().isoformat() + "Z"
+                }
+            )
+            
+            v1.create_namespaced_config_map(namespace=namespace, body=configmap)
+            logger.info(f"Created ConfigMap {configmap_name} in namespace {namespace}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to create ConfigMap: {e}")
+            return False
+
+    def getThreadConfigMap(cls, namespace: str, pipelineRunName: str) -> dict | None:
+        """
+        Retrieve Slack thread information from a ConfigMap.
+
+        Parameters:
+            namespace (str): Kubernetes namespace containing the ConfigMap
+            pipelineRunName (str): Unique identifier for the pipeline run
+
+        Returns:
+            dict | None: Dictionary containing threadId, channelId, pipelineName, and startTime, or None if not found
+        """
+        try:
+            from kubernetes import client, config
+            
+            # Load Kubernetes configuration
+            try:
+                config.load_incluster_config()
+            except:
+                config.load_kube_config()
+            
+            v1 = client.CoreV1Api()
+            configmap_name = f"slack-thread-{pipelineRunName}"
+            
+            configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
+            logger.debug(f"Retrieved ConfigMap {configmap_name} from namespace {namespace}")
+            return configmap.data
+            
+        except client.exceptions.ApiException as e:
+            if e.status == 404:
+                logger.debug(f"ConfigMap slack-thread-{pipelineRunName} not found in namespace {namespace}")
+            else:
+                logger.error(f"Failed to retrieve ConfigMap: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Failed to retrieve ConfigMap: {e}")
+            return None
+
+    def deleteThreadConfigMap(cls, namespace: str, pipelineRunName: str) -> bool:
+        """
+        Delete the ConfigMap containing Slack thread information.
+
+        Parameters:
+            namespace (str): Kubernetes namespace containing the ConfigMap
+            pipelineRunName (str): Unique identifier for the pipeline run
+
+        Returns:
+            bool: True if ConfigMap was deleted successfully, False otherwise
+        """
+        try:
+            from kubernetes import client, config
+            
+            # Load Kubernetes configuration
+            try:
+                config.load_incluster_config()
+            except:
+                config.load_kube_config()
+            
+            v1 = client.CoreV1Api()
+            configmap_name = f"slack-thread-{pipelineRunName}"
+            
+            v1.delete_namespaced_config_map(name=configmap_name, namespace=namespace)
+            logger.info(f"Deleted ConfigMap {configmap_name} from namespace {namespace}")
+            return True
+            
+        except client.exceptions.ApiException as e:
+            if e.status == 404:
+                logger.warning(f"ConfigMap slack-thread-{pipelineRunName} not found in namespace {namespace}")
+            else:
+                logger.error(f"Failed to delete ConfigMap: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to delete ConfigMap: {e}")
+            return False
+
         return {"type": "divider"}
 
 

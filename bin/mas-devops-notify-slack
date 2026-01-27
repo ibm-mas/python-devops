@@ -97,6 +97,133 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None 
     return response.data.get("ok", False)
 
 
+def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, pipelineName: str, instanceId: str | None = None) -> bool:
+    """Send Slack notification about Ansible task completion status."""
+    namespace = os.getenv("PIPELINE_NAMESPACE", "")
+    pipelineRunName = os.getenv("PIPELINERUN_NAME", "")
+    
+    if namespace == "" or pipelineRunName == "":
+        print("PIPELINE_NAMESPACE and PIPELINERUN_NAME env vars must be set")
+        sys.exit(1)
+    
+    # Check if this is the first task (no ConfigMap exists yet)
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, pipelineRunName)
+    
+    if threadInfo is None:
+        # This is the first task - send pipeline started message
+        toolchainLink = _getToolchainLink()
+        instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
+        
+        message = [
+            SlackUtil.buildHeader(f"🚀 MAS {pipelineName.title()} Pipeline Started"),
+            SlackUtil.buildSection(f"Pipeline Run: `{pipelineRunName}`{instanceInfo}\n{toolchainLink}")
+        ]
+        
+        response = SlackUtil.postMessageBlocks(channels[0], message)
+        
+        if response.data.get("ok", False):
+            threadId = response["ts"]
+            channelId = response["channel"]
+            
+            # Store thread information in ConfigMap
+            SlackUtil.createThreadConfigMap(namespace, pipelineRunName, channelId, threadId, pipelineName)
+            threadInfo = {
+                "threadId": threadId,
+                "channelId": channelId,
+                "pipelineName": pipelineName
+            }
+        else:
+            print("Failed to send initial Slack message")
+            return False
+    
+    # Send task completion message as thread reply
+    threadId = threadInfo.get("threadId")
+    channelId = threadInfo.get("channelId")
+    
+    if rc == 0:
+        emoji = "✅"
+        status = "Success"
+    else:
+        emoji = "❌"
+        status = "Failed"
+    
+    taskMessage = [
+        SlackUtil.buildSection(f"{emoji} **{taskName}** - {status}")
+    ]
+    
+    if rc != 0:
+        taskMessage.append(SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details"))
+    
+    response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
+    
+    if isinstance(response, list):
+        return all([res.data.get("ok", False) for res in response])
+    return response.data.get("ok", False)
+
+
+def notifyPipelineComplete(channels: list[str], rc: int, pipelineName: str, instanceId: str | None = None) -> bool:
+    """Send Slack notification about pipeline completion and cleanup ConfigMap."""
+    namespace = os.getenv("PIPELINE_NAMESPACE", "")
+    pipelineRunName = os.getenv("PIPELINERUN_NAME", "")
+    
+    if namespace == "" or pipelineRunName == "":
+        print("PIPELINE_NAMESPACE and PIPELINERUN_NAME env vars must be set")
+        sys.exit(1)
+    
+    # Get thread information
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, pipelineRunName)
+    
+    if threadInfo is None:
+        print("No thread information found - pipeline may not have started properly")
+        return False
+    
+    threadId = threadInfo.get("threadId")
+    channelId = threadInfo.get("channelId")
+    startTime = threadInfo.get("startTime")
+    
+    # Calculate duration if start time is available
+    durationText = ""
+    if startTime:
+        from datetime import datetime
+        try:
+            start = datetime.fromisoformat(startTime.replace("Z", "+00:00"))
+            end = datetime.utcnow()
+            duration = end - start
+            hours, remainder = divmod(int(duration.total_seconds()), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            if hours > 0:
+                durationText = f"\nTotal Duration: {hours}h {minutes}m {seconds}s"
+            else:
+                durationText = f"\nTotal Duration: {minutes}m {seconds}s"
+        except:
+            pass
+    
+    instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
+    
+    if rc == 0:
+        emoji = "🎉"
+        status = "Completed Successfully"
+        additionalInfo = "\nAll tasks completed successfully"
+    else:
+        emoji = "💥"
+        status = "Failed"
+        additionalInfo = f"\nPipeline failed with return code: `{rc}`"
+    
+    message = [
+        SlackUtil.buildHeader(f"{emoji} MAS {pipelineName.title()} Pipeline {status}"),
+        SlackUtil.buildSection(f"Pipeline Run: `{pipelineRunName}`{instanceInfo}{durationText}{additionalInfo}")
+    ]
+    
+    response = SlackUtil.postMessageBlocks(channelId, message, threadId)
+    
+    # Clean up ConfigMap
+    SlackUtil.deleteThreadConfigMap(namespace, pipelineRunName)
+    
+    if isinstance(response, list):
+        return all([res.data.get("ok", False) for res in response])
+    return response.data.get("ok", False)
+
+
 if __name__ == "__main__":
     # If SLACK_TOKEN or SLACK_CHANNEL env vars are not set then silently exit taking no action
     SLACK_TOKEN = os.getenv("SLACK_TOKEN", "")
@@ -114,6 +241,9 @@ if __name__ == "__main__":
     parser.add_argument("--action", required=True)
     parser.add_argument("--rc", required=True, type=int)
     parser.add_argument("--msg", required=False, default=None)
+    parser.add_argument("--task-name", required=False, default="")
+    parser.add_argument("--pipeline-name", required=False, default="")
+    parser.add_argument("--instance-id", required=False, default=None)
 
     args, unknown = parser.parse_known_args()
 
@@ -121,3 +251,7 @@ if __name__ == "__main__":
         notifyProvisionFyre(channelList, args.rc, args.msg)
     elif args.action == "ocp-provision-roks":
         notifyProvisionRoks(channelList, args.rc, args.msg)
+    elif args.action == "ansible-complete":
+        notifyAnsibleComplete(channelList, args.rc, args.task_name, args.pipeline_name, args.instance_id)
+    elif args.action == "pipeline-complete":
+        notifyPipelineComplete(channelList, args.rc, args.pipeline_name, args.instance_id)
