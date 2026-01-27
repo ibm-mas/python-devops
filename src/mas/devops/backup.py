@@ -279,14 +279,12 @@ def uploadToS3(
     # Configure S3 client
     try:
         s3_config = {}
-        
+
         if endpoint_url:
             s3_config['endpoint_url'] = endpoint_url
-        
         if aws_access_key_id and aws_secret_access_key:
             s3_config['aws_access_key_id'] = aws_access_key_id
             s3_config['aws_secret_access_key'] = aws_secret_access_key
-        
         if region_name:
             s3_config['region_name'] = region_name
         else:
@@ -296,12 +294,12 @@ def uploadToS3(
 
         # Upload the file
         logger.info(f"Uploading {file_path} to s3://{bucket_name}/{object_name}")
-        
+
         file_size = os.path.getsize(file_path)
         logger.info(f"File size: {file_size / (1024 * 1024):.2f} MB")
 
         s3_client.upload_file(file_path, bucket_name, object_name)
-        
+
         logger.info(f"Successfully uploaded {file_path} to s3://{bucket_name}/{object_name}")
         return True
 
