@@ -22,7 +22,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClasses
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClasses, getStorageClassVolumeBindingMode
 
 logger = logging.getLogger(__name__)
 
@@ -314,18 +314,22 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         pvc = yaml.safe_load(renderedTemplate)
         pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
         pvcAPI.apply(body=pvc, namespace=namespace)
-
-    if instanceId is not None and waitForBind:
-        logger.debug("Waiting for PVC to be bound")
-        pvcIsBound = False
-        while not pvcIsBound:
-            configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
-            if configPVC.status.phase == "Bound":
-                pvcIsBound = True
-            else:
-                logger.debug("Waiting 15s before checking status of PVC again")
-                logger.debug(configPVC)
-                sleep(15)
+        # Automatically determine if we should wait for PVC binding based on storage class
+        volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
+        waitForBind = (volumeBindingMode == "Immediate")
+        if waitForBind:
+            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
+            pvcIsBound = False
+            while not pvcIsBound:
+                configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                if configPVC.status.phase == "Bound":
+                    pvcIsBound = True
+                else:
+                    logger.debug("Waiting 15s before checking status of PVC again")
+                    logger.debug(configPVC)
+                    sleep(15)
+        else:
+            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
 def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
@@ -375,8 +379,12 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
     pvcAPI.apply(body=pvc, namespace=namespace)
 
+    # Automatically determine if we should wait for PVC binding based on storage class
+    volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
+    waitForBind = (volumeBindingMode == "Immediate")
+
     if waitForBind:
-        logger.debug("Waiting for PVC to be bound")
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
         pvcIsBound = False
         while not pvcIsBound:
             configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
@@ -386,6 +394,8 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
                 logger.debug("Waiting 15s before checking status of PVC again")
                 logger.debug(configPVC)
                 sleep(15)
+    else:
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
 def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
