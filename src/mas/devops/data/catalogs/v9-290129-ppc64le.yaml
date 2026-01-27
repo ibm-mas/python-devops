@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:53f2218a5181b7c02326845f80f24ff6365c744bd633f75007c39bec3f0c584f
+catalog_digest: sha256:ff7857b5e1dcc8be7dd73cc7f9b869a46cb4d68f8c23de2299ead406a075a0eb
 
 ocp_compatibility:
 - 4.16
@@ -21,13 +21,13 @@ db2u_version: 7.5.1+20251217.121408.18568    # Operator version 110509.0.7 to fi
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_6280  # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_9887  # Updated
   9.1.x: 9.1.8                          # Updated
   9.0.x: 9.0.19                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_6856  # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_10282 # Updated
   9.1.x: 9.1.8                          # Updated
   9.0.x: 9.0.21                         # Updated
   8.10.x: ""                            # Not Supported
