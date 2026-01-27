@@ -79,7 +79,7 @@ mas_monitor_version:
   8.10.x: 8.10.27 # Updated
   8.11.x: 8.11.25 # Updated
 mas_optimizer_version:
-  9.2.x-feature: 9.2.0-pre.stable_9869-amd64 # Updated
+  9.2.x-feature: 9.2.0-pre.stable_9869 # Updated
   9.1.x: 9.1.8         # Updated
   9.0.x: 9.0.19        # Updated
   8.10.x: 8.4.26       # Updated
