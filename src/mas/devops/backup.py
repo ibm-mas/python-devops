@@ -239,7 +239,6 @@ def backupResources(dynClient: DynamicClient, kind: str, api_version: str, backu
         return (backed_up_count, not_found_count, failed_count, discovered_secrets)
 
 
-
 def uploadToS3(
     file_path: str,
     bucket_name: str,
