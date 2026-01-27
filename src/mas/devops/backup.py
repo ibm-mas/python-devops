@@ -12,6 +12,8 @@ import os
 import yaml
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
 
 logger = logging.getLogger(name=__name__)
 
@@ -235,3 +237,85 @@ def backupResources(dynClient: DynamicClient, kind: str, api_version: str, backu
         logger.error(f"Error backing up {kind} resources: {e}")
         failed_count = 1
         return (backed_up_count, not_found_count, failed_count, discovered_secrets)
+
+
+
+def uploadToS3(
+    file_path: str,
+    bucket_name: str,
+    object_name=None,
+    endpoint_url=None,
+    aws_access_key_id=None,
+    aws_secret_access_key=None,
+    region_name=None
+) -> bool:
+    """
+    Upload a tar.gz file to S3-compatible storage.
+
+    Args:
+        file_path: Path to the tar.gz file to upload
+        bucket_name: Name of the S3 bucket
+        object_name: S3 object name. If not specified, file_path basename is used
+        endpoint_url: S3-compatible endpoint URL (e.g., for MinIO, Ceph)
+        aws_access_key_id: AWS access key ID (if not using environment variables)
+        aws_secret_access_key: AWS secret access key (if not using environment variables)
+        region_name: AWS region name (default: us-east-1)
+
+    Returns:
+        bool: True if file was uploaded successfully, False otherwise
+    """
+    # If S3 object_name was not specified, use file_path basename
+    if object_name is None:
+        object_name = os.path.basename(file_path)
+
+    # Validate file exists and is a tar.gz file
+    if not os.path.exists(file_path):
+        logger.error(f"File not found: {file_path}")
+        return False
+
+    if not file_path.endswith('.tar.gz'):
+        logger.warning(f"File does not have .tar.gz extension: {file_path}")
+
+    # Configure S3 client
+    try:
+        s3_config = {}
+        
+        if endpoint_url:
+            s3_config['endpoint_url'] = endpoint_url
+        
+        if aws_access_key_id and aws_secret_access_key:
+            s3_config['aws_access_key_id'] = aws_access_key_id
+            s3_config['aws_secret_access_key'] = aws_secret_access_key
+        
+        if region_name:
+            s3_config['region_name'] = region_name
+        else:
+            s3_config['region_name'] = 'us-east-1'
+
+        s3_client = boto3.client('s3', **s3_config)
+
+        # Upload the file
+        logger.info(f"Uploading {file_path} to s3://{bucket_name}/{object_name}")
+        
+        file_size = os.path.getsize(file_path)
+        logger.info(f"File size: {file_size / (1024 * 1024):.2f} MB")
+
+        s3_client.upload_file(file_path, bucket_name, object_name)
+        
+        logger.info(f"Successfully uploaded {file_path} to s3://{bucket_name}/{object_name}")
+        return True
+
+    except FileNotFoundError:
+        logger.error(f"File not found: {file_path}")
+        return False
+    except NoCredentialsError:
+        logger.error("AWS credentials not found. Please provide credentials or configure environment variables.")
+        return False
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        error_message = e.response.get('Error', {}).get('Message', str(e))
+        logger.error(f"S3 client error ({error_code}): {error_message}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error uploading to S3: {e}")
+        return False
