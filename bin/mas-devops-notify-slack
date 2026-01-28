@@ -191,7 +191,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, pipelineName: str, inst
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName.title()} Pipeline {status}"),
         SlackUtil.buildSection(f"Pipeline Run: `{pipelineRunName}`{instanceInfo}{durationText}{additionalInfo}")
-    ]    
+    ]
     response = SlackUtil.postMessageBlocks(channelId, message, threadId)
     # Clean up ConfigMap
     SlackUtil.deleteThreadConfigMap(namespace, pipelineRunName)

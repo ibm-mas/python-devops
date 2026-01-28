@@ -291,7 +291,7 @@ class SlackUtilMeta(type):
                 config.load_incluster_config()
             except Exception:
                 config.load_kube_config()
-            v1 = client.CoreV1Api()            
+            v1 = client.CoreV1Api()
             configmap_name = f"slack-thread-{pipelineRunName}"
             configmap = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
@@ -307,7 +307,7 @@ class SlackUtilMeta(type):
             )
             v1.create_namespaced_config_map(namespace=namespace, body=configmap)
             logger.info(f"Created ConfigMap {configmap_name} in namespace {namespace}")
-            return True            
+            return True
         except Exception as e:
             logger.error(f"Failed to create ConfigMap: {e}")
             return False
@@ -355,13 +355,13 @@ class SlackUtilMeta(type):
         Returns:
             bool: True if ConfigMap was deleted successfully, False otherwise
         """
-        try:            
+        try:
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
             except Exception:
                 config.load_kube_config()
-            
+
             v1 = client.CoreV1Api()
             configmap_name = f"slack-thread-{pipelineRunName}"
             v1.delete_namespaced_config_map(name=configmap_name, namespace=namespace)
