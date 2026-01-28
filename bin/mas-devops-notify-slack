@@ -177,8 +177,8 @@ def notifyPipelineComplete(channels: list[str], rc: int, pipelineName: str, inst
                 durationText = f"\nTotal Duration: {hours}h {minutes}m {seconds}s"
             else:
                 durationText = f"\nTotal Duration: {minutes}m {seconds}s"
-        except:
-            pass  
+        except Exception:
+            pass
     instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
     if rc == 0:
         emoji = "🎉"

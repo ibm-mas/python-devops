@@ -289,7 +289,7 @@ class SlackUtilMeta(type):
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
-            except:
+            except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()            
             configmap_name = f"slack-thread-{pipelineRunName}"
@@ -327,7 +327,7 @@ class SlackUtilMeta(type):
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
-            except:
+            except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
             configmap_name = f"slack-thread-{pipelineRunName}"
@@ -359,7 +359,7 @@ class SlackUtilMeta(type):
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
-            except:
+            except Exception:
                 config.load_kube_config()
             
             v1 = client.CoreV1Api()
