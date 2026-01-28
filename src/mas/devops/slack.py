@@ -293,9 +293,7 @@ class SlackUtilMeta(type):
                 config.load_incluster_config()
             except:
                 config.load_kube_config()
-            
-            v1 = client.CoreV1Api()
-            
+            v1 = client.CoreV1Api()            
             configmap_name = f"slack-thread-{pipelineRunName}"
             configmap = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
@@ -309,11 +307,9 @@ class SlackUtilMeta(type):
                     "startTime": datetime.utcnow().isoformat() + "Z"
                 }
             )
-            
             v1.create_namespaced_config_map(namespace=namespace, body=configmap)
             logger.info(f"Created ConfigMap {configmap_name} in namespace {namespace}")
-            return True
-            
+            return True            
         except Exception as e:
             logger.error(f"Failed to create ConfigMap: {e}")
             return False
@@ -331,20 +327,16 @@ class SlackUtilMeta(type):
         """
         try:
             from kubernetes import client, config
-            
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
             except:
                 config.load_kube_config()
-            
             v1 = client.CoreV1Api()
             configmap_name = f"slack-thread-{pipelineRunName}"
-            
             configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.debug(f"Retrieved ConfigMap {configmap_name} from namespace {namespace}")
             return configmap.data
-            
         except client.exceptions.ApiException as e:
             if e.status == 404:
                 logger.debug(f"ConfigMap slack-thread-{pipelineRunName} not found in namespace {namespace}")
