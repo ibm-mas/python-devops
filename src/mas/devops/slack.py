@@ -13,7 +13,8 @@
 import os
 from slack_sdk import WebClient
 from slack_sdk.web.slack_response import SlackResponse
-
+from kubernetes import client, config
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -285,9 +286,6 @@ class SlackUtilMeta(type):
             bool: True if ConfigMap was created successfully, False otherwise
         """
         try:
-            from kubernetes import client, config
-            from datetime import datetime
-            
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
@@ -326,7 +324,6 @@ class SlackUtilMeta(type):
             dict | None: Dictionary containing threadId, channelId, pipelineName, and startTime, or None if not found
         """
         try:
-            from kubernetes import client, config
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
@@ -358,9 +355,7 @@ class SlackUtilMeta(type):
         Returns:
             bool: True if ConfigMap was deleted successfully, False otherwise
         """
-        try:
-            from kubernetes import client, config
-            
+        try:            
             # Load Kubernetes configuration
             try:
                 config.load_incluster_config()
@@ -369,11 +364,9 @@ class SlackUtilMeta(type):
             
             v1 = client.CoreV1Api()
             configmap_name = f"slack-thread-{pipelineRunName}"
-            
             v1.delete_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.info(f"Deleted ConfigMap {configmap_name} from namespace {namespace}")
             return True
-            
         except client.exceptions.ApiException as e:
             if e.status == 404:
                 logger.warning(f"ConfigMap slack-thread-{pipelineRunName} not found in namespace {namespace}")
@@ -383,7 +376,6 @@ class SlackUtilMeta(type):
         except Exception as e:
             logger.error(f"Failed to delete ConfigMap: {e}")
             return False
-
         return {"type": "divider"}
 
 
