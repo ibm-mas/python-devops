@@ -1,0 +1,100 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: {{ mas_instance_id }}-backup-{{ backup_version }}-
+  labels:
+    mas.ibm.com/instanceId: "{{ mas_instance_id }}"
+spec:
+  pipelineRef:
+    name: mas-backup
+  serviceAccountName: pipeline
+  workspaces:
+    - name: shared-configs
+      persistentVolumeClaim:
+        claimName: config-pvc
+    - name: shared-backups
+      persistentVolumeClaim:
+        claimName: backup-pvc
+  params:
+    # Common Parameters
+    - name: image_pull_policy
+      value: IfNotPresent
+    - name: mas_instance_id
+      value: "{{ mas_instance_id }}"
+
+    # Backup Configuration
+    - name: backup_version
+      value: "{{ backup_version }}"
+
+    # Component Flags
+    {% if include_sls is defined and include_sls != "" %}
+    - name: include_sls
+      value: "{{ include_sls }}"
+    {% endif %}
+
+    # MongoDB Configuration
+    {% if mongodb_namespace is defined and mongodb_namespace != "" %}
+    - name: mongodb_namespace
+      value: "{{ mongodb_namespace }}"
+    {% endif %}
+    {% if mongodb_instance_name is defined and mongodb_instance_name != "" %}
+    - name: mongodb_instance_name
+      value: "{{ mongodb_instance_name }}"
+    {% endif %}
+    {% if mongodb_provider is defined and mongodb_provider != "" %}
+    - name: mongodb_provider
+      value: "{{ mongodb_provider }}"
+    {% endif %}
+
+    # SLS Configuration
+    {% if sls_namespace is defined and sls_namespace != "" %}
+    - name: sls_namespace
+      value: "{{ sls_namespace }}"
+    {% endif %}
+
+    # Certificate Manager Configuration
+    {% if cert_manager_provider is defined and cert_manager_provider != "" %}
+    - name: cert_manager_provider
+      value: "{{ cert_manager_provider }}"
+    {% endif %}
+
+    # Development Build Support
+    {% if artifactory_username is defined and artifactory_username != "" %}
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    {% endif %}
+    {% if artifactory_token is defined and artifactory_token != "" %}
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+    {% endif %}
+
+    # Upload Configuration
+    {% if upload_backup is defined and upload_backup != "" %}
+    - name: upload_backup
+      value: "{{ upload_backup }}"
+    {% endif %}
+    {% if aws_access_key_id is defined and aws_access_key_id != "" %}
+    - name: aws_access_key_id
+      value: "{{ aws_access_key_id }}"
+    {% endif %}
+    {% if aws_secret_access_key is defined and aws_secret_access_key != "" %}
+    - name: aws_secret_access_key
+      value: "{{ aws_secret_access_key }}"
+    {% endif %}
+    {% if s3_bucket_name is defined and s3_bucket_name != "" %}
+    - name: s3_bucket_name
+      value: "{{ s3_bucket_name }}"
+    {% endif %}
+    {% if s3_region is defined and s3_region != "" %}
+    - name: s3_region
+      value: "{{ s3_region }}"
+    {% endif %}
+    {% if artifactory_url is defined and artifactory_url != "" %}
+    - name: artifactory_url
+      value: "{{ artifactory_url }}"
+    {% endif %}
+    {% if artifactory_repository is defined and artifactory_repository != "" %}
+    - name: artifactory_repository
+      value: "{{ artifactory_repository }}"
+    {% endif %}
