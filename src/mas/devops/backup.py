@@ -316,3 +316,98 @@ def uploadToS3(
     except Exception as e:
         logger.error(f"Unexpected error uploading to S3: {e}")
         return False
+
+
+def downloadFromS3(
+    bucket_name: str,
+    object_name: str,
+    local_dir: str,
+    endpoint_url=None,
+    aws_access_key_id=None,
+    aws_secret_access_key=None,
+    region_name=None
+) -> bool:
+    """
+    Download a tar.gz file from S3-compatible storage to a backup directory.
+
+    Args:
+        bucket_name: Name of the S3 bucket
+        object_name: S3 object name to download
+        local_dir: Directory path where the file will be downloaded
+        endpoint_url: S3-compatible endpoint URL (e.g., for MinIO, Ceph)
+        aws_access_key_id: AWS access key ID (if not using environment variables)
+        aws_secret_access_key: AWS secret access key (if not using environment variables)
+        region_name: AWS region name (default: us-east-1)
+
+    Returns:
+        bool: True if file was downloaded successfully, False otherwise
+    """
+    # Validate backup directory
+    if not os.path.exists(local_dir):
+        logger.info(f"Backup directory does not exist, creating: {local_dir}")
+        try:
+            os.makedirs(local_dir, exist_ok=True)
+        except Exception as e:
+            logger.error(f"Failed to create backup directory {local_dir}: {e}")
+            return False
+
+    # Construct the full file path
+    file_path = os.path.join(local_dir, object_name)
+
+    # Warn if file doesn't have .tar.gz extension
+    if not object_name.endswith('.tar.gz'):
+        logger.warning(f"Object does not have .tar.gz extension: {object_name}")
+
+    # Configure S3 client
+    try:
+        s3_config = {}
+
+        if endpoint_url:
+            s3_config['endpoint_url'] = endpoint_url
+        if aws_access_key_id and aws_secret_access_key:
+            s3_config['aws_access_key_id'] = aws_access_key_id
+            s3_config['aws_secret_access_key'] = aws_secret_access_key
+        if region_name:
+            s3_config['region_name'] = region_name
+        else:
+            s3_config['region_name'] = 'us-east-1'
+
+        s3_client = boto3.client('s3', **s3_config)
+
+        # Check if object exists and get its size
+        logger.info(f"Downloading s3://{bucket_name}/{object_name} to {file_path}")
+
+        try:
+            response = s3_client.head_object(Bucket=bucket_name, Key=object_name)
+            file_size = response.get('ContentLength', 0)
+            logger.info(f"Object size: {file_size / (1024 * 1024):.2f} MB")
+        except ClientError as e:
+            if e.response.get('Error', {}).get('Code') == '404':
+                logger.error(f"Object not found in S3: s3://{bucket_name}/{object_name}")
+                return False
+            raise
+
+        # Download the file
+        s3_client.download_file(bucket_name, object_name, file_path)
+
+        # Verify the downloaded file exists
+        if os.path.exists(file_path):
+            downloaded_size = os.path.getsize(file_path)
+            logger.info(f"Successfully downloaded {object_name} to {file_path}")
+            logger.info(f"Downloaded file size: {downloaded_size / (1024 * 1024):.2f} MB")
+            return True
+        else:
+            logger.error(f"Download completed but file not found at {file_path}")
+            return False
+
+    except NoCredentialsError:
+        logger.error("AWS credentials not found. Please provide credentials or configure environment variables.")
+        return False
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        error_message = e.response.get('Error', {}).get('Message', str(e))
+        logger.error(f"S3 client error ({error_code}): {error_message}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error downloading from S3: {e}")
+        return False
