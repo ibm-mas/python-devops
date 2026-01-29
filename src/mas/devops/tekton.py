@@ -49,14 +49,14 @@ def configureTektonFeatureFlags(dynClient: DynamicClient) -> bool:
         try:
             featureFlags = configMapAPI.get(name=configMapName, namespace=namespace)
             logger.info(f"Found existing Tekton feature-flags ConfigMap in {namespace}")
-            
+
             # Convert to dict to make it mutable
             featureFlagsDict = featureFlags.to_dict()
-            
+
             # Update the coschedule setting
             if featureFlagsDict.get("data") is None:
                 featureFlagsDict["data"] = {}
-            
+
             currentCoschedule = featureFlagsDict["data"].get("coschedule", "workspaces")
             if currentCoschedule != "disabled":
                 logger.info(f"Updating Tekton coschedule setting from '{currentCoschedule}' to 'disabled'")
