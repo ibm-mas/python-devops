@@ -9,6 +9,12 @@ spec:
   pipelineRef:
     name: mas-backup
   serviceAccountName: pipeline
+  taskRunSpecs:
+    - pipelineTaskName: "*"
+      podTemplate:
+        schedulerName: default-scheduler
+  podTemplate:
+    schedulerName: default-scheduler
   workspaces:
     - name: shared-configs
       persistentVolumeClaim:
