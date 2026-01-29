@@ -49,16 +49,19 @@ def configureTektonFeatureFlags(dynClient: DynamicClient) -> bool:
         try:
             featureFlags = configMapAPI.get(name=configMapName, namespace=namespace)
             logger.info(f"Found existing Tekton feature-flags ConfigMap in {namespace}")
-
+            
+            # Convert to dict to make it mutable
+            featureFlagsDict = featureFlags.to_dict()
+            
             # Update the coschedule setting
-            if featureFlags.data is None:
-                featureFlags.data = {}
-
-            currentCoschedule = featureFlags.data.get("coschedule", "workspaces")
+            if featureFlagsDict.get("data") is None:
+                featureFlagsDict["data"] = {}
+            
+            currentCoschedule = featureFlagsDict["data"].get("coschedule", "workspaces")
             if currentCoschedule != "disabled":
                 logger.info(f"Updating Tekton coschedule setting from '{currentCoschedule}' to 'disabled'")
-                featureFlags.data["coschedule"] = "disabled"
-                configMapAPI.patch(body=featureFlags, namespace=namespace)
+                featureFlagsDict["data"]["coschedule"] = "disabled"
+                configMapAPI.patch(body=featureFlagsDict, namespace=namespace)
                 logger.info("Successfully updated Tekton feature flags to disable coschedule")
 
                 # Restart the Tekton controller to apply changes
