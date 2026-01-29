@@ -4,17 +4,11 @@ kind: PipelineRun
 metadata:
   name: "{{ mas_instance_id }}-backup-{{ backup_version }}"
   labels:
-    mas.ibm.com/instanceId: "{{ mas_instance_id }}"
+    tekton.dev/pipeline: mas-backup
 spec:
   pipelineRef:
     name: mas-backup
-  serviceAccountName: pipeline
-  taskRunSpecs:
-    - pipelineTaskName: "*"
-      podTemplate:
-        schedulerName: default-scheduler
-  podTemplate:
-    schedulerName: default-scheduler
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   workspaces:
     - name: shared-configs
       persistentVolumeClaim:
