@@ -343,7 +343,8 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
             renderedBackupTemplate = backupTemplate.render(
                 mas_instance_id=instanceId,
                 pipeline_storage_class=storageClass,
-                pipeline_storage_accessmode=accessMode
+                pipeline_storage_accessmode=accessMode,
+                backup_storage_size=backupStorageSize
             )
             logger.debug(renderedBackupTemplate)
             backupPvc = yaml.safe_load(renderedBackupTemplate)
