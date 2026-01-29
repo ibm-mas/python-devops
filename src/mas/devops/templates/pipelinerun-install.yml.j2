@@ -2,7 +2,11 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
+{%- if mas_instance_id is defined and mas_instance_id != "" %}
   name: "{{mas_instance_id}}-install-{{ timestamp }}"
+{%- else %}
+  name: "{{aiservice_instance_id}}-install-{{ timestamp }}"
+{%- endif %}
   labels:
     tekton.dev/pipeline: mas-install
 spec:
@@ -89,22 +93,7 @@ spec:
       value: "{{ eck_remote_es_password }}"
   {%- endif %}
 {%- endif %}
-{%- if turbonomic_server_url is defined and turbonomic_server_url != "" %}
-
-    # Dependencies - Turbonomic
-    # -------------------------------------------------------------------------
-    - name: turbonomic_server_url
-      value: "{{ turbonomic_server_url }}"
-    - name: turbonomic_server_version
-      value: "{{ turbonomic_server_version }}"
-    - name: turbonomic_target_name
-      value: "{{ turbonomic_target_name }}"
-    - name: turbonomic_username
-      value: "{{ turbonomic_username }}"
-    - name: turbonomic_password
-      value: "{{ turbonomic_password }}"
-{%- endif %}
-{%- if db2_action_system == "install" or db2_action_manage == "install" %}
+{%- if db2_action_system == "install" or db2_action_manage == "install" or db2_action_aiservice == "install" %}
 
     # Dependencies - Db2 - Actions
     # -------------------------------------------------------------------------
@@ -114,6 +103,8 @@ spec:
       value: "{{ db2_action_manage }}"
     - name: db2_action_facilities
       value: "{{ db2_action_facilities}}"
+    - name: db2_action_aiservice
+      value: "{{ db2_action_aiservice }}"   
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -274,10 +265,6 @@ spec:
     # -------------------------------------------------------------------------
     - name: cpd_product_version
       value: "{{ cpd_product_version }}"
-    - name: cpd_install_spss
-      value: "{{ cpd_install_spss }}"
-    - name: cpd_install_openscale
-      value: "{{ cpd_install_openscale }}"
     - name: cpd_install_cognos
       value: "{{ cpd_install_cognos }}"
     - name: cpd_install_ws
@@ -290,8 +277,10 @@ spec:
 
     # Dependencies - SLS
     # -------------------------------------------------------------------------
+{%- if sls_channel is defined and sls_channel != "" %}
     - name: sls_channel
-      value: '3.x'
+      value: "{{ sls_channel }}"
+{%- endif %}
 {%- if sls_entitlement_file is defined and sls_entitlement_file != "" %}
     - name: sls_entitlement_file
       value: "{{ sls_entitlement_file }}"
@@ -313,17 +302,16 @@ spec:
       value: "{{ sls_action }}"
 {%- endif %}
 
-
-    # Dependencies - UDS/DRO (Required)
+    # Dependencies - DRO (Required)
     # -------------------------------------------------------------------------
-    - name: uds_action
-      value: "{{ uds_action }}"
-    - name: uds_contact_email
-      value: "{{ uds_contact_email }}"
-    - name: uds_contact_firstname
-      value: "{{ uds_contact_firstname }}"
-    - name: uds_contact_lastname
-      value: "{{ uds_contact_lastname }}"
+    - name: dro_action
+      value: "{{ dro_action }}"
+    - name: dro_contact_email
+      value: "{{ dro_contact_email }}"
+    - name: dro_contact_firstname
+      value: "{{ dro_contact_firstname }}"
+    - name: dro_contact_lastname
+      value: "{{ dro_contact_lastname }}"
 {%- if dro_namespace is defined and dro_namespace != "" %}
     - name: dro_namespace
       value: "{{ dro_namespace }}"
@@ -356,6 +344,10 @@ spec:
     - name: mas_catalog_digest
       value: "{{ mas_catalog_digest }}"
 {%- endif %}
+{%- if mas_app_cfg_retries is defined and mas_app_cfg_retries != "" %}
+    - name: mas_app_cfg_retries
+      value: "{{ mas_app_cfg_retries }}"
+{%- endif%}
 
     # Dependencies - Certificate Manager
     # -------------------------------------------------------------------------
@@ -539,6 +531,10 @@ spec:
     - name: mas_enable_walkme
       value: "{{ mas_enable_walkme }}"
 {%- endif %}
+{%- if mas_routing_mode is defined and mas_routing_mode != "" %}
+    - name: mas_routing_mode
+      value: "{{ mas_routing_mode }}"
+{%- endif %}
 {%- if mas_report_adoption_metrics is defined and mas_report_adoption_metrics != "" %}
     - name: mas_report_adoption_metrics
       value: "{{ mas_report_adoption_metrics }}"
@@ -565,12 +561,10 @@ spec:
     - name: mas_app_settings_iot_mqttbroker_pvc_storage_class
       value: "{{ mas_app_settings_iot_mqttbroker_pvc_storage_class }}"
 {%- endif %}
-{%- if install_arcgis is defined and install_arcgis != "" %}
+{%- if mas_arcgis_channel is defined and mas_arcgis_channel != "" and mas_arcgis_channel %}
 
     # IBM Maximo Location Services for Esri (arcgis)
     # -------------------------------------------------------------------------
-    - name: install_arcgis
-      value: "{{ install_arcgis }}"
     - name: mas_arcgis_channel
       value: "{{ mas_arcgis_channel }}"
 {%- endif %}
@@ -582,6 +576,14 @@ spec:
       value: "{{ mas_app_channel_manage }}"
     - name: mas_appws_components
       value: "{{ mas_appws_components }}"
+  {%- if manage_bind_aiservice_instance_id is defined and manage_bind_aiservice_instance_id != "" %}
+    - name: manage_bind_aiservice_instance_id
+      value: "{{ manage_bind_aiservice_instance_id }}"
+  {%- endif %}
+  {%- if manage_bind_aiservice_tenant_id is defined and manage_bind_aiservice_tenant_id != "" %}
+    - name: manage_bind_aiservice_tenant_id
+      value: "{{ manage_bind_aiservice_tenant_id }}"
+  {%- endif %}
   {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
     - name: mas_appws_bindings_health_wsl_flag
       value: "{{ mas_appws_bindings_health_wsl_flag }}"
@@ -662,19 +664,19 @@ spec:
       value: "{{ mas_app_settings_customization_archive_password }}"
     {%- endif %}
   {%- endif %}
-  {%- if mas_app_settings_crypto_key is defined and mas_app_settings_crypto_key != "" %}
-    - name: mas_app_settings_crypto_key
-      value: "{{ mas_app_settings_crypto_key }}"
-    - name: mas_app_settings_cryptox_key
-      value: "{{ mas_app_settings_cryptox_key }}"
-    - name: mas_app_settings_old_crypto_key
-      value: "{{ mas_app_settings_old_crypto_key }}"
-    - name: mas_app_settings_old_cryptox_key
-      value: "{{ mas_app_settings_old_cryptox_key }}"
+  {%- if mas_manage_encryptionsecret_crypto_key is defined and mas_manage_encryptionsecret_crypto_key != "" %}
+    - name: mas_manage_encryptionsecret_crypto_key
+      value: "{{ mas_manage_encryptionsecret_crypto_key }}"
+    - name: mas_manage_encryptionsecret_cryptox_key
+      value: "{{ mas_manage_encryptionsecret_cryptox_key }}"
+    - name: mas_manage_encryptionsecret_old_crypto_key
+      value: "{{ mas_manage_encryptionsecret_old_crypto_key }}"
+    - name: mas_manage_encryptionsecret_old_cryptox_key
+      value: "{{ mas_manage_encryptionsecret_old_cryptox_key }}"
   {%- endif %}
-  {%- if mas_app_settings_override_encryption_secrets_flag is defined and mas_app_settings_override_encryption_secrets_flag != "" %}
-    - name: mas_app_settings_override_encryption_secrets_flag
-      value: "{{ mas_app_settings_override_encryption_secrets_flag }}"
+  {%- if mas_manage_ws_db_encryptionsecret is defined and mas_manage_ws_db_encryptionsecret != "" %}
+    - name: mas_manage_ws_db_encryptionsecret
+      value: "{{ mas_manage_ws_db_encryptionsecret }}"
   {%- endif %}
   {%- if mas_app_settings_default_jms is defined and mas_app_settings_default_jms != "" %}
     - name: mas_app_settings_default_jms
@@ -777,6 +779,94 @@ spec:
       value: "{{ mas_ws_facilities_config_map_name }}"
 {%- endif %}
 
+{%- endif %}
+
+{%- if aiservice_instance_id is defined and aiservice_instance_id != "" %}
+
+    # AI Service
+    # -------------------------------------------------------------------------
+    - name: aiservice_instance_id
+      value: "{{ aiservice_instance_id }}"
+    - name: aiservice_channel
+      value: "{{ aiservice_channel }}"
+
+    - name: environment_type
+      value: "{{ environment_type }}"
+
+    # AI Service Tenant
+    # -------------------------------------------------------------------------
+    - name: tenant_entitlement_type
+      value: "{{ tenant_entitlement_type }}"
+    - name: tenant_entitlement_start_date
+      value: "{{ tenant_entitlement_start_date }}"
+    - name: tenant_entitlement_end_date
+      value: "{{ tenant_entitlement_end_date }}"
+
+    # RSL
+    # -------------------------------------------------------------------------
+    - name: rsl_url
+      value: "{{ rsl_url }}"
+    - name: rsl_org_id
+      value: "{{ rsl_org_id }}"
+    - name: rsl_token
+      value: "{{ rsl_token }}"
+
+    # S3
+    # -------------------------------------------------------------------------
+    - name: aiservice_s3_accesskey
+      value: "{{ aiservice_s3_accesskey }}"
+    - name: aiservice_s3_secretkey
+      value: "{{ aiservice_s3_secretkey }}"
+    - name: aiservice_s3_host
+      value: "{{ aiservice_s3_host }}"
+    - name: aiservice_s3_port
+      value: "{{ aiservice_s3_port }}"
+    - name: aiservice_s3_ssl
+      value: "{{ aiservice_s3_ssl }}"
+    - name: aiservice_s3_region
+      value: "{{ aiservice_s3_region }}"
+    - name: aiservice_s3_bucket_prefix
+      value: "{{ aiservice_s3_bucket_prefix }}"
+
+    - name: aiservice_s3_tenants_bucket
+      value: "{{ aiservice_s3_tenants_bucket }}"
+    - name: aiservice_s3_templates_bucket
+      value: "{{ aiservice_s3_templates_bucket }}"
+
+    - name: minio_root_user
+      value: "{{ minio_root_user }}"
+    - name: minio_root_password
+      value: "{{ minio_root_password }}"
+
+    # AI Service - ODH
+    # -------------------------------------------------------------------------
+    - name: aiservice_odh_model_deployment_type
+      value: "{{ aiservice_odh_model_deployment_type }}"
+
+    # AI Service - watsonX
+    # -------------------------------------------------------------------------
+    - name: aiservice_watsonxai_apikey
+      value: "{{ aiservice_watsonxai_apikey }}"
+    - name: aiservice_watsonxai_url
+      value: "{{ aiservice_watsonxai_url }}"
+    - name: aiservice_watsonxai_project_id
+      value: "{{ aiservice_watsonxai_project_id }}"
+    - name: aiservice_watsonx_action
+      value: "{{ aiservice_watsonx_action }}"
+    - name: aiservice_watsonxai_ca_crt
+      value: "{{ aiservice_watsonxai_ca_crt }}"
+    - name: aiservice_watsonxai_instance_id
+      value: "{{ aiservice_watsonxai_instance_id }}"
+    - name: aiservice_watsonxai_username
+      value: "{{ aiservice_watsonxai_username }}"
+    - name: aiservice_watsonxai_version
+      value: "{{ aiservice_watsonxai_version }}"
+    - name: aiservice_watsonxai_deployment_id
+      value: "{{ aiservice_watsonxai_deployment_id }}"
+    - name: aiservice_watsonxai_space_id
+      value: "{{ aiservice_watsonxai_space_id }}"
+    - name: aiservice_watsonxai_on_prem
+      value: "{{ aiservice_watsonxai_on_prem }}"
 {%- endif %}
 
   workspaces:

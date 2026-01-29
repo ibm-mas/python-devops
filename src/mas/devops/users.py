@@ -21,14 +21,40 @@ import re
 
 
 class MASUserUtils():
-    '''
-    A collection of utilities for interacting with the MAS Core V3 User APIs and related APIs.
-    Each instance of this class is tied to a specific MAS instance and workspace ID.
-    '''
+    """
+    Utility class for managing IBM Maximo Application Suite (MAS) users and permissions.
+
+    This class provides a comprehensive set of methods for interacting with MAS Core V3 User APIs,
+    including user creation, workspace management, application permissions, and Manage-specific
+    operations. Each instance is bound to a specific MAS instance and workspace.
+
+    The class handles authentication, TLS certificates, and API interactions with:
+    - MAS Core API (user management, workspaces, applications)
+    - MAS Admin Dashboard (authentication)
+    - Manage API (API keys, security groups)
+
+    Attributes:
+        MAXADMIN (str): Constant for the MAXADMIN user identifier.
+        mas_instance_id (str): The MAS instance identifier.
+        mas_workspace_id (str): The workspace identifier within the MAS instance.
+        mas_core_namespace (str): Kubernetes namespace for MAS core components.
+        manage_namespace (str): Kubernetes namespace for Manage application.
+    """
 
     MAXADMIN = "MAXADMIN"
 
     def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
+        """
+        Initialize MASUserUtils for a specific MAS instance and workspace.
+
+        Args:
+            mas_instance_id (str): The MAS instance identifier (e.g., "inst1").
+            mas_workspace_id (str): The workspace identifier (e.g., "masdev").
+            k8s_client (client.api_client.ApiClient): Kubernetes API client for cluster operations.
+            coreapi_port (int, optional): Port for MAS Core API internal service. Defaults to 443.
+            admin_dashboard_port (int, optional): Port for Admin Dashboard internal service. Defaults to 443.
+            manage_api_port (int, optional): Port for Manage API internal service. Defaults to 443.
+        """
         self.mas_instance_id = mas_instance_id
         self.mas_workspace_id = mas_workspace_id
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -164,6 +190,18 @@ class MASUserUtils():
         return self._mas_workspace_application_ids
 
     def get_user(self, user_id):
+        """
+        Retrieve a user's details from MAS Core API.
+
+        Args:
+            user_id (str): The unique identifier of the user to retrieve.
+
+        Returns:
+            dict: User details dictionary if found, None if user doesn't exist (404).
+
+        Raises:
+            Exception: If the API returns an unexpected status code.
+        """
         self.logger.debug(f"Getting user {user_id}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
         headers = {
@@ -185,42 +223,23 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def get_or_create_user(self, payload):
-        '''
-        User is identified by payload["id"] field
-        If user already exists, return their record. No attempt will be made to update the user if other fields of the payload differ from the existing user.
-        Otherwise, the user will be created.
+        """
+        Get an existing user or create a new one if not found.
 
-        Example payload:
-            {
-                "id": user_id,
-                "status": {"active": True},
-                "username": username,
-                "token": password,
-                "owner": "local",
-                "emails": [
-                    {
-                        "value": email,
-                        "type": "Work",
-                        "primary": True
-                    }
-                ],
-                "displayName": display_name,
-                "issuer": "local",
-                "permissions": {
-                    "systemAdmin": True,
-                    "userAdmin": True,
-                    "apikeyAdmin": True
-                },
-                "entitlement": {
-                    "application": "PREMIUM",
-                    "admin": "ADMIN_PREMIUM",
-                    "alwaysReserveLicense": True
-                },
-                "title": title,
-                "givenName": given_name,
-                "familyName": family_name
-            }
-        '''
+        This method is idempotent - if the user already exists (identified by payload["id"]),
+        their existing record is returned without modification. If the user doesn't exist,
+        they are created with the provided payload.
+
+        Args:
+            payload (dict): User definition dictionary containing user details.
+                          Must include "id" field as the unique identifier.
+
+        Returns:
+            dict: The user record (either existing or newly created).
+
+        Raises:
+            Exception: If user creation fails with an unexpected status code.
+        """
         existing_user = self.get_user(payload["id"])
 
         if existing_user is not None:
@@ -253,6 +272,19 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def update_user(self, payload):
+        """
+        Update an existing user's details.
+
+        Args:
+            payload (dict): User definition dictionary with updated fields.
+                          Must include "id" field to identify the user.
+
+        Returns:
+            dict: Updated user record.
+
+        Raises:
+            Exception: If the update fails or user doesn't exist.
+        """
         user_id = payload["id"]
         self.logger.debug(f"Updating user {user_id}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -273,6 +305,22 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def update_user_display_name(self, user_id, display_name):
+        """
+        Update only the display name of a user.
+
+        This method performs a partial update (PATCH) to modify just the displayName field,
+        reducing the risk of race conditions from concurrent updates.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            display_name (str): The new display name for the user.
+
+        Returns:
+            dict: Updated user record.
+
+        Raises:
+            Exception: If the update fails or user doesn't exist.
+        """
         self.logger.debug(f"Updating user display name {user_id} to {display_name}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
         headers = {
@@ -294,10 +342,28 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def link_user_to_local_idp(self, user_id, email_password=False):
-        '''
-        Checks if user already has a local identity, no-op if so.
-        Assumes user exists, raises if not
-        '''
+        """
+        Link a user to the local identity provider (IDP).
+
+        This method is idempotent - if the user already has a local identity, no action is taken.
+        The method creates a local authentication identity for the user, enabling them to log in
+        with username/password.
+
+        Args:
+            user_id (str): The unique identifier of the user to link.
+            email_password (bool, optional): Whether to enable email/password authentication.
+                                            Defaults to False.
+
+        Returns:
+            None: Always returns None (authentication token is not exposed).
+
+        Raises:
+            Exception: If the user doesn't exist or the linking operation fails.
+
+        Note:
+            The API response contains a generated user token which is intentionally not logged
+            or returned for security reasons.
+        """
 
         # For the sake of idempotency, check if the user already has a local identity
         user = self.get_user(user_id)
@@ -335,9 +401,18 @@ class MASUserUtils():
         return None
 
     def get_user_workspaces(self, user_id):
-        '''
-        Assumes user exists, raises if not.
-        '''
+        """
+        Retrieve all workspaces that a user has access to.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+
+        Returns:
+            list: List of workspace dictionaries the user has access to.
+
+        Raises:
+            Exception: If the user doesn't exist (404) or the API call fails.
+        """
         self.logger.debug(f"Getting workspaces for user {user_id}")
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}/workspaces"
         headers = {
@@ -359,9 +434,23 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def add_user_to_workspace(self, user_id, is_workspace_admin=False):
-        '''
-        No-op if user is already a member of the workspace. No attempt will be made to update their existing is_workspace_admin flag if it differs.
-        '''
+        """
+        Add a user to the configured workspace.
+
+        This method is idempotent - if the user is already a member of the workspace,
+        no action is taken. The existing workspace admin flag is not updated if it differs.
+
+        Args:
+            user_id (str): The unique identifier of the user to add.
+            is_workspace_admin (bool, optional): Whether to grant workspace admin permissions.
+                                                Defaults to False.
+
+        Returns:
+            None: Returns None on success.
+
+        Raises:
+            Exception: If the operation fails.
+        """
         workspaces = self.get_user_workspaces(user_id)
         for workspace in workspaces:
             if "id" in workspace and workspace["id"] == self.mas_workspace_id:
@@ -394,6 +483,19 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def get_user_application_permissions(self, user_id, application_id):
+        """
+        Retrieve a user's permissions for a specific MAS application.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            application_id (str): The MAS application identifier (e.g., "manage", "health").
+
+        Returns:
+            dict: User's application permissions if they exist, None if not found (404).
+
+        Raises:
+            Exception: If the API call fails with an unexpected status code.
+        """
         self.logger.debug(f"Getting user {user_id} permissions for application {application_id}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
         headers = {
@@ -415,9 +517,23 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def set_user_application_permission(self, user_id, application_id, role):
-        '''
-        No-op if user already has a role established for the application. No attempt will be made to update the role if it differs.
-        '''
+        """
+        Set a user's role for a specific MAS application.
+
+        This method is idempotent - if the user already has permissions for the application,
+        no action is taken. The existing role is not updated if it differs.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            application_id (str): The MAS application identifier (e.g., "manage", "health").
+            role (str): The role to assign (e.g., "ADMIN", "USER", "MANAGEUSER").
+
+        Returns:
+            None: Returns None on success.
+
+        Raises:
+            Exception: If the operation fails.
+        """
 
         existing_permissions = self.get_user_application_permissions(user_id, application_id)
 
@@ -449,6 +565,25 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def check_user_sync(self, user_id, application_id, timeout_secs=60 * 10, retry_interval_secs=5):
+        """
+        Wait for a user's sync status to reach SUCCESS for a specific application.
+
+        This method polls the user's sync state for the given application and waits until
+        it reaches "SUCCESS" status. If the sync state is "ERROR" or missing, it triggers
+        a resync operation.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            application_id (str): The MAS application identifier to check sync status for.
+            timeout_secs (int, optional): Maximum time to wait in seconds. Defaults to 600 (10 minutes).
+            retry_interval_secs (int, optional): Time between retry attempts in seconds. Defaults to 5.
+
+        Returns:
+            None: Returns when sync status reaches SUCCESS.
+
+        Raises:
+            Exception: If sync doesn't complete within the timeout period.
+        """
         t_end = time.time() + timeout_secs
         self.logger.info(f"Awaiting user {user_id} sync status \"SUCCESS\" for app {application_id}: {t_end - time.time():.2f} seconds remaining")
         while time.time() < t_end:
@@ -472,6 +607,23 @@ class MASUserUtils():
         raise Exception(f"User {user_id} sync failed to complete for app within {timeout_secs} seconds")
 
     def resync_users(self, user_ids):
+        """
+        Trigger a resync operation for one or more users.
+
+        This method forces MAS to resynchronize user data across applications. It performs
+        a no-op update to each user's display name to trigger the sync mechanism, which is
+        compatible with all MAS versions.
+
+        Args:
+            user_ids (list): List of user identifiers to resync.
+
+        Returns:
+            None
+
+        Note:
+            The "/v3/users/utils/resync" API is only available in MAS Core >= 9.1.
+            This implementation uses a no-op profile update for backward compatibility.
+        """
         self.logger.info(f"Issuing resync request(s) for user(s) {user_ids}")
 
         # The "/v3/users/utils/resync" API is only available in MAS Core >= 9.1 (coreapi >= 25.2.3)
@@ -485,10 +637,24 @@ class MASUserUtils():
             self.update_user_display_name(user_id, user["displayName"])
 
     def create_or_get_manage_api_key_for_user(self, user_id, temporary=False):
-        '''
-        Get singleton API for user_id if it already exists, create it if not
-        if temporary is True AND we created the API key, delete it on exit
-        '''
+        """
+        Get or create a Manage API key for a user.
+
+        This method retrieves an existing API key for the user or creates a new one if none exists.
+        Only one API key is allowed per user in Manage. If temporary is True and a new key is created,
+        it will be automatically deleted when the program exits.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            temporary (bool, optional): If True and a new key is created, delete it on program exit.
+                                       Defaults to False.
+
+        Returns:
+            dict: The Manage API key record containing the apikey value and metadata.
+
+        Raises:
+            Exception: If API key creation/retrieval fails or if the key is unexpectedly not found.
+        """
         self.logger.debug(f"Attempting to create Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
         querystring = {
@@ -547,6 +713,18 @@ class MASUserUtils():
         return apikey
 
     def get_manage_api_key_for_user(self, user_id):
+        """
+        Retrieve the Manage API key for a specific user.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+
+        Returns:
+            dict: The API key record if found, None if no API key exists for the user.
+
+        Raises:
+            Exception: If the API call fails.
+        """
         self.logger.debug(f"Getting Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
         querystring = {
@@ -578,6 +756,18 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def delete_manage_api_key(self, manage_api_key):
+        """
+        Delete a Manage API key.
+
+        Args:
+            manage_api_key (dict): The API key record to delete (must contain 'href' and 'userid').
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If deletion fails (except for 404 which is treated as success).
+        """
         self.logger.info(f"Deleting Manage API Key for user {manage_api_key['userid']}")
 
         # extract the apikey's identifier from the href
@@ -607,6 +797,19 @@ class MASUserUtils():
             raise Exception(f"{response.status_code} {response.text}")
 
     def get_manage_group_id(self, group_name, manage_api_key):
+        """
+        Get the internal ID for a Manage security group by name.
+
+        Args:
+            group_name (str): The name of the Manage security group (e.g., "MAXADMIN").
+            manage_api_key (dict): API key record with 'apikey' field for authentication.
+
+        Returns:
+            str: The maxgroupid if found, None if the group doesn't exist.
+
+        Raises:
+            Exception: If the API call fails.
+        """
         self.logger.debug(f"Getting ID for Manage group with name {group_name}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup"
         querystring = {
@@ -636,6 +839,20 @@ class MASUserUtils():
         return None
 
     def is_user_in_manage_group(self, group_name, user_id, manage_api_key):
+        """
+        Check if a user is a member of a Manage security group.
+
+        Args:
+            group_name (str): The name of the Manage security group.
+            user_id (str): The unique identifier of the user.
+            manage_api_key (dict): API key record with 'apikey' field for authentication.
+
+        Returns:
+            bool: True if the user is a member of the group, False otherwise.
+
+        Raises:
+            Exception: If the group doesn't exist or the API call fails.
+        """
         self.logger.debug(f"Checking if {user_id} is a member of Manage group with name {group_name}")
 
         group_id = self.get_manage_group_id(group_name, manage_api_key)
@@ -667,9 +884,23 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def add_user_to_manage_group(self, user_id, group_name, manage_api_key):
-        '''
-        No-op if user_id is already a member of the manage security group
-        '''
+        """
+        Add a user to a Manage security group.
+
+        This method is idempotent - if the user is already a member of the group,
+        no action is taken.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            group_name (str): The name of the Manage security group.
+            manage_api_key (dict): API key record with 'apikey' field for authentication.
+
+        Returns:
+            None: Returns None on success.
+
+        Raises:
+            Exception: If the operation fails.
+        """
 
         if self.is_user_in_manage_group(group_name, user_id, manage_api_key):
             self.logger.info(f"User {user_id} is already a member of Manage Security Group {group_name}")
@@ -710,6 +941,15 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def get_mas_applications_in_workspace(self):
+        """
+        Retrieve all MAS applications configured in the workspace.
+
+        Returns:
+            list: List of application dictionaries with details like id, status, etc.
+
+        Raises:
+            Exception: If the API call fails.
+        """
         self.logger.debug(f"Getting MAS Applications in workspace {self.mas_workspace_id}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications"
         headers = {
@@ -726,6 +966,18 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def get_mas_application_availability(self, mas_application_id):
+        """
+        Get the availability status of a specific MAS application.
+
+        Args:
+            mas_application_id (str): The MAS application identifier (e.g., "manage", "health").
+
+        Returns:
+            dict: Application details including 'ready' and 'available' status flags.
+
+        Raises:
+            Exception: If the API call fails.
+        """
         self.logger.debug(f"Getting availability of MAS Application {mas_application_id} in workspace {self.mas_workspace_id}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{mas_application_id}"
         headers = {
@@ -742,6 +994,22 @@ class MASUserUtils():
         raise Exception(f"{response.status_code} {response.text}")
 
     def await_mas_application_availability(self, mas_application_id, timeout_secs=60 * 10, retry_interval_secs=5):
+        """
+        Wait for a MAS application to become ready and available.
+
+        This method polls the application status until both 'ready' and 'available' flags are True.
+
+        Args:
+            mas_application_id (str): The MAS application identifier.
+            timeout_secs (int, optional): Maximum time to wait in seconds. Defaults to 600 (10 minutes).
+            retry_interval_secs (int, optional): Time between retry attempts in seconds. Defaults to 5.
+
+        Returns:
+            None: Returns when the application is ready and available.
+
+        Raises:
+            Exception: If the application doesn't become available within the timeout period.
+        """
         t_end = time.time() + timeout_secs
         self.logger.info(f"Waiting for {mas_application_id} to become ready and available: {t_end - time.time():.2f} seconds remaining")
         while time.time() < t_end:
@@ -754,22 +1022,45 @@ class MASUserUtils():
         raise Exception(f"{mas_application_id} did not become ready and available in time, aborting")
 
     def parse_initial_users_from_aws_secret_json(self, secret_json):
+        """
+        Parse user definitions from AWS Secrets Manager JSON format.
+
+        This method converts a JSON structure from AWS Secrets Manager into the internal
+        user definition format used by create_initial_users_for_saas.
+
+        Args:
+            secret_json (dict): Dictionary where keys are email addresses and values are
+                               CSV strings in format: "user_type,given_name,family_name[,id]"
+                               where user_type is "primary" or "secondary".
+
+        Returns:
+            dict: Parsed user structure with 'users' key containing 'primary' and 'secondary' lists.
+
+        Raises:
+            Exception: If CSV format is invalid or user_type is not "primary" or "secondary".
+        """
         primary = []
         secondary = []
         for (email, csv) in secret_json.items():
             values = csv.split(",")
 
-            if len(values) != 3:
-                raise Exception(f"Wrong number of CSV values for {email} (expected 3 but got {len(values)})")
+            if len(values) != 3 and len(values) != 4:
+                raise Exception(f"Wrong number of CSV values for {email} (expected 3 or 4 but got {len(values)})")
 
             user_type = values[0].strip()
             given_name = values[1].strip()
             family_name = values[2].strip()
 
+            if len(values) == 4:
+                id = values[3].strip()
+            else:
+                id = email
+
             user = {
                 "email": email,
                 "given_name": given_name,
-                "family_name": family_name
+                "family_name": family_name,
+                "id": id
             }
             if user_type == "primary":
                 primary.append(user)
@@ -787,6 +1078,31 @@ class MASUserUtils():
         return initial_users
 
     def create_initial_users_for_saas(self, initial_users):
+        """
+        Create and configure initial users for a SaaS MAS environment.
+
+        This method processes a list of primary and secondary users, creating them in MAS Core,
+        linking them to the local IDP, adding them to the workspace, setting application permissions,
+        and adding them to Manage security groups. It ensures all applications are ready before
+        proceeding and waits for user sync to complete.
+
+        Args:
+            initial_users (dict): Dictionary with structure:
+                                 {
+                                     "users": {
+                                         "primary": [list of user dicts],
+                                         "secondary": [list of user dicts]
+                                     }
+                                 }
+                                 Each user dict must contain: email, given_name, family_name
+                                 Optional: id (defaults to email if not provided)
+
+        Returns:
+            dict: Summary with 'completed' and 'failed' lists of user records.
+
+        Raises:
+            Exception: If input validation fails.
+        """
 
         # Validate input
         if "users" not in initial_users:
@@ -817,7 +1133,7 @@ class MASUserUtils():
         for primary_user in primary_users:
             self.logger.info("")
             try:
-                self.logger.info(f"Syncing primary user {primary_user['email']}")
+                self.logger.info(f"Syncing primary user with email {primary_user['email']}")
                 self.create_initial_user_for_saas(primary_user, "PRIMARY")
                 completed.append(primary_user)
                 self.logger.info(f"Completed sync of primary user {primary_user['email']}")
@@ -829,7 +1145,7 @@ class MASUserUtils():
             self.logger.info("")
             try:
                 self.logger.info("")
-                self.logger.info(f"Syncing secondary user {secondary_user['email']}")
+                self.logger.info(f"Syncing secondary user with email {secondary_user['email']}")
                 self.create_initial_user_for_saas(secondary_user, "SECONDARY")
                 completed.append(secondary_user)
                 self.logger.info(f"Completed sync of secondary user {secondary_user['email']}")
@@ -844,6 +1160,46 @@ class MASUserUtils():
         }
 
     def create_initial_user_for_saas(self, user, user_type):
+        """
+        Create and fully configure a single initial user for SaaS.
+
+        This method performs the complete user setup workflow:
+        1. Creates the user in MAS Core with appropriate permissions and entitlements
+        2. Links the user to the local identity provider
+        3. Adds the user to the workspace
+        4. Sets application-specific roles
+        5. Waits for user sync to complete across all applications
+        6. Adds user to Manage security groups (if applicable)
+
+        Args:
+            user (dict): User definition containing:
+                        - email (str, required): User's email address
+                        - given_name (str, required): User's first name
+                        - family_name (str, required): User's last name
+                        - id (str, optional): User ID (defaults to email)
+            user_type (str): Either "PRIMARY" or "SECONDARY" to determine permissions level.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If required fields are missing or user creation fails.
+
+        Note:
+            PRIMARY users get:
+            - userAdmin permission
+            - PREMIUM application entitlement
+            - Workspace admin access
+            - ADMIN role for most apps, MANAGEUSER for Manage
+            - MAXADMIN security group membership
+
+            SECONDARY users get:
+            - No admin permissions
+            - BASE application entitlement
+            - Regular workspace access
+            - USER role for most apps, MANAGEUSER for Manage
+            - No security group memberships
+        """
         if "email" not in user:
             raise Exception("'email' not found in at least one of the user defs")
         if "given_name" not in user:
@@ -855,8 +1211,13 @@ class MASUserUtils():
         user_given_name = user["given_name"]
         user_family_name = user["family_name"]
 
-        user_id = user_email
-        username = user_email
+        if "id" in user:
+            user_id = user["id"]
+        else:
+            # default to email if no id provided
+            user_id = user_email
+
+        username = user_id
         # display_name = re.search('^([^@]+)@', user_email).group(1) # local part of the email
         display_name = f"{user_given_name} {user_family_name}"
 
@@ -874,6 +1235,8 @@ class MASUserUtils():
             }
             is_workspace_admin = True
             application_role = "ADMIN"
+            facilities_role = "PREMIUM"
+            manage_role = "MANAGEUSER"
             # TODO: check which security groups primary users should be members of
             manage_security_groups = ["MAXADMIN"]
         elif user_type == "SECONDARY":
@@ -889,6 +1252,8 @@ class MASUserUtils():
             }
             is_workspace_admin = False
             application_role = "USER"
+            facilities_role = "BASE"
+            manage_role = "MANAGEUSER"
             # TODO: check which security groups secondary users should be members of
             manage_security_groups = []
         else:
@@ -906,6 +1271,8 @@ class MASUserUtils():
                     "primary": True
                 }
             ],
+            "phoneNumbers": [],
+            "addresses": [],
             "displayName": display_name,
             "issuer": "local",
             "permissions": permissions,
@@ -921,8 +1288,9 @@ class MASUserUtils():
         for mas_application_id in self.mas_workspace_application_ids:
             self.await_mas_application_availability(mas_application_id)
             if mas_application_id == "manage":
-                # special case for manage; role is always "MANAGEUSER"
-                role = "MANAGEUSER"
+                role = manage_role
+            elif mas_application_id == "facilities":
+                role = facilities_role
             else:
                 # otherwise grant the user the appropriate role for their user_type
                 role = application_role

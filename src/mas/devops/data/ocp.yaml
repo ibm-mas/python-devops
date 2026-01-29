@@ -1,0 +1,58 @@
+---
+# OpenShift Container Platform Lifecycle Data
+# -----------------------------------------------------------------------------
+# This file contains the lifecycle information for OpenShift Container Platform
+# versions, including General Availability dates, Standard Support end dates,
+# and Extended Update Support (EUS) end dates.
+#
+# Data source: Red Hat OpenShift Container Platform Life Cycle Policy
+# https://access.redhat.com/support/policy/updates/openshift/
+
+ocp_versions:
+  "4.19":
+    ga_date: "June 17, 2025"
+    standard_support: "December 17, 2026"
+    extended_support: "N/A"
+
+  "4.18":
+    ga_date: "February 25, 2025"
+    standard_support: "GA of 4.19 + 3 Months"
+    extended_support: "August 25, 2026"
+
+  "4.17":
+    ga_date: "October 1, 2024"
+    standard_support: "May 25, 2025"
+    extended_support: "April 1, 2026"
+
+  "4.16":
+    ga_date: "June 27, 2024"
+    standard_support: "December 27, 2025"
+    extended_support: "June 27, 2027"
+
+  "4.15":
+    ga_date: "February 27, 2024"
+    standard_support: "August 27, 2025"
+    extended_support: "N/A"
+
+  "4.14":
+    ga_date: "October 31, 2023"
+    standard_support: "May 1, 2025"
+    extended_support: "October 31, 2026"
+
+  "4.13":
+    ga_date: "May 17, 2023"
+    standard_support: "November 17, 2024"
+    extended_support: "N/A"
+
+  "4.12":
+    ga_date: "January 17, 2023"
+    standard_support: "July 17, 2024"
+    extended_support: "January 17, 2025"
+
+# Notes:
+# - Standard Support: 18 months from GA date
+# - Extended Support (EUS): Additional 6 months available for purchase
+# - EUS is included with Premium subscriptions
+# - Not all versions have EUS available
+
+# Made with Bob
