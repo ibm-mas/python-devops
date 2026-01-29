@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 def configureTektonFeatureFlags(dynClient: DynamicClient) -> bool:
     """
     Configure Tekton feature flags to disable coschedule (Affinity Assistant).
-    
+
     This prevents the "more than one PersistentVolumeClaim is bound" error when
     tasks use multiple PVCs with incompatible access modes.
-    
+
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
-    
+
     Returns:
         bool: True if configuration is successful, False otherwise
     """
@@ -44,34 +44,34 @@ def configureTektonFeatureFlags(dynClient: DynamicClient) -> bool:
         configMapAPI = dynClient.resources.get(api_version="v1", kind="ConfigMap")
         namespace = "openshift-pipelines"
         configMapName = "feature-flags"
-        
+
         # Get the existing ConfigMap
         try:
             featureFlags = configMapAPI.get(name=configMapName, namespace=namespace)
             logger.info(f"Found existing Tekton feature-flags ConfigMap in {namespace}")
-            
+
             # Update the coschedule setting
             if featureFlags.data is None:
                 featureFlags.data = {}
-            
+
             currentCoschedule = featureFlags.data.get("coschedule", "workspaces")
             if currentCoschedule != "disabled":
                 logger.info(f"Updating Tekton coschedule setting from '{currentCoschedule}' to 'disabled'")
                 featureFlags.data["coschedule"] = "disabled"
                 configMapAPI.patch(body=featureFlags, namespace=namespace)
                 logger.info("Successfully updated Tekton feature flags to disable coschedule")
-                
+
                 # Restart the Tekton controller to apply changes
                 logger.info("Restarting tekton-pipelines-controller to apply feature flag changes")
                 deploymentAPI = dynClient.resources.get(api_version="apps/v1", kind="Deployment")
                 controller = deploymentAPI.get(name="tekton-pipelines-controller", namespace=namespace)
-                
+
                 # Trigger a rollout by updating an annotation
                 if controller.spec.template.metadata.annotations is None:
                     controller.spec.template.metadata.annotations = {}
                 controller.spec.template.metadata.annotations["kubectl.kubernetes.io/restartedAt"] = datetime.now().isoformat()
                 deploymentAPI.patch(body=controller, namespace=namespace)
-                
+
                 # Wait for the controller to be ready
                 logger.debug("Waiting for tekton-pipelines-controller to be ready after restart")
                 foundReadyController = waitForDeployment(dynClient, namespace=namespace, deploymentName="tekton-pipelines-controller")
@@ -84,11 +84,11 @@ def configureTektonFeatureFlags(dynClient: DynamicClient) -> bool:
             else:
                 logger.info("Tekton coschedule is already set to 'disabled', no changes needed")
                 return True
-                
+
         except NotFoundError:
             logger.warning(f"ConfigMap {configMapName} not found in {namespace}, it may not exist yet")
             return False
-            
+
     except Exception as e:
         logger.error(f"Error configuring Tekton feature flags: {str(e)}")
         return False
