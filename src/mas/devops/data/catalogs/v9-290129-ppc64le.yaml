@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:dab28ed4e515a3794f0332b1c0dee762a2459bede7a4a8eeafabd750f3cbd278
+catalog_digest: sha256:16f3e2862d2be141c2993a5d83cb287ee987b2dc1380a4739ee78f31fd57124b
 
 ocp_compatibility:
 - 4.16
@@ -58,3 +58,4 @@ editorial:
     - IBM Maximo Manage v9.0 and v9.1
     - IBM Suite License Service v3.12
   known_issues: []
+    Note: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
