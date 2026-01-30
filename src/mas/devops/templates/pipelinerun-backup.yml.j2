@@ -23,6 +23,12 @@ spec:
     - name: mas_instance_id
       value: "{{ mas_instance_id }}"
 
+    {% if skip_pre_check is defined and skip_pre_check != "" %}
+    # Pipeline config
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+    {% endif %}
+
     # Backup Configuration
     - name: backup_version
       value: "{{ backup_version }}"
