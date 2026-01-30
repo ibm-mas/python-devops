@@ -827,6 +827,7 @@ def launchBackupPipeline(dynClient: DynamicClient, params: dict) -> str:
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{backupVersion}"
     return pipelineURL
 
+
 def launchRestorePipeline(dynClient: DynamicClient, params: dict) -> str:
     """
     Create a PipelineRun to restore a MAS instance.
