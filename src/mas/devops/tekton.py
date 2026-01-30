@@ -820,10 +820,11 @@ def launchBackupPipeline(dynClient: DynamicClient, params: dict) -> str:
         NotFoundError: If resources cannot be created
     """
     instanceId = params["mas_instance_id"]
+    backupVersion = params["backup_version"]
     namespace = f"mas-{instanceId}-pipelines"
-    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-backup", params)
+    launchPipelineRun(dynClient, namespace, "pipelinerun-backup", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{timestamp}"
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{backupVersion}"
     return pipelineURL
 
 
