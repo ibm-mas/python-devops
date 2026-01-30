@@ -827,6 +827,28 @@ def launchBackupPipeline(dynClient: DynamicClient, params: dict) -> str:
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{backupVersion}"
     return pipelineURL
 
+def launchRestorePipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to restore a MAS instance.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Backup/Restore parameters including instance ID and configuration
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
+    instanceId = params["mas_instance_id"]
+    restoreVersion = params["restore_version"]
+    namespace = f"mas-{instanceId}-pipelines"
+    launchPipelineRun(dynClient, namespace, "pipelinerun-restore", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-restore-{restoreVersion}"
+    return pipelineURL
+
 
 def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
                                    aiserviceInstanceId: str,
