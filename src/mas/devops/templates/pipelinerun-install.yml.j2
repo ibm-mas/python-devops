@@ -871,6 +871,14 @@ spec:
       value: "{{ aiservice_watsonxai_space_id }}"
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
+
+    # AI Service - watsonX
+    # -------------------------------------------------------------------------
+{%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
+    - name: aiservice_certificate_issuer
+      value: "{{ aiservice_certificate_issuer }}"
+{%- endif %}
+
 {%- endif %}
 
   workspaces:
