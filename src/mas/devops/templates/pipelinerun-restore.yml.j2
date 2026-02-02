@@ -66,6 +66,10 @@ spec:
     - name: sls_namespace
       value: "{{ sls_namespace }}"
     {% endif %}
+    {% if sls_domain is defined and sls_domain != "" %}
+    - name: sls_domain
+      value: "{{ sls_domain }}"
+    {% endif %}
 
     # DRO Configuration
     {% if dro_contact_email is defined and dro_contact_email != "" %}
@@ -94,6 +98,10 @@ spec:
     {% endif %}
 
     # Suite Restore Configuration
+    {% if include_slscfg_from_backup is defined and include_slscfg_from_backup != "" %}
+    - name: include_slscfg_from_backup
+      value: "{{ include_slscfg_from_backup }}"
+    {% endif %}
     {% if sls_url_on_restore is defined and sls_url_on_restore != "" %}
     - name: sls_url_on_restore
       value: "{{ sls_url_on_restore }}"
@@ -101,6 +109,10 @@ spec:
     {% if sls_cfg_file is defined and sls_cfg_file != "" %}
     - name: sls_cfg_file
       value: "{{ sls_cfg_file }}"
+    {% endif %}
+    {% if include_drocfg_from_backup is defined and include_drocfg_from_backup != "" %}
+    - name: include_drocfg_from_backup
+      value: "{{ include_drocfg_from_backup }}"
     {% endif %}
     {% if dro_url_on_restore is defined and dro_url_on_restore != "" %}
     - name: dro_url_on_restore
