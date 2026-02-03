@@ -16,6 +16,9 @@ spec:
     - name: shared-backups
       persistentVolumeClaim:
         claimName: backup-pvc
+    - name: restore-configurations
+      secret:
+        secretName: pipeline-restore-configs
   params:
     # Common Parameters
     - name: image_pull_policy
