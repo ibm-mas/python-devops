@@ -545,6 +545,7 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
         }
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
+
 def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
