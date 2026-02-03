@@ -97,17 +97,58 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None 
     return response.data.get("ok", False)
 
 
-def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, pipelineName: str, instanceId: str | None = None) -> bool:
-    """Send Slack notification about Ansible task completion status."""
-    namespace = os.getenv("PIPELINE_NAMESPACE", "")
+def notifyPipelineStart(channels: list[str], pipelineName: str, instanceId: str | None = None) -> bool:
+    """Send Slack notification about pipeline start and create thread."""
+    namespace = f"mas-{instanceId}-pipelines"
     pipelineRunName = os.getenv("PIPELINERUN_NAME", "")
+    if instanceId is None or instanceId == "":
+        print("instanceId must be set")
+        sys.exit(1)
     if namespace == "" or pipelineRunName == "":
         print("PIPELINE_NAMESPACE and PIPELINERUN_NAME env vars must be set")
         sys.exit(1)
-    # Check if this is the first task (no ConfigMap exists yet)
+    
+    # Check if thread already exists
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, pipelineRunName)
+    if threadInfo is not None:
+        print("Pipeline start notification already sent")
+        return True
+    
+    # Send pipeline started message
+    toolchainLink = _getToolchainLink()
+    instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
+    message = [
+        SlackUtil.buildHeader(f"🚀 MAS {pipelineName.title()} Pipeline Started"),
+        SlackUtil.buildSection(f"Pipeline Run: `{pipelineRunName}`{instanceInfo}\n{toolchainLink}")
+    ]
+    response = SlackUtil.postMessageBlocks(channels[0], message)
+    if response.data.get("ok", False):
+        threadId = response["ts"]
+        channelId = response["channel"]
+        # Store thread information in ConfigMap
+        SlackUtil.createThreadConfigMap(namespace, pipelineRunName, channelId, threadId, pipelineName)
+        return True
+    else:
+        print("Failed to send pipeline start Slack message")
+        return False
+
+
+def notifyAnsibleStart(channels: list[str], taskName: str, pipelineName: str, instanceId: str | None = None) -> bool:
+    """Send Slack notification about Ansible task start."""
+    namespace = f"mas-{instanceId}-pipelines"
+    pipelineRunName = os.getenv("PIPELINERUN_NAME", "")
+    if instanceId is None or instanceId == "":
+        print("instanceId must be set")
+        sys.exit(1)
+    if namespace == "" or pipelineRunName == "":
+        print("PIPELINE_NAMESPACE and PIPELINERUN_NAME env vars must be set")
+        sys.exit(1)
+    
+    # Get thread information, create if doesn't exist
     threadInfo = SlackUtil.getThreadConfigMap(namespace, pipelineRunName)
     if threadInfo is None:
-        # This is the first task - send pipeline started message
+        print("No thread found - creating pipeline start notification")
+        # Send pipeline started message
         toolchainLink = _getToolchainLink()
         instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
         message = [
@@ -126,8 +167,59 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, pipelineN
                 "pipelineName": pipelineName
             }
         else:
-            print("Failed to send initial Slack message")
+            print("Failed to send pipeline start Slack message")
             return False
+    
+    threadId = threadInfo.get("threadId")
+    channelId = threadInfo.get("channelId")
+    
+    # Send task start message as thread reply
+    taskMessage = [
+        SlackUtil.buildSection(f"⏳ **{taskName}** - Started")
+    ]
+    response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
+    if isinstance(response, list):
+        return all([res.data.get("ok", False) for res in response])
+    return response.data.get("ok", False)
+
+
+def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, pipelineName: str, instanceId: str | None = None) -> bool:
+    """Send Slack notification about Ansible task completion status."""
+    namespace = f"mas-{instanceId}-pipelines"
+    pipelineRunName = os.getenv("PIPELINERUN_NAME", "")
+    if instanceId is None or instanceId == "":
+        print("instanceId must be set")
+        sys.exit(1)
+    if namespace == "" or pipelineRunName == "":
+        print("PIPELINE_NAMESPACE and PIPELINERUN_NAME env vars must be set")
+        sys.exit(1)
+    
+    # Get thread information, create if doesn't exist
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, pipelineRunName)
+    if threadInfo is None:
+        print("No thread found - creating pipeline start notification")
+        # Send pipeline started message
+        toolchainLink = _getToolchainLink()
+        instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
+        message = [
+            SlackUtil.buildHeader(f"🚀 MAS {pipelineName.title()} Pipeline Started"),
+            SlackUtil.buildSection(f"Pipeline Run: `{pipelineRunName}`{instanceInfo}\n{toolchainLink}")
+        ]
+        response = SlackUtil.postMessageBlocks(channels[0], message)
+        if response.data.get("ok", False):
+            threadId = response["ts"]
+            channelId = response["channel"]
+            # Store thread information in ConfigMap
+            SlackUtil.createThreadConfigMap(namespace, pipelineRunName, channelId, threadId, pipelineName)
+            threadInfo = {
+                "threadId": threadId,
+                "channelId": channelId,
+                "pipelineName": pipelineName
+            }
+        else:
+            print("Failed to send pipeline start Slack message")
+            return False
+    
     # Send task completion message as thread reply
     threadId = threadInfo.get("threadId")
     channelId = threadInfo.get("channelId")
@@ -150,7 +242,7 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, pipelineN
 
 def notifyPipelineComplete(channels: list[str], rc: int, pipelineName: str, instanceId: str | None = None) -> bool:
     """Send Slack notification about pipeline completion and cleanup ConfigMap."""
-    namespace = os.getenv("PIPELINE_NAMESPACE", "")
+    namespace = f"mas-{instanceId}-pipelines"
     pipelineRunName = os.getenv("PIPELINERUN_NAME", "")
     if namespace == "" or pipelineRunName == "":
         print("PIPELINE_NAMESPACE and PIPELINERUN_NAME env vars must be set")
@@ -227,6 +319,10 @@ if __name__ == "__main__":
         notifyProvisionFyre(channelList, args.rc, args.msg)
     elif args.action == "ocp-provision-roks":
         notifyProvisionRoks(channelList, args.rc, args.msg)
+    elif args.action == "pipeline-start":
+        notifyPipelineStart(channelList, args.pipeline_name, args.instance_id)
+    elif args.action == "ansible-start":
+        notifyAnsibleStart(channelList, args.task_name, args.pipeline_name, args.instance_id)
     elif args.action == "ansible-complete":
         notifyAnsibleComplete(channelList, args.rc, args.task_name, args.pipeline_name, args.instance_id)
     elif args.action == "pipeline-complete":
