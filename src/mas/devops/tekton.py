@@ -862,9 +862,9 @@ def launchBackupPipeline(dynClient: DynamicClient, params: dict) -> str:
     instanceId = params["mas_instance_id"]
     backupVersion = params["backup_version"]
     namespace = f"mas-{instanceId}-pipelines"
-    launchPipelineRun(dynClient, namespace, "pipelinerun-backup", params)
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-backup", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{backupVersion}"
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{backupVersion}-{timestamp}"
     return pipelineURL
 
 
@@ -885,9 +885,9 @@ def launchRestorePipeline(dynClient: DynamicClient, params: dict) -> str:
     instanceId = params["mas_instance_id"]
     restoreVersion = params["restore_version"]
     namespace = f"mas-{instanceId}-pipelines"
-    launchPipelineRun(dynClient, namespace, "pipelinerun-restore", params)
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-restore", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-restore-{restoreVersion}"
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-restore-{restoreVersion}-{timestamp}"
     return pipelineURL
 
 

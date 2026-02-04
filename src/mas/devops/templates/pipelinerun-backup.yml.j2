@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  name: "{{ mas_instance_id }}-backup-{{ backup_version }}"
+  name: "{{ mas_instance_id }}-backup-{{ backup_version }}-{{ timestamp }}"
   labels:
     tekton.dev/pipeline: mas-backup
 spec:
