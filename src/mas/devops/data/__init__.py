@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -20,7 +20,11 @@ from glob import glob
 from os import path
 
 
-def getCatalog(name: str) -> dict | None:
+class NoSuchCatalogError(Exception):
+    pass
+
+
+def getCatalog(name: str) -> dict:
     """
     Load a specific IBM Operator Catalog definition by name.
 
@@ -32,7 +36,9 @@ def getCatalog(name: str) -> dict | None:
 
     Returns:
         dict: The catalog definition dictionary containing operator versions and metadata.
-              Returns None if the catalog file doesn't exist.
+
+    Raises:
+        NoSuchCatalogError: If the specified catalog does not exist.
     """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
@@ -40,13 +46,15 @@ def getCatalog(name: str) -> dict | None:
 
     pathToCatalog = path.join(modulePath, "catalogs", catalogFileName)
     if not path.exists(pathToCatalog):
-        return None
+        raise NoSuchCatalogError(
+            f"Catalog {name} is unknown: {pathToCatalog} does not exist"
+        )
 
     with open(pathToCatalog) as stream:
         return yaml.safe_load(stream)
 
 
-def listCatalogTags(arch="amd64") -> list:
+def listCatalogTags(arch="amd64") -> list[str]:
     """
     List all available IBM Operator Catalog tags for a specific architecture.
 
@@ -70,7 +78,7 @@ def listCatalogTags(arch="amd64") -> list:
     return result
 
 
-def getNewestCatalogTag(arch="amd64") -> str | None:
+def getNewestCatalogTag(arch="amd64") -> str:
     """
     Get the most recent IBM Operator Catalog tag for a specific architecture.
 
@@ -83,11 +91,13 @@ def getNewestCatalogTag(arch="amd64") -> str | None:
 
     Returns:
         str: The newest catalog tag (e.g., "v9-241205-amd64").
-             Returns None if no catalogs are found for the architecture.
+
+    Raises:
+        NoSuchCatalogError: If no catalogs are found for the specified architecture.
     """
     catalogs = listCatalogTags(arch)
     if len(catalogs) == 0:
-        return None
+        raise NoSuchCatalogError(f"There are no known catalogs for the {arch} platform")
     else:
         return catalogs[-1]
 
@@ -174,7 +184,5 @@ def getCatalogEditorial(catalogTag: str) -> dict | None:
               or has no editorial content.
     """
     catalog = getCatalog(catalogTag)
-    if not catalog:
-        return None
 
     return catalog.get("editorial")
