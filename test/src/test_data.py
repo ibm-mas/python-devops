@@ -20,9 +20,7 @@ import pytest
 def test_catalog():
     # We don't need to update this to the latest version each monthly update
     catalogData = getCatalog("v9-241107-amd64")
-    assert (
-        catalogData["catalog_digest"] == "sha256:2d470131ab6948d5262553547fafa1b472fa25690be5abba8719ad7493cd8911"
-    )
+    assert catalogData["catalog_digest"] == "sha256:2d470131ab6948d5262553547fafa1b472fa25690be5abba8719ad7493cd8911"
 
 
 def test_list_catalogs():
