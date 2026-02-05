@@ -137,6 +137,10 @@ db2u_filter: db2
 # ------------------------------------------------------------------------------
 amlen_extras_version: 1.1.3
 
+# Extra Images for CCS used for PCD 5.2.0 Hotfix
+# ------------------------------------------------------------------------------
+ccs_extras_version: 11.0.0
+
 # Default Cloud Pak for Data version
 # ------------------------------------------------------------------------------
 cpd_product_version_default: 5.2.0
