@@ -104,3 +104,63 @@ spec:
     - name: artifactory_repository
       value: "{{ artifactory_repository }}"
     {% endif %}
+
+    # Manage Application Backup Configuration
+    {% if backup_manage_app is defined and backup_manage_app != "" %}
+    - name: backup_manage_app
+      value: "{{ backup_manage_app }}"
+    {% endif %}
+    {% if backup_manage_db is defined and backup_manage_db != "" %}
+    - name: backup_manage_db
+      value: "{{ backup_manage_db }}"
+    {% endif %}
+    {% if mas_app_id is defined and mas_app_id != "" %}
+    - name: mas_app_id
+      value: "{{ mas_app_id }}"
+    {% endif %}
+    {% if mas_workspace_id is defined and mas_workspace_id != "" %}
+    - name: mas_workspace_id
+      value: "{{ mas_workspace_id }}"
+    {% endif %}
+    {% if mas_app_backup_version is defined and mas_app_backup_version != "" %}
+    - name: mas_app_backup_version
+      value: "{{ mas_app_backup_version }}"
+    {% endif %}
+
+    # Db2 Backup Configuration
+    {% if db2_namespace is defined and db2_namespace != "" %}
+    - name: db2_namespace
+      value: "{{ db2_namespace }}"
+    {% endif %}
+    {% if db2_instance_name is defined and db2_instance_name != "" %}
+    - name: db2_instance_name
+      value: "{{ db2_instance_name }}"
+    {% endif %}
+    {% if db2_backup_version is defined and db2_backup_version != "" %}
+    - name: db2_backup_version
+      value: "{{ db2_backup_version }}"
+    {% endif %}
+    {% if backup_type is defined and backup_type != "" %}
+    - name: backup_type
+      value: "{{ backup_type }}"
+    {% endif %}
+    {% if backup_vendor is defined and backup_vendor != "" %}
+    - name: backup_vendor
+      value: "{{ backup_vendor }}"
+    {% endif %}
+    {% if backup_s3_endpoint is defined and backup_s3_endpoint != "" %}
+    - name: backup_s3_endpoint
+      value: "{{ backup_s3_endpoint }}"
+    {% endif %}
+    {% if backup_s3_bucket is defined and backup_s3_bucket != "" %}
+    - name: backup_s3_bucket
+      value: "{{ backup_s3_bucket }}"
+    {% endif %}
+    {% if backup_s3_access_key is defined and backup_s3_access_key != "" %}
+    - name: backup_s3_access_key
+      value: "{{ backup_s3_access_key }}"
+    {% endif %}
+    {% if backup_s3_secret_key is defined and backup_s3_secret_key != "" %}
+    - name: backup_s3_secret_key
+      value: "{{ backup_s3_secret_key }}"
+    {% endif %}
