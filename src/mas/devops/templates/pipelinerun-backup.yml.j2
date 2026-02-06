@@ -104,3 +104,51 @@ spec:
     - name: artifactory_repository
       value: "{{ artifactory_repository }}"
     {% endif %}
+
+    # Manage Application Backup Configuration
+    {% if backup_manage_app is defined and backup_manage_app != "" %}
+    - name: backup_manage_app
+      value: "{{ backup_manage_app }}"
+    {% endif %}
+    {% if backup_manage_db is defined and backup_manage_db != "" %}
+    - name: backup_manage_db
+      value: "{{ backup_manage_db }}"
+    {% endif %}
+    {% if manage_workspace_id is defined and manage_workspace_id != "" %}
+    - name: manage_workspace_id
+      value: "{{ manage_workspace_id }}"
+    {% endif %}
+
+    # Manage Db2 Backup Configuration
+    {% if manage_db2_namespace is defined and manage_db2_namespace != "" %}
+    - name: manage_db2_namespace
+      value: "{{ manage_db2_namespace }}"
+    {% endif %}
+    {% if manage_db2_instance_name is defined and manage_db2_instance_name != "" %}
+    - name: manage_db2_instance_name
+      value: "{{ manage_db2_instance_name }}"
+    {% endif %}
+    {% if manage_db2_backup_type is defined and manage_db2_backup_type != "" %}
+    - name: manage_db2_backup_type
+      value: "{{ manage_db2_backup_type }}"
+    {% endif %}
+    {% if manage_db2_backup_vendor is defined and manage_db2_backup_vendor != "" %}
+    - name: manage_db2_backup_vendor
+      value: "{{ manage_db2_backup_vendor }}"
+    {% endif %}
+    {% if backup_s3_endpoint is defined and backup_s3_endpoint != "" %}
+    - name: backup_s3_endpoint
+      value: "{{ backup_s3_endpoint }}"
+    {% endif %}
+    {% if backup_s3_bucket is defined and backup_s3_bucket != "" %}
+    - name: backup_s3_bucket
+      value: "{{ backup_s3_bucket }}"
+    {% endif %}
+    {% if backup_s3_access_key is defined and backup_s3_access_key != "" %}
+    - name: backup_s3_access_key
+      value: "{{ backup_s3_access_key }}"
+    {% endif %}
+    {% if backup_s3_secret_key is defined and backup_s3_secret_key != "" %}
+    - name: backup_s3_secret_key
+      value: "{{ backup_s3_secret_key }}"
+    {% endif %}
