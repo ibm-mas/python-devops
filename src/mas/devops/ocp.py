@@ -632,3 +632,103 @@ def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username:
         "registry": registryUrl,
         "changed": True
     }
+
+
+
+def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControllerName: str = "default") -> bool:
+    """
+    Configure OpenShift IngressController for path-based routing.
+
+    Sets the namespaceOwnership to InterNamespaceAllowed on the specified IngressController,
+    which is required for path-based routing mode in MAS.
+
+    Args:
+        dynClient: OpenShift Dynamic Client
+        ingressControllerName (optional): Name of the IngressController to configure. Defaults to "default".
+
+    Returns:
+        bool: True if configuration was successful or already configured, False otherwise
+
+    Raises:
+        NotFoundError: If the IngressController resource cannot be found
+    """
+    logger.info(f"Configuring IngressController '{ingressControllerName}' for path-based routing")
+
+    try:
+        ingressControllerAPI = dynClient.resources.get(
+            api_version="operator.openshift.io/v1",
+            kind="IngressController"
+        )
+
+        try:
+            ingressController = ingressControllerAPI.get(
+                name=ingressControllerName,
+                namespace="openshift-ingress-operator"
+            )
+        except NotFoundError:
+            logger.error(f"IngressController '{ingressControllerName}' not found in namespace 'openshift-ingress-operator'")
+            return False
+
+        # Check current namespaceOwnership setting
+        currentPolicy = None
+        if hasattr(ingressController, 'spec') and hasattr(ingressController.spec, 'routeAdmission'):
+            if hasattr(ingressController.spec.routeAdmission, 'namespaceOwnership'):
+                currentPolicy = ingressController.spec.routeAdmission.namespaceOwnership
+
+        logger.debug(f"Current namespaceOwnership policy: {currentPolicy if currentPolicy else 'Not set'}")
+
+        # Check if already configured
+        if currentPolicy == "InterNamespaceAllowed":
+            logger.info(f"IngressController '{ingressControllerName}' is already configured with namespaceOwnership: InterNamespaceAllowed")
+            return True
+
+        # Patch the IngressController
+        logger.info(f"Patching IngressController '{ingressControllerName}' to enable InterNamespaceAllowed")
+        
+        patch = {
+            "spec": {
+                "routeAdmission": {
+                    "namespaceOwnership": "InterNamespaceAllowed"
+                }
+            }
+        }
+
+        ingressControllerAPI.patch(
+            body=patch,
+            name=ingressControllerName,
+            namespace="openshift-ingress-operator",
+            content_type="application/merge-patch+json"
+        )
+
+        # Wait for the change to be applied
+        maxRetries = 5
+        retryDelay = 5
+        
+        for attempt in range(maxRetries):
+            sleep(retryDelay)
+            try:
+                updatedController = ingressControllerAPI.get(
+                    name=ingressControllerName,
+                    namespace="openshift-ingress-operator"
+                )
+                
+                if (hasattr(updatedController, 'spec') and 
+                    hasattr(updatedController.spec, 'routeAdmission') and
+                    hasattr(updatedController.spec.routeAdmission, 'namespaceOwnership') and
+                    updatedController.spec.routeAdmission.namespaceOwnership == "InterNamespaceAllowed"):
+                    
+                    logger.info(f"Successfully configured IngressController '{ingressControllerName}' for path-based routing")
+                    return True
+                    
+            except NotFoundError:
+                logger.warning(f"IngressController '{ingressControllerName}' not found during verification (attempt {attempt + 1}/{maxRetries})")
+            
+            if attempt < maxRetries - 1:
+                logger.debug(f"Waiting for IngressController to reconcile (attempt {attempt + 1}/{maxRetries})")
+
+        logger.error(f"Failed to verify IngressController configuration after {maxRetries} attempts")
+        return False
+
+    except Exception as e:
+        logger.error(f"Failed to configure IngressController '{ingressControllerName}': {str(e)}")
+        return False
