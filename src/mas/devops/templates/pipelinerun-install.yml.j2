@@ -539,10 +539,6 @@ spec:
     - name: mas_ingress_controller_name
       value: "{{ mas_ingress_controller_name }}"
 {%- endif %}
-{%- if mas_configure_ingress is defined and mas_configure_ingress != "" %}
-    - name: mas_configure_ingress
-      value: "{{ mas_configure_ingress }}"
-{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
