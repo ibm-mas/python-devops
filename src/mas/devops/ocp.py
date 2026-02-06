@@ -634,7 +634,6 @@ def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username:
     }
 
 
-
 def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControllerName: str = "default") -> bool:
     """
     Configure OpenShift IngressController for path-based routing.
@@ -669,7 +668,6 @@ def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControl
             logger.error(f"IngressController '{ingressControllerName}' not found in namespace 'openshift-ingress-operator'")
             return False
 
-        # Check current namespaceOwnership setting
         currentPolicy = None
         if hasattr(ingressController, 'spec') and hasattr(ingressController.spec, 'routeAdmission'):
             if hasattr(ingressController.spec.routeAdmission, 'namespaceOwnership'):
@@ -677,14 +675,12 @@ def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControl
 
         logger.debug(f"Current namespaceOwnership policy: {currentPolicy if currentPolicy else 'Not set'}")
 
-        # Check if already configured
         if currentPolicy == "InterNamespaceAllowed":
             logger.info(f"IngressController '{ingressControllerName}' is already configured with namespaceOwnership: InterNamespaceAllowed")
             return True
 
-        # Patch the IngressController
         logger.info(f"Patching IngressController '{ingressControllerName}' to enable InterNamespaceAllowed")
-        
+
         patch = {
             "spec": {
                 "routeAdmission": {
@@ -700,10 +696,9 @@ def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControl
             content_type="application/merge-patch+json"
         )
 
-        # Wait for the change to be applied
         maxRetries = 5
         retryDelay = 5
-        
+
         for attempt in range(maxRetries):
             sleep(retryDelay)
             try:
@@ -711,18 +706,15 @@ def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControl
                     name=ingressControllerName,
                     namespace="openshift-ingress-operator"
                 )
-                
-                if (hasattr(updatedController, 'spec') and 
-                    hasattr(updatedController.spec, 'routeAdmission') and
-                    hasattr(updatedController.spec.routeAdmission, 'namespaceOwnership') and
-                    updatedController.spec.routeAdmission.namespaceOwnership == "InterNamespaceAllowed"):
-                    
+
+                if (hasattr(updatedController, 'spec') and hasattr(updatedController.spec, 'routeAdmission') and hasattr(updatedController.spec.routeAdmission, 'namespaceOwnership') and updatedController.spec.routeAdmission.namespaceOwnership == "InterNamespaceAllowed"):
+
                     logger.info(f"Successfully configured IngressController '{ingressControllerName}' for path-based routing")
                     return True
-                    
+
             except NotFoundError:
                 logger.warning(f"IngressController '{ingressControllerName}' not found during verification (attempt {attempt + 1}/{maxRetries})")
-            
+
             if attempt < maxRetries - 1:
                 logger.debug(f"Waiting for IngressController to reconcile (attempt {attempt + 1}/{maxRetries})")
 
