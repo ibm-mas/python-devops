@@ -129,6 +129,10 @@ mongo_extras_version_8: 8.0.17
 db2u_extras_version: 1.0.6 # No Update
 db2u_filter: db2
 
+# Extra Images for CCS used for PCD 5.2.0 Hotfix
+# ------------------------------------------------------------------------------
+ccs_extras_version: 11.0.0
+
 # Extra Images for IBM Watson Discovery
 # ------------------------------------------------------------------------------
 #wd_extras_version: 1.0.4
