@@ -24,23 +24,24 @@ class NoSuchCatalogError(Exception):
     pass
 
 
-def getCatalog(name: str) -> dict | None:
+def getCatalog(name: str) -> dict:
     """
     Load a specific IBM Operator Catalog definition by name.
 
     This function reads a catalog YAML file from the catalogs directory and returns
-    its contents as a dictionary. Special handling for "master" catalogs: returns None
-    to allow fallback to the newest catalog via Ansible playbook logic.
+    its contents as a dictionary. Special handling for dev/master catalogs: if a catalog
+    doesn't exist and matches dev patterns (master, branch names), automatically resolves
+    to the newest catalog for that architecture.
 
     Args:
         name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v8-240528-amd64", "v9-master-amd64").
 
     Returns:
         dict: The catalog definition dictionary containing operator versions and metadata.
-              Returns None for master catalogs to trigger fallback logic.
+              For dev catalogs, returns the newest catalog data for that architecture.
 
     Raises:
-        NoSuchCatalogError: If the specified catalog does not exist (except for master catalogs).
+        NoSuchCatalogError: If the specified catalog does not exist and is not a dev catalog pattern.
     """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
@@ -48,13 +49,30 @@ def getCatalog(name: str) -> dict | None:
 
     pathToCatalog = path.join(modulePath, "catalogs", catalogFileName)
     if not path.exists(pathToCatalog):
-        # Special handling for master catalogs - return None to trigger fallback
-        if "master" in name.lower():
-            return None
+        # Check if this looks like a dev catalog (master or branch name pattern)
+        parts = name.split("-")
+        if len(parts) >= 3:
+            middle_part = parts[1]   # e.g., "master", "branchname", or "241205"
+            arch = parts[-1]         # e.g., "amd64"
 
-        raise NoSuchCatalogError(
-            f"Catalog {name} is unknown: {pathToCatalog} does not exist"
-        )
+            # Validate catalog format
+            is_dev_catalog = not (middle_part.isdigit() and len(middle_part) == 6)
+
+            if is_dev_catalog:
+                try:
+                    newestCatalog = getNewestCatalogTag(arch)
+                    catalogFileName = f"{newestCatalog}.yaml"
+                    pathToCatalog = path.join(modulePath, "catalogs", catalogFileName)
+                except NoSuchCatalogError:
+                    raise NoSuchCatalogError(
+                        f"Catalog {name} appears to be a dev catalog, but no catalogs found for architecture {arch}"
+                    )
+
+        # Final check if the resolved path exists
+        if not path.exists(pathToCatalog):
+            raise NoSuchCatalogError(
+                f"Catalog {name} is unknown: {pathToCatalog} does not exist"
+            )
 
     with open(pathToCatalog) as stream:
         return yaml.safe_load(stream)
@@ -186,12 +204,7 @@ def getCatalogEditorial(catalogTag: str) -> dict | None:
 
     Returns:
         dict: Dictionary with 'whats_new' and 'known_issues' keys containing
-              structured lists. Returns None if catalog doesn't exist
-              or has no editorial content.
+              structured lists. Returns None if catalog has no editorial content.
     """
     catalog = getCatalog(catalogTag)
-
-    if catalog is None:
-        return None
-
     return catalog.get("editorial")
