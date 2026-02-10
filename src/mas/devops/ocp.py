@@ -414,6 +414,8 @@ def getClusterIssuer(dynClient: DynamicClient, name: str) -> str:
         return clusterIssuer
     except NotFoundError:
         return None
+
+
 def getStorageClassVolumeBindingMode(dynClient: DynamicClient, storageClassName: str) -> str:
     """
     Get the volumeBindingMode for a storage class.
