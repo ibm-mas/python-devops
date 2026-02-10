@@ -43,3 +43,27 @@ def test_get_newest_catalog_tag_fail():
 def test_get_catalog_fail():
     with pytest.raises(NoSuchCatalogError, match="Catalog nonexistent-catalog is unknown"):
         getCatalog("nonexistent-catalog")
+
+
+def test_get_dev_catalog_master():
+    """Test that master dev catalogs automatically resolve to newest catalog"""
+    catalogData = getCatalog("v9-master-amd64")
+    # Should resolve to newest catalog
+    newestCatalog = getCatalog(getNewestCatalogTag("amd64"))
+    assert catalogData == newestCatalog
+
+
+def test_get_dev_catalog_branch():
+    """Test that branch dev catalogs automatically resolve to newest catalog"""
+    catalogData = getCatalog("v9-feature-branch-amd64")
+    # Should resolve to newest catalog
+    newestCatalog = getCatalog(getNewestCatalogTag("amd64"))
+    assert catalogData == newestCatalog
+
+
+def test_get_dev_catalog_s390x():
+    """Test that dev catalogs work for different architectures"""
+    catalogData = getCatalog("v9-master-s390x")
+    # Should resolve to newest s390x catalog
+    newestCatalog = getCatalog(getNewestCatalogTag("s390x"))
+    assert catalogData == newestCatalog

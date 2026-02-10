@@ -29,9 +29,8 @@ def getCatalog(name: str) -> dict:
     Load a specific IBM Operator Catalog definition by name.
 
     This function reads a catalog YAML file from the catalogs directory and returns
-    its contents as a dictionary. Special handling for dev/master catalogs: if a catalog
-    doesn't exist and matches dev patterns (master, branch names), automatically resolves
-    to the newest catalog for that architecture.
+    its contents as a dictionary. Dev/master catalogs that don't exist will automatically
+    resolve to the newest catalog for that architecture.
 
     Args:
         name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v8-240528-amd64", "v9-master-amd64").
@@ -59,6 +58,7 @@ def getCatalog(name: str) -> dict:
             is_dev_catalog = not (middle_part.isdigit() and len(middle_part) == 6)
 
             if is_dev_catalog:
+                # This is a dev catalog, resolve to newest catalog for this architecture
                 try:
                     newestCatalog = getNewestCatalogTag(arch)
                     catalogFileName = f"{newestCatalog}.yaml"
