@@ -24,21 +24,23 @@ class NoSuchCatalogError(Exception):
     pass
 
 
-def getCatalog(name: str) -> dict:
+def getCatalog(name: str) -> dict | None:
     """
     Load a specific IBM Operator Catalog definition by name.
 
     This function reads a catalog YAML file from the catalogs directory and returns
-    its contents as a dictionary.
+    its contents as a dictionary. Special handling for "master" catalogs: returns None
+    to allow fallback to the newest catalog via Ansible playbook logic.
 
     Args:
-        name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v8-240528-amd64").
+        name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v8-240528-amd64", "v9-master-amd64").
 
     Returns:
         dict: The catalog definition dictionary containing operator versions and metadata.
+              Returns None for master catalogs to trigger fallback logic.
 
     Raises:
-        NoSuchCatalogError: If the specified catalog does not exist.
+        NoSuchCatalogError: If the specified catalog does not exist (except for master catalogs).
     """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
@@ -46,6 +48,10 @@ def getCatalog(name: str) -> dict:
 
     pathToCatalog = path.join(modulePath, "catalogs", catalogFileName)
     if not path.exists(pathToCatalog):
+        # Special handling for master catalogs - return None to trigger fallback
+        if "master" in name.lower():
+            return None
+
         raise NoSuchCatalogError(
             f"Catalog {name} is unknown: {pathToCatalog} does not exist"
         )
@@ -184,5 +190,8 @@ def getCatalogEditorial(catalogTag: str) -> dict | None:
               or has no editorial content.
     """
     catalog = getCatalog(catalogTag)
+
+    if catalog is None:
+        return None
 
     return catalog.get("editorial")
