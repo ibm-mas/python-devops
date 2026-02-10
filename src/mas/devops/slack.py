@@ -14,7 +14,7 @@ import os
 from slack_sdk import WebClient
 from slack_sdk.web.slack_response import SlackResponse
 from kubernetes import client, config
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -271,16 +271,15 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit divider element
         """
-    def createThreadConfigMap(cls, namespace: str, pipelineRunName: str, channelId: str, threadId: str, pipelineName: str) -> bool:
+    def createThreadConfigMap(cls, namespace: str, channelId: str, threadId: str, instanceId: str) -> bool:
         """
         Create a ConfigMap to store Slack thread information for a pipeline run.
 
         Parameters:
             namespace (str): Kubernetes namespace for the ConfigMap
-            pipelineRunName (str): Unique identifier for the pipeline run
             channelId (str): Slack channel ID where the thread was created
             threadId (str): Slack thread timestamp
-            pipelineName (str): Name of the pipeline (install/update/upgrade/uninstall)
+            instanceId (str): Name of the Mas Instance ID
 
         Returns:
             bool: True if ConfigMap was created successfully, False otherwise
@@ -292,7 +291,7 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{pipelineRunName}"
+            configmap_name = f"slack-thread-{instanceId}"
             configmap = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
                     name=configmap_name,
@@ -301,8 +300,8 @@ class SlackUtilMeta(type):
                 data={
                     "threadId": threadId,
                     "channelId": channelId,
-                    "pipelineName": pipelineName,
-                    "startTime": datetime.utcnow().isoformat() + "Z"
+                    "instanceId": instanceId,
+                    "startTime": datetime.now(timezone.utc)
                 }
             )
             v1.create_namespaced_config_map(namespace=namespace, body=configmap)
@@ -312,13 +311,13 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to create ConfigMap: {e}")
             return False
 
-    def getThreadConfigMap(cls, namespace: str, pipelineRunName: str) -> dict | None:
+    def getThreadConfigMap(cls, namespace: str, instanceId: str) -> dict | None:
         """
         Retrieve Slack thread information from a ConfigMap.
 
         Parameters:
             namespace (str): Kubernetes namespace containing the ConfigMap
-            pipelineRunName (str): Unique identifier for the pipeline run
+            instanceId (str): Unique identifier for the pipeline run
 
         Returns:
             dict | None: Dictionary containing threadId, channelId, pipelineName, and startTime, or None if not found
@@ -330,13 +329,13 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{pipelineRunName}"
+            configmap_name = f"slack-thread-{instanceId}"
             configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.debug(f"Retrieved ConfigMap {configmap_name} from namespace {namespace}")
             return configmap.data
         except client.exceptions.ApiException as e:
             if e.status == 404:
-                logger.debug(f"ConfigMap slack-thread-{pipelineRunName} not found in namespace {namespace}")
+                logger.debug(f"ConfigMap slack-thread-{instanceId} not found in namespace {namespace}")
             else:
                 logger.error(f"Failed to retrieve ConfigMap: {e}")
             return None
@@ -344,7 +343,7 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to retrieve ConfigMap: {e}")
             return None
 
-    def deleteThreadConfigMap(cls, namespace: str, pipelineRunName: str) -> bool:
+    def deleteThreadConfigMap(cls, namespace: str, instanceId: str) -> bool:
         """
         Delete the ConfigMap containing Slack thread information.
 
@@ -363,13 +362,13 @@ class SlackUtilMeta(type):
                 config.load_kube_config()
 
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{pipelineRunName}"
+            configmap_name = f"slack-thread-{instanceId}"
             v1.delete_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.info(f"Deleted ConfigMap {configmap_name} from namespace {namespace}")
             return True
         except client.exceptions.ApiException as e:
             if e.status == 404:
-                logger.warning(f"ConfigMap slack-thread-{pipelineRunName} not found in namespace {namespace}")
+                logger.warning(f"ConfigMap slack-thread-{instanceId} not found in namespace {namespace}")
             else:
                 logger.error(f"Failed to delete ConfigMap: {e}")
             return False
