@@ -414,6 +414,28 @@ def getClusterIssuer(dynClient: DynamicClient, name: str) -> str:
         return clusterIssuer
     except NotFoundError:
         return None
+def getStorageClassVolumeBindingMode(dynClient: DynamicClient, storageClassName: str) -> str:
+    """
+    Get the volumeBindingMode for a storage class.
+
+    Args:
+        dynClient: OpenShift dynamic client
+        storageClassName: Name of the storage class
+
+    Returns:
+        str: "Immediate" or "WaitForFirstConsumer" (defaults to "Immediate" if not found)
+    """
+    try:
+        storageClass = getStorageClass(dynClient, storageClassName)
+        if storageClass and hasattr(storageClass, 'volumeBindingMode'):
+            return storageClass.volumeBindingMode
+        # Default to Immediate if not specified (Kubernetes default)
+        logger.debug(f"Storage class {storageClassName} does not have volumeBindingMode set, defaulting to 'Immediate'")
+        return "Immediate"
+    except Exception as e:
+        logger.warning(f"Unable to determine volumeBindingMode for storage class {storageClassName}: {e}")
+        # Default to Immediate to maintain backward compatibility
+        return "Immediate"
 
 
 def isSNO(dynClient: DynamicClient) -> bool:

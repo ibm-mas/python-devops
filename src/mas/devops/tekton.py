@@ -22,7 +22,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClasses, getStorageClassVolumeBindingMode
 
 logger = logging.getLogger(__name__)
 
@@ -105,27 +105,61 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     # due to these resources not coming up, the MAS pre-install check in the pipeline times out checking the health of this statefulSet,
     # causing failure in pipeline.
     # Refer https://github.com/ibm-mas/cli/issues/1511
-    logger.debug("Waiting for postgredb-tekton-results-postgres-0 PVC to be ready")
-    foundReadyPVC = waitForPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
-    if foundReadyPVC:
-        logger.info("OpenShift Pipelines postgres is installed and ready")
+    logger.debug("Checking postgredb-tekton-results-postgres-0 PVC status")
+
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    pvcName = "postgredb-tekton-results-postgres-0"
+    pvcNamespace = "openshift-pipelines"
+
+    # Wait briefly for PVC to be created (max 5 minutes)
+    maxInitialRetries = 60
+    pvc = None
+    for retry in range(maxInitialRetries):
+        try:
+            pvc = pvcAPI.get(name=pvcName, namespace=pvcNamespace)
+            break
+        except NotFoundError:
+            if retry < maxInitialRetries - 1:
+                logger.debug(f"Waiting 5s for PVC {pvcName} to be created (attempt {retry + 1}/{maxInitialRetries})...")
+                sleep(5)
+
+    if pvc is None:
+        logger.error(f"PVC {pvcName} was not created after {maxInitialRetries * 5} seconds (5 minutes)")
+        return False
+
+    # Check if PVC is already bound
+    if pvc.status.phase == "Bound":
+        logger.info("OpenShift Pipelines postgres PVC is already bound and ready")
         return True
-    else:
+
+    # Check if PVC is pending without a storage class - needs immediate patching
+    if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
+        logger.info("PVC is pending without storage class, attempting to patch immediately...")
         tektonPVCisReady = addMissingStorageClassToTektonPVC(
             dynClient=dynClient,
-            namespace="openshift-pipelines",
-            pvcName="postgredb-tekton-results-postgres-0",
+            namespace=pvcNamespace,
+            pvcName=pvcName,
             storageClassName=customStorageClassName
         )
         if tektonPVCisReady:
             logger.info("OpenShift Pipelines postgres is installed and ready")
             return True
         else:
-            logger.error("OpenShift Pipelines postgres PVC is NOT ready")
+            logger.error("OpenShift Pipelines postgres PVC is NOT ready after patching")
             return False
 
+    # PVC exists with storage class but not bound yet - wait for it to bind
+    logger.debug(f"PVC has storage class '{pvc.spec.storageClassName}', waiting for it to be bound...")
+    foundReadyPVC = waitForPVC(dynClient, namespace=pvcNamespace, pvcName=pvcName)
+    if foundReadyPVC:
+        logger.info("OpenShift Pipelines postgres is installed and ready")
+        return True
+    else:
+        logger.error("OpenShift Pipelines postgres PVC is NOT ready")
+        return False
 
-def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str) -> bool:
+
+def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
     """
     OpenShift Pipelines has a problem when there is no default storage class defined in a cluster, this function
     patches the PVC used to store pipeline results to add a specific storage class into the PVC spec and waits for the
@@ -137,18 +171,49 @@ def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, 
     :type namespace: str
     :param pvcName: Name of the PVC that we want to fix
     :type pvcName: str
-    :param storageClassName: Name of the storage class that we want to update the PVC to reference
+    :param storageClassName: Name of the storage class that we want to update the PVC to reference (optional, will auto-select if not provided)
     :type storageClassName: str
-    :return: Description
+    :return: True if PVC is successfully patched and bound, False otherwise
     :rtype: bool
     """
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
+
     try:
         pvc = pvcAPI.get(name=pvcName, namespace=namespace)
+
+        # Check if PVC is pending and has no storage class
         if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
-            pvc.spec.storageClassName = storageClassName
+            # Determine which storage class to use
+            targetStorageClass = None
+
+            if storageClassName is not None:
+                # Verify the provided storage class exists
+                try:
+                    storageClassAPI.get(name=storageClassName)
+                    targetStorageClass = storageClassName
+                    logger.info(f"Using provided storage class '{storageClassName}' for PVC {pvcName}")
+                except NotFoundError:
+                    logger.warning(f"Provided storage class '{storageClassName}' not found, will try to detect available storage class")
+
+            # If no valid custom storage class, try to detect one
+            if targetStorageClass is None:
+                logger.warning("No storage class provided or provided storage class not found, attempting to use first available storage class")
+                storageClasses = getStorageClasses(dynClient)
+                if len(storageClasses) > 0:
+                    # Use the first available storage class
+                    targetStorageClass = storageClasses[0].metadata.name
+                    logger.info(f"Using first available storage class '{targetStorageClass}' for PVC {pvcName}")
+                else:
+                    logger.error(f"Unable to set storageClassName in PVC {pvcName}. No storage classes available in the cluster.")
+                    return False
+
+            # Patch the PVC with the storage class
+            pvc.spec.storageClassName = targetStorageClass
+            logger.info(f"Patching PVC {pvcName} with storageClassName: {targetStorageClass}")
             pvcAPI.patch(body=pvc, namespace=namespace)
 
+            # Wait for the PVC to be bound
             maxRetries = 60
             foundReadyPVC = False
             retries = 0
@@ -158,6 +223,7 @@ def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, 
                     patchedPVC = pvcAPI.get(name=pvcName, namespace=namespace)
                     if patchedPVC.status.phase == "Bound":
                         foundReadyPVC = True
+                        logger.info(f"PVC {pvcName} is now bound")
                     else:
                         logger.debug(f"Waiting 5s for PVC {pvcName} to be bound before checking again ...")
                         sleep(5)
@@ -166,6 +232,9 @@ def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, 
                     return False
 
             return foundReadyPVC
+        else:
+            logger.warning(f"PVC {pvcName} is not in Pending state or already has a storageClassName")
+            return pvc.status.phase == "Bound"
 
     except NotFoundError:
         logger.error(f"PVC {pvcName} does not exist")
@@ -245,18 +314,22 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         pvc = yaml.safe_load(renderedTemplate)
         pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
         pvcAPI.apply(body=pvc, namespace=namespace)
-
-    if instanceId is not None and waitForBind:
-        logger.debug("Waiting for PVC to be bound")
-        pvcIsBound = False
-        while not pvcIsBound:
-            configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
-            if configPVC.status.phase == "Bound":
-                pvcIsBound = True
-            else:
-                logger.debug("Waiting 15s before checking status of PVC again")
-                logger.debug(configPVC)
-                sleep(15)
+        # Automatically determine if we should wait for PVC binding based on storage class
+        volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
+        waitForBind = (volumeBindingMode == "Immediate")
+        if waitForBind:
+            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
+            pvcIsBound = False
+            while not pvcIsBound:
+                configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                if configPVC.status.phase == "Bound":
+                    pvcIsBound = True
+                else:
+                    logger.debug("Waiting 15s before checking status of PVC again")
+                    logger.debug(configPVC)
+                    sleep(15)
+        else:
+            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
 def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
@@ -306,8 +379,12 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
     pvcAPI.apply(body=pvc, namespace=namespace)
 
+    # Automatically determine if we should wait for PVC binding based on storage class
+    volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
+    waitForBind = (volumeBindingMode == "Immediate")
+
     if waitForBind:
-        logger.debug("Waiting for PVC to be bound")
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
         pvcIsBound = False
         while not pvcIsBound:
             configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
@@ -317,6 +394,8 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
                 logger.debug("Waiting 15s before checking status of PVC again")
                 logger.debug(configPVC)
                 sleep(15)
+    else:
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
 def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
