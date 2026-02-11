@@ -54,7 +54,7 @@ def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
         return len(masIDMS.items) + len(aiserviceIDMS.items) > 0
 
 
-def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
+def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
     """
     Detect and return default storage classes for the cluster environment.
 
