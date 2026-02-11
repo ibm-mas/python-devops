@@ -543,6 +543,18 @@ spec:
     - name: mas_configure_ingress
       value: "{{ mas_configure_ingress }}"
 {%- endif %}
+{%- if mas_deployment_progression is defined and mas_deployment_progression != "" %}
+    - name: mas_deployment_progression
+      value: "{{ mas_deployment_progression }}"
+{%- endif %}
+{%- if mas_usability_metrics is defined and mas_usability_metrics != "" %}
+    - name: mas_usability_metrics
+      value: "{{ mas_usability_metrics }}"
+{%- endif %}
+{%- if mas_feature_usage is defined and mas_feature_usage != "" %}
+    - name: mas_feature_usage
+      value: "{{ mas_feature_usage }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
