@@ -179,3 +179,57 @@ spec:
     - name: artifactory_repository
       value: "{{ artifactory_repository }}"
     {% endif %}
+
+    # Manage Application Restore Configuration
+    {% if restore_manage_app is defined and restore_manage_app != "" %}
+    - name: restore_manage_app
+      value: "{{ restore_manage_app }}"
+    {% endif %}
+    {% if restore_manage_db is defined and restore_manage_db != "" %}
+    - name: restore_manage_db
+      value: "{{ restore_manage_db }}"
+    {% endif %}
+    # Manage App Storage class
+    {% if manage_app_override_storageclass is defined and manage_app_override_storageclass != "" %}
+    - name: manage_app_override_storageclass
+      value: "{{ manage_app_override_storageclass }}"
+    {% endif %}
+    {% if manage_app_storage_class_rwx is defined and manage_app_storage_class_rwx != "" %}
+    - name: manage_app_storage_class_rwx
+      value: "{{ manage_app_storage_class_rwx }}"
+    {% endif %}
+    {% if manage_app_storage_class_rwo is defined and manage_app_storage_class_rwo != "" %}
+    - name: manage_app_storage_class_rwo
+      value: "{{ manage_app_storage_class_rwo }}"
+    {% endif %}
+
+    # Manage Db2 Restore Configuration
+    {% if manage_db2_restore_vendor is defined and manage_db2_restore_vendor != "" %}
+    - name: manage_db2_restore_vendor
+      value: "{{ manage_db2_restore_vendor }}"
+    {% endif %}
+
+    {% if manage_db_override_storageclass is defined and manage_db_override_storageclass != "" %}
+    - name: manage_db_override_storageclass
+      value: "{{ manage_db_override_storageclass }}"
+    {% endif %}
+    {% if manage_db_meta_storage_class is defined and manage_db_meta_storage_class != "" %}
+    - name: manage_db_meta_storage_class
+      value: "{{ manage_db_meta_storage_class }}"
+    {% endif %}
+    {% if manage_db_data_storage_class is defined and manage_db_data_storage_class != "" %}
+    - name: manage_db_data_storage_class
+      value: "{{ manage_db_data_storage_class }}"
+    {% endif %}
+    {% if manage_db_backup_storage_class is defined and manage_db_backup_storage_class != "" %}
+    - name: manage_db_backup_storage_class
+      value: "{{ manage_db_backup_storage_class }}"
+    {% endif %}
+    {% if manage_db_logs_storage_class is defined and manage_db_logs_storage_class != "" %}
+    - name: manage_db_logs_storage_class
+      value: "{{ manage_db_logs_storage_class }}"
+    {% endif %}
+    {% if manage_db_temp_storage_class is defined and manage_db_temp_storage_class != "" %}
+    - name: manage_db_temp_storage_class
+      value: "{{ manage_db_temp_storage_class }}"
+    {% endif %}
