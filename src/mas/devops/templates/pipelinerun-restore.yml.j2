@@ -63,6 +63,10 @@ spec:
     - name: mongodb_provider
       value: "{{ mongodb_provider }}"
     {% endif %}
+    {% if override_mongodb_storageclass is defined and override_mongodb_storageclass != "" %}
+    - name: override_mongodb_storageclass
+      value: "{{ override_mongodb_storageclass }}"
+    {% endif %}
 
     # SLS Configuration
     {% if sls_namespace is defined and sls_namespace != "" %}
