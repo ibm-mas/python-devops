@@ -8,10 +8,11 @@
 catalog_digest: sha256:5bbdd2381ab0090ce4862bafdec4c13477b711c58f57c31ffacb011f3b320ade
 
 ocp_compatibility:
-- 4.16
-- 4.17
-- 4.18
-- 4.19
+- "4.16"
+- "4.17"
+- "4.18"
+- "4.19"
+- "4.20"
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.5  # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
