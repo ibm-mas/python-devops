@@ -97,7 +97,7 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None 
     return response.data.get("ok", False)
 
 
-def notifyPipelineStart(channels: list[str], instanceId: str | None = None) -> dict | None:
+def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipelineName: str | None = None) -> dict | None:
     """Send Slack notification about pipeline start and create thread."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
@@ -114,7 +114,7 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None) -> d
     toolchainLink = _getToolchainLink()
     instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
     message = [
-        SlackUtil.buildHeader("🚀 MAS Pipeline Started"),
+        SlackUtil.buildHeader(f"🚀 MAS {pipelineName} Pipeline Started"),
         SlackUtil.buildSection(f"Pipeline Run: {instanceInfo}\n{toolchainLink}")
     ]
     response = SlackUtil.postMessageBlocks(channels[0], message)
@@ -129,7 +129,7 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None) -> d
         return False
 
 
-def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | None = None) -> bool:
+def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
     """Send Slack notification about Ansible task start."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
@@ -140,7 +140,7 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
     threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId)
     if threadInfo is None:
         print("No thread found - creating pipeline start notification")
-        notifyPipelineStart(channels, instanceId)
+        threadInfo = notifyPipelineStart(channels, instanceId, pipelineName)
     threadId = threadInfo.get("threadId")
     channelId = threadInfo.get("channelId")
 
@@ -154,7 +154,7 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
     return response.data.get("ok", False)
 
 
-def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceId: str | None = None) -> bool:
+def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
     """Send Slack notification about Ansible task completion status."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
@@ -165,7 +165,7 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
     threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId)
     if threadInfo is None:
         print("No thread found - creating pipeline start notification")
-        notifyPipelineStart(channels, instanceId)
+        threadInfo = notifyPipelineStart(channels, instanceId, pipelineName)
     # Send task completion message as thread reply
     threadId = threadInfo.get("threadId")
     channelId = threadInfo.get("channelId")
@@ -186,7 +186,7 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
     return response.data.get("ok", False)
 
 
-def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None = None) -> bool:
+def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
     """Send Slack notification about pipeline completion and cleanup ConfigMap."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
@@ -226,7 +226,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
         status = "Failed"
         additionalInfo = f"\nPipeline failed with return code: `{rc}`"
     message = [
-        SlackUtil.buildHeader(f"{emoji} MAS Pipeline {status}"),
+        SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
         SlackUtil.buildSection(f"Pipeline Run: {instanceInfo}{durationText}{additionalInfo}")
     ]
     response = SlackUtil.postMessageBlocks(channelId, message, threadId)
@@ -252,10 +252,11 @@ if __name__ == "__main__":
 
     # Primary Options
     parser.add_argument("--action", required=True)
-    parser.add_argument("--rc", required=True, type=int)
+    parser.add_argument("--rc", required=False, type=int)
     parser.add_argument("--msg", required=False, default=None)
     parser.add_argument("--task-name", required=False, default="")
     parser.add_argument("--instance-id", required=False, default=None)
+    parser.add_argument("--pipeline-name", required=False, default=None)
 
     args, unknown = parser.parse_known_args()
 
