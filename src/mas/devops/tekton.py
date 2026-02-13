@@ -10,6 +10,7 @@
 
 import logging
 import yaml
+import base64
 
 from datetime import datetime
 from os import path
@@ -402,12 +403,12 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     """
     Create or update secrets required for MAS installation pipelines.
 
-    Creates four secrets in the specified namespace: pipeline-additional-configs,
+    Creates five secrets in the specified namespace: mas-devops, pipeline-additional-configs,
     pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The namespace to create secrets in
+        namespace (str): The namespace to create secrets in (format: mas-{instance_id}-pipelines)
         slsLicenseFile (str, optional): SLS license file content. Defaults to None (empty secret).
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
         certs (str, optional): Certificate data. Defaults to None (empty secret).
@@ -420,6 +421,29 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         NotFoundError: If secrets cannot be created
     """
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # Extract instance ID from namespace (format: mas-{instance_id}-pipelines)
+    instance_id = None
+    if namespace.startswith("mas-") and namespace.endswith("-pipelines"):
+        instance_id = namespace[4:-10]  # Remove "mas-" prefix and "-pipelines" suffix
+
+    # 0. Secret/mas-devops
+    # -------------------------------------------------------------------------
+    # Create mas-devops secret with MAS_INSTANCE_ID key
+    if instance_id:
+        mas_devops_secret = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "mas-devops"
+            },
+            "data": {
+                "MAS_INSTANCE_ID": base64.b64encode(instance_id.encode()).decode()
+            }
+        }
+        secretsAPI.create(body=mas_devops_secret, namespace=namespace)
+        logger.info(f"Created mas-devops secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}")
 
     # 1. Secret/pipeline-additional-configs
     # -------------------------------------------------------------------------
