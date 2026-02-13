@@ -399,11 +399,11 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
-    Creates five secrets in the specified namespace: mas-devops, pipeline-additional-configs,
+    Creates five secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
     pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.
 
     Parameters:
@@ -413,6 +413,8 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
         certs (str, optional): Certificate data. Defaults to None (empty secret).
         podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
+        slack_token (str, optional): Slack bot token for notifications. Defaults to None.
+        slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
 
     Returns:
         None
@@ -427,14 +429,26 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     if namespace.startswith("mas-") and namespace.endswith("-pipelines"):
         instance_id = namespace[4:-10]  # Remove "mas-" prefix and "-pipelines" suffix
 
-    # 0. Secret/mas-devops
+    # 0. Secret/mas-devops-slack
     # -------------------------------------------------------------------------
-    # Create mas-devops secret with MAS_INSTANCE_ID key
+    # Create mas-devops-slack secret with MAS_INSTANCE_ID, SLACK_TOKEN, and SLACK_CHANNEL keys
     if instance_id:
         try:
             secretsAPI.delete(name="mas-devops-slack", namespace=namespace)
         except NotFoundError:
             pass
+
+        secret_data = {
+            "MAS_INSTANCE_ID": base64.b64encode(instance_id.encode()).decode()
+        }
+
+        # Add slack_token if provided
+        if slack_token:
+            secret_data["SLACK_TOKEN"] = base64.b64encode(slack_token.encode()).decode()
+
+        # Add slack_channel if provided
+        if slack_channel:
+            secret_data["SLACK_CHANNEL"] = base64.b64encode(slack_channel.encode()).decode()
 
         mas_devops_secret = {
             "apiVersion": "v1",
@@ -443,12 +457,10 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
             "metadata": {
                 "name": "mas-devops-slack"
             },
-            "data": {
-                "MAS_INSTANCE_ID": base64.b64encode(instance_id.encode()).decode()
-            }
+            "data": secret_data
         }
         secretsAPI.create(body=mas_devops_secret, namespace=namespace)
-        logger.info(f"Created mas-devops secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}")
+        logger.info(f"Created mas-devops-slack secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}")
 
     # 1. Secret/pipeline-additional-configs
     # -------------------------------------------------------------------------
