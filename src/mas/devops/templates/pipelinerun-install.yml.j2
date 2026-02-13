@@ -535,6 +535,26 @@ spec:
     - name: mas_routing_mode
       value: "{{ mas_routing_mode }}"
 {%- endif %}
+{%- if mas_ingress_controller_name is defined and mas_ingress_controller_name != "" %}
+    - name: mas_ingress_controller_name
+      value: "{{ mas_ingress_controller_name }}"
+{%- endif %}
+{%- if mas_configure_ingress is defined and mas_configure_ingress != "" %}
+    - name: mas_configure_ingress
+      value: "{{ mas_configure_ingress }}"
+{%- endif %}
+{%- if mas_deployment_progression is defined and mas_deployment_progression != "" %}
+    - name: mas_deployment_progression
+      value: "{{ mas_deployment_progression }}"
+{%- endif %}
+{%- if mas_usability_metrics is defined and mas_usability_metrics != "" %}
+    - name: mas_usability_metrics
+      value: "{{ mas_usability_metrics }}"
+{%- endif %}
+{%- if mas_feature_usage is defined and mas_feature_usage != "" %}
+    - name: mas_feature_usage
+      value: "{{ mas_feature_usage }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
@@ -839,6 +859,13 @@ spec:
     - name: aiservice_odh_model_deployment_type
       value: "{{ aiservice_odh_model_deployment_type }}"
 
+    # AI Service - Red Hat Openshift AI
+    # -------------------------------------------------------------------------
+    - name: aiservice_rhoai_model_deployment_type
+      value: "{{ aiservice_rhoai_model_deployment_type }}"
+    - name: rhoai
+      value: "{{ rhoai }}"
+
     # AI Service - watsonX
     # -------------------------------------------------------------------------
     - name: aiservice_watsonxai_apikey
@@ -863,6 +890,14 @@ spec:
       value: "{{ aiservice_watsonxai_space_id }}"
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
+
+    # AI Service - watsonX
+    # -------------------------------------------------------------------------
+{%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
+    - name: aiservice_certificate_issuer
+      value: "{{ aiservice_certificate_issuer }}"
+{%- endif %}
+
 {%- endif %}
 
   workspaces:
