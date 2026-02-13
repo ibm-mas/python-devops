@@ -431,12 +431,17 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     # -------------------------------------------------------------------------
     # Create mas-devops secret with MAS_INSTANCE_ID key
     if instance_id:
+        try:
+            secretsAPI.delete(name="mas-devops-slack", namespace=namespace)
+        except NotFoundError:
+            pass
+
         mas_devops_secret = {
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
             "metadata": {
-                "name": "mas-devops"
+                "name": "mas-devops-slack"
             },
             "data": {
                 "MAS_INSTANCE_ID": base64.b64encode(instance_id.encode()).decode()
