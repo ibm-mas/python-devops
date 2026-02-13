@@ -28,6 +28,7 @@ cognos_version: 28.0.0+20250515.175459.10054     # Operator version 25.0.0
 
 postgress_version: 5.16.0+20250827.110911.2626   # ibm-cpd-cloud-native-postgresql-operator 5.2.0
 ccs_build: 11.0.0+20250605.130237.468            # cpd 5.2.0
+ccs_extras_version: 11.0.0                       # Extra Images for CCS used for PCD 5.2.0 Hotfix
 
 # TODO: If this is only used in CPD 5.1.3, we shouldn't need this in this catalog metadata file
 elasticsearch_version: 1.1.2667                  # Operator version 1.1.2667 - used in cpd 5.1.3 only
