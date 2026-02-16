@@ -398,7 +398,7 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: dict | None = None, additionalConfigs: dict | None = None, certs: dict | None = None, podTemplates: dict | None = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
@@ -408,10 +408,10 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to create secrets in
-        slsLicenseFile (str, optional): SLS license file content. Defaults to None (empty secret).
+        slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
-        certs (str, optional): Certificate data. Defaults to None (empty secret).
-        podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
+        certs (dict, optional): Certificate data. Defaults to None (empty secret).
+        podTemplates (dict, optional): Pod template data. Defaults to None (empty secret).
 
     Returns:
         None
