@@ -170,21 +170,9 @@ aiservice_version:
 # ------------------------------------------------------------------------------
 editorial:
   whats_new:
-  - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform v8.10, v8.11, v9.0 and v9.1
-    - IBM Maximo Manage v8.6, v8.7, v9.0 and v9.1
-    - IBM Maximo IoT v8.7, v8.8, v9.0 and v9.1
-    - IBM Maximo Monitor v8.10, v8.11, v9.0 and v9.1
-    - IBM Maximo Optimizer v8.4, 8.5 and v9.1
-    - IBM Maximo Assist v9.1 and v9.0
-    - IBM Maximo Predict v8.8, v8.9, v9.0 and v9.1
-    - IBM Maximo Visual Inspection v8.9, v9.0 and v9.1
-    - IBM Maximo Real Estate and Facilities v9.1
-    - IBM Maximo AI Service v9.1
-    - IBM Maximo Location Service for Esri v9.0 and v9.1
-    - IBM Suite License Service v3.12
-    - IBM Data Dictionary v1.1
+    - IBM Maximo Manage v9.1
+    - IBM Maximo IoT v8.8
   known_issues:
     - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
