@@ -5,11 +5,10 @@
 catalog_digest: sha256:4eef87dcf11f9ce3cae2396f7d41f5f7eb7a2bc2a5a8b6340ca2d1d04406eac0
 
 ocp_compatibility:
-- "4.16"
-- "4.17"
-- "4.18"
-- "4.19"
-- "4.20"
+- 4.16
+- 4.17
+- 4.18
+- 4.19
 
 
 # Dependencies - Cloud Pak for Data
