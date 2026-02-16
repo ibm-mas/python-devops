@@ -318,7 +318,7 @@ def getConsoleURL(dynClient: DynamicClient) -> str:
     return f"https://{consoleRoute.spec.host}"
 
 
-def getNodes(dynClient: DynamicClient) -> str:
+def getNodes(dynClient: DynamicClient) -> dict:
     """
     Get all nodes in the cluster.
 
@@ -336,7 +336,7 @@ def getNodes(dynClient: DynamicClient) -> str:
     return nodes
 
 
-def getStorageClass(dynClient: DynamicClient, name: str) -> str:
+def getStorageClass(dynClient: DynamicClient, name: str) -> dict | None:
     """
     Get a specific StorageClass by name.
 
