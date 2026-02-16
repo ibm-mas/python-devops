@@ -1,8 +1,8 @@
 ---
-# Catalog metadata for IBM Maximo Operator Catalog v9-260129-amd64
+# Catalog metadata for IBM Maximo Operator Catalog v9-260216-amd64
 # -----------------------------------------------------------------------------
 
-catalog_digest: sha256:54bcab31205bf3a5e0e0769158127b70b514e3a965ddd8f02785afe53171f0ee
+catalog_digest: sha256:4eef87dcf11f9ce3cae2396f7d41f5f7eb7a2bc2a5a8b6340ca2d1d04406eac0
 
 ocp_compatibility:
 - "4.16"
@@ -121,10 +121,10 @@ mas_iot_version:
   9.1.x: 9.1.7     # Updated
   9.0.x: 9.0.16    # Updated
   8.10.x: 8.7.30   # Updated
-  8.11.x: 8.8.26   # Updated
+  8.11.x: 8.8.27   # Updated interim release 8.11.27
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_10282 # Updated
-  9.1.x: 9.1.8     # Updated
+  9.1.x: 9.1.9     # Updated interim release 9.1.9
   9.0.x: 9.0.21    # Updated
   8.10.x: 8.6.34   # Updated
   8.11.x: 8.7.28   # Updated
