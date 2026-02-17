@@ -170,6 +170,7 @@ aiservice_version:
 # ------------------------------------------------------------------------------
 editorial:
   whats_new:
+  - title: '**Security updates and bug fixes**'
     details:
     - IBM Maximo Manage v9.1
     - IBM Maximo IoT v8.8

@@ -50,6 +50,7 @@ mongo_extras_version_8: 8.0.17
 
 editorial:
   whats_new:
+  - title: '**Security updates and bug fixes**'
     details:
     - IBM Maximo Manage v9.1
   known_issues:
