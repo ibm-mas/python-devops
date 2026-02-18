@@ -19,6 +19,7 @@ from openshift.dynamic.exceptions import NotFoundError
 from kubernetes import client
 from kubernetes.stream import stream
 from kubernetes.stream.ws_client import ERROR_CHANNEL
+from kubernetes.dynamic.resource import ResourceInstance
 
 import yaml
 
@@ -394,7 +395,7 @@ def getClusterIssuers(dynClient: DynamicClient) -> list:
     return clusterIssuers
 
 
-def getClusterIssuer(dynClient: DynamicClient, name: str) -> str:
+def getClusterIssuer(dynClient: DynamicClient, name: str) -> ResourceInstance:
     """
     Get a specific ClusterIssuer by name.
 
