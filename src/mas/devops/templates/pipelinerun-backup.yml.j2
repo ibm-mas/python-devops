@@ -9,6 +9,8 @@ spec:
   pipelineRef:
     name: mas-backup
   serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
   workspaces:
     - name: shared-configs
       persistentVolumeClaim:
