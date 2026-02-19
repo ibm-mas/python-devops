@@ -44,7 +44,7 @@ jobs:
           sed -i "s#__version__ = \"100.0.0\"#__version__ = \"${{ env.VERSION_NOPREREL }}\"#g" ${GITHUB_WORKSPACE}/src/mas/devops/__init__.py
           cat ${GITHUB_WORKSPACE}/src/mas/devops/__init__.py
           python -m pip install --upgrade pip
-          pip install .[dev]
+          pip install -e .[dev]
           python -m pytest
 
       # 3. Flake8 Linting
