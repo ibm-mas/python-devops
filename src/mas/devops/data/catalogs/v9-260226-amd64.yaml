@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:73f29bee7859b45084e77b0ad5f3e1f62f9a36c6badae0d51a51e45b083ae81f
+catalog_digest: sha256:c97fb60525800afa89a5f115d71751f29ebc0f7a7d553e5bf7912ba7ee2001e0
 
 ocp_compatibility:
 - "4.16"
@@ -48,10 +48,10 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_9887 # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_12926 # Updated
   9.1.x: 9.1.10        #  Updated
   9.0.x: 9.0.21        #  Updated
-  8.10.x: 8.10.33      #  Need to update
+  8.10.x: 8.10.35      #  Updated
   8.11.x: 8.11.32      #  Updated
 mas_assist_version:
   9.1.x: 9.1.8     #  Updated
@@ -69,7 +69,7 @@ mas_iot_version:
   8.10.x: 8.7.31   #  Updated
   8.11.x: 8.8.28   #  Updated
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_10282 #  Need to update
+  9.2.x-feature: 9.2.0-pre.stable_13730 #  Updated
   9.1.x: 9.1.11        #  Updated
   9.0.x: 9.0.23        #  Updated
   8.10.x: 8.6.36       #  Updated
@@ -91,7 +91,7 @@ mas_predict_version:
   8.10.x: 8.8.13   # Updated
   8.11.x: 8.9.15   # Updated
 mas_visualinspection_version:
-  9.2.x-feature: 9.2.0-pre.stable_6198 # Need to update
+  9.2.x-feature: 9.2.0-pre.stable_12598 # Updated
   9.1.x: 9.1.10        #  Updated
   9.0.x: 9.0.17        #  Updated
   8.10.x: 8.8.4        #  No Update
