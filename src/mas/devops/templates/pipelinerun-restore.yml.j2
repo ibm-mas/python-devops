@@ -177,6 +177,10 @@ spec:
     - name: s3_region
       value: "{{ s3_region }}"
     {% endif %}
+    {% if s3_endpoint_url is defined and s3_endpoint_url != "" %}
+    - name: s3_endpoint_url
+      value: "{{ s3_endpoint_url }}"
+    {% endif %}
     {% if artifactory_url is defined and artifactory_url != "" %}
     - name: artifactory_url
       value: "{{ artifactory_url }}"
