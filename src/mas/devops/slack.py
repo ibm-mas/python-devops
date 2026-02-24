@@ -343,6 +343,43 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to retrieve ConfigMap: {e}")
             return None
 
+    def updateThreadConfigMap(cls, namespace: str, instanceId: str, updates: dict) -> bool:
+        """
+        Update the ConfigMap with additional data (e.g., task message timestamps).
+
+        Parameters:
+            namespace (str): Kubernetes namespace containing the ConfigMap
+            instanceId (str): Unique identifier for the pipeline run
+            updates (dict): Dictionary of key-value pairs to add/update in the ConfigMap
+
+        Returns:
+            bool: True if ConfigMap was updated successfully, False otherwise
+        """
+        try:
+            # Load Kubernetes configuration
+            try:
+                config.load_incluster_config()
+            except Exception:
+                config.load_kube_config()
+            v1 = client.CoreV1Api()
+            configmap_name = f"slack-thread-{instanceId}"
+
+            # Get existing ConfigMap
+            configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
+
+            # Update data
+            if configmap.data is None:
+                configmap.data = {}
+            configmap.data.update(updates)
+
+            # Patch the ConfigMap
+            v1.patch_namespaced_config_map(name=configmap_name, namespace=namespace, body=configmap)
+            logger.debug(f"Updated ConfigMap {configmap_name} in namespace {namespace}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update ConfigMap: {e}")
+            return False
+
     def deleteThreadConfigMap(cls, namespace: str, instanceId: str) -> bool:
         """
         Delete the ConfigMap containing Slack thread information.
