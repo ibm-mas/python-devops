@@ -123,7 +123,7 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
         channelId = response["channel"]
         # Store thread information in ConfigMap
         SlackUtil.createThreadConfigMap(namespace, channelId, threadId, instanceId)
-        return True
+        return SlackUtil.getThreadConfigMap(namespace, instanceId)
     else:
         print("Failed to send pipeline start Slack message")
         return False
