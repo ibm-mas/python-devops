@@ -1,8 +1,8 @@
 ---
-# Catalog metadata for IBM Maximo Operator Catalog v9-260129-amd64
+# Catalog metadata for IBM Maximo Operator Catalog v9-260216-amd64
 # -----------------------------------------------------------------------------
 
-catalog_digest: sha256:54bcab31205bf3a5e0e0769158127b70b514e3a965ddd8f02785afe53171f0ee
+catalog_digest: sha256:4eef87dcf11f9ce3cae2396f7d41f5f7eb7a2bc2a5a8b6340ca2d1d04406eac0
 
 ocp_compatibility:
 - 4.16
@@ -120,10 +120,10 @@ mas_iot_version:
   9.1.x: 9.1.7     # Updated
   9.0.x: 9.0.16    # Updated
   8.10.x: 8.7.30   # Updated
-  8.11.x: 8.8.26   # Updated
+  8.11.x: 8.8.27   # Updated interim release 8.8.27
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_10282 # Updated
-  9.1.x: 9.1.8     # Updated
+  9.1.x: 9.1.9     # Updated interim release 9.1.9
   9.0.x: 9.0.21    # Updated
   8.10.x: 8.6.34   # Updated
   8.11.x: 8.7.28   # Updated
@@ -172,21 +172,9 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform v8.10, v8.11, v9.0 and v9.1
-    - IBM Maximo Manage v8.6, v8.7, v9.0 and v9.1
-    - IBM Maximo IoT v8.7, v8.8, v9.0 and v9.1
-    - IBM Maximo Monitor v8.10, v8.11, v9.0 and v9.1
-    - IBM Maximo Optimizer v8.4, 8.5 and v9.1
-    - IBM Maximo Assist v9.1 and v9.0
-    - IBM Maximo Predict v8.8, v8.9, v9.0 and v9.1
-    - IBM Maximo Visual Inspection v8.9, v9.0 and v9.1
-    - IBM Maximo Real Estate and Facilities v9.1
-    - IBM Maximo AI Service v9.1
-    - IBM Maximo Location Service for Esri v9.0 and v9.1
-    - IBM Suite License Service v3.12
-    - IBM Data Dictionary v1.1
+    - IBM Maximo Manage v9.1
+    - IBM Maximo IoT v8.8
   known_issues:
     - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
-    - title: A known issue has been identified in Db2u warehouse operator offered in catalog version v9-260129-amd64. Customers restoring/upgrading Db2 intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. As a workaround, please refer to this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).
-    - title: A known issue has been identified in catalog version v9-260129-amd64.If you are using MAS 8.11.x with IoT 8.8.x, please do not use the v9-260129-amd64 catalog. Instead, use v9-260216-amd64.
+    - title: A known issue has been identified in Db2u warehouse operator in this catalog. Customers restoring/upgrading Db2, intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. If you are facing this problem, please refer to the workaround provided in this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).
