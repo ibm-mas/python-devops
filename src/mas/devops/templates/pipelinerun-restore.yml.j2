@@ -223,23 +223,11 @@ spec:
     - name: manage_db_override_storageclass
       value: "{{ manage_db_override_storageclass }}"
     {% endif %}
-    {% if manage_db_meta_storage_class is defined and manage_db_meta_storage_class != "" %}
-    - name: manage_db_meta_storage_class
-      value: "{{ manage_db_meta_storage_class }}"
+    {% if manage_db_storage_class_rwo is defined and manage_db_storage_class_rwo != "" %}
+    - name: manage_db_storage_class_rwo
+      value: "{{ manage_db_storage_class_rwo }}"
     {% endif %}
-    {% if manage_db_data_storage_class is defined and manage_db_data_storage_class != "" %}
-    - name: manage_db_data_storage_class
-      value: "{{ manage_db_data_storage_class }}"
-    {% endif %}
-    {% if manage_db_backup_storage_class is defined and manage_db_backup_storage_class != "" %}
-    - name: manage_db_backup_storage_class
-      value: "{{ manage_db_backup_storage_class }}"
-    {% endif %}
-    {% if manage_db_logs_storage_class is defined and manage_db_logs_storage_class != "" %}
-    - name: manage_db_logs_storage_class
-      value: "{{ manage_db_logs_storage_class }}"
-    {% endif %}
-    {% if manage_db_temp_storage_class is defined and manage_db_temp_storage_class != "" %}
-    - name: manage_db_temp_storage_class
-      value: "{{ manage_db_temp_storage_class }}"
+    {% if manage_db_storage_class_rwx is defined and manage_db_storage_class_rwx != "" %}
+    - name: manage_db_storage_class_rwx
+      value: "{{ manage_db_storage_class_rwx }}"
     {% endif %}
