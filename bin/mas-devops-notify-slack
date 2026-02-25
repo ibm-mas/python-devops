@@ -98,7 +98,7 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None 
 
 
 def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipelineName: str | None = None) -> dict | None:
-    """Send Slack notification about pipeline start and create thread."""
+    """Send Slack notification about pipeline start and create thread for all channels."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
         print("instanceId must be set")
@@ -110,27 +110,48 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
         print("Pipeline start notification already sent")
         return threadInfo
 
-    # Send pipeline started message
+    # Send pipeline started message to all channels
     toolchainLink = _getToolchainLink()
     instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
     message = [
         SlackUtil.buildHeader(f"🚀 MAS {pipelineName} Pipeline Started"),
         SlackUtil.buildSection(f"Pipeline Run: {instanceInfo}\n{toolchainLink}")
     ]
-    response = SlackUtil.postMessageBlocks(channels[0], message)
-    if response.data.get("ok", False):
-        threadId = response["ts"]
-        channelId = response["channel"]
-        # Store thread information in ConfigMap
-        SlackUtil.createThreadConfigMap(namespace, channelId, threadId, instanceId)
-        return SlackUtil.getThreadConfigMap(namespace, instanceId)
+    response = SlackUtil.postMessageBlocks(channels, message)
+
+    # Store thread information for all channels in ConfigMap
+    configMapData = {"instanceId": instanceId}
+
+    if isinstance(response, list):
+        # Multiple channels - store each channel's thread info
+        for idx, res in enumerate(response):
+            if res.data.get("ok", False):
+                threadId = res["ts"]
+                channelId = res["channel"]
+                # Store with channel-specific keys
+                configMapData[f"channel_{idx}"] = channelId
+                configMapData[f"threadId_{idx}"] = threadId
+        configMapData["channel_count"] = str(len(response))
     else:
-        print("Failed to send pipeline start Slack message")
-        return False
+        # Single channel
+        if response.data.get("ok", False):
+            threadId = response["ts"]
+            channelId = response["channel"]
+            configMapData["channel_0"] = channelId
+            configMapData["threadId_0"] = threadId
+            configMapData["channel_count"] = "1"
+        else:
+            print("Failed to send pipeline start Slack message")
+            return False
+
+    # Create ConfigMap with all channel/thread info
+    SlackUtil.createThreadConfigMap(namespace, "", "", instanceId)
+    SlackUtil.updateThreadConfigMap(namespace, instanceId, configMapData)
+    return SlackUtil.getThreadConfigMap(namespace, instanceId)
 
 
 def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
-    """Send Slack notification about Ansible task start."""
+    """Send Slack notification about Ansible task start to all channels."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
         print("instanceId must be set")
@@ -141,29 +162,48 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
     if threadInfo is None:
         print("No thread found - creating pipeline start notification")
         threadInfo = notifyPipelineStart(channels, instanceId, pipelineName)
-    threadId = threadInfo.get("threadId")
-    channelId = threadInfo.get("channelId")
 
-    # Send task start message as thread reply
+    # Get channel count
+    channelCount = int(threadInfo.get("channel_count", "0"))
+    if channelCount == 0:
+        print("No channels found in thread info")
+        return False
+
+    # Send task start message as thread reply to all channels
     taskMessage = [
         SlackUtil.buildSection(f"⏳ **{taskName}** - Started")
     ]
-    response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
 
-    # Save message timestamp in ConfigMap for later editing
-    if response.data.get("ok", False):
-        messageTs = response.data.get("ts")
-        if messageTs:
-            # Store with task name as key
-            SlackUtil.updateThreadConfigMap(namespace, instanceId, {f"task_{taskName}": messageTs})
+    allSuccess = True
+    taskMessageData = {}
 
-    if isinstance(response, list):
-        return all([res.data.get("ok", False) for res in response])
-    return response.data.get("ok", False)
+    for idx in range(channelCount):
+        channelId = threadInfo.get(f"channel_{idx}")
+        threadId = threadInfo.get(f"threadId_{idx}")
+
+        if channelId and threadId:
+            response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
+
+            # Save message timestamp for this channel
+            if response.data.get("ok", False):
+                messageTs = response.data.get("ts")
+                if messageTs:
+                    # Store with task name and channel index as key
+                    taskMessageData[f"task_{taskName}_{idx}"] = messageTs
+            else:
+                allSuccess = False
+        else:
+            allSuccess = False
+
+    # Update ConfigMap with all task message timestamps
+    if taskMessageData:
+        SlackUtil.updateThreadConfigMap(namespace, instanceId, taskMessageData)
+
+    return allSuccess
 
 
 def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
-    """Send Slack notification about Ansible task completion status."""
+    """Send Slack notification about Ansible task completion status to all channels."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
         print("instanceId must be set")
@@ -175,11 +215,11 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
         print("No thread found - creating pipeline start notification")
         threadInfo = notifyPipelineStart(channels, instanceId, pipelineName)
 
-    threadId = threadInfo.get("threadId")
-    channelId = threadInfo.get("channelId")
-
-    # Get the message timestamp for this task
-    taskMessageTs = threadInfo.get(f"task_{taskName}")
+    # Get channel count
+    channelCount = int(threadInfo.get("channel_count", "0"))
+    if channelCount == 0:
+        print("No channels found in thread info")
+        return False
 
     # Determine status
     if rc == 0:
@@ -189,62 +229,83 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
         emoji = "❌"
         status = "Failed"
 
-    # Calculate task duration if we have the message timestamp
-    durationText = ""
-    if taskMessageTs:
-        from datetime import datetime
-        try:
-            # Message timestamp is in format "1234567890.123456"
-            startTime = float(taskMessageTs)
-            endTime = datetime.utcnow().timestamp()
-            duration = int(endTime - startTime)
+    allSuccess = True
 
-            hours, remainder = divmod(duration, 3600)
-            minutes, seconds = divmod(remainder, 60)
+    # Update message in each channel
+    for idx in range(channelCount):
+        channelId = threadInfo.get(f"channel_{idx}")
+        threadId = threadInfo.get(f"threadId_{idx}")
+        taskMessageTs = threadInfo.get(f"task_{taskName}_{idx}")
 
-            if hours > 0:
-                durationText = f" ({hours}h {minutes}m {seconds}s)"
-            elif minutes > 0:
-                durationText = f" ({minutes}m {seconds}s)"
-            else:
-                durationText = f" ({seconds}s)"
-        except Exception as e:
-            print(f"Failed to calculate duration: {e}")
+        if not channelId or not threadId:
+            allSuccess = False
+            continue
 
-    # Build the completion message
-    taskMessage = [
-        SlackUtil.buildSection(f"{emoji} **{taskName}** - {status}{durationText}")
-    ]
-    if rc != 0:
-        taskMessage.append(SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details"))
+        # Calculate task duration if we have the message timestamp
+        durationText = ""
+        if taskMessageTs:
+            from datetime import datetime
+            try:
+                # Message timestamp is in format "1234567890.123456"
+                startTime = float(taskMessageTs)
+                endTime = datetime.utcnow().timestamp()
+                duration = int(endTime - startTime)
 
-    # If we have the original message timestamp, update it; otherwise post new message
-    if taskMessageTs:
-        response = SlackUtil.updateMessageBlocks(channelId, taskMessageTs, taskMessage)
-        return response.data.get("ok", False)
-    else:
-        # Fallback: post new message if task start message wasn't tracked
-        print(f"No start message found for task {taskName}, posting new completion message")
-        response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
-        if isinstance(response, list):
-            return all([res.data.get("ok", False) for res in response])
-        return response.data.get("ok", False)
+                hours, remainder = divmod(duration, 3600)
+                minutes, seconds = divmod(remainder, 60)
+
+                if hours > 0:
+                    durationText = f" ({hours}h {minutes}m {seconds}s)"
+                elif minutes > 0:
+                    durationText = f" ({minutes}m {seconds}s)"
+                else:
+                    durationText = f" ({seconds}s)"
+            except Exception as e:
+                print(f"Failed to calculate duration for channel {idx}: {e}")
+
+        # Build the completion message
+        taskMessage = [
+            SlackUtil.buildSection(f"{emoji} **{taskName}** - {status}{durationText}")
+        ]
+        if rc != 0:
+            taskMessage.append(SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details"))
+
+        # If we have the original message timestamp, update it; otherwise post new message
+        if taskMessageTs:
+            response = SlackUtil.updateMessageBlocks(channelId, taskMessageTs, taskMessage)
+            if not response.data.get("ok", False):
+                allSuccess = False
+        else:
+            # Fallback: post new message if task start message wasn't tracked
+            print(f"No start message found for task {taskName} in channel {idx}, posting new completion message")
+            response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
+            if not response.data.get("ok", False):
+                allSuccess = False
+
+    return allSuccess
 
 
 def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
-    """Send Slack notification about pipeline completion and cleanup ConfigMap."""
+    """Send Slack notification about pipeline completion to all channels and cleanup ConfigMap."""
     namespace = f"mas-{instanceId}-pipelines"
     if instanceId is None or instanceId == "":
         print("instanceId must be set")
         sys.exit(1)
+
     # Get thread information
     threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId)
     if threadInfo is None:
         print("No thread information found - pipeline may not have started properly")
         return False
-    threadId = threadInfo.get("threadId")
-    channelId = threadInfo.get("channelId")
+
+    # Get channel count
+    channelCount = int(threadInfo.get("channel_count", "0"))
+    if channelCount == 0:
+        print("No channels found in thread info")
+        return False
+
     startTime = threadInfo.get("startTime")
+
     # Calculate duration if start time is available
     durationText = ""
     if startTime:
@@ -261,6 +322,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
                 durationText = f"\nTotal Duration: {minutes}m {seconds}s"
         except Exception:
             pass
+
     instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
     if rc == 0:
         emoji = "🎉"
@@ -270,16 +332,30 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
         emoji = "💥"
         status = "Failed"
         additionalInfo = f"\nPipeline failed with return code: `{rc}`"
+
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
         SlackUtil.buildSection(f"Pipeline Run: {instanceInfo}{durationText}{additionalInfo}")
     ]
-    response = SlackUtil.postMessageBlocks(channelId, message, threadId)
+
+    allSuccess = True
+
+    # Send completion message to all channels
+    for idx in range(channelCount):
+        channelId = threadInfo.get(f"channel_{idx}")
+        threadId = threadInfo.get(f"threadId_{idx}")
+
+        if channelId and threadId:
+            response = SlackUtil.postMessageBlocks(channelId, message, threadId)
+            if not response.data.get("ok", False):
+                allSuccess = False
+        else:
+            allSuccess = False
+
     # Clean up ConfigMap
     SlackUtil.deleteThreadConfigMap(namespace, instanceId)
-    if isinstance(response, list):
-        return all([res.data.get("ok", False) for res in response])
-    return response.data.get("ok", False)
+
+    return allSuccess
 
 
 if __name__ == "__main__":
