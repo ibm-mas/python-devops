@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
     
     
       
@@ -974,6 +974,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;updateGlobalPullSecret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mas.devops.ocp.configureIngressForPathBasedRouting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;configureIngressForPathBasedRouting
       
     </span>
   </a>
@@ -2017,6 +2028,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;updateGlobalPullSecret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mas.devops.ocp.configureIngressForPathBasedRouting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;configureIngressForPathBasedRouting
       
     </span>
   </a>
@@ -3720,7 +3742,7 @@ to include the label.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>list</code></td>            <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3772,7 +3794,7 @@ to include the label.</p>
 <span class="normal"><a href="#__codelineno-0-333">333</a></span>
 <span class="normal"><a href="#__codelineno-0-334">334</a></span>
 <span class="normal"><a href="#__codelineno-0-335">335</a></span>
-<span class="normal"><a href="#__codelineno-0-336">336</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="k">def</span><span class="w"> </span><span class="nf">getNodes</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-336">336</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="k">def</span><span class="w"> </span><span class="nf">getNodes</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">    Get all nodes in the cluster.</span>
 <a id="__codelineno-0-324" name="__codelineno-0-324"></a>
@@ -3866,7 +3888,7 @@ to include the label.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>StorageClass</code></td>            <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="dict">dict</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3922,7 +3944,7 @@ to include the label.</p>
 <span class="normal"><a href="#__codelineno-0-355">355</a></span>
 <span class="normal"><a href="#__codelineno-0-356">356</a></span>
 <span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="nf">getStorageClass</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-358">358</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="nf">getStorageClass</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">    Get a specific StorageClass by name.</span>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a>
@@ -5395,6 +5417,302 @@ rules:
 <a id="__codelineno-0-632" name="__codelineno-0-632"></a>        <span class="s2">&quot;registry&quot;</span><span class="p">:</span> <span class="n">registryUrl</span><span class="p">,</span>
 <a id="__codelineno-0-633" name="__codelineno-0-633"></a>        <span class="s2">&quot;changed&quot;</span><span class="p">:</span> <span class="kc">True</span>
 <a id="__codelineno-0-634" name="__codelineno-0-634"></a>    <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="mas.devops.ocp.configureIngressForPathBasedRouting" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">configureIngressForPathBasedRouting</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">ingressControllerName</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Configure OpenShift IngressController for path-based routing.</p>
+<p>Sets the namespaceOwnership to InterNamespaceAllowed on the specified IngressController,
+which is required for path-based routing mode in MAS.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dynClient</code>
+            </td>
+            <td>
+                  <code><span title="openshift.dynamic.DynamicClient">DynamicClient</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>OpenShift Dynamic Client</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ingressControllerName</code>
+            </td>
+            <td>
+                  <code><span title="optional">optional</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of the IngressController to configure. Defaults to "default".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;default&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>bool</code></td>            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if configuration was successful or already configured, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="openshift.dynamic.exceptions.NotFoundError">NotFoundError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the IngressController resource cannot be found</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/mas/devops/ocp.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-637">637</a></span>
+<span class="normal"><a href="#__codelineno-0-638">638</a></span>
+<span class="normal"><a href="#__codelineno-0-639">639</a></span>
+<span class="normal"><a href="#__codelineno-0-640">640</a></span>
+<span class="normal"><a href="#__codelineno-0-641">641</a></span>
+<span class="normal"><a href="#__codelineno-0-642">642</a></span>
+<span class="normal"><a href="#__codelineno-0-643">643</a></span>
+<span class="normal"><a href="#__codelineno-0-644">644</a></span>
+<span class="normal"><a href="#__codelineno-0-645">645</a></span>
+<span class="normal"><a href="#__codelineno-0-646">646</a></span>
+<span class="normal"><a href="#__codelineno-0-647">647</a></span>
+<span class="normal"><a href="#__codelineno-0-648">648</a></span>
+<span class="normal"><a href="#__codelineno-0-649">649</a></span>
+<span class="normal"><a href="#__codelineno-0-650">650</a></span>
+<span class="normal"><a href="#__codelineno-0-651">651</a></span>
+<span class="normal"><a href="#__codelineno-0-652">652</a></span>
+<span class="normal"><a href="#__codelineno-0-653">653</a></span>
+<span class="normal"><a href="#__codelineno-0-654">654</a></span>
+<span class="normal"><a href="#__codelineno-0-655">655</a></span>
+<span class="normal"><a href="#__codelineno-0-656">656</a></span>
+<span class="normal"><a href="#__codelineno-0-657">657</a></span>
+<span class="normal"><a href="#__codelineno-0-658">658</a></span>
+<span class="normal"><a href="#__codelineno-0-659">659</a></span>
+<span class="normal"><a href="#__codelineno-0-660">660</a></span>
+<span class="normal"><a href="#__codelineno-0-661">661</a></span>
+<span class="normal"><a href="#__codelineno-0-662">662</a></span>
+<span class="normal"><a href="#__codelineno-0-663">663</a></span>
+<span class="normal"><a href="#__codelineno-0-664">664</a></span>
+<span class="normal"><a href="#__codelineno-0-665">665</a></span>
+<span class="normal"><a href="#__codelineno-0-666">666</a></span>
+<span class="normal"><a href="#__codelineno-0-667">667</a></span>
+<span class="normal"><a href="#__codelineno-0-668">668</a></span>
+<span class="normal"><a href="#__codelineno-0-669">669</a></span>
+<span class="normal"><a href="#__codelineno-0-670">670</a></span>
+<span class="normal"><a href="#__codelineno-0-671">671</a></span>
+<span class="normal"><a href="#__codelineno-0-672">672</a></span>
+<span class="normal"><a href="#__codelineno-0-673">673</a></span>
+<span class="normal"><a href="#__codelineno-0-674">674</a></span>
+<span class="normal"><a href="#__codelineno-0-675">675</a></span>
+<span class="normal"><a href="#__codelineno-0-676">676</a></span>
+<span class="normal"><a href="#__codelineno-0-677">677</a></span>
+<span class="normal"><a href="#__codelineno-0-678">678</a></span>
+<span class="normal"><a href="#__codelineno-0-679">679</a></span>
+<span class="normal"><a href="#__codelineno-0-680">680</a></span>
+<span class="normal"><a href="#__codelineno-0-681">681</a></span>
+<span class="normal"><a href="#__codelineno-0-682">682</a></span>
+<span class="normal"><a href="#__codelineno-0-683">683</a></span>
+<span class="normal"><a href="#__codelineno-0-684">684</a></span>
+<span class="normal"><a href="#__codelineno-0-685">685</a></span>
+<span class="normal"><a href="#__codelineno-0-686">686</a></span>
+<span class="normal"><a href="#__codelineno-0-687">687</a></span>
+<span class="normal"><a href="#__codelineno-0-688">688</a></span>
+<span class="normal"><a href="#__codelineno-0-689">689</a></span>
+<span class="normal"><a href="#__codelineno-0-690">690</a></span>
+<span class="normal"><a href="#__codelineno-0-691">691</a></span>
+<span class="normal"><a href="#__codelineno-0-692">692</a></span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span>
+<span class="normal"><a href="#__codelineno-0-701">701</a></span>
+<span class="normal"><a href="#__codelineno-0-702">702</a></span>
+<span class="normal"><a href="#__codelineno-0-703">703</a></span>
+<span class="normal"><a href="#__codelineno-0-704">704</a></span>
+<span class="normal"><a href="#__codelineno-0-705">705</a></span>
+<span class="normal"><a href="#__codelineno-0-706">706</a></span>
+<span class="normal"><a href="#__codelineno-0-707">707</a></span>
+<span class="normal"><a href="#__codelineno-0-708">708</a></span>
+<span class="normal"><a href="#__codelineno-0-709">709</a></span>
+<span class="normal"><a href="#__codelineno-0-710">710</a></span>
+<span class="normal"><a href="#__codelineno-0-711">711</a></span>
+<span class="normal"><a href="#__codelineno-0-712">712</a></span>
+<span class="normal"><a href="#__codelineno-0-713">713</a></span>
+<span class="normal"><a href="#__codelineno-0-714">714</a></span>
+<span class="normal"><a href="#__codelineno-0-715">715</a></span>
+<span class="normal"><a href="#__codelineno-0-716">716</a></span>
+<span class="normal"><a href="#__codelineno-0-717">717</a></span>
+<span class="normal"><a href="#__codelineno-0-718">718</a></span>
+<span class="normal"><a href="#__codelineno-0-719">719</a></span>
+<span class="normal"><a href="#__codelineno-0-720">720</a></span>
+<span class="normal"><a href="#__codelineno-0-721">721</a></span>
+<span class="normal"><a href="#__codelineno-0-722">722</a></span>
+<span class="normal"><a href="#__codelineno-0-723">723</a></span>
+<span class="normal"><a href="#__codelineno-0-724">724</a></span>
+<span class="normal"><a href="#__codelineno-0-725">725</a></span>
+<span class="normal"><a href="#__codelineno-0-726">726</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="k">def</span><span class="w"> </span><span class="nf">configureIngressForPathBasedRouting</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">ingressControllerName</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">    Configure OpenShift IngressController for path-based routing.</span>
+<a id="__codelineno-0-640" name="__codelineno-0-640"></a>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">    Sets the namespaceOwnership to InterNamespaceAllowed on the specified IngressController,</span>
+<a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">    which is required for path-based routing mode in MAS.</span>
+<a id="__codelineno-0-643" name="__codelineno-0-643"></a>
+<a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-645" name="__codelineno-0-645"></a><span class="sd">        dynClient: OpenShift Dynamic Client</span>
+<a id="__codelineno-0-646" name="__codelineno-0-646"></a><span class="sd">        ingressControllerName (optional): Name of the IngressController to configure. Defaults to &quot;default&quot;.</span>
+<a id="__codelineno-0-647" name="__codelineno-0-647"></a>
+<a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">        bool: True if configuration was successful or already configured, False otherwise</span>
+<a id="__codelineno-0-650" name="__codelineno-0-650"></a>
+<a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">        NotFoundError: If the IngressController resource cannot be found</span>
+<a id="__codelineno-0-653" name="__codelineno-0-653"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-654" name="__codelineno-0-654"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuring IngressController &#39;</span><span class="si">{</span><span class="n">ingressControllerName</span><span class="si">}</span><span class="s2">&#39; for path-based routing&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-655" name="__codelineno-0-655"></a>
+<a id="__codelineno-0-656" name="__codelineno-0-656"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-657" name="__codelineno-0-657"></a>        <span class="n">ingressControllerAPI</span> <span class="o">=</span> <span class="n">dynClient</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+<a id="__codelineno-0-658" name="__codelineno-0-658"></a>            <span class="n">api_version</span><span class="o">=</span><span class="s2">&quot;operator.openshift.io/v1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-659" name="__codelineno-0-659"></a>            <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;IngressController&quot;</span>
+<a id="__codelineno-0-660" name="__codelineno-0-660"></a>        <span class="p">)</span>
+<a id="__codelineno-0-661" name="__codelineno-0-661"></a>
+<a id="__codelineno-0-662" name="__codelineno-0-662"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-663" name="__codelineno-0-663"></a>            <span class="n">ingressController</span> <span class="o">=</span> <span class="n">ingressControllerAPI</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+<a id="__codelineno-0-664" name="__codelineno-0-664"></a>                <span class="n">name</span><span class="o">=</span><span class="n">ingressControllerName</span><span class="p">,</span>
+<a id="__codelineno-0-665" name="__codelineno-0-665"></a>                <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;openshift-ingress-operator&quot;</span>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a>            <span class="p">)</span>
+<a id="__codelineno-0-667" name="__codelineno-0-667"></a>        <span class="k">except</span> <span class="n">NotFoundError</span><span class="p">:</span>
+<a id="__codelineno-0-668" name="__codelineno-0-668"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IngressController &#39;</span><span class="si">{</span><span class="n">ingressControllerName</span><span class="si">}</span><span class="s2">&#39; not found in namespace &#39;openshift-ingress-operator&#39;&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-669" name="__codelineno-0-669"></a>            <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-670" name="__codelineno-0-670"></a>
+<a id="__codelineno-0-671" name="__codelineno-0-671"></a>        <span class="n">currentPolicy</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-672" name="__codelineno-0-672"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ingressController</span><span class="p">,</span> <span class="s1">&#39;spec&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ingressController</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span> <span class="s1">&#39;routeAdmission&#39;</span><span class="p">):</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a>            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ingressController</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">routeAdmission</span><span class="p">,</span> <span class="s1">&#39;namespaceOwnership&#39;</span><span class="p">):</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>                <span class="n">currentPolicy</span> <span class="o">=</span> <span class="n">ingressController</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">routeAdmission</span><span class="o">.</span><span class="n">namespaceOwnership</span>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current namespaceOwnership policy: </span><span class="si">{</span><span class="n">currentPolicy</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">currentPolicy</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;Not set&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>        <span class="k">if</span> <span class="n">currentPolicy</span> <span class="o">==</span> <span class="s2">&quot;InterNamespaceAllowed&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IngressController &#39;</span><span class="si">{</span><span class="n">ingressControllerName</span><span class="si">}</span><span class="s2">&#39; is already configured with namespaceOwnership: InterNamespaceAllowed&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a>            <span class="k">return</span> <span class="kc">True</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Patching IngressController &#39;</span><span class="si">{</span><span class="n">ingressControllerName</span><span class="si">}</span><span class="s2">&#39; to enable InterNamespaceAllowed&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a>        <span class="n">patch</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a>            <span class="s2">&quot;spec&quot;</span><span class="p">:</span> <span class="p">{</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a>                <span class="s2">&quot;routeAdmission&quot;</span><span class="p">:</span> <span class="p">{</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a>                    <span class="s2">&quot;namespaceOwnership&quot;</span><span class="p">:</span> <span class="s2">&quot;InterNamespaceAllowed&quot;</span>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a>                <span class="p">}</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a>            <span class="p">}</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a>        <span class="p">}</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a>        <span class="n">ingressControllerAPI</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a>            <span class="n">body</span><span class="o">=</span><span class="n">patch</span><span class="p">,</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a>            <span class="n">name</span><span class="o">=</span><span class="n">ingressControllerName</span><span class="p">,</span>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a>            <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;openshift-ingress-operator&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a>            <span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;application/merge-patch+json&quot;</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a>        <span class="p">)</span>
+<a id="__codelineno-0-698" name="__codelineno-0-698"></a>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a>        <span class="n">maxRetries</span> <span class="o">=</span> <span class="mi">5</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a>        <span class="n">retryDelay</span> <span class="o">=</span> <span class="mi">5</span>
+<a id="__codelineno-0-701" name="__codelineno-0-701"></a>
+<a id="__codelineno-0-702" name="__codelineno-0-702"></a>        <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxRetries</span><span class="p">):</span>
+<a id="__codelineno-0-703" name="__codelineno-0-703"></a>            <span class="n">sleep</span><span class="p">(</span><span class="n">retryDelay</span><span class="p">)</span>
+<a id="__codelineno-0-704" name="__codelineno-0-704"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-705" name="__codelineno-0-705"></a>                <span class="n">updatedController</span> <span class="o">=</span> <span class="n">ingressControllerAPI</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+<a id="__codelineno-0-706" name="__codelineno-0-706"></a>                    <span class="n">name</span><span class="o">=</span><span class="n">ingressControllerName</span><span class="p">,</span>
+<a id="__codelineno-0-707" name="__codelineno-0-707"></a>                    <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;openshift-ingress-operator&quot;</span>
+<a id="__codelineno-0-708" name="__codelineno-0-708"></a>                <span class="p">)</span>
+<a id="__codelineno-0-709" name="__codelineno-0-709"></a>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a>                <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">updatedController</span><span class="p">,</span> <span class="s1">&#39;spec&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">updatedController</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span> <span class="s1">&#39;routeAdmission&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">updatedController</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">routeAdmission</span><span class="p">,</span> <span class="s1">&#39;namespaceOwnership&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">updatedController</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">routeAdmission</span><span class="o">.</span><span class="n">namespaceOwnership</span> <span class="o">==</span> <span class="s2">&quot;InterNamespaceAllowed&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Successfully configured IngressController &#39;</span><span class="si">{</span><span class="n">ingressControllerName</span><span class="si">}</span><span class="s2">&#39; for path-based routing&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a>                    <span class="k">return</span> <span class="kc">True</span>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a>            <span class="k">except</span> <span class="n">NotFoundError</span><span class="p">:</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IngressController &#39;</span><span class="si">{</span><span class="n">ingressControllerName</span><span class="si">}</span><span class="s2">&#39; not found during verification (attempt </span><span class="si">{</span><span class="n">attempt</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">maxRetries</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>            <span class="k">if</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="n">maxRetries</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Waiting for IngressController to reconcile (attempt </span><span class="si">{</span><span class="n">attempt</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">maxRetries</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to verify IngressController configuration after </span><span class="si">{</span><span class="n">maxRetries</span><span class="si">}</span><span class="s2"> attempts&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a>        <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to configure IngressController &#39;</span><span class="si">{</span><span class="n">ingressControllerName</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>        <span class="k">return</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

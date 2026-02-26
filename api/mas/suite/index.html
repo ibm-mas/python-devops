@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
     
     
       
@@ -2057,7 +2057,7 @@ and RWX (ReadWriteMany) storage class names.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>SimpleNamespace</code></td>            <td>
-                  <code><span title="dict">dict</span></code>
+                  <code><span title="types.SimpleNamespace">SimpleNamespace</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2149,7 +2149,7 @@ and RWX (ReadWriteMany) storage class names.</p>
 <span class="normal"><a href="#__codelineno-0-127">127</a></span>
 <span class="normal"><a href="#__codelineno-0-128">128</a></span>
 <span class="normal"><a href="#__codelineno-0-129">129</a></span>
-<span class="normal"><a href="#__codelineno-0-130">130</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="k">def</span><span class="w"> </span><span class="nf">getDefaultStorageClasses</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-130">130</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="k">def</span><span class="w"> </span><span class="nf">getDefaultStorageClasses</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleNamespace</span><span class="p">:</span>
 <a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    Detect and return default storage classes for the cluster environment.</span>
 <a id="__codelineno-0-60" name="__codelineno-0-60"></a>

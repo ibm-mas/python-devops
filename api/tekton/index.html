@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
     
     
       
@@ -3353,7 +3353,7 @@ pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.</p>
                 <code>slsLicenseFile</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3385,7 +3385,7 @@ pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.</p>
                 <code>certs</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3401,7 +3401,7 @@ pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.</p>
                 <code>podTemplates</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3560,7 +3560,7 @@ pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.</p>
 <span class="normal"><a href="#__codelineno-0-494">494</a></span>
 <span class="normal"><a href="#__codelineno-0-495">495</a></span>
 <span class="normal"><a href="#__codelineno-0-496">496</a></span>
-<span class="normal"><a href="#__codelineno-0-497">497</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="k">def</span><span class="w"> </span><span class="nf">prepareInstallSecrets</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">slsLicenseFile</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">additionalConfigs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">certs</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">podTemplates</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-497">497</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="k">def</span><span class="w"> </span><span class="nf">prepareInstallSecrets</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">slsLicenseFile</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">additionalConfigs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">certs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">podTemplates</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">    Create or update secrets required for MAS installation pipelines.</span>
 <a id="__codelineno-0-404" name="__codelineno-0-404"></a>
@@ -3570,10 +3570,10 @@ pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.</p>
 <a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">    Parameters:</span>
 <a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">        dynClient (DynamicClient): OpenShift Dynamic Client</span>
 <a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">        namespace (str): The namespace to create secrets in</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">        slsLicenseFile (str, optional): SLS license file content. Defaults to None (empty secret).</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">        slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).</span>
 <a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">        additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">        certs (str, optional): Certificate data. Defaults to None (empty secret).</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">        podTemplates (str, optional): Pod template data. Defaults to None (empty secret).</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">        certs (dict, optional): Certificate data. Defaults to None (empty secret).</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">        podTemplates (dict, optional): Pod template data. Defaults to None (empty secret).</span>
 <a id="__codelineno-0-415" name="__codelineno-0-415"></a>
 <a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">    Returns:</span>
 <a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">        None</span>
