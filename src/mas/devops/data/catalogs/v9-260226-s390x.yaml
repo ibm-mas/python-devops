@@ -53,7 +53,7 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform v8.10, v8.11, v9.0 and v9.1
-    - IBM Maximo Manage v8.6, v8.7, v9.0 and v9.1
+    - IBM Maximo Application Suite Core Platform [v8.10.35](https://www.ibm.com/support/pages/node/7261600), [v8.11.32](https://www.ibm.com/support/pages/node/7261601), [v9.0.21](https://www.ibm.com/support/pages/node/7261602) and [v9.1.10](https://www.ibm.com/support/pages/node/7261603)
+    - IBM Maximo Manage [v8.6.36](https://www.ibm.com/support/pages/node/7261736), [v8.7.30](https://www.ibm.com/support/pages/node/7261737), [v9.0.23](https://www.ibm.com/support/pages/node/7261063) and [v9.1.11](https://www.ibm.com/support/pages/node/7261062)
   known_issues:
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
