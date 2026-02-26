@@ -51,6 +51,9 @@ mongo_extras_version_8: 8.0.17
 
 editorial:
   whats_new:
+
+  - title: '**Openshift 4.20 support** Openshift Container Platform 4.20 support has been added. Refer OCP 4.20 release notes [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/release_notes/index)'
+    details: []
   - title: '**Security updates and bug fixes**'
     details:
     - IBM Maximo Application Suite Core Platform [v8.10.35](https://www.ibm.com/support/pages/node/7261600), [v8.11.32](https://www.ibm.com/support/pages/node/7261601), [v9.0.21](https://www.ibm.com/support/pages/node/7261602) and [v9.1.10](https://www.ibm.com/support/pages/node/7261603)
