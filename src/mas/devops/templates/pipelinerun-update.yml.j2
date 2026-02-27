@@ -44,6 +44,8 @@ spec:
     # -------------------------------------------------------------------------
     - name: db2_namespace
       value: "{{ db2_namespace }}"
+    - name: db2_v12_upgrade
+      value: "{{ db2_v12_upgrade }}"
 {%- endif %}
 {%- if mongodb_namespace is defined and mongodb_namespace != "" %}
 
