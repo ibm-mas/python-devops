@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:99387cb9cc028fad0c1c887a0946992bd96c2568a4de379d0bd922a5f4b14c14
+catalog_digest: sha256:fa26ba5c93c0b3317ddf6460063e9ca95debb021ea6fafcb363d3a8cb1afaf6c
 
 ocp_compatibility:
 - "4.16"
@@ -17,7 +17,7 @@ ocp_compatibility:
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.5  # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.3   # Operator version 1.7.3 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-db2u_version: 7.5.1+20251217.121408.18568    # Operator version 110509.0.7 to find the version 7.5.1+20251217.121408.18568, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -51,9 +51,11 @@ mongo_extras_version_8: 8.0.17
 
 editorial:
   whats_new:
+  - title: '**Openshift 4.20 support** Openshift Container Platform 4.20 support has been added. Refer OCP 4.20 release notes [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/release_notes/index)'
+    details: []
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform v8.10, v8.11, v9.0 and v9.1
-    - IBM Maximo Manage v8.6, v8.7, v9.0 and v9.1
+    - IBM Maximo Application Suite Core Platform [v8.10.35](https://www.ibm.com/support/pages/node/7261600), [v8.11.32](https://www.ibm.com/support/pages/node/7261601), [v9.0.21](https://www.ibm.com/support/pages/node/7261602) and [v9.1.10](https://www.ibm.com/support/pages/node/7261603)
+    - IBM Maximo Manage [v8.6.36](https://www.ibm.com/support/pages/node/7261736), [v8.7.30](https://www.ibm.com/support/pages/node/7261737), [v9.0.23](https://www.ibm.com/support/pages/node/7261063) and [v9.1.11](https://www.ibm.com/support/pages/node/7261062)
   known_issues:
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
