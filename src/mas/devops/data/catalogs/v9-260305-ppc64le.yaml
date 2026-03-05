@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:4c273cf1cce0669ca8aff6858a8771c08639eaf0079073fbf73d429f76fdb4ec
+catalog_digest: sha256:6ff8ae69c76c36895c60bad71a3d4f07f6510ef3d7567c5c5c19ff284ee6216a
 
 ocp_compatibility:
 - "4.16"
@@ -16,7 +16,7 @@ ocp_compatibility:
 
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.5  # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.3   # Operator version 1.7.3 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+tsm_version: 1.7.4   # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
