@@ -14,23 +14,23 @@ ocp_compatibility:
 - "4.19"
 - "4.20"
 
-uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.5  # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.4   # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+uds_version: 2.0.12                           # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+sls_version: 3.12.5  # No Update              # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.4   # Updated                # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+db2u_version: 7.3.1+20250821.161005.16793     # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_12926 # Updated 
-  9.1.x: 9.1.10                         # Updated
+  9.2.x-feature: 9.2.0-pre.stable_12926 # No Update 
+  9.1.x: 9.1.10                         # No Update
   9.0.x: 9.0.22                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_13730 # Updated
-  9.1.x: 9.1.11                         # Updated
-  9.0.x: 9.0.23                         # Updated
+  9.2.x-feature: 9.2.0-pre.stable_13730 # No Update
+  9.1.x: 9.1.11                         # No Update
+  9.0.x: 9.0.23                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 

@@ -27,8 +27,8 @@ db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to fi
 db2_channel_default: v110509.0               # Default Channel version for db2u-operator
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.5                          # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.4                           # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+sls_version: 3.12.5     # No Update          # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.4      # Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 dd_version: 1.1.22                           # Operator version 1.1.22 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 wsl_version: 11.0.0+20250521.202913.73                     # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
@@ -48,14 +48,14 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_12926 # Updated
-  9.1.x: 9.1.10        #  Updated
+  9.2.x-feature: 9.2.0-pre.stable_12926 # No Update
+  9.1.x: 9.1.10        #  No Update
   9.0.x: 9.0.22        #  Updated
-  8.10.x: 8.10.35      #  Updated
-  8.11.x: 8.11.32      #  Updated
+  8.10.x: 8.10.35      #  No Update
+  8.11.x: 8.11.32      #  No Update
 mas_assist_version:
-  9.1.x: 9.1.8     #  Updated
-  9.0.x: 9.0.14    #  Updated
+  9.1.x: 9.1.8     #  No Update
+  9.0.x: 9.0.14    #  No Update
   8.10.x: 8.7.8   # No Update
   8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
@@ -64,40 +64,40 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # No Update
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.1.x: 9.1.8     #  Updated
-  9.0.x: 9.0.17    #  Updated
-  8.10.x: 8.7.31   #  Updated
-  8.11.x: 8.8.28   #  Updated
+  9.1.x: 9.1.8     #  No Update
+  9.0.x: 9.0.17    #  No Update
+  8.10.x: 8.7.31   #  No Update
+  8.11.x: 8.8.28   #  No Update
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_13730 #  Updated
-  9.1.x: 9.1.11        #  Updated
-  9.0.x: 9.0.23        #  Updated
-  8.10.x: 8.6.36       #  Updated
-  8.11.x: 8.7.30       #  Updated
+  9.2.x-feature: 9.2.0-pre.stable_13730 #  No Update
+  9.1.x: 9.1.11        #  No Update
+  9.0.x: 9.0.23        #  No Update
+  8.10.x: 8.6.36       #  No Update
+  8.11.x: 8.7.30       #  No Update
 mas_monitor_version:
-  9.1.x: 9.1.8    #  Updated
-  9.0.x: 9.0.18   #  Updated
-  8.10.x: 8.10.28 #  Updated
-  8.11.x: 8.11.26 #  Updated
+  9.1.x: 9.1.8    #  No Update
+  9.0.x: 9.0.18   #  No Update
+  8.10.x: 8.10.28 #  No Update
+  8.11.x: 8.11.26 #  No Update
 mas_optimizer_version:
-  9.2.x-feature: 9.2.0-pre.stable_12739 #  Updated
-  9.1.x: 9.1.9         #  Updated
-  9.0.x: 9.0.20        #  Updated
+  9.2.x-feature: 9.2.0-pre.stable_12739 #  No Update
+  9.1.x: 9.1.9         #  No Update
+  9.0.x: 9.0.20        #  No Update
   8.10.x: 8.4.26       #  Need to update
-  8.11.x: 8.5.26       #  Updated
+  8.11.x: 8.5.26       #  No Update
 mas_predict_version:
-  9.1.x: 9.1.5     # Updated
-  9.0.x: 9.0.12    # Updated
-  8.10.x: 8.8.13   # Updated
-  8.11.x: 8.9.15   # Updated
+  9.1.x: 9.1.5     # No Update
+  9.0.x: 9.0.12    # No Update
+  8.10.x: 8.8.13   # No Update
+  8.11.x: 8.9.15   # No Update
 mas_visualinspection_version:
-  9.2.x-feature: 9.2.0-pre.stable_12598 # Updated
-  9.1.x: 9.1.10        #  Updated
-  9.0.x: 9.0.17        #  Updated
+  9.2.x-feature: 9.2.0-pre.stable_12598 # No Update
+  9.1.x: 9.1.10        #  No Update
+  9.0.x: 9.0.17        #  No Update
   8.10.x: 8.8.4        #  No Update
-  8.11.x: 8.9.20       #  Updated
+  8.11.x: 8.9.20       #  No Update
 mas_facilities_version:
-  9.1.x: 9.1.8    #  Updated
+  9.1.x: 9.1.8    #  No Update
   9.0.x: ""       # Not Supported
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
@@ -106,8 +106,8 @@ mas_facilities_version:
 # Maximo AI Service
 # ------------------------------------------------------------------------------
 aiservice_version:
-  9.2.x-feature: 9.2.0-pre.stable_12908 #  Updated
-  9.1.x: 9.1.12  #  Updated
+  9.2.x-feature: 9.2.0-pre.stable_12908 #  No Update
+  9.1.x: 9.1.12  #  No Update
  
 
 # Extra Images for UDS
