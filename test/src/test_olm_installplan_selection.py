@@ -12,7 +12,7 @@
 Unit tests for InstallPlan selection logic in applySubscription.
 
 These tests mock up the resources rather than use real resources as the
-OLM processing on a cluster is quite slow and it would take time to 
+OLM processing on a cluster is quite slow and it would take time to
 exercise all these scenerios
 """
 
@@ -100,14 +100,14 @@ def test_automatic_approval_uses_label_selector_only(
 
     # Mock subscription API
     sub_api = Mock()
-    
+
     # Mock subscription resource with proper status
     mock_subscription = Mock()
     mock_subscription.metadata.name = "test-operator"
     mock_subscription.status = Mock()
     mock_subscription.status.state = "AtLatestKnown"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
-    
+
     # First call returns empty list (no existing subscription), subsequent calls return the subscription
     sub_api.get.side_effect = [
         MockResourceList([]),  # Initial check for existing subscription
@@ -169,14 +169,14 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
 
     # Mock subscription API
     sub_api = Mock()
-    
+
     # Mock subscription resource with proper status
     mock_subscription = Mock()
     mock_subscription.metadata.name = "test-operator"
     mock_subscription.status = Mock()
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
-    
+
     # First call returns empty list (no existing subscription), subsequent calls return the subscription
     sub_api.get.side_effect = [
         MockResourceList([]),  # Initial check for existing subscription
@@ -198,7 +198,7 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
         csv_names=["test-operator.v1.0.0"],
         phase="Complete"
     )
-    
+
     # Simulate phase transition: first returns RequiresApproval, then Complete after patch
     def get_install_plan_side_effect(*args, **kwargs):
         if 'name' in kwargs:
@@ -207,7 +207,7 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
         else:
             # Initial query with label selector
             return MockResourceList([install_plan_requires_approval])
-    
+
     install_plan_api.get.side_effect = get_install_plan_side_effect
     install_plan_api.patch.return_value = Mock()
 
@@ -253,14 +253,14 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
 
     # Mock subscription API
     sub_api = Mock()
-    
+
     # Mock subscription resource with proper status
     mock_subscription = Mock()
     mock_subscription.metadata.name = "test-operator"
     mock_subscription.status = Mock()
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
-    
+
     # First call returns empty list (no existing subscription), subsequent calls return the subscription
     sub_api.get.side_effect = [
         MockResourceList([]),  # Initial check for existing subscription
@@ -282,14 +282,14 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
         csv_names=["test-operator.v1.0.0"],
         phase="Complete"
     )
-    
+
     # Simulate phase transition
     def get_install_plan_side_effect(*args, **kwargs):
         if 'name' in kwargs:
             return install_plan_complete
         else:
             return MockResourceList([install_plan_requires_approval])
-    
+
     install_plan_api.get.side_effect = get_install_plan_side_effect
     install_plan_api.patch.return_value = Mock()
 
@@ -338,14 +338,14 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
 
     # Mock subscription API
     sub_api = Mock()
-    
+
     # Mock subscription resource with proper status
     mock_subscription = Mock()
     mock_subscription.metadata.name = "test-operator"
     mock_subscription.status = Mock()
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
-    
+
     # First call returns empty list (no existing subscription), subsequent calls return the subscription
     sub_api.get.side_effect = [
         MockResourceList([]),  # Initial check for existing subscription
@@ -372,7 +372,7 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
         csv_names=["test-operator.v1.0.0"],  # Matches startingCSV
         phase="RequiresApproval"
     )
-    
+
     correct_install_plan_complete = MockResource(
         name="install-plan-1",
         labels={},
@@ -448,14 +448,14 @@ def test_manual_approval_filters_by_subscription_ownership(
 
     # Mock subscription API
     sub_api = Mock()
-    
+
     # Mock subscription resource with proper status
     mock_subscription = Mock()
     mock_subscription.metadata.name = "test-operator"
     mock_subscription.status = Mock()
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
-    
+
     # First call returns empty list (no existing subscription), subsequent calls return the subscription
     sub_api.get.side_effect = [
         MockResourceList([]),  # Initial check for existing subscription
@@ -483,7 +483,7 @@ def test_manual_approval_filters_by_subscription_ownership(
         csv_names=["test-operator.v1.0.0"],
         phase="RequiresApproval"
     )
-    
+
     correct_install_plan_complete = MockResource(
         name="install-plan-correct",
         labels={},

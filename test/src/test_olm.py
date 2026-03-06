@@ -87,7 +87,7 @@ def test_crud_with_manual_approval():
     an OLMException is raised.
     """
     namespace = "cli-fvt-3"
-    
+
     # This should raise an OLMException because Manual approval requires a startingCSV
     try:
         olm.applySubscription(
