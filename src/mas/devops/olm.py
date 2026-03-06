@@ -140,15 +140,18 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         installMode (str, optional): Install mode for the OperatorGroup. Defaults to "OwnNamespace".
         installPlanApproval (str, optional): Install plan approval mode ("Automatic" or "Manual"). Defaults to None.
         startingCSV (str, optional): The specific CSV version to install. When combined with Manual approval,
-            the first InstallPlan to this CSV will be automatically approved. Defaults to None.
+            the first InstallPlan to this CSV will be automatically approved. Required when installPlanApproval is "Manual". Defaults to None.
 
     Returns:
         Subscription: The created or updated subscription resource
 
     Raises:
-        OLMException: If the package is not available in any catalog
+        OLMException: If the package is not available in any catalog, or if installPlanApproval is "Manual" without a startingCSV
         NotFoundError: If resources cannot be created
     """
+    # Validate that startingCSV is provided when installPlanApproval is Manual
+    if installPlanApproval == "Manual" and startingCSV is None:
+        raise OLMException("When installPlanApproval is 'Manual', a startingCSV must be provided")
     if catalogSourceNamespace is None:
         catalogSourceNamespace = "openshift-marketplace"
 

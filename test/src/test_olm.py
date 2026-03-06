@@ -82,23 +82,27 @@ def test_crud_with_config():
 
 
 def test_crud_with_manual_approval():
+    """
+    Test that when installPlanApproval is Manual without a startingCSV,
+    an OLMException is raised.
+    """
     namespace = "cli-fvt-3"
-    subscription = olm.applySubscription(
-        dynClient,
-        namespace,
-        "ibm-sls",
-        packageChannel="3.x",
-        installPlanApproval="Manual"
-    )
-    assert subscription.metadata.name == "ibm-sls"
-    assert subscription.metadata.namespace == namespace
-    assert subscription.spec.installPlanApproval == "Manual"
-
-    # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
-    # subscription, but when we delete the subscription, OLM will not automatically remove the latter
-    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
-    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
-    ocp.deleteNamespace(dynClient, namespace)
+    
+    # This should raise an OLMException because Manual approval requires a startingCSV
+    try:
+        olm.applySubscription(
+            dynClient,
+            namespace,
+            "ibm-sls",
+            packageChannel="3.x",
+            installPlanApproval="Manual"
+        )
+        # If we get here, the test should fail
+        assert False, "Expected OLMException to be raised when installPlanApproval is Manual without startingCSV"
+    except olm.OLMException as e:
+        # Verify the error message is correct
+        assert "When installPlanApproval is 'Manual', a startingCSV must be provided" in str(e)
+        # Test passed - exception was raised as expected
 
 
 def test_crud_with_starting_csv():
