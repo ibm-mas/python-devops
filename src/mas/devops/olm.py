@@ -11,6 +11,7 @@
 import logging
 from time import sleep
 from os import path
+from typing import Optional
 
 from kubernetes.dynamic.exceptions import NotFoundError
 from openshift.dynamic import DynamicClient
@@ -117,7 +118,7 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
     return subscriptions.items[0]
 
 
-def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None, installMode: str = "OwnNamespace"):
+def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: Optional[str] = None, catalogSource: Optional[str] = None, catalogSourceNamespace: str = "openshift-marketplace", config: Optional[dict] = None, installMode: str = "OwnNamespace", installPlanApproval: Optional[str] = None, startingCSV: Optional[str] = None):
     """
     Create or update an operator subscription in a namespace.
 
@@ -133,6 +134,8 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         catalogSourceNamespace (str, optional): Namespace of the catalog source. Defaults to "openshift-marketplace".
         config (dict, optional): Additional subscription configuration. Defaults to None.
         installMode (str, optional): Install mode for the OperatorGroup. Defaults to "OwnNamespace".
+        installPlanApproval (str, optional): Install plan approval mode ("Automatic" or "Manual"). Defaults to None.
+        startingCSV (str, optional): The specific CSV version to install. Defaults to None.
 
     Returns:
         Subscription: The created or updated subscription resource
@@ -190,7 +193,9 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         package_name=packageName,
         package_channel=packageChannel,
         catalog_name=catalogSource,
-        catalog_namespace=catalogSourceNamespace
+        catalog_namespace=catalogSourceNamespace,
+        install_plan_approval=installPlanApproval,
+        starting_csv=startingCSV
     )
     subscription = yaml.safe_load(renderedTemplate)
     subscriptionsAPI.apply(body=subscription, namespace=namespace)
@@ -208,8 +213,8 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         raise OLMException(f"Found 0 InstallPlans for {packageName}")
     elif len(installPlanResources.items) > 1:
         logger.warning(f"More than 1 InstallPlan found for {packageName}")
-    else:
-        installPlanName = installPlanResources.items[0].metadata.name
+    
+    installPlanName = installPlanResources.items[0].metadata.name
 
     # Wait for InstallPlan to complete
     logger.debug(f"Waiting for InstallPlan {installPlanName}")

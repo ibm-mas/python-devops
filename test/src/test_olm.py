@@ -79,3 +79,67 @@ def test_crud_with_config():
     olm.deleteSubscription(dynClient, namespace, "ibm-sls")
     olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
     ocp.deleteNamespace(dynClient, namespace)
+
+
+def test_crud_with_manual_approval():
+    namespace = "cli-fvt-3"
+    subscription = olm.applySubscription(
+        dynClient,
+        namespace,
+        "ibm-sls",
+        packageChannel="3.x",
+        installPlanApproval="Manual"
+    )
+    assert subscription.metadata.name == "ibm-sls"
+    assert subscription.metadata.namespace == namespace
+    assert subscription.spec.installPlanApproval == "Manual"
+
+    # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
+    # subscription, but when we delete the subscription, OLM will not automatically remove the latter
+    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
+    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    ocp.deleteNamespace(dynClient, namespace)
+
+
+def test_crud_with_starting_csv():
+    namespace = "cli-fvt-4"
+    # Note: This test assumes a specific CSV version exists in the catalog
+    # You may need to adjust the version based on what's available
+    subscription = olm.applySubscription(
+        dynClient,
+        namespace,
+        "ibm-sls",
+        packageChannel="3.x",
+        startingCSV="ibm-sls.v3.8.0"
+    )
+    assert subscription.metadata.name == "ibm-sls"
+    assert subscription.metadata.namespace == namespace
+    assert subscription.spec.startingCSV == "ibm-sls.v3.8.0"
+
+    # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
+    # subscription, but when we delete the subscription, OLM will not automatically remove the latter
+    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
+    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    ocp.deleteNamespace(dynClient, namespace)
+
+
+def test_crud_with_manual_approval_and_starting_csv():
+    namespace = "cli-fvt-5"
+    subscription = olm.applySubscription(
+        dynClient,
+        namespace,
+        "ibm-sls",
+        packageChannel="3.x",
+        installPlanApproval="Manual",
+        startingCSV="ibm-sls.v3.8.0"
+    )
+    assert subscription.metadata.name == "ibm-sls"
+    assert subscription.metadata.namespace == namespace
+    assert subscription.spec.installPlanApproval == "Manual"
+    assert subscription.spec.startingCSV == "ibm-sls.v3.8.0"
+
+    # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
+    # subscription, but when we delete the subscription, OLM will not automatically remove the latter
+    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
+    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    ocp.deleteNamespace(dynClient, namespace)
