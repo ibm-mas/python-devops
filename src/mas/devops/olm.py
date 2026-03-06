@@ -213,7 +213,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         raise OLMException(f"Found 0 InstallPlans for {packageName}")
     elif len(installPlanResources.items) > 1:
         logger.warning(f"More than 1 InstallPlan found for {packageName}")
-    
+
     installPlanName = installPlanResources.items[0].metadata.name
 
     # Wait for InstallPlan to complete
