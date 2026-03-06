@@ -386,10 +386,10 @@ if __name__ == "__main__":
     elif args.action == "ocp-provision-roks":
         notifyProvisionRoks(channelList, args.rc, args.msg)
     elif args.action == "pipeline-start":
-        notifyPipelineStart(channelList, args.instance_id)
+        notifyPipelineStart(channelList, args.instance_id, args.pipeline_name)
     elif args.action == "ansible-start":
-        notifyAnsibleStart(channelList, args.task_name, args.instance_id)
+        notifyAnsibleStart(channelList, args.task_name, args.instance_id, args.pipeline_name)
     elif args.action == "ansible-complete":
-        notifyAnsibleComplete(channelList, args.rc, args.task_name, args.instance_id)
+        notifyAnsibleComplete(channelList, args.rc, args.task_name, args.instance_id, args.pipeline_name)
     elif args.action == "pipeline-complete":
-        notifyPipelineComplete(channelList, args.rc, args.instance_id)
+        notifyPipelineComplete(channelList, args.rc, args.instance_id, args.pipeline_name)
