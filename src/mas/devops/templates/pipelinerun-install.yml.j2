@@ -707,6 +707,10 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_app_channel_monitor
       value: "{{ mas_app_channel_monitor }}"
+  {%- if mas_monitor_install_order is defined and mas_monitor_install_order != "" %}
+    - name: mas_monitor_install_order
+      value: "{{ mas_monitor_install_order }}"
+  {%- endif %}
 {%- endif %}
 {%- if mas_app_channel_optimizer is defined and mas_app_channel_optimizer != "" %}
 
