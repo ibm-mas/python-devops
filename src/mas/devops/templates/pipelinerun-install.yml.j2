@@ -760,9 +760,9 @@ spec:
     - name: mas_ws_facilities_size
       value: "{{ mas_ws_facilities_size }}"
 {%- endif %}
-{%- if mas_ws_facilities_appOMUpgradeMode is defined and mas_ws_facilities_appOMUpgradeMode != "" %}
-    - name: mas_ws_facilities_appOMUpgradeMode
-      value: "{{ mas_ws_facilities_appOMUpgradeMode }}"
+{%- if mas_ws_facilities_app_om_upgrade_mode is defined and mas_ws_facilities_app_om_upgrade_mode != "" %}
+    - name: mas_ws_facilities_app_om_upgrade_mode
+      value: "{{ mas_ws_facilities_app_om_upgrade_mode }}"
 {%- endif %}
 {%- if mas_ws_facilities_routes_timeout is defined and mas_ws_facilities_routes_timeout != "" %}
     - name: mas_ws_facilities_routes_timeout
