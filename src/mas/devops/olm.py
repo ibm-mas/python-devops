@@ -11,6 +11,7 @@
 import logging
 from time import sleep
 from os import path
+from typing import Optional
 
 from kubernetes.dynamic.exceptions import NotFoundError
 from openshift.dynamic import DynamicClient
@@ -117,12 +118,16 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
     return subscriptions.items[0]
 
 
-def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: str = None, catalogSource: str = None, catalogSourceNamespace: str = "openshift-marketplace", config: dict = None, installMode: str = "OwnNamespace"):
+def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: Optional[str] = None, catalogSource: Optional[str] = None, catalogSourceNamespace: str = "openshift-marketplace", config: Optional[dict] = None, installMode: str = "OwnNamespace", installPlanApproval: Optional[str] = None, startingCSV: Optional[str] = None):
     """
     Create or update an operator subscription in a namespace.
 
     Automatically detects default channel and catalog source from PackageManifest if not provided.
     Ensures an OperatorGroup exists before creating the subscription.
+
+    When installPlanApproval is set to "Manual" and a startingCSV is specified, this function will
+    automatically approve the InstallPlan for the first-time installation to move to that startingCSV.
+    Subsequent upgrades will still require manual approval.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -133,14 +138,20 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         catalogSourceNamespace (str, optional): Namespace of the catalog source. Defaults to "openshift-marketplace".
         config (dict, optional): Additional subscription configuration. Defaults to None.
         installMode (str, optional): Install mode for the OperatorGroup. Defaults to "OwnNamespace".
+        installPlanApproval (str, optional): Install plan approval mode ("Automatic" or "Manual"). Defaults to None.
+        startingCSV (str, optional): The specific CSV version to install. When combined with Manual approval,
+            the first InstallPlan to this CSV will be automatically approved. Required when installPlanApproval is "Manual". Defaults to None.
 
     Returns:
         Subscription: The created or updated subscription resource
 
     Raises:
-        OLMException: If the package is not available in any catalog
+        OLMException: If the package is not available in any catalog, or if installPlanApproval is "Manual" without a startingCSV
         NotFoundError: If resources cannot be created
     """
+    # Validate that startingCSV is provided when installPlanApproval is Manual
+    if installPlanApproval == "Manual" and startingCSV is None:
+        raise OLMException("When installPlanApproval is 'Manual', a startingCSV must be provided")
     if catalogSourceNamespace is None:
         catalogSourceNamespace = "openshift-marketplace"
 
@@ -190,7 +201,9 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         package_name=packageName,
         package_channel=packageChannel,
         catalog_name=catalogSource,
-        catalog_namespace=catalogSourceNamespace
+        catalog_namespace=catalogSourceNamespace,
+        install_plan_approval=installPlanApproval,
+        starting_csv=startingCSV
     )
     subscription = yaml.safe_load(renderedTemplate)
     subscriptionsAPI.apply(body=subscription, namespace=namespace)
@@ -199,6 +212,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     logger.debug(f"Waiting for {packageName}.{namespace} InstallPlans")
     installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
 
+    # Use label selector to get InstallPlans (standard approach)
     installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
     while len(installPlanResources.items) == 0:
         installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
@@ -207,17 +221,93 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     if len(installPlanResources.items) == 0:
         raise OLMException(f"Found 0 InstallPlans for {packageName}")
     elif len(installPlanResources.items) > 1:
-        logger.warning(f"More than 1 InstallPlan found for {packageName}")
-    else:
-        installPlanName = installPlanResources.items[0].metadata.name
+        logger.warning(f"More than 1 InstallPlan found for {packageName} using label selector")
 
-    # Wait for InstallPlan to complete
-    logger.debug(f"Waiting for InstallPlan {installPlanName}")
-    installPlanPhase = installPlanResources.items[0].status.phase
-    while installPlanPhase != "Complete":
-        installPlanResource = installPlanAPI.get(name=installPlanName, namespace=namespace)
-        installPlanPhase = installPlanResource.status.phase
-        sleep(30)
+    # Select the InstallPlan to use
+    installPlanResource = None
+
+    # Special handling for Manual approval with startingCSV
+    if installPlanApproval == "Manual" and startingCSV is not None:
+        logger.debug(f"Manual approval with startingCSV {startingCSV} - checking if label selector returned correct InstallPlan")
+
+        # Check if any of the InstallPlans from label selector match the startingCSV
+        for plan in installPlanResources.items:
+            csvNames = getattr(plan.spec, "clusterServiceVersionNames", [])
+            logger.debug(f"InstallPlan {plan.metadata.name} (from label selector) contains CSVs: {csvNames}")
+            if csvNames and startingCSV in csvNames:
+                installPlanResource = plan
+                logger.info(f"Found InstallPlan {plan.metadata.name} matching startingCSV {startingCSV} via label selector")
+                break
+
+        # If no match found via label selector, search all InstallPlans owned by this subscription
+        if installPlanResource is None:
+            logger.warning(f"Label selector did not return InstallPlan matching startingCSV {startingCSV}")
+            logger.debug(f"Searching all InstallPlans in {namespace} owned by subscription {name}")
+
+            allInstallPlans = installPlanAPI.get(namespace=namespace)
+            for plan in allInstallPlans.items:
+                # Check if this InstallPlan is owned by our subscription
+                owner_refs = getattr(plan.metadata, 'ownerReferences', [])
+                is_owned_by_subscription = any(
+                    ref.kind == "Subscription" and ref.name == name
+                    for ref in owner_refs
+                )
+
+                if is_owned_by_subscription:
+                    csvNames = getattr(plan.spec, "clusterServiceVersionNames", [])
+                    logger.debug(f"InstallPlan {plan.metadata.name} (owned by subscription) contains CSVs: {csvNames}")
+                    if csvNames and startingCSV in csvNames:
+                        installPlanResource = plan
+                        logger.info(f"Found InstallPlan {plan.metadata.name} matching startingCSV {startingCSV} via subscription ownership")
+                        break
+
+            if installPlanResource is None:
+                logger.warning(f"No InstallPlan found matching startingCSV {startingCSV}, using first from label selector")
+                installPlanResource = installPlanResources.items[0]
+    else:
+        # Standard case: use first InstallPlan from label selector
+        installPlanResource = installPlanResources.items[0]
+
+    installPlanName = installPlanResource.metadata.name
+    installPlanPhase = installPlanResource.status.phase
+
+    # If the InstallPlan for our startingCSV is already Complete, we're done
+    if installPlanPhase == "Complete":
+        logger.info(f"InstallPlan {installPlanName} for {startingCSV} is already Complete")
+    else:
+        # Wait for InstallPlan to complete
+        logger.debug(f"Waiting for InstallPlan {installPlanName}")
+
+        # Track if we've already approved this install plan
+        approved_manual_install = False
+
+        while installPlanPhase != "Complete":
+            installPlanResource = installPlanAPI.get(name=installPlanName, namespace=namespace)
+            installPlanPhase = installPlanResource.status.phase
+
+            # If InstallPlan requires approval and this is the first installation to startingCSV
+            if installPlanPhase == "RequiresApproval" and not approved_manual_install:
+                # Check if this is the first installation by verifying the CSV matches startingCSV
+                if startingCSV is not None:
+                    csvName = getattr(installPlanResource.spec, "clusterServiceVersionNames", [])
+                    if csvName and startingCSV in csvName:
+                        logger.info(f"Approving InstallPlan {installPlanName} for first-time installation to {startingCSV}")
+                        # Patch the InstallPlan to approve it
+                        installPlanResource.spec.approved = True
+                        installPlanAPI.patch(
+                            body=installPlanResource,
+                            name=installPlanName,
+                            namespace=namespace,
+                            content_type="application/merge-patch+json"
+                        )
+                        approved_manual_install = True
+                        logger.info(f"InstallPlan {installPlanName} approved successfully")
+                    else:
+                        logger.debug(f"InstallPlan CSV {csvName} does not match startingCSV {startingCSV}, waiting for manual approval")
+                else:
+                    logger.debug(f"No startingCSV specified, InstallPlan {installPlanName} requires manual approval")
+
+            sleep(30)
 
     # Wait for Subscription to complete
     logger.debug(f"Waiting for Subscription {name} in {namespace}")
@@ -225,9 +315,20 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         subscriptionResource = subscriptionsAPI.get(name=name, namespace=namespace)
         state = getattr(subscriptionResource.status, "state", None)
 
+        # When manual approval is used with startingCSV, the state will be "UpgradePending"
+        # after the initial installation completes (indicating newer versions are available
+        # but require manual approval). For automatic approval, the state will be "AtLatestKnown".
         if state == "AtLatestKnown":
             logger.debug(f"Subscription {name} in {namespace} reached state: {state}")
             return subscriptionResource
+        elif state == "UpgradePending" and installPlanApproval == "Manual" and startingCSV is not None:
+            # Verify the installed CSV matches the startingCSV
+            installedCSV = getattr(subscriptionResource.status, "installedCSV", None)
+            if installedCSV == startingCSV:
+                logger.debug(f"Subscription {name} in {namespace} reached state: {state} with installedCSV: {installedCSV}")
+                return subscriptionResource
+            else:
+                logger.debug(f"Subscription {name} in {namespace} state is {state} but installedCSV ({installedCSV}) does not match startingCSV ({startingCSV}), retrying...")
 
         logger.debug(f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying...")
         sleep(30)
