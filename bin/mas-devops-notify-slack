@@ -244,11 +244,11 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
         # Calculate task duration if we have the message timestamp
         durationText = ""
         if taskMessageTs:
-            from datetime import datetime
+            from datetime import datetime, timezone
             try:
                 # Message timestamp is in format "1234567890.123456"
                 startTime = float(taskMessageTs)
-                endTime = datetime.utcnow().timestamp()
+                endTime = datetime.now(timezone.utc).timestamp()
                 duration = int(endTime - startTime)
 
                 hours, remainder = divmod(duration, 3600)
@@ -309,10 +309,10 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
     # Calculate duration if start time is available
     durationText = ""
     if startTime:
-        from datetime import datetime
+        from datetime import datetime, timezone
         try:
             start = datetime.fromisoformat(startTime.replace("Z", "+00:00"))
-            end = datetime.utcnow()
+            end = datetime.now(timezone.utc)
             duration = end - start
             hours, remainder = divmod(int(duration.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
