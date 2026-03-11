@@ -27,76 +27,6 @@ from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitFo
 logger = logging.getLogger(__name__)
 
 
-def configureTektonFeatureFlags(dynClient: DynamicClient) -> bool:
-    """
-    Configure Tekton feature flags to disable coschedule (Affinity Assistant).
-
-    This prevents the "more than one PersistentVolumeClaim is bound" error when
-    tasks use multiple PVCs with incompatible access modes.
-
-    Parameters:
-        dynClient (DynamicClient): OpenShift Dynamic Client
-
-    Returns:
-        bool: True if configuration is successful, False otherwise
-    """
-    try:
-        configMapAPI = dynClient.resources.get(api_version="v1", kind="ConfigMap")
-        namespace = "openshift-pipelines"
-        configMapName = "feature-flags"
-
-        # Get the existing ConfigMap
-        try:
-            featureFlags = configMapAPI.get(name=configMapName, namespace=namespace)
-            logger.info(f"Found existing Tekton feature-flags ConfigMap in {namespace}")
-
-            # Convert to dict to make it mutable
-            featureFlagsDict = featureFlags.to_dict()
-
-            # Update the coschedule setting
-            if featureFlagsDict.get("data") is None:
-                featureFlagsDict["data"] = {}
-
-            currentCoschedule = featureFlagsDict["data"].get("coschedule", "workspaces")
-            if currentCoschedule != "disabled":
-                logger.info(f"Updating Tekton coschedule setting from '{currentCoschedule}' to 'disabled'")
-                featureFlagsDict["data"]["coschedule"] = "disabled"
-                configMapAPI.patch(body=featureFlagsDict, namespace=namespace)
-                logger.info("Successfully updated Tekton feature flags to disable coschedule")
-
-                # Restart the Tekton controller to apply changes
-                logger.info("Restarting tekton-pipelines-controller to apply feature flag changes")
-                deploymentAPI = dynClient.resources.get(api_version="apps/v1", kind="Deployment")
-                controller = deploymentAPI.get(name="tekton-pipelines-controller", namespace=namespace)
-
-                # Trigger a rollout by updating an annotation
-                if controller.spec.template.metadata.annotations is None:
-                    controller.spec.template.metadata.annotations = {}
-                controller.spec.template.metadata.annotations["kubectl.kubernetes.io/restartedAt"] = datetime.now().isoformat()
-                deploymentAPI.patch(body=controller, namespace=namespace)
-
-                # Wait for the controller to be ready
-                logger.debug("Waiting for tekton-pipelines-controller to be ready after restart")
-                foundReadyController = waitForDeployment(dynClient, namespace=namespace, deploymentName="tekton-pipelines-controller")
-                if foundReadyController:
-                    logger.info("Tekton controller restarted successfully")
-                    return True
-                else:
-                    logger.warning("Tekton controller restart may not have completed successfully")
-                    return False
-            else:
-                logger.info("Tekton coschedule is already set to 'disabled', no changes needed")
-                return True
-
-        except NotFoundError:
-            logger.warning(f"ConfigMap {configMapName} not found in {namespace}, it may not exist yet")
-            return False
-
-    except Exception as e:
-        logger.error(f"Error configuring Tekton feature flags: {str(e)}")
-        return False
-
-
 def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:
     """
     Install the OpenShift Pipelines Operator and wait for it to be ready to use.
@@ -166,11 +96,6 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     else:
         logger.error("OpenShift Pipelines Webhook is NOT installed and ready")
         return False
-
-    # Configure Tekton feature flags to disable coschedule
-    # -------------------------------------------------------------------------
-    logger.debug("Configuring Tekton feature flags")
-    configureTektonFeatureFlags(dynClient)
 
     # Workaround for bug in OpenShift Pipelines/Tekton
     # -------------------------------------------------------------------------
@@ -337,7 +262,7 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
         logger.debug(line)
 
 
-def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True, createBackupPVC: bool = False, backupStorageSize: str = "20Gi"):
+def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True, createConfigPVC: bool = True, createBackupPVC: bool = False, backupStorageSize: str = "20Gi"):
     """
     Prepare a namespace for MAS pipelines by creating RBAC and PVC resources.
 
@@ -351,6 +276,7 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         accessMode (str, optional): Access mode for the PVC. Defaults to None.
         waitForBind (bool, optional): Whether to wait for PVC to bind. Defaults to True.
         configureRBAC (bool, optional): Whether to configure RBAC. Defaults to True.
+        createConfigPVC (bool, optional): Whether to create config PVC. Defaults to True.
         createBackupPVC (bool, optional): Whether to create backup PVC. Defaults to False.
         backupStorageSize (str, optional): Size of the backup PVC storage. Defaults to "20Gi".
 
@@ -383,33 +309,36 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
     if instanceId is not None:
         pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
 
-        # Create config PVC
-        template = env.get_template("pipelines-pvc.yml.j2")
-        renderedTemplate = template.render(
-            mas_instance_id=instanceId,
-            pipeline_storage_class=storageClass,
-            pipeline_storage_accessmode=accessMode
-        )
-        logger.debug(renderedTemplate)
-        pvc = yaml.safe_load(renderedTemplate)
-        pvcAPI.apply(body=pvc, namespace=namespace)
-
         # Automatically determine if we should wait for PVC binding based on storage class
         volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
         waitForBind = (volumeBindingMode == "Immediate")
-        if waitForBind:
-            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for config PVC to bind")
-            pvcIsBound = False
-            while not pvcIsBound:
-                configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
-                if configPVC.status.phase == "Bound":
-                    pvcIsBound = True
-                else:
-                    logger.debug("Waiting 15s before checking status of config PVC again")
-                    logger.debug(configPVC)
-                    sleep(15)
-        else:
-            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping config PVC bind wait")
+
+        # Create config PVC if requested
+        if createConfigPVC:
+            logger.info("Creating config PVC")
+            template = env.get_template("pipelines-pvc.yml.j2")
+            renderedTemplate = template.render(
+                mas_instance_id=instanceId,
+                pipeline_storage_class=storageClass,
+                pipeline_storage_accessmode=accessMode
+            )
+            logger.debug(renderedTemplate)
+            pvc = yaml.safe_load(renderedTemplate)
+            pvcAPI.apply(body=pvc, namespace=namespace)
+
+            if waitForBind:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for config PVC to bind")
+                pvcIsBound = False
+                while not pvcIsBound:
+                    configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                    if configPVC.status.phase == "Bound":
+                        pvcIsBound = True
+                    else:
+                        logger.debug("Waiting 15s before checking status of config PVC again")
+                        logger.debug(configPVC)
+                        sleep(15)
+            else:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping config PVC bind wait")
 
         # Create backup PVC if requested
         if createBackupPVC:

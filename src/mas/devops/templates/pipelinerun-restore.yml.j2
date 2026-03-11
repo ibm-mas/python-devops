@@ -12,9 +12,6 @@ spec:
   timeouts:
     pipeline: "0"
   workspaces:
-    - name: shared-configs
-      persistentVolumeClaim:
-        claimName: config-pvc
     - name: shared-backups
       persistentVolumeClaim:
         claimName: backup-pvc
