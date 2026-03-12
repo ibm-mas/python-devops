@@ -28,7 +28,7 @@ db2_channel_default: v110509.0               # Default Channel version for db2u-
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.5     # No Update          # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.4      # Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+tsm_version: 1.7.4      # No Update            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 dd_version: 1.1.22                           # Operator version 1.1.22 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 wsl_version: 11.0.0+20250521.202913.73                     # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
@@ -50,7 +50,7 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_12926 # No Update
   9.1.x: 9.1.10        #  No Update
-  9.0.x: 9.0.22        #  Updated
+  9.0.x: 9.0.22        #  No Update
   8.10.x: 8.10.35      #  No Update
   8.11.x: 8.11.32      #  No Update
 mas_assist_version:
