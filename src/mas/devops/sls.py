@@ -77,3 +77,33 @@ def findSLSByNamespace(namespace: str, instances: list = None, dynClient: Dynami
         if namespace in instance['metadata']['namespace']:
             return True
     return False
+
+
+def getSLSRegistrationDetails(namespace: str, name: str, dynClient: DynamicClient):
+    """
+    Retrieve registration details like licenseId and registrationKey from the LicenseService instance's CR status
+
+    This function gets the LicenseService instance of a specified name in a specified namespace.
+    It retrieves licenseId and registrationKey keys in CR status and returns.
+
+    Args:
+        namespace (str): The OpenShift namespace to search for SLS instances.
+        name (str): Name of SLS(LicenseService) instance.
+        dynClient (DynamicClient): OpenShift dynamic client for querying instances.
+                                            Required if instances is None. Defaults to None.
+
+    Returns:
+        dict:   dict with 'licenseId' and 'registrationKey' when details are found.
+                Empty if not found.
+    """
+    try:
+        slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
+        slsInstance = slsAPI.get(name=name, namespace=namespace)
+        if hasattr(slsInstance, 'status') and hasattr(slsInstance.status, 'licenseId') and hasattr(slsInstance.status, 'registrationKey'):
+            return dict(
+                registrationKey=slsInstance.status.registrationKey,
+                licenseId=slsInstance.status.licenseId
+            )
+    except NotFoundError:
+        logger.info(f"No SLS '{name}' found in namespace {namespace}.'")
+    return dict()
