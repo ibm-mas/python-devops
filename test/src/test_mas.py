@@ -64,6 +64,12 @@ def test_is_airgap_install():
     assert mas.isAirgapInstall(dynClient, checkICSP=False) is False
 
 
+def test_get_mas_public_cluster_issuer():
+    # Test with non-existent instance - should return None
+    issuer = mas.getMasPublicClusterIssuer(dynClient, "doesnotexist")
+    assert issuer is None
+
+
 # def test_is_app_ready():
 #     mas.waitForAppReady(dynClient, "fvtcpd", "iot")
 #     mas.waitForAppReady(dynClient, "fvtcpd", "iot", "masdev")
