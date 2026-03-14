@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:192fdb38b135b828916fba8d77c6bee10e6c4f33b4cfd252576ca120e442784b
+catalog_digest: sha256:66da7dea7160091ed39a96862cd0046df20c2eeaeb262778dcd5d37b11a3f26b
 
 ocp_compatibility:
 - "4.16"
@@ -27,8 +27,8 @@ db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to fi
 db2_channel_default: v110509.0               # Default Channel version for db2u-operator
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.5     # No Update          # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.4      # No Update            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+sls_version: 3.12.6     # Updated          # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.5      # Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 dd_version: 1.1.22                           # Operator version 1.1.22 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 wsl_version: 11.0.0+20250521.202913.73                     # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
@@ -49,7 +49,7 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_12926 # No Update
-  9.1.x: 9.1.10        #  No Update
+  9.1.x: 9.1.11        #  Updated
   9.0.x: 9.0.22        #  No Update
   8.10.x: 8.10.35      #  No Update
   8.11.x: 8.11.32      #  No Update
@@ -70,7 +70,7 @@ mas_iot_version:
   8.11.x: 8.8.28   #  No Update
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_13730 #  No Update
-  9.1.x: 9.1.11        #  No Update
+  9.1.x: 9.1.12        #  Updated
   9.0.x: 9.0.23        #  No Update
   8.10.x: 8.6.36       #  No Update
   8.11.x: 8.7.30       #  No Update
@@ -158,3 +158,4 @@ editorial:
   known_issues:
     - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
+    - title: A known issue has been identified in Db2u warehouse operator in this catalog. Customers restoring/upgrading Db2, intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. If you are facing this problem, please refer to the workaround provided in this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).
