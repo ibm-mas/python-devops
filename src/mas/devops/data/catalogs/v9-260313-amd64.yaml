@@ -157,7 +157,7 @@ editorial:
     - IBM Maximo Manage 9.1.12
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.12
-    - Amlen 1.1.4
+    - Amlen v1.1
   known_issues:
     - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
