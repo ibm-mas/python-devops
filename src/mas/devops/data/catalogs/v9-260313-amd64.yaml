@@ -83,7 +83,7 @@ mas_optimizer_version:
   9.2.x-feature: 9.2.0-pre.stable_12739 #  No Update
   9.1.x: 9.1.9         #  No Update
   9.0.x: 9.0.20        #  No Update
-  8.10.x: 8.4.26       #  Need to update
+  8.10.x: 8.4.26       #  No Update
   8.11.x: 8.5.26       #  No Update
 mas_predict_version:
   9.1.x: 9.1.5     # No Update
@@ -140,7 +140,7 @@ ccs_extras_version: 11.0.0
 
 # Extra Images for Amlen
 # ------------------------------------------------------------------------------
-amlen_extras_version: 1.1.3
+amlen_extras_version: 1.1.4
 
 # Default Cloud Pak for Data version
 # ------------------------------------------------------------------------------
