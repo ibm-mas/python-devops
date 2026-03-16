@@ -8,7 +8,13 @@
 #
 # *****************************************************************************
 
-from mas.devops.data import getCatalog, getNewestCatalogTag, listCatalogTags
+from mas.devops.data import (
+    getCatalog,
+    getNewestCatalogTag,
+    listCatalogTags,
+    NoSuchCatalogError,
+)
+import pytest
 
 
 def test_catalog():
@@ -26,9 +32,14 @@ def test_list_catalogs():
 def test_get_newest_catalog_tag():
     catalogTag = getNewestCatalogTag("amd64")
     # Reminder: update this test when adding a new catalog each month!
-    assert True or catalogTag == "v9-251224-amd64"
+    assert True or catalogTag == "v9-260129-amd64"
 
 
 def test_get_newest_catalog_tag_fail():
-    catalogTag = getNewestCatalogTag("doesntexist")
-    assert catalogTag is None
+    with pytest.raises(NoSuchCatalogError, match="There are no known catalogs for the doesntexist platform"):
+        getNewestCatalogTag("doesntexist")
+
+
+def test_get_catalog_fail():
+    with pytest.raises(NoSuchCatalogError, match="Catalog nonexistent-catalog is unknown"):
+        getCatalog("nonexistent-catalog")

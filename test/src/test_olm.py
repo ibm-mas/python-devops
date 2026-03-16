@@ -79,3 +79,89 @@ def test_crud_with_config():
     olm.deleteSubscription(dynClient, namespace, "ibm-sls")
     olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
     ocp.deleteNamespace(dynClient, namespace)
+
+
+def test_crud_with_manual_approval():
+    """
+    Test that when installPlanApproval is Manual without a startingCSV,
+    an OLMException is raised.
+    """
+    namespace = "cli-fvt-3"
+
+    # This should raise an OLMException because Manual approval requires a startingCSV
+    try:
+        olm.applySubscription(
+            dynClient,
+            namespace,
+            "ibm-sls",
+            packageChannel="3.x",
+            installPlanApproval="Manual"
+        )
+        # If we get here, the test should fail
+        assert False, "Expected OLMException to be raised when installPlanApproval is Manual without startingCSV"
+    except olm.OLMException as e:
+        # Verify the error message is correct
+        assert "When installPlanApproval is 'Manual', a startingCSV must be provided" in str(e)
+        # Test passed - exception was raised as expected
+
+
+def test_crud_with_starting_csv():
+    namespace = "cli-fvt-4"
+    # Note: This test assumes a specific CSV version exists in the catalog
+    # You may need to adjust the version based on what's available
+    subscription = olm.applySubscription(
+        dynClient,
+        namespace,
+        "ibm-sls",
+        packageChannel="3.x",
+        startingCSV="ibm-sls.v3.8.0"
+    )
+    assert subscription.metadata.name == "ibm-sls"
+    assert subscription.metadata.namespace == namespace
+    assert subscription.spec.startingCSV == "ibm-sls.v3.8.0"
+
+    # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
+    # subscription, but when we delete the subscription, OLM will not automatically remove the latter
+    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
+    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    ocp.deleteNamespace(dynClient, namespace)
+
+
+def test_crud_with_manual_approval_and_starting_csv():
+    """
+    Test that when installPlanApproval is Manual and startingCSV is specified,
+    the first InstallPlan is automatically approved to reach the startingCSV.
+    This allows the initial installation to proceed without manual intervention.
+
+    Note: With Manual approval and startingCSV, the subscription state will be
+    "UpgradePending" after installation (indicating newer versions are available
+    but require manual approval), not "AtLatestKnown".
+    """
+    namespace = "cli-fvt-5"
+    subscription = olm.applySubscription(
+        dynClient,
+        namespace,
+        "ibm-sls",
+        packageChannel="3.x",
+        installPlanApproval="Manual",
+        startingCSV="ibm-sls.v3.8.0"
+    )
+    assert subscription.metadata.name == "ibm-sls"
+    assert subscription.metadata.namespace == namespace
+    assert subscription.spec.installPlanApproval == "Manual"
+    assert subscription.spec.startingCSV == "ibm-sls.v3.8.0"
+
+    # Verify that the subscription reached UpgradePending state
+    # This confirms the InstallPlan was automatically approved and installed
+    # UpgradePending indicates newer versions are available but require manual approval
+    assert subscription.status.state == "UpgradePending"
+
+    # Verify the installed CSV matches the startingCSV
+    installedCSV = subscription.status.installedCSV
+    assert installedCSV == "ibm-sls.v3.8.0"
+
+    # When we install the ibm-sls subscription OLM will automatically create the ibm-truststore-mgr
+    # subscription, but when we delete the subscription, OLM will not automatically remove the latter
+    olm.deleteSubscription(dynClient, namespace, "ibm-sls")
+    olm.deleteSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    ocp.deleteNamespace(dynClient, namespace)

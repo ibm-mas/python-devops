@@ -25,6 +25,21 @@ logger = logging.getLogger(__name__)
 
 
 def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
+    """
+    Determine if MAS is installed in an air-gapped (disconnected) environment.
+
+    This function checks for the presence of ImageDigestMirrorSet (IDMS) or
+    ImageContentSourcePolicy (ICSP) resources that indicate mirror registries
+    are configured for air-gapped installations.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        checkICSP (bool, optional): If True, check for legacy ICSP resources instead of IDMS.
+                                   Defaults to False (checks IDMS).
+
+    Returns:
+        bool: True if air-gap configuration is detected, False otherwise.
+    """
     if checkICSP:
         try:
             ICSPApi = dynClient.resources.get(api_version="operator.openshift.io/v1alpha1", kind="ImageContentSourcePolicy")
@@ -39,7 +54,25 @@ def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
         return len(masIDMS.items) + len(aiserviceIDMS.items) > 0
 
 
-def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
+def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
+    """
+    Detect and return default storage classes for the cluster environment.
+
+    This function identifies the storage provider (IBM Cloud, OCS, Azure, AWS, etc.)
+    by examining available storage classes and returns appropriate RWO (ReadWriteOnce)
+    and RWX (ReadWriteMany) storage class names.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+
+    Returns:
+        SimpleNamespace: Object with attributes:
+                        - provider (str): Provider identifier (e.g., "ibmc", "ocs", "aws")
+                        - providerName (str): Human-readable provider name
+                        - rwo (str): Storage class name for RWO volumes
+                        - rwx (str): Storage class name for RWX volumes
+                        All attributes are None if no recognized provider is found.
+    """
     result = SimpleNamespace(
         provider=None,
         providerName=None,
@@ -98,6 +131,22 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> dict:
 
 
 def getCurrentCatalog(dynClient: DynamicClient) -> dict:
+    """
+    Retrieve information about the currently installed IBM Operator Catalog.
+
+    This function queries the ibm-operator-catalog CatalogSource and extracts
+    version information from its display name and image reference.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+
+    Returns:
+        dict: Dictionary with keys:
+             - displayName (str): Catalog display name
+             - image (str): Catalog image reference
+             - catalogId (str): Parsed catalog identifier (e.g., "v9-241205-amd64")
+             Returns None if the catalog is not found.
+    """
     catalogsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="CatalogSource")
     try:
         catalog = catalogsAPI.get(name="ibm-operator-catalog", namespace="openshift-marketplace")
@@ -125,14 +174,34 @@ def getCurrentCatalog(dynClient: DynamicClient) -> dict:
 
 def listMasInstances(dynClient: DynamicClient) -> list:
     """
-    Get a list of MAS instances on the cluster
+    Retrieve all MAS Suite instances from the OpenShift cluster.
+
+    This function queries the cluster for Suite custom resources and returns
+    a list of all MAS instances found.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+
+    Returns:
+        list: A list of dictionaries representing MAS Suite instances.
+              Returns an empty list if no instances are found or if errors occur.
     """
     return listInstances(dynClient, "core.mas.ibm.com/v1", "Suite")
 
 
 def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
     """
-    Get the MAS workspace ID for namespace "mas-{instanceId}-core"
+    Retrieve the workspace ID for a MAS instance.
+
+    This function queries the Workspace custom resources in the MAS core namespace
+    and returns the workspace ID from the first workspace found.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier.
+
+    Returns:
+        str: The workspace ID if found, None if no workspaces exist for the instance.
     """
     workspaceId = None
     workspacesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Workspace")
@@ -146,7 +215,16 @@ def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
 
 def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
     """
-    Validate that the chosen MAS instance exists
+    Verify that a MAS Suite instance exists in the cluster.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier to verify.
+
+    Returns:
+        bool: True if the instance exists and is accessible, False otherwise.
+              Returns False if the instance is not found, the CRD doesn't exist,
+              or authorization fails.
     """
     try:
         suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
@@ -164,7 +242,18 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
 
 def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
     """
-    Get the MAS channel from the subscription
+    Retrieve the OLM subscription channel for a MAS instance.
+
+    This function queries the Operator Lifecycle Manager subscription for the
+    MAS Core operator to determine which update channel it is subscribed to.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier.
+
+    Returns:
+        str: The channel name (e.g., "8.11.x", "9.0.x") if the subscription exists,
+             None if the subscription is not found.
     """
     masSubscription = getSubscription(dynClient, f"mas-{instanceId}-core", "ibm-mas")
     if masSubscription is None:
@@ -174,6 +263,24 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
 
 
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
+    """
+    Create or update the IBM Entitlement secret for accessing IBM container registries.
+
+    This function generates a Docker config JSON with credentials for IBM Container Registry
+    (ICR) and optionally Artifactory, then creates or updates a Kubernetes secret.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        namespace (str): The namespace where the secret should be created/updated.
+        icrUsername (str): Username for IBM Container Registry (typically "cp").
+        icrPassword (str): Entitlement key for IBM Container Registry.
+        artifactoryUsername (str, optional): Username for Artifactory access. Defaults to None.
+        artifactoryPassword (str, optional): Password/token for Artifactory access. Defaults to None.
+        secretName (str, optional): Name of the secret to create/update. Defaults to "ibm-entitlement".
+
+    Returns:
+        ResourceInstance: The created or updated Secret resource.
+    """
     if secretName is None:
         secretName = "ibm-entitlement"
     if artifactoryUsername is not None:
@@ -206,3 +313,47 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
 
     secret = secretsAPI.apply(body=secret, namespace=namespace)
     return secret
+
+
+def getMasPublicClusterIssuer(dynClient: DynamicClient, instanceId: str) -> str | None:
+    """
+    Retrieve the Public Cluster Issuer for a MAS instance.
+
+    This function queries the Suite custom resource and attempts to retrieve the
+    certificate issuer name from spec.certificateIssuer.name. If the keys don't exist,
+    it returns the default issuer name.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier to use.
+
+    Returns:
+        str: The name of the cluster issuer used for the passed in MAS Instance.
+             Returns the default "mas-{instanceId}-core-public-issuer" if the suite
+             doesn't specify a custom issuer, or None if the suite is not found.
+    """
+    try:
+        suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
+        suite = suitesAPI.get(name=instanceId, namespace=f"mas-{instanceId}-core")
+
+        # Check if spec.certificateIssuer.name exists
+        if hasattr(suite, 'spec') and hasattr(suite.spec, 'certificateIssuer') and hasattr(suite.spec.certificateIssuer, 'name'):
+            issuerName = suite.spec.certificateIssuer.name
+            logger.debug(f"Found custom certificate issuer: {issuerName}")
+            return issuerName
+
+        # Keys don't exist, return default
+        defaultIssuer = f"mas-{instanceId}-core-public-issuer"
+        logger.debug(f"No custom certificate issuer found, using default: {defaultIssuer}")
+        return defaultIssuer
+
+    except NotFoundError:
+        logger.warning(f"Suite instance '{instanceId}' not found")
+        return None
+    except ResourceNotFoundError:
+        # The MAS Suite CRD has not even been installed in the cluster
+        logger.warning("MAS Suite CRD not found in the cluster")
+        return None
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to retrieve MAS instance due to failed authorization: {e}")
+        return None

@@ -50,3 +50,14 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
+
+editorial:
+  whats_new:
+  - title: OCP **4.19** Support
+    details: []
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.0 and v9.1
+    - IBM Maximo Manage v9.0 and v9.1
+  known_issues:
+    - title: A known issue has been identified in Db2u warehouse operator in this catalog. Customers restoring/upgrading Db2, intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. If you are facing this problem, please refer to the workaround provided in this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).

@@ -1,0 +1,61 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog 260226 (Z)
+# -----------------------------------------------------------------------------
+# In the future this won't be necessary as we'll be able to mirror from the
+# catalog itself, but not everything in the catalog supports this yet (including MAS)
+# so we need to use the CASE bundle mirror process still.
+
+catalog_digest: sha256:9a9eaa1d36b15dfc16a91276edaf2ff63d2a84d7cdede799592e1bc6ebf92546
+
+ocp_compatibility:
+- "4.16"
+- "4.17"
+- "4.18"
+- "4.19"
+- "4.20"
+
+uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+sls_version: 3.12.5  # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.3   # Operator version 1.7.3 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.2.x-feature: 9.2.0-pre.stable_12926 # Updated 
+  9.1.x: 9.1.10                         # Updated
+  9.0.x: 9.0.21                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+mas_manage_version:
+  9.2.x-feature: 9.2.0-pre.stable_13730 # Updated
+  9.1.x: 9.1.11                         # Updated
+  9.0.x: 9.0.23                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+
+# Extra Images for UDS
+# ------------------------------------------------------------------------------
+uds_extras_version: 1.5.0
+
+# Extra Images for Mongo
+# ------------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.17
+
+# Variables used to mirror additional mongo image versions
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.12
+mongo_extras_version_8: 8.0.17
+
+editorial:
+  whats_new:
+  - title: '**Openshift 4.20 support** Openshift Container Platform 4.20 support has been added. Refer OCP 4.20 release notes [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/release_notes/index)'
+    details: []
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform [v8.10.35](https://www.ibm.com/support/pages/node/7261600), [v8.11.32](https://www.ibm.com/support/pages/node/7261601), [v9.0.21](https://www.ibm.com/support/pages/node/7261602) and [v9.1.10](https://www.ibm.com/support/pages/node/7261603)
+    - IBM Maximo Manage [v8.6.36](https://www.ibm.com/support/pages/node/7261736), [v8.7.30](https://www.ibm.com/support/pages/node/7261737), [v9.0.23](https://www.ibm.com/support/pages/node/7261063) and [v9.1.11](https://www.ibm.com/support/pages/node/7261062)
+  known_issues:
+    - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
