@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:8d023ff694df82d8dafa565a382c8c82a246b48e3bbdb48535654ef323cbfa93
+catalog_digest: sha256:03e9c06ea43f22c8108861ed54fc7eee7d1f838b691f715cf2f83a1a334ea0f4
 
 ocp_compatibility:
 - "4.16"
@@ -49,14 +49,14 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_12926 # No Update
-  9.1.x: 9.1.14        # Updated
-  9.0.x: 9.0.23        # Updated
-  8.10.x: 8.10.36      # Updated
-  8.11.x: 8.11.33      # Updated
+  9.1.x: 9.1.14        # No Update
+  9.0.x: 9.0.23        # No Update
+  8.10.x: 8.10.36      # No Update
+  8.11.x: 8.11.33      # No Update
 mas_assist_version:
-  9.1.x: 9.1.9     # Updated
-  9.0.x: 9.0.15    # Updated
-  8.10.x: 8.7.8   # Updated
+  9.1.x: 9.1.9     # No Update
+  9.0.x: 9.0.15    # No Update
+  8.10.x: 8.7.8   # No Update
   8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
   9.1.x: ""       # Not Supported
@@ -64,40 +64,40 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # No Update
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.1.x: 9.1.9     # Updated
-  9.0.x: 9.0.18    # Updated
-  8.10.x: 8.7.32   # Updated
-  8.11.x: 8.8.29   # Updated
+  9.1.x: 9.1.9     # No Update
+  9.0.x: 9.0.18    # No Update
+  8.10.x: 8.7.32   # No Update
+  8.11.x: 8.8.29   # No Update
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_13730 #  No Update
   9.1.x: 9.1.15        # No Update
-  9.0.x: 9.0.24        # Updated
-  8.10.x: 8.6.37       # Updated
-  8.11.x: 8.7.31       # Updated
+  9.0.x: 9.0.24        # No Update
+  8.10.x: 8.6.37       # No Update
+  8.11.x: 8.7.31       # No Update
 mas_monitor_version:
-  9.1.x: 9.1.9    # Updated
-  9.0.x: 9.0.19   # Updated
-  8.10.x: 8.10.29 # Updated
-  8.11.x: 8.11.27 # Updated
+  9.1.x: 9.1.9    # No Update
+  9.0.x: 9.0.19   # No Update
+  8.10.x: 8.10.29 # No Update
+  8.11.x: 8.11.27 # No Update
 mas_optimizer_version:
   9.2.x-feature: 9.2.0-pre.stable_12739 #  No Update
-  9.1.x: 9.1.10         # Updated
-  9.0.x: 9.0.21        # Updated
-  8.10.x: 8.4.27       # Updated
-  8.11.x: 8.5.27       # Updated
+  9.1.x: 9.1.10         # No Update
+  9.0.x: 9.0.21        # No Update
+  8.10.x: 8.4.27       # No Update
+  8.11.x: 8.5.27       # No Update
 mas_predict_version:
-  9.1.x: 9.1.6     # Updated
-  9.0.x: 9.0.13    # Updated
-  8.10.x: 8.8.14   # Updated
-  8.11.x: 8.9.16   # Updated
+  9.1.x: 9.1.6     # No Update
+  9.0.x: 9.0.13    # No Update
+  8.10.x: 8.8.14   # No Update
+  8.11.x: 8.9.16   # No Update
 mas_visualinspection_version:
   9.2.x-feature: 9.2.0-pre.stable_12598 # No Update
   9.1.x: 9.1.10        #  No Update
-  9.0.x: 9.0.18        # Updated
+  9.0.x: 9.0.18        # No Update
   8.10.x: 8.8.4        #  No Update
   8.11.x: 8.9.20       #  No Update
 mas_facilities_version:
-  9.1.x: 9.1.9    # Updated
+  9.1.x: 9.1.9    # No Update
   9.0.x: ""       # Not Supported
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
