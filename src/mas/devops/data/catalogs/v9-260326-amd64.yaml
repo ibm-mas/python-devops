@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:402ce0b2933ba17366726ff847edbaeb2dfb823d0db1aea3db23747e899784f5
+catalog_digest: sha256:15f730dbeb4f8791d966b1d98de758cdeb90a8b8b2d3c83ec6bb0dc15c761b95
 
 ocp_compatibility:
 - "4.16"
@@ -54,9 +54,9 @@ mas_core_version:
   8.10.x: 8.10.35      #  No Update
   8.11.x: 8.11.32      #  No Update
 mas_assist_version:
-  9.1.x: 9.1.8     #  No Update
-  9.0.x: 9.0.14    #  No Update
-  8.10.x: 8.7.9   # No Update
+  9.1.x: 9.1.9     # Updated
+  9.0.x: 9.0.15    # Updated
+  8.10.x: 8.7.8   # Updated
   8.11.x: 8.8.7   # No Update
 mas_hputilities_version:
   9.1.x: ""       # Not Supported
@@ -64,10 +64,10 @@ mas_hputilities_version:
   8.10.x: 8.6.7   # No Update
   8.11.x: ""      # Not Supported
 mas_iot_version:
-  9.1.x: 9.1.8     #  No Update
-  9.0.x: 9.0.17    #  No Update
-  8.10.x: 8.7.31   #  No Update
-  8.11.x: 8.8.28   #  No Update
+  9.1.x: 9.1.9     # Updated
+  9.0.x: 9.0.18    # Updated
+  8.10.x: 8.7.32   # Updated
+  8.11.x: 8.8.29   # Updated
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_13730 #  No Update
   9.1.x: 9.1.15        # No Update
@@ -75,10 +75,10 @@ mas_manage_version:
   8.10.x: 8.6.36       #  No Update
   8.11.x: 8.7.30       #  No Update
 mas_monitor_version:
-  9.1.x: 9.1.8    #  No Update
-  9.0.x: 9.0.18   #  No Update
-  8.10.x: 8.10.28 #  No Update
-  8.11.x: 8.11.26 #  No Update
+  9.1.x: 9.1.9    # Updated
+  9.0.x: 9.0.19   # Updated
+  8.10.x: 8.10.29 # Updated
+  8.11.x: 8.11.27 # Updated
 mas_optimizer_version:
   9.2.x-feature: 9.2.0-pre.stable_12739 #  No Update
   9.1.x: 9.1.9         #  No Update
@@ -93,7 +93,7 @@ mas_predict_version:
 mas_visualinspection_version:
   9.2.x-feature: 9.2.0-pre.stable_12598 # No Update
   9.1.x: 9.1.10        #  No Update
-  9.0.x: 9.0.17        #  No Update
+  9.0.x: 9.0.18        # Updated
   8.10.x: 8.8.4        #  No Update
   8.11.x: 8.9.20       #  No Update
 mas_facilities_version:
