@@ -1,5 +1,5 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260313 (PPC)
+# Case bundle configuration for IBM Maximo Operator Catalog 260326 (PPC)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
@@ -29,7 +29,7 @@ mas_core_version:
   8.11.x: ""                            # Not Supported
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_13730 # No Update
-  9.1.x: 9.1.15                         # No Update
+  9.1.x: 9.1.15                         # Updated
   9.0.x: 9.0.24                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
