@@ -48,7 +48,7 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_12926 # No Update
+  9.2.x-feature: 9.2.0-pre.stable_12926 #  No Update
   9.1.x: 9.1.14        # Updated
   9.0.x: 9.0.23        # Updated
   8.10.x: 8.10.36      # Updated
