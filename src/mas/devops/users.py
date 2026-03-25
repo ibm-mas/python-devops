@@ -44,7 +44,7 @@ class MASUserUtils():
 
     MAXADMIN = "MAXADMIN"
 
-    def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, mas_version: str = '9.1', coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
+    def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, mas_version: str = '9.0', coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
         """
         Initialize MASUserUtils for a specific MAS instance and workspace.
 
