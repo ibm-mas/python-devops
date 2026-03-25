@@ -64,6 +64,7 @@ setup(
         'semver',                  # BSD License
         'boto3',                   # Apache Software License
         'slack_sdk',               # MIT License
+        "packaging",               # Apache Software License
     ],
     extras_require={
         'dev': [

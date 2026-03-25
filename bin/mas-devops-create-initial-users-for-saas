@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--coreapi-port", required=False, default=443)
     parser.add_argument("--admin-dashboard-port", required=False, default=443)
     parser.add_argument("--manage-api-port", required=False, default=443)
+    parser.add_argument("--mas_version", required=False, default="9.1")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--initial-users-yaml-file")
@@ -56,6 +57,7 @@ if __name__ == "__main__":
 
     mas_instance_id = args.mas_instance_id
     mas_workspace_id = args.mas_workspace_id
+    mas_version = args.mas_version
     initial_users_yaml_file = args.initial_users_yaml_file
     initial_users_secret_name = args.initial_users_secret_name
     coreapi_port = args.coreapi_port
@@ -66,6 +68,7 @@ if __name__ == "__main__":
     logger.info("--------------")
     logger.info(f"mas_instance_id:           {mas_instance_id}")
     logger.info(f"mas_workspace_id:          {mas_workspace_id}")
+    logger.info(msg=f"mas_version:               {mas_version}")
     logger.info(f"initial_users_yaml_file:   {initial_users_yaml_file}")
     logger.info(f"initial_users_secret_name: {initial_users_secret_name}")
     logger.info(f"log_level:                 {log_level}")
@@ -83,7 +86,7 @@ if __name__ == "__main__":
         config.load_kube_config()
         logger.debug("Loaded kubeconfig file")
 
-    user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient(), coreapi_port=coreapi_port, admin_dashboard_port=admin_dashboard_port, manage_api_port=manage_api_port)
+    user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient(), mas_version, coreapi_port=coreapi_port, admin_dashboard_port=admin_dashboard_port, manage_api_port=manage_api_port)
 
     if initial_users_secret_name is not None:
 

@@ -18,6 +18,7 @@ import tempfile
 import os
 import time
 import re
+from packaging.version import Version
 
 
 class MASUserUtils():
@@ -43,7 +44,7 @@ class MASUserUtils():
 
     MAXADMIN = "MAXADMIN"
 
-    def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
+    def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, mas_version: str, coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
         """
         Initialize MASUserUtils for a specific MAS instance and workspace.
 
@@ -57,6 +58,7 @@ class MASUserUtils():
         """
         self.mas_instance_id = mas_instance_id
         self.mas_workspace_id = mas_workspace_id
+        self.mas_version = mas_version
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         self.mas_core_namespace = f"mas-{self.mas_instance_id}-core"
@@ -938,7 +940,137 @@ class MASUserUtils():
         if response.status_code == 204:
             return None
 
-        raise Exception(f"{response.status_code} {response.text}")
+    def get_all_manage_groups(self):
+        """
+        Get all security groups from Manage.
+
+        Args:
+            manage_api_key (dict): API key record with 'apikey' field for authentication.
+
+        Returns:
+            list: List of group names (strings).
+
+        Raises:
+            Exception: If the API call fails.
+        """
+        self.logger.debug("Getting all Manage security groups")
+        url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup"
+        querystring = {
+            "ccm": 1,
+            "lean": 1,
+            "oslc.select": "groupname",
+        }
+        headers = {
+            "Accept": "application/json",
+        }
+
+        response = requests.get(
+            url,
+            headers=headers,
+            params=querystring,
+            # verify=self.manage_internal_ca_pem_file_path,
+            cert=self.manage_internal_client_pem_file_path,
+            verify=False
+        )
+
+        if response.status_code != 200:
+            raise Exception(f"{response.status_code} {response.text}")
+
+        json = response.json()
+        groups = []
+        if "member" in json:
+            for member in json["member"]:
+                if "groupname" in member:
+                    groups.append(member["groupname"])
+
+        self.logger.info(f"Found {len(groups)} security groups in Manage")
+        return groups
+
+    # def grant_group_reassignment_auth(self, user_id, group_name, manage_api_key):
+    #     """
+    #     Grant a user authorization to reassign users to/from a specific security group.
+
+    #     This adds an entry to the grpreassignauth collection for the user, allowing them
+    #     to manage membership in the specified security group.
+
+    #     Args:
+    #         user_id (str): The unique identifier of the user.
+    #         group_name (str): The name of the security group to grant authorization for.
+    #         manage_api_key (dict): API key record with 'apikey' field for authentication.
+
+    #     Returns:
+    #         None: Returns None on success.
+
+    #     Raises:
+    #         Exception: If the operation fails.
+    #     """
+    #     self.logger.info(f"Granting user {user_id} authorization to reassign group {group_name}")
+
+    #     url = f"{self.manage_api_url_internal}/maximo/oslc/os/masperuser"
+    #     querystring = {
+    #         "lean": 1,
+    #         "oslc.where": f"personid=\"{user_id}\"",
+    #     }
+    #     headers = {
+    #         "Content-Type": "application/json",
+    #         "Accept": "application/json",
+    #         "x-method-override": "PATCH",
+    #         "patchtype": "MERGE",
+    #         "apikey": manage_api_key["apikey"],
+    #     }
+    #     payload = {
+    #         "maxuser": [
+    #             {
+    #                 "userid": user_id,
+    #                 "grpreassignauth": [
+    #                     {
+    #                         "groupname": group_name
+    #                     }
+    #                 ]
+    #             }
+    #         ]
+    #     }
+    #     response = requests.post(
+    #         url,
+    #         headers=headers,
+    #         params=querystring,
+    #         json=payload,
+    #         verify=self.manage_internal_ca_pem_file_path,
+    #     )
+    #     if response.status_code != 204:
+    #         raise Exception(f"{response.status_code} {response.text}")
+
+    #     return None
+
+    # def grant_all_group_reassignment_auth(self, user_id, manage_api_key):
+    #     """
+    #     Grant a user authorization to reassign users to/from ALL security groups.
+
+    #     This method fetches all security groups and grants reassignment authorization
+    #     for each one, allowing the user to fully manage security group memberships.
+
+    #     Args:
+    #         user_id (str): The unique identifier of the user.
+    #         manage_api_key (dict): API key record with 'apikey' field for authentication.
+
+    #     Returns:
+    #         None: Returns None on success.
+
+    #     Raises:
+    #         Exception: If the operation fails.
+    #     """
+    #     self.logger.info(f"Granting user {user_id} authorization to reassign ALL security groups")
+
+    #     groups = self.get_all_manage_groups(manage_api_key)
+
+    #     for group_name in groups:
+    #         try:
+    #             self.grant_group_reassignment_auth(user_id, group_name, manage_api_key)
+    #         except Exception as e:
+    #             self.logger.warning(f"Failed to grant reassignment auth for group {group_name}: {str(e)}")
+    #             # Continue with other groups even if one fails
+
+    #     self.logger.info(f"Completed granting group reassignment authorization for {len(groups)} groups")
 
     def get_mas_applications_in_workspace(self):
         """
@@ -1130,11 +1262,14 @@ class MASUserUtils():
         completed = []
         failed = []
 
+        all_security_groups = self.get_all_manage_groups()
+        groupreassign = [{"groupname": group} for group in all_security_groups]
+
         for primary_user in primary_users:
             self.logger.info("")
             try:
                 self.logger.info(f"Syncing primary user with email {primary_user['email']}")
-                self.create_initial_user_for_saas(primary_user, "PRIMARY")
+                self.create_initial_user_for_saas(primary_user, "PRIMARY", groupreassign)
                 completed.append(primary_user)
                 self.logger.info(f"Completed sync of primary user {primary_user['email']}")
             except Exception as e:
@@ -1159,7 +1294,7 @@ class MASUserUtils():
             "failed": failed
         }
 
-    def create_initial_user_for_saas(self, user, user_type):
+    def create_initial_user_for_saas(self, user, user_type, groupreassign=None):
         """
         Create and fully configure a single initial user for SaaS.
 
@@ -1188,10 +1323,13 @@ class MASUserUtils():
         Note:
             PRIMARY users get:
             - userAdmin permission
+            - apikeyAdmin permission (API Key Management)
+            - idpAdmin permission (IDP Management)
             - PREMIUM application entitlement
-            - Workspace admin access
+            - Regular workspace access (not workspace admin)
             - ADMIN role for most apps, MANAGEUSER for Manage
-            - MAXADMIN security group membership
+            - USERMANAGEMENT security group membership
+            - Group reassignment authorization for ALL security groups
 
             SECONDARY users get:
             - No admin permissions
@@ -1222,65 +1360,111 @@ class MASUserUtils():
         display_name = f"{user_given_name} {user_family_name}"
 
         # Set user permissions and entitlements based on requested user_type
-        if user_type == "PRIMARY":
-            permissions = {
-                "systemAdmin": False,
-                "userAdmin": True,
-                "apikeyAdmin": False
-            }
-            entitlement = {
-                "application": "PREMIUM",
-                "admin": "ADMIN_BASE",
-                "alwaysReserveLicense": True
-            }
-            is_workspace_admin = True
-            application_role = "ADMIN"
-            facilities_role = "PREMIUM"
-            manage_role = "MANAGEUSER"
-            # TODO: check which security groups primary users should be members of
-            manage_security_groups = ["MAXADMIN"]
-        elif user_type == "SECONDARY":
-            permissions = {
-                "systemAdmin": False,
-                "userAdmin": False,
-                "apikeyAdmin": False
-            }
-            entitlement = {
-                "application": "BASE",
-                "admin": "NONE",
-                "alwaysReserveLicense": True
-            }
-            is_workspace_admin = False
-            application_role = "USER"
-            facilities_role = "BASE"
-            manage_role = "MANAGEUSER"
-            # TODO: check which security groups secondary users should be members of
-            manage_security_groups = []
-        else:
-            raise Exception(f"Unsupported user_type: {user_type}")
-
-        user_def = {
-            "id": user_id,
-            "status": {"active": True},
-            "username": username,
-            "owner": "local",
-            "emails": [
-                {
-                    "value": user_email,
-                    "type": "Work",
-                    "primary": True
+        if Version(self.mas_version) < Version('9.0'):
+            if user_type == "PRIMARY":
+                permissions = {
+                    "systemAdmin": False,
+                    "userAdmin": True,
+                    "apikeyAdmin": False
                 }
-            ],
-            "phoneNumbers": [],
-            "addresses": [],
-            "displayName": display_name,
-            "issuer": "local",
-            "permissions": permissions,
-            "entitlement": entitlement,
-            "givenName": user_given_name,
-            "familyName": user_family_name
-        }
+                entitlement = {
+                    "application": "PREMIUM",
+                    "admin": "ADMIN_BASE",
+                    "alwaysReserveLicense": True
+                }
+                is_workspace_admin = True
+                application_role = "ADMIN"
+                facilities_role = "PREMIUM"
+                manage_role = "MANAGEUSER"
+                manage_security_groups = ["MAXADMIN"]
+            elif user_type == "SECONDARY":
+                permissions = {
+                    "systemAdmin": False,
+                    "userAdmin": False,
+                    "apikeyAdmin": False
+                }
+                entitlement = {
+                    "application": "BASE",
+                    "admin": "NONE",
+                    "alwaysReserveLicense": True
+                }
+                is_workspace_admin = False
+                application_role = "USER"
+                facilities_role = "BASE"
+                manage_role = "MANAGEUSER"
+                # TODO: check which security groups secondary users should be members of
+                manage_security_groups = []
+            else:
+                raise Exception(f"Unsupported user_type: {user_type}")
 
+            user_def = {
+                "id": user_id,
+                "status": {"active": True},
+                "username": username,
+                "owner": "local",
+                "emails": [
+                    {
+                        "value": user_email,
+                        "type": "Work",
+                        "primary": True
+                    }
+                ],
+                "phoneNumbers": [],
+                "addresses": [],
+                "displayName": display_name,
+                "issuer": "local",
+                "permissions": permissions,
+                "entitlement": entitlement,
+                "givenName": user_given_name,
+                "familyName": user_family_name,
+
+            }
+        else:
+            if user_type == "PRIMARY":
+                maxuser_def = {
+                    "userid": user_id,
+                    "owner": "local",
+                    "systemadmin": False,
+                    "apikeyadmin": True,
+                    "isauthorized": 1,
+                    "idpadmin": True,
+                    "groupuser": [
+                        {
+                            "groupname": "USERMANAGEMENT"
+                        }
+                    ],
+                    "grpreassignauth": [
+                        groupreassign
+                    ]
+                }
+            elif user_type == "SECONDARY":
+                maxuser_def = {
+                    "userid": user_id,
+                    "owner": "local",
+                    "systemadmin": False,
+                    "apikeyadmin": False,
+                    "isauthorized": 0,
+                    "idpadmin": False
+                }
+
+            user_def = {
+                "id": user_id,
+                "status": {"active": True},
+                "primaryemailtype": "Work",
+                "primaryemail": user_email,
+                # "username": username,
+                "primaryphone": "",
+                "addressline1": "",
+                "displayName": display_name,
+                "maxuser": maxuser_def
+                # "issuer": "local",
+                # "permissions": permissions,
+                # "entitlement": entitlement,
+                # "givenName": user_given_name,
+                # "familyName": user_family_name
+            }
+
+        self.logger.info(f"User def - {user_def}")
         self.get_or_create_user(user_def)
         self.link_user_to_local_idp(user_id, email_password=True)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
@@ -1303,3 +1487,7 @@ class MASUserUtils():
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
             for manage_security_group in manage_security_groups:
                 self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
+
+            # # Grant authorization to reassign users to/from ALL security groups (PRIMARY users only)
+            # if user_type == "PRIMARY":
+            #     self.grant_all_group_reassignment_auth(user_id, maxadmin_manage_api_key)
