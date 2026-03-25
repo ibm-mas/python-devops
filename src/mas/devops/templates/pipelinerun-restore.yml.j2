@@ -36,6 +36,10 @@ spec:
       value: "{{ restore_version }}"
 
     # Component Flags
+    {% if include_mongo is defined and include_mongo != "" %}
+    - name: include_mongo
+      value: "{{ include_mongo }}"
+    {% endif %}
     {% if include_sls is defined and include_sls != "" %}
     - name: include_sls
       value: "{{ include_sls }}"
