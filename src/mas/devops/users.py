@@ -940,6 +940,8 @@ class MASUserUtils():
         if response.status_code == 204:
             return None
 
+        raise Exception(f"{response.status_code} {response.text}")
+
     def get_all_manage_groups(self):
         """
         Get all security groups from Manage.
@@ -1437,6 +1439,10 @@ class MASUserUtils():
                         groupreassign
                     ]
                 }
+                is_workspace_admin = True
+                application_role = "ADMIN"
+                facilities_role = "PREMIUM"
+                manage_role = "MANAGEUSER"
             elif user_type == "SECONDARY":
                 maxuser_def = {
                     "userid": user_id,
@@ -1446,6 +1452,12 @@ class MASUserUtils():
                     "isauthorized": 0,
                     "idpadmin": False
                 }
+                is_workspace_admin = False
+                application_role = "USER"
+                facilities_role = "BASE"
+                manage_role = "MANAGEUSER"
+            else:
+                raise Exception(f"Unsupported user_type: {user_type}")
 
             user_def = {
                 "id": user_id,
