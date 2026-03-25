@@ -1362,7 +1362,7 @@ class MASUserUtils():
         display_name = f"{user_given_name} {user_family_name}"
 
         # Set user permissions and entitlements based on requested user_type
-        if Version(self.mas_version) < Version('9.0'):
+        if Version(self.mas_version) < Version('9.1'):
             if user_type == "PRIMARY":
                 permissions = {
                     "systemAdmin": False,
@@ -1435,9 +1435,7 @@ class MASUserUtils():
                             "groupname": "USERMANAGEMENT"
                         }
                     ],
-                    "grpreassignauth": [
-                        groupreassign
-                    ]
+                    "grpreassignauth": groupreassign
                 }
                 is_workspace_admin = True
                 application_role = "ADMIN"

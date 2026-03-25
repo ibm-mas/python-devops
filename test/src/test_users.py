@@ -115,13 +115,15 @@ def mock_logininitial_endpoint(requests_mock):
     )
 
 
-@fixture
-def user_utils(mock_v1_secrets, mock_logininitial_endpoint, mock_named_temporary_file, mock_atexit):
+@fixture(params=['9.0', '9.1'])
+def user_utils(request, mock_v1_secrets, mock_logininitial_endpoint, mock_named_temporary_file, mock_atexit):
     k8s_client = MagicMock()  # DynamicClient is mocked out, no methods will be called on the k8s_client
+    mas_version = request.param
     user_utils = MASUserUtils(
         MAS_INSTANCE_ID,
         MAS_WORKSPACE_ID,
         k8s_client,
+        mas_version=mas_version,
         coreapi_port=COREAPI_PORT,
         admin_dashboard_port=ADMIN_DASHBOARD_PORT,
         manage_api_port=MANAGE_API_PORT
@@ -1652,60 +1654,70 @@ def test_create_initial_user_for_saas_unsupported_type(user_utils):
 # Assisted by watsonx Code Assistant
 
 
-@pytest.mark.parametrize("user_type, user_id, user_email, permissions, entitlement, is_workspace_admin, application_role, manage_role, facilities_role, manage_security_groups", [
+@pytest.mark.parametrize("user_type, user_id, user_email, is_workspace_admin, application_role, manage_role, facilities_role, manage_security_groups_90, manage_security_groups_91", [
     (
         "PRIMARY",
         None,
         "bill.bob@acme.com",
-        {"systemAdmin": False, "userAdmin": True, "apikeyAdmin": False},
-        {"application": "PREMIUM", "admin": "ADMIN_BASE", "alwaysReserveLicense": True},
         True,
         "ADMIN",
         "MANAGEUSER",
         "PREMIUM",
-        ["MAXADMIN"]
+        ["MAXADMIN"],
+        ["USERMANAGEMENT"]
     ),
     (
         "PRIMARY",
         "billbob",
         "bill.bob@acme.com",
-        {"systemAdmin": False, "userAdmin": True, "apikeyAdmin": False},
-        {"application": "PREMIUM", "admin": "ADMIN_BASE", "alwaysReserveLicense": True},
         True,
         "ADMIN",
         "MANAGEUSER",
         "PREMIUM",
-        ["MAXADMIN"]
+        ["MAXADMIN"],
+        ["USERMANAGEMENT"]
     ),
     (
         "SECONDARY",
         None,
         "bab.bon@acme.com",
-        {"systemAdmin": False, "userAdmin": False, "apikeyAdmin": False},
-        {"application": "BASE", "admin": "NONE", "alwaysReserveLicense": True},
         False,
         "USER",
         "MANAGEUSER",
         "BASE",
+        [],
         []
     ),
     (
         "SECONDARY",
         "babbon",
         "bab.bon@acme.com",
-        {"systemAdmin": False, "userAdmin": False, "apikeyAdmin": False},
-        {"application": "BASE", "admin": "NONE", "alwaysReserveLicense": True},
         False,
         "USER",
         "MANAGEUSER",
         "BASE",
+        [],
         []
     )
 ])
 def test_create_initial_user_for_saas(
-    user_type, user_id, user_email, permissions, entitlement, is_workspace_admin, application_role, manage_role, facilities_role, manage_security_groups,
+    user_type, user_id, user_email, is_workspace_admin, application_role, manage_role, facilities_role, manage_security_groups_90, manage_security_groups_91,
     user_utils, requests_mock
 ):
+    # Determine expected values based on MAS version
+    mas_version = user_utils.mas_version
+    if mas_version == '9.0':
+        manage_security_groups = manage_security_groups_90
+        if user_type == "PRIMARY":
+            permissions = {"systemAdmin": False, "userAdmin": True, "apikeyAdmin": False}
+            entitlement = {"application": "PREMIUM", "admin": "ADMIN_BASE", "alwaysReserveLicense": True}
+        else:  # SECONDARY
+            permissions = {"systemAdmin": False, "userAdmin": False, "apikeyAdmin": False}
+            entitlement = {"application": "BASE", "admin": "NONE", "alwaysReserveLicense": True}
+    else:  # 9.1
+        manage_security_groups = manage_security_groups_91
+        permissions = None  # Not used in 9.1
+        entitlement = None  # Not used in 9.1
     user_utils.get_or_create_user = MagicMock()
     user_utils.link_user_to_local_idp = MagicMock()
     user_utils.add_user_to_workspace = MagicMock()
@@ -1735,29 +1747,78 @@ def test_create_initial_user_for_saas(
 
     username = user_id
 
-    user_utils.create_initial_user_for_saas(initial_users, user_type)
+    # For version 9.1 PRIMARY users, pass groupreassign parameter
+    if mas_version == '9.1' and user_type == "PRIMARY":
+        groupreassign = [{"groupname": "USERMANAGEMENT"}]
+        user_utils.create_initial_user_for_saas(initial_users, user_type, groupreassign)
+    else:
+        user_utils.create_initial_user_for_saas(initial_users, user_type)
 
-    user_utils.get_or_create_user.assert_called_once_with({
-        "id": user_id,
-        "status": {"active": True},
-        "username": username,
-        "owner": "local",
-        "emails": [
-            {
-                "value": user_email,
-                "type": "Work",
-                "primary": True
+    # Build expected user_def based on version
+    if mas_version == '9.0':
+        expected_user_def = {
+            "id": user_id,
+            "status": {"active": True},
+            "username": username,
+            "owner": "local",
+            "emails": [
+                {
+                    "value": user_email,
+                    "type": "Work",
+                    "primary": True
+                }
+            ],
+            "phoneNumbers": [],
+            "addresses": [],
+            "displayName": display_name,
+            "issuer": "local",
+            "permissions": permissions,
+            "entitlement": entitlement,
+            "givenName": user_given_name,
+            "familyName": user_family_name
+        }
+    else:  # 9.1
+        if user_type == "PRIMARY":
+            maxuser_def = {
+                "userid": user_id,
+                "owner": "local",
+                "systemadmin": False,
+                "apikeyadmin": True,
+                "isauthorized": 1,
+                "idpadmin": True,
+                "groupuser": [
+                    {
+                        "groupname": "USERMANAGEMENT"
+                    }
+                ],
+                "grpreassignauth": [
+                    {
+                        "groupname": "USERMANAGEMENT"
+                    }
+                ]
             }
-        ],
-        "phoneNumbers": [],
-        "addresses": [],
-        "displayName": display_name,
-        "issuer": "local",
-        "permissions": permissions,
-        "entitlement": entitlement,
-        "givenName": user_given_name,
-        "familyName": user_family_name
-    })
+        else:  # SECONDARY
+            maxuser_def = {
+                "userid": user_id,
+                "owner": "local",
+                "systemadmin": False,
+                "apikeyadmin": False,
+                "isauthorized": 0,
+                "idpadmin": False
+            }
+
+        expected_user_def = {
+            "id": user_id,
+            "status": {"active": True},
+            "primaryemailtype": "Work",
+            "primaryemail": user_email,
+            "primaryphone": "",
+            "addressline1": "",
+            "displayName": display_name,
+            "maxuser": maxuser_def
+        }
+
+    user_utils.get_or_create_user.assert_called_once_with(expected_user_def)
     user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True)
     user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
     user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
@@ -1813,9 +1874,10 @@ def test_create_initial_users_for_saas(user_utils):
     mas_workspace_application_ids = ["manage", "iot"]
     user_utils.get_mas_applications_in_workspace = MagicMock(return_value=map(lambda x: {"id": x}, mas_workspace_application_ids))
     user_utils.await_mas_application_availability = MagicMock()
+    user_utils.get_all_manage_groups = MagicMock(return_value=["MAXADMIN", "MAXUSER"])
     user_utils.create_initial_user_for_saas = MagicMock()
 
-    def fail_for_users_b_and_e(user, user_type):
+    def fail_for_users_b_and_e(user, user_type, groupreassign=None):
         if user["email"] in ["b", "e"]:
             raise Exception(f"{user['email']} should fail")
     user_utils.create_initial_user_for_saas.side_effect = fail_for_users_b_and_e
