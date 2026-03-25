@@ -1443,6 +1443,7 @@ class MASUserUtils():
                 application_role = "ADMIN"
                 facilities_role = "PREMIUM"
                 manage_role = "MANAGEUSER"
+                manage_security_groups = ["USERMANAGEMENT"]
             elif user_type == "SECONDARY":
                 maxuser_def = {
                     "userid": user_id,
@@ -1456,6 +1457,7 @@ class MASUserUtils():
                 application_role = "USER"
                 facilities_role = "BASE"
                 manage_role = "MANAGEUSER"
+                manage_security_groups = []
             else:
                 raise Exception(f"Unsupported user_type: {user_type}")
 
