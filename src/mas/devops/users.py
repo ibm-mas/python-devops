@@ -228,16 +228,18 @@ class MASUserUtils():
         """
         Get an existing user or create a new one if not found.
 
-        This method is idempotent - if the user already exists (identified by payload["id"]),
-        their existing record is returned without modification. If the user doesn't exist,
-        they are created with the provided payload.
+        This method is idempotent - if the user already exists (identified by payload["id"]
+        for version < 9.1 or payload["personid"] for version >= 9.1), their existing record
+        is returned without modification. If the user doesn't exist, they are created with
+        the provided payload.
 
         For MAS version >= 9.1, this method uses the Manage API masapiuser endpoint.
         For earlier versions, it uses the Core API v3/users endpoint.
 
         Args:
             payload (dict): User definition dictionary containing user details.
-                          Must include "id" field as the unique identifier.
+                          Must include "id" field (version < 9.1) or "personid" field
+                          (version >= 9.1) as the unique identifier.
 
         Returns:
             dict: The user record (either existing or newly created).
@@ -245,13 +247,17 @@ class MASUserUtils():
         Raises:
             Exception: If user creation fails with an unexpected status code.
         """
-        existing_user = self.get_user(payload["id"])
+        # Determine the user ID field based on version
+        user_id_field = "personid" if Version(self.mas_version) >= Version('9.1') else "id"
+        user_id = payload[user_id_field]
+
+        existing_user = self.get_user(user_id)
 
         if existing_user is not None:
             self.logger.info(f"Existing user {existing_user['id']} found")
             return existing_user
 
-        self.logger.info(f"Creating new user {payload['id']}")
+        self.logger.info(f"Creating new user {user_id}")
 
         # For MAS version >= 9.1, use the Manage API masapiuser endpoint
         if Version(self.mas_version) >= Version('9.1'):
@@ -266,7 +272,7 @@ class MASUserUtils():
                 "Content-Type": "application/json",
                 "apikey": maxadmin_manage_api_key["apikey"]
             }
-            self.logger.info(f"Creating new user {payload['id']} with Manage API with payload {payload}")
+            self.logger.info(f"Creating new user {user_id} with Manage API with payload {payload}")
             response = requests.post(
                 url,
                 json=payload,

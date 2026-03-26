@@ -367,10 +367,17 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"id": user_id},
         status_code=201,
-        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id}, cert=PEM_PATH)
+        additional_matcher=lambda req: additional_matcher(req, json={"personid": user_id}, cert=PEM_PATH)
     )
 
-    assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
+    # Use correct payload structure based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        payload = {"personid": user_id}
+    else:
+        payload = {"id": user_id}
+
+    assert user_utils.get_or_create_user(payload) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
     assert post_core.call_count == 0
     assert post_manage.call_count == 0
@@ -395,10 +402,17 @@ def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"id": user_id, "displayName": user_id},
         status_code=201,
-        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id}, cert=PEM_PATH)
+        additional_matcher=lambda req: additional_matcher(req, json={"personid": user_id}, cert=PEM_PATH)
     )
 
-    assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
+    # Use correct payload structure based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        payload = {"personid": user_id}
+    else:
+        payload = {"id": user_id}
+
+    assert user_utils.get_or_create_user(payload) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
     # Check that the correct endpoint was called based on version
     if user_utils.mas_version >= '9.1':
@@ -428,11 +442,18 @@ def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"error": "unknown"},
         status_code=500,
-        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id}, cert=PEM_PATH)
+        additional_matcher=lambda req: additional_matcher(req, json={"personid": user_id}, cert=PEM_PATH)
     )
 
+    # Use correct payload structure based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        payload = {"personid": user_id}
+    else:
+        payload = {"id": user_id}
+
     with pytest.raises(Exception):
-        user_utils.get_or_create_user({"id": user_id})
+        user_utils.get_or_create_user(payload)
     assert get.call_count == 1
     # Check that the correct endpoint was called based on version
     if user_utils.mas_version >= '9.1':
