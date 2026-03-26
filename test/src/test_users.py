@@ -1855,6 +1855,7 @@ def test_create_initial_user_for_saas(
         if user_type == "PRIMARY":
             maxuser_def = {
                 "userid": user_id,
+                "personid": user_id,
                 "owner": "local",
                 "systemadmin": False,
                 "apikeyadmin": True,
@@ -1869,6 +1870,7 @@ def test_create_initial_user_for_saas(
         else:  # SECONDARY
             maxuser_def = {
                 "userid": user_id,
+                "personid": user_id,
                 "owner": "local",
                 "systemadmin": False,
                 "apikeyadmin": False,
