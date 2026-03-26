@@ -284,7 +284,12 @@ class MASUserUtils():
             self.logger.info(f"Response status code: {response.status_code}")
             self.logger.info(f"Response text: {response.text}")
             if response.status_code == 201:
-                return response.json()
+                # Manage API returns empty response body on success, fetch the user
+                if response.text:
+                    return response.json()
+                else:
+                    # Fetch the newly created user from Core API
+                    return self.get_user(user_id)
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users"
