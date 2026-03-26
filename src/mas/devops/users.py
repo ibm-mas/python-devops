@@ -273,6 +273,64 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
+    def set_user_group_reassignment_auth(self, user_id, groupreassign, manage_api_key):
+        """
+        Set group reassignment authorization for a user via Manage API.
+
+        This method updates the grpreassignauth field for a user's maxuser record,
+        which controls which security groups the user can reassign to other users.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            groupreassign (list): List of group objects in format [{"groupname": "GROUP1"}, {"groupname": "GROUP2"}, ...]
+            manage_api_key (dict): API key record with 'apikey' field for authentication.
+
+        Returns:
+            dict: Updated user record.
+
+        Raises:
+            Exception: If the update fails.
+        """
+        if not groupreassign or len(groupreassign) == 0:
+            self.logger.debug(f"No group reassignment authorization to set for user {user_id}")
+            return
+
+        self.logger.info(f"Setting group reassignment authorization for user {user_id} with {len(groupreassign)} groups")
+
+        # Use Manage API to update the user's grpreassignauth
+        url = f"{self.manage_api_url_internal}/maximo/api/os/masapiuser/{user_id}"
+        querystring = {
+            "lean": 1,
+            "ccm": 1
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "apikey": manage_api_key["apikey"]
+        }
+
+        payload = {
+            "maxuser": [
+                {
+                    "grpreassignauth": groupreassign
+                }
+            ]
+        }
+
+        response = requests.patch(
+            url,
+            json=payload,
+            headers=headers,
+            params=querystring,
+            cert=self.manage_internal_client_pem_file_path,
+            verify=self.manage_internal_ca_pem_file_path
+        )
+
+        if response.status_code == 200:
+            self.logger.info(f"Successfully set group reassignment authorization for user {user_id}")
+            return response.json()
+
+        raise Exception(f"Failed to set group reassignment authorization: {response.status_code} {response.text}")
+
     def update_user(self, payload):
         """
         Update an existing user's details.
@@ -972,7 +1030,7 @@ class MASUserUtils():
             params=querystring,
             # verify=self.manage_internal_ca_pem_file_path,
             cert=self.manage_internal_client_pem_file_path,
-            verify=False
+            verify=self.manage_internal_ca_pem_file_path
         )
 
         if response.status_code != 200:
@@ -1434,8 +1492,7 @@ class MASUserUtils():
                         {
                             "groupname": "USERMANAGEMENT"
                         }
-                    ],
-                    "grpreassignauth": groupreassign
+                    ]
                 }
                 is_workspace_admin = True
                 application_role = "ADMIN"
@@ -1499,6 +1556,8 @@ class MASUserUtils():
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
             for manage_security_group in manage_security_groups:
                 self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
+            if Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
+                self.set_user_group_reassignment_auth(user_id, groupreassign, maxadmin_manage_api_key)
 
             # # Grant authorization to reassign users to/from ALL security groups (PRIMARY users only)
             # if user_type == "PRIMARY":

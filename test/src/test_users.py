@@ -1729,6 +1729,7 @@ def test_create_initial_user_for_saas(
     manage_api_key = "manage_api_key"  # pragma: allowlist secret
     user_utils.create_or_get_manage_api_key_for_user = MagicMock(return_value=manage_api_key)
     user_utils.add_user_to_manage_group = MagicMock()
+    user_utils.set_user_group_reassignment_auth = MagicMock()
 
     user_given_name = "billy"
     user_family_name = "bobby"
@@ -1787,11 +1788,6 @@ def test_create_initial_user_for_saas(
                 "isauthorized": 1,
                 "idpadmin": True,
                 "groupuser": [
-                    {
-                        "groupname": "USERMANAGEMENT"
-                    }
-                ],
-                "grpreassignauth": [
                     {
                         "groupname": "USERMANAGEMENT"
                     }
