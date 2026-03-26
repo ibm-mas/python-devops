@@ -1591,16 +1591,17 @@ class MASUserUtils():
         self.link_user_to_local_idp(user_id, email_password=True)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
 
-        for mas_application_id in self.mas_workspace_application_ids:
-            self.await_mas_application_availability(mas_application_id)
-            if mas_application_id == "manage":
-                role = manage_role
-            elif mas_application_id == "facilities":
-                role = facilities_role
-            else:
-                # otherwise grant the user the appropriate role for their user_type
-                role = application_role
-            self.set_user_application_permission(user_id, mas_application_id, role)
+        if Version(self.mas_version) < Version('9.1'):
+            for mas_application_id in self.mas_workspace_application_ids:
+                self.await_mas_application_availability(mas_application_id)
+                if mas_application_id == "manage":
+                    role = manage_role
+                elif mas_application_id == "facilities":
+                    role = facilities_role
+                else:
+                    # otherwise grant the user the appropriate role for their user_type
+                    role = application_role
+                self.set_user_application_permission(user_id, mas_application_id, role)
 
         for mas_application_id in self.mas_workspace_application_ids:
             self.check_user_sync(user_id, mas_application_id)
@@ -1608,8 +1609,9 @@ class MASUserUtils():
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
             self.logger.info(f"Maxadmin manage api key - {maxadmin_manage_api_key}")
-            for manage_security_group in manage_security_groups:
-                self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
+            if Version(self.mas_version) < Version('9.1'):
+                for manage_security_group in manage_security_groups:
+                    self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
             if Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
                 self.set_user_group_reassignment_auth(user_id, groupreassign, maxadmin_manage_api_key)
 

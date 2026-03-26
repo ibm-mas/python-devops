@@ -1816,7 +1816,7 @@ def test_create_initial_user_for_saas(
     user_utils.link_user_to_local_idp = MagicMock()
     user_utils.add_user_to_workspace = MagicMock()
     mas_workspace_application_ids = ["manage", "iot", "facilities"]
-    user_utils.get_mas_applications_in_workspace = MagicMock(return_value=map(lambda x: {"id": x}, mas_workspace_application_ids))
+    user_utils.get_mas_applications_in_workspace = MagicMock(return_value=list(map(lambda x: {"id": x}, mas_workspace_application_ids)))
     user_utils.await_mas_application_availability = MagicMock()
     user_utils.set_user_application_permission = MagicMock()
     user_utils.check_user_sync = MagicMock()
@@ -1916,12 +1916,21 @@ def test_create_initial_user_for_saas(
     user_utils.get_or_create_user.assert_called_once_with(expected_user_def)
     user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True)
     user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
-    user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
-    user_utils.set_user_application_permission.assert_has_calls([
-        call(user_id, "manage", manage_role),
-        call(user_id, "iot", application_role),
-        call(user_id, "facilities", facilities_role),
-    ])
+
+    # For version < 9.1, await_mas_application_availability and set_user_application_permission are called
+    # For version >= 9.1, they are NOT called
+    if mas_version == '9.0':
+        user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
+        user_utils.set_user_application_permission.assert_has_calls([
+            call(user_id, "manage", manage_role),
+            call(user_id, "iot", application_role),
+            call(user_id, "facilities", facilities_role),
+        ])
+    else:  # 9.1
+        user_utils.await_mas_application_availability.assert_not_called()
+        user_utils.set_user_application_permission.assert_not_called()
+
+    # check_user_sync is called for all versions
     user_utils.check_user_sync.assert_has_calls([
         call(user_id, "manage"),
         call(user_id, "iot"),
@@ -1930,12 +1939,24 @@ def test_create_initial_user_for_saas(
 
     if len(manage_security_groups) > 0:
         user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MAXADMIN", temporary=True)
+
+        # For version < 9.1, add_user_to_manage_group is called
+        # For version >= 9.1, set_user_group_reassignment_auth is called for PRIMARY users
+        if mas_version == '9.0':
+            user_utils.add_user_to_manage_group.assert_has_calls(
+                list(map(lambda sg: call(user_id, sg, manage_api_key), manage_security_groups))
+            )
+            user_utils.set_user_group_reassignment_auth.assert_not_called()
+        else:  # 9.1
+            user_utils.add_user_to_manage_group.assert_not_called()
+            if user_type == "PRIMARY":
+                user_utils.set_user_group_reassignment_auth.assert_called_once_with(user_id, [{"groupname": "USERMANAGEMENT"}], manage_api_key)
+            else:
+                user_utils.set_user_group_reassignment_auth.assert_not_called()
     else:
         user_utils.create_or_get_manage_api_key_for_user.assert_not_called()
-
-    user_utils.add_user_to_manage_group.assert_has_calls(
-        map(lambda sg: call(user_id, sg, manage_api_key), manage_security_groups)
-    )
+        user_utils.add_user_to_manage_group.assert_not_called()
+        user_utils.set_user_group_reassignment_auth.assert_not_called()
 
 
 def test_create_initial_users_for_saas_invalid_inputs(user_utils):
