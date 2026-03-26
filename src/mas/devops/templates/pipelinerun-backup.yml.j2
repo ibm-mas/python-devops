@@ -38,6 +38,11 @@ spec:
       value: "{{ include_sls }}"
     {% endif %}
 
+    {% if include_mongo is defined and include_mongo != "" %}
+    - name: include_mongo
+      value: "{{ include_mongo }}"
+    {% endif %}
+
     # MongoDB Configuration
     {% if mongodb_namespace is defined and mongodb_namespace != "" %}
     - name: mongodb_namespace
