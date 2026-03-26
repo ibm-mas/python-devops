@@ -352,6 +352,8 @@ class MASUserUtils():
             cert=self.manage_internal_client_pem_file_path,
             verify=self.manage_internal_ca_pem_file_path
         )
+        self.logger.info(f"Response status code: {response.status_code}")
+        self.logger.info(f"Response text: {response.text}")
 
         if response.status_code == 200:
             self.logger.info(f"Successfully set group reassignment authorization for user {user_id}")
@@ -790,6 +792,7 @@ class MASUserUtils():
         # otherwise, retrieve the apikey (either it already existed, or we just created it)
 
         apikey = self.get_manage_api_key_for_user(user_id)
+        self.logger.info(f"Retrieved Manage API Key for user {user_id}: {apikey}")
         if apikey is None:
             # either create call reported that apikey already exists, or we created the api key
             # so we expect the get call to find it
@@ -813,7 +816,7 @@ class MASUserUtils():
         Raises:
             Exception: If the API call fails.
         """
-        self.logger.debug(f"Getting Manage API Key for user {user_id}")
+        self.logger.info(f"Getting Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
         querystring = {
             "ccm": 1,
@@ -832,6 +835,7 @@ class MASUserUtils():
             verify=self.manage_internal_ca_pem_file_path,
             cert=self.manage_internal_client_pem_file_path
         )
+        self.logger.info(f"Response: {response.status_code} {response.text}")
 
         if response.status_code == 200:
             json = response.json()
@@ -1023,6 +1027,8 @@ class MASUserUtils():
             json=payload,
             verify=self.manage_internal_ca_pem_file_path,
         )
+        self.logger.info(f"Response status code: {response.status_code}")
+        self.logger.info(f"Response text: {response.text}")
         if response.status_code == 204:
             return None
 
@@ -1582,6 +1588,7 @@ class MASUserUtils():
 
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+            self.logger.info(f"Maxadmin manage api key - {maxadmin_manage_api_key}")
             for manage_security_group in manage_security_groups:
                 self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
             if Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
