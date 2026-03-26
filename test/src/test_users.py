@@ -363,7 +363,7 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
 
     # Mock Manage API endpoint for version >= 9.1
     post_manage = requests_mock.post(
-        f"{MANAGE_API_URL}/maximo/api/os/masapiuser?lean=1",
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"id": user_id},
         status_code=201,
@@ -391,7 +391,7 @@ def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_
 
     # Mock Manage API endpoint for version >= 9.1
     post_manage = requests_mock.post(
-        f"{MANAGE_API_URL}/maximo/api/os/masapiuser?lean=1",
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"id": user_id, "displayName": user_id},
         status_code=201,
@@ -424,7 +424,7 @@ def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key
 
     # Mock Manage API endpoint for version >= 9.1
     post_manage = requests_mock.post(
-        f"{MANAGE_API_URL}/maximo/api/os/masapiuser?lean=1",
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"error": "unknown"},
         status_code=500,
