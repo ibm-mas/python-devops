@@ -138,16 +138,36 @@ def mock_manage_api_key(requests_mock):
     Setup mock Manage APIs for setting up an API Key
     '''
     user_id = "user1"
-    apikey = {"userid": user_id, "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}
+    apikey = {"userid": user_id, "apikey": "test-api-key-12345", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
 
+    # Also setup for MAXADMIN user
+    maxadmin_apikey = {"userid": "MAXADMIN", "apikey": "maxadmin-api-key-67890", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/maxadminapikeyid"}  # pragma: allowlist secret
+
+    def maxadmin_matcher(req):
+        return req.json().get("userid") == "MAXADMIN" and req.verify == PEM_PATH and req.cert == PEM_PATH
+
+    def user1_matcher(req):
+        return req.json().get("userid") == user_id and req.verify == PEM_PATH and req.cert == PEM_PATH
+
+    # Mock for MAXADMIN API key creation (returns 400 - key already exists)
+    requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1",
+        request_headers={"content-type": "application/json"},
+        json={"Error": {"reasonCode": "BMXAA10051E", "message": "Only one API key allowed per user"}},
+        status_code=400,
+        additional_matcher=maxadmin_matcher
+    )
+
+    # Mock for user1 API key creation
     requests_mock.post(
         f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1",
         request_headers={"content-type": "application/json"},
         json={"id": user_id},
         status_code=201,
-        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH)
+        additional_matcher=user1_matcher
     )
 
+    # Mock for user1 API key retrieval
     requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"{user_id}\"",
         request_headers={"accept": "application/json"},
@@ -156,7 +176,16 @@ def mock_manage_api_key(requests_mock):
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
     )
 
-    yield apikey
+    # Mock for MAXADMIN API key retrieval (returns existing key)
+    requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"MAXADMIN\"",
+        request_headers={"accept": "application/json"},
+        json={"member": [maxadmin_apikey]},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    yield maxadmin_apikey
 
 
 def test_admin_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
@@ -319,11 +348,12 @@ def test_get_user_error(user_utils, requests_mock):
     assert get.call_count == 1
 
 
-def test_get_or_create_user_exists(user_utils, requests_mock):
+def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     get = mock_get_user_200(requests_mock, user_id)
 
-    post = requests_mock.post(
+    # Mock Core API endpoint for version < 9.1
+    post_core = requests_mock.post(
         f"{MAS_API_URL}/v3/users",
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id},
@@ -331,16 +361,27 @@ def test_get_or_create_user_exists(user_utils, requests_mock):
         additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
 
+    # Mock Manage API endpoint for version >= 9.1
+    post_manage = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/masapiuser?lean=1",
+        request_headers={"apikey": mock_manage_api_key["apikey"]},
+        json={"id": user_id},
+        status_code=201,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id}, cert=PEM_PATH)
+    )
+
     assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
-    assert post.call_count == 0
+    assert post_core.call_count == 0
+    assert post_manage.call_count == 0
 
 
-def test_get_or_create_user_notfound(user_utils, requests_mock):
+def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     get = mock_get_user_404(requests_mock, user_id)
 
-    post = requests_mock.post(
+    # Mock Core API endpoint for version < 9.1
+    post_core = requests_mock.post(
         f"{MAS_API_URL}/v3/users",
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id, "displayName": user_id},
@@ -348,15 +389,32 @@ def test_get_or_create_user_notfound(user_utils, requests_mock):
         additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
 
+    # Mock Manage API endpoint for version >= 9.1
+    post_manage = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/masapiuser?lean=1",
+        request_headers={"apikey": mock_manage_api_key["apikey"]},
+        json={"id": user_id, "displayName": user_id},
+        status_code=201,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id}, cert=PEM_PATH)
+    )
+
     assert user_utils.get_or_create_user({"id": user_id}) == {"id": user_id, "displayName": user_id}
     assert get.call_count == 1
-    assert post.call_count == 1
+    # Check that the correct endpoint was called based on version
+    if user_utils.mas_version >= '9.1':
+        assert post_core.call_count == 0
+        assert post_manage.call_count == 1
+    else:
+        assert post_core.call_count == 1
+        assert post_manage.call_count == 0
 
 
-def test_get_or_create_user_error(user_utils, requests_mock):
+def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     get = mock_get_user_404(requests_mock, user_id)
-    post = requests_mock.post(
+
+    # Mock Core API endpoint for version < 9.1
+    post_core = requests_mock.post(
         f"{MAS_API_URL}/v3/users",
         request_headers={"x-access-token": TOKEN},
         json={"error": "unknown"},
@@ -364,10 +422,25 @@ def test_get_or_create_user_error(user_utils, requests_mock):
         additional_matcher=lambda req: additional_matcher(req, json={"id": user_id})
     )
 
+    # Mock Manage API endpoint for version >= 9.1
+    post_manage = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/masapiuser?lean=1",
+        request_headers={"apikey": mock_manage_api_key["apikey"]},
+        json={"error": "unknown"},
+        status_code=500,
+        additional_matcher=lambda req: additional_matcher(req, json={"id": user_id}, cert=PEM_PATH)
+    )
+
     with pytest.raises(Exception):
         user_utils.get_or_create_user({"id": user_id})
     assert get.call_count == 1
-    assert post.call_count == 1
+    # Check that the correct endpoint was called based on version
+    if user_utils.mas_version >= '9.1':
+        assert post_core.call_count == 0
+        assert post_manage.call_count == 1
+    else:
+        assert post_core.call_count == 1
+        assert post_manage.call_count == 0
 
 
 def test_update_user(user_utils, requests_mock):

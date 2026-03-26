@@ -232,6 +232,9 @@ class MASUserUtils():
         their existing record is returned without modification. If the user doesn't exist,
         they are created with the provided payload.
 
+        For MAS version >= 9.1, this method uses the Manage API masapiuser endpoint.
+        For earlier versions, it uses the Core API v3/users endpoint.
+
         Args:
             payload (dict): User definition dictionary containing user details.
                           Must include "id" field as the unique identifier.
@@ -250,21 +253,46 @@ class MASUserUtils():
 
         self.logger.info(f"Creating new user {payload['id']}")
 
-        url = f"{self.mas_api_url_internal}/v3/users"
-        querystring = {}
-        headers = {
-            "Content-Type": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.post(
-            url,
-            json=payload,
-            headers=headers,
-            params=querystring,
-            verify=self.core_internal_ca_pem_file_path
-        )
-        if response.status_code == 201:
-            return response.json()
+        # For MAS version >= 9.1, use the Manage API masapiuser endpoint
+        if Version(self.mas_version) >= Version('9.1'):
+            # Get MAXADMIN API key for authentication
+            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+
+            url = f"{self.manage_api_url_internal}/maximo/api/os/masapiuser"
+            querystring = {
+                "lean": 1
+            }
+            headers = {
+                "Content-Type": "application/json",
+                "apikey": maxadmin_manage_api_key["apikey"]
+            }
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                params=querystring,
+                cert=self.manage_internal_client_pem_file_path,
+                verify=self.manage_internal_ca_pem_file_path
+            )
+            if response.status_code == 201:
+                return response.json()
+        else:
+            # For earlier versions, use the Core API v3/users endpoint
+            url = f"{self.mas_api_url_internal}/v3/users"
+            querystring = {}
+            headers = {
+                "Content-Type": "application/json",
+                "x-access-token": self.superuser_auth_token
+            }
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                params=querystring,
+                verify=self.core_internal_ca_pem_file_path
+            )
+            if response.status_code == 201:
+                return response.json()
 
         # if response.status_code == 409:
         #     json = response.json()
