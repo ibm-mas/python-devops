@@ -15,8 +15,8 @@ ocp_compatibility:
 - "4.20"
 
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.6     # Not Updated         # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.5      # Not Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+sls_version: 3.12.6     # Updated         # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.5      # Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
@@ -55,5 +55,7 @@ editorial:
     details:
     - IBM Maximo Application Suite Core Platform [v9.0.23](https://www.ibm.com/support/pages/node/7267464) and [v9.1.14](https://www.ibm.com/support/pages/node/7267465)
     - IBM Maximo Manage [v9.0.24](https://www.ibm.com/support/pages/node/7266691) and [v9.1.15](https://www.ibm.com/support/pages/node/7266690)
+    - IBM Truststore Manager v1.7
+    - IBM Suite License Service v3.12
   known_issues:
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
