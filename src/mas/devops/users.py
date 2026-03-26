@@ -1521,11 +1521,13 @@ class MASUserUtils():
                 maxuser_def = {
                     "userid": user_id,
                     "personid": user_id,
+                    "loginid": user_id,
                     "owner": "local",
                     "systemadmin": False,
                     "apikeyadmin": True,
                     "isauthorized": 1,
                     "idpadmin": True,
+                    "status": "ACTIVE",
                     "groupuser": [
                         {
                             "groupname": "USERMANAGEMENT"
@@ -1541,11 +1543,13 @@ class MASUserUtils():
                 maxuser_def = {
                     "userid": user_id,
                     "personid": user_id,
+                    "loginid": user_id,
                     "owner": "local",
                     "systemadmin": False,
                     "apikeyadmin": False,
                     "isauthorized": 0,
-                    "idpadmin": False
+                    "idpadmin": False,
+                    "status": "ACTIVE"
                 }
                 is_workspace_admin = False
                 application_role = "USER"
@@ -1556,16 +1560,14 @@ class MASUserUtils():
                 raise Exception(f"Unsupported user_type: {user_type}")
 
             user_def = {
-                "id": user_id,
                 "personid": user_id,
-                "status": {"active": True},
                 "primaryemailtype": "Work",
                 "primaryemail": user_email,
                 # "username": username,
                 "primaryphone": "",
                 "addressline1": "",
                 "displayName": display_name,
-                "maxuser": maxuser_def
+                "maxuser": maxuser_def,
                 # "issuer": "local",
                 # "permissions": permissions,
                 # "entitlement": entitlement,

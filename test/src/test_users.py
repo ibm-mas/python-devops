@@ -1856,11 +1856,13 @@ def test_create_initial_user_for_saas(
             maxuser_def = {
                 "userid": user_id,
                 "personid": user_id,
+                "loginid": user_id,
                 "owner": "local",
                 "systemadmin": False,
                 "apikeyadmin": True,
                 "isauthorized": 1,
                 "idpadmin": True,
+                "status": "ACTIVE",
                 "groupuser": [
                     {
                         "groupname": "USERMANAGEMENT"
@@ -1871,17 +1873,17 @@ def test_create_initial_user_for_saas(
             maxuser_def = {
                 "userid": user_id,
                 "personid": user_id,
+                "loginid": user_id,
                 "owner": "local",
                 "systemadmin": False,
                 "apikeyadmin": False,
                 "isauthorized": 0,
-                "idpadmin": False
+                "idpadmin": False,
+                "status": "ACTIVE"
             }
 
         expected_user_def = {
-            "id": user_id,
             "personid": user_id,
-            "status": {"active": True},
             "primaryemailtype": "Work",
             "primaryemail": user_email,
             "primaryphone": "",
