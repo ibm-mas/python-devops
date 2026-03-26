@@ -258,7 +258,7 @@ class MASUserUtils():
             # Get MAXADMIN API key for authentication
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
 
-            url = f"{self.manage_api_url_internal}/maximo/api/os/masapiuser"
+            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
             querystring = {
                 "lean": 1
             }
@@ -266,6 +266,7 @@ class MASUserUtils():
                 "Content-Type": "application/json",
                 "apikey": maxadmin_manage_api_key["apikey"]
             }
+            self.logger.info(f"Creating new user {payload['id']} with Manage API with payload {payload}")
             response = requests.post(
                 url,
                 json=payload,
@@ -274,6 +275,8 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
+            self.logger.info(f"Response status code: {response.status_code}")
+            self.logger.info(f"Response text: {response.text}")
             if response.status_code == 201:
                 return response.json()
         else:
