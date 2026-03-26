@@ -34,6 +34,10 @@ spec:
     # Restore Configuration
     - name: restore_version
       value: "{{ restore_version }}"
+    {% if clean_backup is defined and clean_backup != "" %}
+    - name: clean_backup
+      value: "{{ clean_backup }}"
+    {% endif %}
 
     # Component Flags
     {% if include_mongo is defined and include_mongo != "" %}
