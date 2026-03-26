@@ -1520,6 +1520,7 @@ class MASUserUtils():
             if user_type == "PRIMARY":
                 maxuser_def = {
                     "userid": user_id,
+                    "personid": user_id,
                     "owner": "local",
                     "systemadmin": False,
                     "apikeyadmin": True,
@@ -1539,6 +1540,7 @@ class MASUserUtils():
             elif user_type == "SECONDARY":
                 maxuser_def = {
                     "userid": user_id,
+                    "personid": user_id,
                     "owner": "local",
                     "systemadmin": False,
                     "apikeyadmin": False,
