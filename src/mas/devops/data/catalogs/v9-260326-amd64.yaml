@@ -27,8 +27,8 @@ db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to fi
 db2_channel_default: v110509.0               # Default Channel version for db2u-operator
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.6     # Updated         # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.5      # Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+sls_version: 3.12.6     # Not Updated            # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.5      # Not Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 dd_version: 1.1.23                           # Operator version 1.1.23 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 wsl_version: 11.0.0+20250521.202913.73                     # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
@@ -159,3 +159,5 @@ editorial:
   known_issues:
     - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
+    - title: A known issue has been identified in Db2u warehouse operator in this catalog. Customers restoring/upgrading Db2, intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. If you are facing this problem, please refer to the workaround provided in this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).
+    - title: A known issue exists in the February 26, 2026 release affecting IBM Maximo Real Estate and Facilities. Customers with MREF installed should avoid upgrading to the February 9.1.8 release. Installation of MREF 9.1.x should be deferred until the March 2026 patch.
