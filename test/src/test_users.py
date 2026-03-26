@@ -1880,6 +1880,7 @@ def test_create_initial_user_for_saas(
 
         expected_user_def = {
             "id": user_id,
+            "personid": user_id,
             "status": {"active": True},
             "primaryemailtype": "Work",
             "primaryemail": user_email,

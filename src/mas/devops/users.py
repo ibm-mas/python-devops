@@ -1557,6 +1557,7 @@ class MASUserUtils():
 
             user_def = {
                 "id": user_id,
+                "personid": user_id,
                 "status": {"active": True},
                 "primaryemailtype": "Work",
                 "primaryemail": user_email,
