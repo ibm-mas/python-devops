@@ -248,21 +248,24 @@ class MASUserUtils():
                         resource_id = href.split("/")[-1]
                         self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
 
-            if resource_id is not None:
-                url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{resource_id}"
-                headers = {
-                    "Accept": "application/json",
-                    "apikey": maxadmin_manage_api_key["apikey"]
-                }
-                response = requests.get(
-                    url,
-                    headers=headers,
-                    cert=self.manage_internal_client_pem_file_path,
-                    verify=self.manage_internal_ca_pem_file_path
-                )
-                self.logger.info(f"GET {url} returned {response.status_code}")
-                self.logger.info(f"Response: {response.text}")
-                self.logger.info(f"Response json: {response.json}")
+            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
+            headers = {
+                "Accept": "application/json",
+                "apikey": maxadmin_manage_api_key["apikey"]
+            }
+            querystring = {
+                "lean": 1,
+                "oslc.where": f"userid=\"{user_id}\""
+            }
+            response = requests.get(
+                url,
+                headers=headers,
+                cert=self.manage_internal_client_pem_file_path,
+                verify=self.manage_internal_ca_pem_file_path
+            )
+            self.logger.info(f"GET {url} returned {response.status_code}")
+            self.logger.info(f"Response: {response.text}")
+            self.logger.info(f"Response json: {response.json}")
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
