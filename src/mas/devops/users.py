@@ -217,7 +217,7 @@ class MASUserUtils():
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
             querystring = {
                 "lean": 1,
-                "oslc.where": f"userid=\"{user_id}\""
+                "oslc.where": f"user.userid=\"{user_id}\""
             }
             headers = {
                 "Accept": "application/json",

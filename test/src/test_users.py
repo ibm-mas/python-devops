@@ -210,9 +210,9 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
     )
 
     # Mock Manage API endpoint for version >= 9.1
-    # Uses query parameter oslc.where instead of path parameter
+    # Uses query parameter oslc.where with user.userid instead of path parameter
     manage_mock = requests_mock.get(
-        f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1&oslc.where=userid%3D%22{user_id}%22",
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1&oslc.where=user.userid%3D%22{user_id}%22",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json=json,
         status_code=status_code,
