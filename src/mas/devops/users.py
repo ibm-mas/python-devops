@@ -202,12 +202,15 @@ class MASUserUtils():
             user_id (str): The unique identifier of the user to retrieve.
 
         Returns:
-            dict: User details dictionary if found, None if user doesn't exist (404).
+            tuple: (resource_id, user_data) where:
+                - resource_id (str|None): Resource ID extracted from href for version >= 9.1, None for version < 9.1
+                - user_data (dict|None): User details dictionary if found, None if user doesn't exist (404)
 
         Raises:
             Exception: If the API returns an unexpected status code.
         """
         self.logger.debug(f"Getting user {user_id}")
+        resource_id = None
 
         # For MAS version >= 9.1, use the Manage API masperuser endpoint
         if Version(self.mas_version) >= Version('9.1'):
@@ -230,9 +233,36 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
+            user_info = response.json()
             self.logger.info(f"GET {url} returned {response.status_code}")
             self.logger.info(f"Response: {response.text}")
             self.logger.info(f"Response json: {response.json}")
+
+            # Parse resource_id from user_info for version >= 9.1
+            if Version(self.mas_version) >= Version('9.1') and user_info:
+                # Check if user_info has member array with href
+                if "member" in user_info and len(user_info["member"]) > 0:
+                    href = user_info["member"][0].get("href", "")
+                    # Extract resource_id from href (e.g., "api/os/masperuser/<resource_id>")
+                    if href and "/" in href:
+                        resource_id = href.split("/")[-1]
+                        self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
+
+            if resource_id is not None:
+                url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{resource_id}"
+                headers = {
+                    "Accept": "application/json",
+                    "apikey": maxadmin_manage_api_key["apikey"]
+                }
+                response = requests.get(
+                    url,
+                    headers=headers,
+                    cert=self.manage_internal_client_pem_file_path,
+                    verify=self.manage_internal_ca_pem_file_path
+                )
+                self.logger.info(f"GET {url} returned {response.status_code}")
+                self.logger.info(f"Response: {response.text}")
+                self.logger.info(f"Response json: {response.json}")
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -247,10 +277,10 @@ class MASUserUtils():
             )
 
         if response.status_code == 404:
-            return None
+            return resource_id, None
 
         if response.status_code == 200:
-            return response.json()
+            return resource_id, response.json()
 
         raise Exception(f"{response.status_code} {response.text}")
 
@@ -272,7 +302,9 @@ class MASUserUtils():
                           (version >= 9.1) as the unique identifier.
 
         Returns:
-            dict: The user record (either existing or newly created).
+            tuple: (resource_id, user_data) where:
+                - resource_id (str|None): Resource ID extracted from href for version >= 9.1, None for version < 9.1
+                - user_data (dict): The user record (either existing or newly created)
 
         Raises:
             Exception: If user creation fails with an unexpected status code.
@@ -281,13 +313,13 @@ class MASUserUtils():
         user_id_field = "personid" if Version(self.mas_version) >= Version('9.1') else "id"
         user_id = payload[user_id_field]
 
-        existing_user = self.get_user(user_id)
+        resource_id, existing_user = self.get_user(user_id)
 
         if existing_user is not None:
             # Log using the appropriate field based on version
             user_identifier = existing_user.get('personid') or existing_user.get('id')
             self.logger.info(f"Existing user {user_identifier} found")
-            return existing_user
+            return resource_id, existing_user
 
         self.logger.info(f"Creating new user {user_id}")
 
@@ -318,9 +350,17 @@ class MASUserUtils():
             if response.status_code == 201:
                 # Manage API returns empty response body on success, fetch the user
                 if response.text:
-                    return response.json()
+                    response_data = response.json()
+                    # Parse resource_id from response if available
+                    resource_id = None
+                    if "member" in response_data and len(response_data["member"]) > 0:
+                        href = response_data["member"][0].get("href", "")
+                        if href and "/" in href:
+                            resource_id = href.split("/")[-1]
+                            self.logger.info(f"Extracted resource_id: {resource_id} from create response")
+                    return resource_id, response_data
                 else:
-                    # Fetch the newly created user from Core API
+                    # Fetch the newly created user
                     return self.get_user(user_id)
         else:
             # For earlier versions, use the Core API v3/users endpoint
@@ -338,7 +378,8 @@ class MASUserUtils():
                 verify=self.core_internal_ca_pem_file_path
             )
             if response.status_code == 201:
-                return response.json()
+                # For version < 9.1, resource_id is None
+                return None, response.json()
 
         # if response.status_code == 409:
         #     json = response.json()
@@ -504,7 +545,7 @@ class MASUserUtils():
         """
 
         # For the sake of idempotency, check if the user already has a local identity
-        user = self.get_user(user_id)
+        resource_id, user = self.get_user(user_id)
         if user is None:
             raise Exception(f"User {user_id} was not found")
 
@@ -725,7 +766,7 @@ class MASUserUtils():
         t_end = time.time() + timeout_secs
         self.logger.info(f"Awaiting user {user_id} sync status \"SUCCESS\" for app {application_id}: {t_end - time.time():.2f} seconds remaining")
         while time.time() < t_end:
-            user = self.get_user(user_id)
+            resource_id, user = self.get_user(user_id)
 
             if "applications" not in user or application_id not in user["applications"] or "sync" not in user["applications"][application_id] or "state" not in user["applications"][application_id]["sync"]:
                 self.logger.warning(f"User {user_id} does not have any sync state for application {application_id}, triggering resync")
@@ -771,7 +812,7 @@ class MASUserUtils():
         # which reduces the impact of concurrent updates leading to race conditions)
 
         for user_id in user_ids:
-            user = self.get_user(user_id)
+            resource_id, user = self.get_user(user_id)
             self.update_user_display_name(user_id, user["displayName"])
 
     def create_or_get_manage_api_key_for_user(self, user_id, temporary=False):
@@ -1621,19 +1662,9 @@ class MASUserUtils():
             }
 
         self.logger.info(f"User def - {user_def}")
-        user_info = self.get_or_create_user(user_def)
+        resource_id, user_info = self.get_or_create_user(user_def)
+        self.logger.info(f"Resource ID - {resource_id}")
         self.logger.info(f"User info - {user_info}")
-
-        # Parse resource_id from user_info for version >= 9.1
-        resource_id = None
-        if Version(self.mas_version) >= Version('9.1') and user_info:
-            # Check if user_info has member array with href
-            if "member" in user_info and len(user_info["member"]) > 0:
-                href = user_info["member"][0].get("href", "")
-                # Extract resource_id from href (e.g., "api/os/masperuser/<resource_id>")
-                if href and "/" in href:
-                    resource_id = href.split("/")[-1]
-                    self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
 
         self.link_user_to_local_idp(user_id, email_password=True)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)

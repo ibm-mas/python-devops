@@ -12,7 +12,7 @@ import pytest
 import base64
 from unittest.mock import MagicMock, patch, call
 from pytest import fixture
-
+from packaging.version import Version
 import os
 
 from mas.devops.users import MASUserUtils
@@ -210,8 +210,8 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
     )
 
     # Mock Manage API endpoint for version >= 9.1
-    # Uses query parameter oslc.where with user.userid instead of path parameter
-    manage_mock = requests_mock.get(
+    # First request: Uses query parameter oslc.where with user.userid to get resource_id
+    manage_query_mock = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1&oslc.where=user.userid%3D%22{user_id}%22",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json=json,
@@ -219,12 +219,32 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
     )
 
-    return core_mock, manage_mock
+    # Second request: If status is 200 and json is a dict (not a callback) with member array, mock the resource_id GET
+    if status_code == 200 and json and isinstance(json, dict) and "member" in json and len(json["member"]) > 0:
+        href = json["member"][0].get("href", "")
+        if href and "/" in href:
+            resource_id = href.split("/")[-1]
+            requests_mock.get(
+                f"{MANAGE_API_URL}/maximo/api/os/masperuser/{resource_id}",
+                request_headers={"apikey": mock_manage_api_key["apikey"]},
+                json=json,
+                status_code=status_code,
+                additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+            )
+
+    return core_mock, manage_query_mock
 
 
 def mock_get_user_200(requests_mock, user_id, mock_manage_api_key):
+    # For Manage API (9.1+), include member array with href containing resource_id
+    resource_id = f"{user_id}_resource_id"
+    json_response = {
+        "id": user_id,
+        "displayName": user_id,
+        "member": [{"href": f"api/os/masperuser/{resource_id}"}]
+    }
     return mock_get_user(
-        requests_mock, user_id, {"id": user_id, "displayName": user_id}, 200, mock_manage_api_key
+        requests_mock, user_id, json_response, 200, mock_manage_api_key
     )
 
 
@@ -342,7 +362,15 @@ def test_mas_workspace_application_ids(user_utils, requests_mock):
 def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
-    assert user_utils.get_user(user_id) == {"id": user_id, "displayName": user_id}
+    resource_id, user_data = user_utils.get_user(user_id)
+    assert user_data["id"] == user_id
+    assert user_data["displayName"] == user_id
+    # For version >= 9.1, resource_id should be extracted; for < 9.1, it should be None
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert resource_id is not None
+        assert resource_id == f"{user_id}_resource_id"
+    else:
+        assert resource_id is None
 
     # Check that the correct endpoint was called based on version
     if user_utils.mas_version >= '9.1':
@@ -356,7 +384,9 @@ def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
 def test_get_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
-    assert user_utils.get_user(user_id) is None
+    resource_id, user_data = user_utils.get_user(user_id)
+    assert resource_id is None
+    assert user_data is None
 
     # Check that the correct endpoint was called based on version
     if user_utils.mas_version >= '9.1':
@@ -405,15 +435,21 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
     )
 
     # Use correct payload structure based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         payload = {"personid": user_id}
     else:
         payload = {"id": user_id}
 
-    assert user_utils.get_or_create_user(payload) == {"id": user_id, "displayName": user_id}
+    resource_id, user_data = user_utils.get_or_create_user(payload)
+    assert user_data["id"] == user_id
+    assert user_data["displayName"] == user_id
+    # For version >= 9.1, resource_id should be extracted; for < 9.1, it should be None
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert resource_id is not None
+        assert resource_id == f"{user_id}_resource_id"
+    else:
+        assert resource_id is None
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 1
@@ -447,15 +483,17 @@ def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_
     )
 
     # Use correct payload structure based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         payload = {"personid": user_id}
     else:
         payload = {"id": user_id}
 
-    assert user_utils.get_or_create_user(payload) == {"id": user_id, "displayName": user_id}
+    resource_id, user_data = user_utils.get_or_create_user(payload)
+    assert user_data == {"id": user_id, "displayName": user_id}
+    # For version >= 9.1, resource_id might be None if not in response; for < 9.1, it should be None
+    if Version(user_utils.mas_version) < Version('9.1'):
+        assert resource_id is None
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 1
@@ -491,7 +529,6 @@ def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key
     )
 
     # Use correct payload structure based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         payload = {"personid": user_id}
     else:
@@ -500,7 +537,6 @@ def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key
     with pytest.raises(Exception):
         user_utils.get_or_create_user(payload)
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 1
@@ -583,7 +619,6 @@ def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
     user_utils.link_user_to_local_idp(user_id, email_password=email_password)
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 1
@@ -605,7 +640,6 @@ def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_man
         user_utils.link_user_to_local_idp(user_id)
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 1
@@ -633,7 +667,6 @@ def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_m
     user_utils.link_user_to_local_idp(user_id, email_password=email_password)
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 1
@@ -873,7 +906,6 @@ def test_resync_users(user_utils, requests_mock, mock_manage_api_key):
     user_utils.resync_users(user_ids)
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         for get_core in gets_core:
             assert get_core.call_count == 0
@@ -930,7 +962,6 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 3
@@ -969,7 +1000,6 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
     assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count > 1
@@ -1039,7 +1069,6 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 3
@@ -1107,7 +1136,6 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 3
@@ -1153,7 +1181,6 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock, mo
     assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
 
     # Check that the correct endpoint was called based on version
-    from packaging.version import Version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count > 1
@@ -1945,14 +1972,18 @@ def test_create_initial_user_for_saas(
     # Note: user_id might be None at this point, it gets set to user_email later
     actual_user_id = user_id if user_id is not None else user_email
     if mas_version == '9.1':
-        # For 9.1, return response with member array containing href with resource_id
+        # For 9.1, return tuple (resource_id, user_data) with member array containing href
         resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
-        user_utils.get_or_create_user = MagicMock(return_value={
-            "member": [{"href": f"api/os/masperuser/{resource_id}"}],
-            "id": actual_user_id
-        })
+        user_utils.get_or_create_user = MagicMock(return_value=(
+            resource_id,
+            {
+                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
+                "id": actual_user_id
+            }
+        ))
     else:
-        user_utils.get_or_create_user = MagicMock(return_value={"id": actual_user_id})
+        # For version < 9.1, return tuple (None, user_data)
+        user_utils.get_or_create_user = MagicMock(return_value=(None, {"id": actual_user_id}))
     user_utils.link_user_to_local_idp = MagicMock()
     user_utils.add_user_to_workspace = MagicMock()
     mas_workspace_application_ids = ["manage", "iot", "facilities"]
