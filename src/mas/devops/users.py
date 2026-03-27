@@ -366,14 +366,16 @@ class MASUserUtils():
         self.logger.info(f"Setting group reassignment authorization for user {user_id} with {len(groupreassign)} groups")
 
         # Use Manage API to update the user's grpreassignauth
-        url = f"{self.manage_api_url_internal}/maximo/api/os/masapiuser/{user_id}"
+        url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{user_id}"
         querystring = {
             "lean": 1,
             "ccm": 1
         }
         headers = {
             "Content-Type": "application/json",
-            "apikey": manage_api_key["apikey"]
+            "apikey": manage_api_key["apikey"],
+            "x-method-override": "PATCH",
+            "patchtype": "MERGE"
         }
 
         payload = {
