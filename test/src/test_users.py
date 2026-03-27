@@ -958,6 +958,10 @@ def test_resync_users(user_utils, requests_mock, mock_manage_api_key):
 
 
 def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
+    # Skip for version >= 9.1 as Manage API doesn't return applications field
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
+
     user_id = "user1"
     application_id = "manage"
 
@@ -991,29 +995,14 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
     def json_callback_manage(request, context):
         nonlocal attempts
         # For version >= 9.1, each get_user call makes 2 requests
-        if attempts >= 4:
-            state = "SUCCESS"
-        else:
-            state = "PENDING"
         attempts = attempts + 1
         resource_id = f"{user_id}_resource_id"
+        # Manage API doesn't return applications field for version >= 9.1
         return {
             "member": [{
                 "href": f"api/os/masperuser/{resource_id}",
                 "personid": user_id,
-                "displayname": user_id,
-                "applications": {
-                    "other": {
-                        "sync": {
-                            "state": "ERROR"
-                        }
-                    },
-                    application_id: {
-                        "sync": {
-                            "state": state
-                        }
-                    }
-                }
+                "displayname": user_id
             }]
         }
 
@@ -1041,6 +1030,10 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
 
 
 def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key):
+    # Skip for version >= 9.1 as Manage API doesn't return applications field
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
+
     user_id = "user1"
     application_id = "manage"
 
@@ -1069,19 +1062,7 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
             "member": [{
                 "href": f"api/os/masperuser/{resource_id}",
                 "personid": user_id,
-                "displayname": user_id,
-                "applications": {
-                    "other": {
-                        "sync": {
-                            "state": "ERROR"
-                        }
-                    },
-                    application_id: {
-                        "sync": {
-                            "state": "PENDING"
-                        }
-                    }
-                }
+                "displayname": user_id
             }]
         }
     )
@@ -1099,6 +1080,10 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
 
 
 def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manage_api_key):
+    # Skip for version >= 9.1 as Manage API doesn't return applications field
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
+
     user_id = "user1"
     application_id = "manage"
 
@@ -1144,41 +1129,14 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
     def json_callback_manage(request, context):
         nonlocal attempts
         resource_id = f"{user_id}_resource_id"
-        if attempts >= 2:
-            ret = {
-                "member": [{
-                    "href": f"api/os/masperuser/{resource_id}",
-                    "personid": user_id,
-                    "displayname": user_id,
-                    "applications": {
-                        "other": {
-                            "sync": {
-                                "state": "ERROR"
-                            }
-                        },
-                        application_id: {
-                            "sync": {
-                                "state": "SUCCESS"
-                            }
-                        }
-                    }
-                }]
-            }
-        else:
-            ret = {
-                "member": [{
-                    "href": f"api/os/masperuser/{resource_id}",
-                    "personid": user_id,
-                    "displayname": user_id,
-                    "applications": {
-                        "other": {
-                            "sync": {
-                                "state": "ERROR"
-                            }
-                        },
-                    }
-                }]
-            }
+        # Manage API doesn't return applications field for version >= 9.1
+        ret = {
+            "member": [{
+                "href": f"api/os/masperuser/{resource_id}",
+                "personid": user_id,
+                "displayname": user_id
+            }]
+        }
         attempts = attempts + 1
         return ret
 
@@ -1215,6 +1173,10 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
 
 
 def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, mock_manage_api_key):
+    # Skip for version >= 9.1 as Manage API doesn't return applications field
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
+
     user_id = "user1"
     application_id = "manage"
 
@@ -1255,36 +1217,14 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
     def json_callback_manage(request, context):
         nonlocal attempts
         resource_id = f"{user_id}_resource_id"
-        if attempts >= 2:
-            ret = {
-                "member": [{
-                    "href": f"api/os/masperuser/{resource_id}",
-                    "personid": user_id,
-                    "displayname": user_id,
-                    "applications": {
-                        application_id: {
-                            "sync": {
-                                "state": "SUCCESS"
-                            }
-                        }
-                    }
-                }]
-            }
-        else:
-            ret = {
-                "member": [{
-                    "href": f"api/os/masperuser/{resource_id}",
-                    "personid": user_id,
-                    "displayname": user_id,
-                    "applications": {
-                        application_id: {
-                            "sync": {
-                                "state": "ERROR"
-                            }
-                        }
-                    }
-                }]
-            }
+        # Manage API doesn't return applications field for version >= 9.1
+        ret = {
+            "member": [{
+                "href": f"api/os/masperuser/{resource_id}",
+                "personid": user_id,
+                "displayname": user_id
+            }]
+        }
         attempts = attempts + 1
         return ret
 
@@ -1352,14 +1292,7 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock, mo
             "member": [{
                 "href": f"api/os/masperuser/{resource_id}",
                 "personid": user_id,
-                "displayname": user_id,
-                "applications": {
-                    application_id: {
-                        "sync": {
-                            "state": "ERROR"
-                        }
-                    }
-                }
+                "displayname": user_id
             }]
         }
     )
@@ -2289,12 +2222,16 @@ def test_create_initial_user_for_saas(
         user_utils.await_mas_application_availability.assert_not_called()
         user_utils.set_user_application_permission.assert_not_called()
 
-    # check_user_sync is called for all versions
-    user_utils.check_user_sync.assert_has_calls([
-        call(user_id, "manage"),
-        call(user_id, "iot"),
-        call(user_id, "facilities")
-    ])
+    # check_user_sync is only called for version < 9.1
+    # For version >= 9.1, Manage API doesn't return applications field, so sync check is not performed
+    if mas_version == '9.0':
+        user_utils.check_user_sync.assert_has_calls([
+            call(user_id, "manage"),
+            call(user_id, "iot"),
+            call(user_id, "facilities")
+        ])
+    else:  # 9.1
+        user_utils.check_user_sync.assert_not_called()
 
     if len(manage_security_groups) > 0:
         user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MAXADMIN", temporary=True)

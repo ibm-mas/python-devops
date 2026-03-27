@@ -1701,8 +1701,8 @@ class MASUserUtils():
                     role = application_role
                 self.set_user_application_permission(user_id, mas_application_id, role)
 
-        for mas_application_id in self.mas_workspace_application_ids:
-            self.check_user_sync(user_id, mas_application_id)
+            for mas_application_id in self.mas_workspace_application_ids:
+                self.check_user_sync(user_id, mas_application_id)
 
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
