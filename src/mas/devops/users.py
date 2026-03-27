@@ -231,8 +231,8 @@ class MASUserUtils():
                 verify=self.manage_internal_ca_pem_file_path
             )
             self.logger.info(f"GET {url} returned {response.status_code}")
-            self.logger.debug(f"Response: {response.text}")
-            self.logger.debug(f"Response json: {response.json}")
+            self.logger.info(f"Response: {response.text}")
+            self.logger.info(f"Response json: {response.json}")
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -284,7 +284,9 @@ class MASUserUtils():
         existing_user = self.get_user(user_id)
 
         if existing_user is not None:
-            self.logger.info(f"Existing user {existing_user['id']} found")
+            # Log using the appropriate field based on version
+            user_identifier = existing_user.get('personid') or existing_user.get('id')
+            self.logger.info(f"Existing user {user_identifier} found")
             return existing_user
 
         self.logger.info(f"Creating new user {user_id}")
