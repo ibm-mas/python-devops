@@ -199,7 +199,7 @@ def test_admin_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, 
     assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
-def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key):
+def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key, json_manage=None):
     # Mock Core API endpoint for version < 9.1
     core_mock = requests_mock.get(
         f"{MAS_API_URL}/v3/users/{user_id}",
@@ -209,12 +209,15 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
         additional_matcher=lambda req: additional_matcher(req)
     )
 
+    # Use separate JSON for Manage API if provided, otherwise use the same
+    manage_json = json_manage if json_manage is not None else json
+
     # Mock Manage API endpoint for version >= 9.1
     # First request: Uses query parameter oslc.where with user.userid to get resource_id
     manage_query_mock = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1&oslc.where=user.userid%3D%22{user_id}%22",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
-        json=json,
+        json=manage_json,
         status_code=status_code,
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
     )
@@ -225,7 +228,7 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
     manage_personid_mock = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/masperuser/?lean=1&oslc.where=personid%3D%22{user_id}%22&oslc.select=personid%2Cdisplayname",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
-        json=json,
+        json=manage_json,
         status_code=status_code,
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
     )
@@ -234,15 +237,25 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
 
 
 def mock_get_user_200(requests_mock, user_id, mock_manage_api_key):
-    # For Manage API (9.1+), include member array with href containing resource_id
-    resource_id = f"{user_id}_resource_id"
-    json_response = {
+    # Core API response for version < 9.1
+    core_json = {
         "id": user_id,
-        "displayName": user_id,
-        "member": [{"href": f"api/os/masperuser/{resource_id}"}]
+        "displayName": user_id
     }
+
+    # Manage API response for version >= 9.1
+    # Include member array with href containing resource_id
+    resource_id = f"{user_id}_resource_id"
+    manage_json = {
+        "member": [{
+            "href": f"api/os/masperuser/{resource_id}",
+            "personid": user_id,
+            "displayname": user_id
+        }]
+    }
+
     return mock_get_user(
-        requests_mock, user_id, json_response, 200, mock_manage_api_key
+        requests_mock, user_id, core_json, 200, mock_manage_api_key, json_manage=manage_json
     )
 
 
@@ -361,8 +374,14 @@ def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
     resource_id, user_data = user_utils.get_user(user_id)
-    assert user_data["id"] == user_id
-    assert user_data["displayName"] == user_id
+    # For version >= 9.1, Manage API uses "personid" and "displayname"
+    # For version < 9.1, Core API uses "id" and "displayName"
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert user_data["personid"] == user_id
+        assert user_data["displayname"] == user_id
+    else:
+        assert user_data["id"] == user_id
+        assert user_data["displayName"] == user_id
     # For version >= 9.1, resource_id should be extracted; for < 9.1, it should be None
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert resource_id is not None
@@ -439,8 +458,14 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
         payload = {"id": user_id}
 
     resource_id, user_data = user_utils.get_or_create_user(payload)
-    assert user_data["id"] == user_id
-    assert user_data["displayName"] == user_id
+    # For version >= 9.1, Manage API uses "personid" and "displayname"
+    # For version < 9.1, Core API uses "id" and "displayName"
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert user_data["personid"] == user_id
+        assert user_data["displayname"] == user_id
+    else:
+        assert user_data["id"] == user_id
+        assert user_data["displayName"] == user_id
     # For version >= 9.1, resource_id should be extracted; for < 9.1, it should be None
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert resource_id is not None
@@ -650,8 +675,21 @@ def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_man
 def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
+    resource_id = f"{user_id}_resource_id"
     get_core, get_manage, get_manage_personid = mock_get_user(
-        requests_mock, user_id, {"id": user_id, "identities": {"_local": {}}}, 200, mock_manage_api_key
+        requests_mock,
+        user_id,
+        {"id": user_id, "identities": {"_local": {}}},
+        200,
+        mock_manage_api_key,
+        json_manage={
+            "member": [{
+                "href": f"api/os/masperuser/{resource_id}",
+                "personid": user_id,
+                "displayname": user_id,
+                "identities": {"_local": {}}
+            }]
+        }
     )
 
     put = requests_mock.put(
@@ -926,20 +964,16 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
     # transitions from PENDING -> SUCCESS on the third call
     attempts = 0
 
-    def json_callback(request, context):
+    def json_callback_core(request, context):
         nonlocal attempts
-        # For version >= 9.1, each get_user call makes 2 requests, so we need attempts >= 4
-        # For version < 9.1, each get_user call makes 1 request, so we need attempts >= 2
-        threshold = 4 if Version(user_utils.mas_version) >= Version('9.1') else 2
-        if attempts >= threshold:
+        # For version < 9.1, each get_user call makes 1 request
+        if attempts >= 2:
             state = "SUCCESS"
         else:
             state = "PENDING"
         attempts = attempts + 1
-        resource_id = f"{user_id}_resource_id"
         return {
             "id": user_id,
-            "member": [{"href": f"api/os/masperuser/{resource_id}"}],
             "applications": {
                 "other": {
                     "sync": {
@@ -954,12 +988,42 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
             }
         }
 
+    def json_callback_manage(request, context):
+        nonlocal attempts
+        # For version >= 9.1, each get_user call makes 2 requests
+        if attempts >= 4:
+            state = "SUCCESS"
+        else:
+            state = "PENDING"
+        attempts = attempts + 1
+        resource_id = f"{user_id}_resource_id"
+        return {
+            "member": [{
+                "href": f"api/os/masperuser/{resource_id}",
+                "personid": user_id,
+                "displayname": user_id,
+                "applications": {
+                    "other": {
+                        "sync": {
+                            "state": "ERROR"
+                        }
+                    },
+                    application_id: {
+                        "sync": {
+                            "state": state
+                        }
+                    }
+                }
+            }]
+        }
+
     get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
-        json_callback,
+        json_callback_core,
         200,
-        mock_manage_api_key
+        mock_manage_api_key,
+        json_manage=json_callback_manage
     )
 
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
@@ -980,6 +1044,7 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
     user_id = "user1"
     application_id = "manage"
 
+    resource_id = f"{user_id}_resource_id"
     get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
@@ -999,7 +1064,26 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
             }
         },
         200,
-        mock_manage_api_key
+        mock_manage_api_key,
+        json_manage={
+            "member": [{
+                "href": f"api/os/masperuser/{resource_id}",
+                "personid": user_id,
+                "displayname": user_id,
+                "applications": {
+                    "other": {
+                        "sync": {
+                            "state": "ERROR"
+                        }
+                    },
+                    application_id: {
+                        "sync": {
+                            "state": "PENDING"
+                        }
+                    }
+                }
+            }]
+        }
     )
     with pytest.raises(Exception) as excinfo:
         user_utils.check_user_sync(user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05)
@@ -1023,17 +1107,12 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
     # a single resync should have been triggered
     attempts = 0
 
-    def json_callback(request, context):
+    def json_callback_core(request, context):
         nonlocal attempts
-        resource_id = f"{user_id}_resource_id"
-        # For version >= 9.1, each get_user call makes 2 requests, so we need attempts >= 2
-        # For version < 9.1, each get_user call makes 1 request, so we need attempts >= 1
-        threshold = 2 if Version(user_utils.mas_version) >= Version('9.1') else 1
-        if attempts >= threshold:
+        if attempts >= 1:
             ret = {
                 "id": user_id,
                 "displayName": user_id,
-                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     "other": {
                         "sync": {
@@ -1051,7 +1130,6 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
             ret = {
                 "id": user_id,
                 "displayName": user_id,
-                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     "other": {
                         "sync": {
@@ -1059,6 +1137,47 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
                         }
                     },
                 }
+            }
+        attempts = attempts + 1
+        return ret
+
+    def json_callback_manage(request, context):
+        nonlocal attempts
+        resource_id = f"{user_id}_resource_id"
+        if attempts >= 2:
+            ret = {
+                "member": [{
+                    "href": f"api/os/masperuser/{resource_id}",
+                    "personid": user_id,
+                    "displayname": user_id,
+                    "applications": {
+                        "other": {
+                            "sync": {
+                                "state": "ERROR"
+                            }
+                        },
+                        application_id: {
+                            "sync": {
+                                "state": "SUCCESS"
+                            }
+                        }
+                    }
+                }]
+            }
+        else:
+            ret = {
+                "member": [{
+                    "href": f"api/os/masperuser/{resource_id}",
+                    "personid": user_id,
+                    "displayname": user_id,
+                    "applications": {
+                        "other": {
+                            "sync": {
+                                "state": "ERROR"
+                            }
+                        },
+                    }
+                }]
             }
         attempts = attempts + 1
         return ret
@@ -1073,9 +1192,10 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
     get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
-        json_callback,
+        json_callback_core,
         200,
-        mock_manage_api_key
+        mock_manage_api_key,
+        json_manage=json_callback_manage
     )
 
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
@@ -1103,17 +1223,12 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
     # a single resync should have been triggered
     attempts = 0
 
-    def json_callback(request, context):
+    def json_callback_core(request, context):
         nonlocal attempts
-        resource_id = f"{user_id}_resource_id"
-        # For version >= 9.1, each get_user call makes 2 requests, so we need attempts >= 2
-        # For version < 9.1, each get_user call makes 1 request, so we need attempts >= 1
-        threshold = 2 if Version(user_utils.mas_version) >= Version('9.1') else 1
-        if attempts >= threshold:
+        if attempts >= 1:
             ret = {
                 "id": user_id,
                 "displayName": user_id,
-                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     application_id: {
                         "sync": {
@@ -1126,7 +1241,6 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
             ret = {
                 "id": user_id,
                 "displayName": user_id,
-                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     application_id: {
                         "sync": {
@@ -1134,6 +1248,42 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
                         }
                     }
                 }
+            }
+        attempts = attempts + 1
+        return ret
+
+    def json_callback_manage(request, context):
+        nonlocal attempts
+        resource_id = f"{user_id}_resource_id"
+        if attempts >= 2:
+            ret = {
+                "member": [{
+                    "href": f"api/os/masperuser/{resource_id}",
+                    "personid": user_id,
+                    "displayname": user_id,
+                    "applications": {
+                        application_id: {
+                            "sync": {
+                                "state": "SUCCESS"
+                            }
+                        }
+                    }
+                }]
+            }
+        else:
+            ret = {
+                "member": [{
+                    "href": f"api/os/masperuser/{resource_id}",
+                    "personid": user_id,
+                    "displayname": user_id,
+                    "applications": {
+                        application_id: {
+                            "sync": {
+                                "state": "ERROR"
+                            }
+                        }
+                    }
+                }]
             }
         attempts = attempts + 1
         return ret
@@ -1148,9 +1298,10 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
     get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
-        json_callback,
+        json_callback_core,
         200,
-        mock_manage_api_key
+        mock_manage_api_key,
+        json_manage=json_callback_manage
     )
 
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
@@ -1180,6 +1331,7 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock, mo
         status_code=200
     )
 
+    resource_id = f"{user_id}_resource_id"
     get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
@@ -1195,7 +1347,21 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock, mo
             }
         },
         200,
-        mock_manage_api_key
+        mock_manage_api_key,
+        json_manage={
+            "member": [{
+                "href": f"api/os/masperuser/{resource_id}",
+                "personid": user_id,
+                "displayname": user_id,
+                "applications": {
+                    application_id: {
+                        "sync": {
+                            "state": "ERROR"
+                        }
+                    }
+                }
+            }]
+        }
     )
 
     with pytest.raises(Exception) as excinfo:

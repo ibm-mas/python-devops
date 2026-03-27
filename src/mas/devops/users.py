@@ -209,7 +209,7 @@ class MASUserUtils():
         Raises:
             Exception: If the API returns an unexpected status code.
         """
-        self.logger.debug(f"Getting user {user_id}")
+        self.logger.info(f"Getting user {user_id}")
         resource_id = None
 
         # For MAS version >= 9.1, use the Manage API masperuser endpoint
@@ -267,7 +267,7 @@ class MASUserUtils():
                 verify=self.manage_internal_ca_pem_file_path
             )
             self.logger.info(f"GET {url} returned {response.status_code}")
-            self.logger.info(f"Response: {response.text}")
+            self.logger.info(f"Response: {response.json()}")
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -284,10 +284,21 @@ class MASUserUtils():
         if response.status_code == 404:
             return resource_id, None
 
-        if response.status_code == 200:
-            return resource_id, response.json()
+        if response.status_code != 200:
+            raise Exception(f"{response.status_code} {response.text}")
 
-        raise Exception(f"{response.status_code} {response.text}")
+        # Handle response based on version
+        if Version(self.mas_version) >= Version('9.1'):
+            # Manage API returns member array
+            user_data = response.json()
+            if "member" in user_data and len(user_data["member"]) > 0:
+                return resource_id, user_data["member"][0]
+            else:
+                # Empty member array means user not found
+                return resource_id, None
+        else:
+            # Core API returns user object directly
+            return resource_id, response.json()
 
     def get_or_create_user(self, payload):
         """
@@ -818,7 +829,11 @@ class MASUserUtils():
 
         for user_id in user_ids:
             resource_id, user = self.get_user(user_id)
-            self.update_user_display_name(user_id, user["displayName"])
+            # For version >= 9.1, Manage API uses "displayname" (lowercase)
+            # For version < 9.1, Core API uses "displayName" (camelCase)
+            display_name = user.get("displayname") if Version(self.mas_version) >= Version('9.1') else user.get("displayName")
+            if display_name:
+                self.update_user_display_name(user_id, display_name)
 
     def create_or_get_manage_api_key_for_user(self, user_id, temporary=False):
         """
