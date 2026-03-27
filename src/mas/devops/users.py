@@ -214,9 +214,10 @@ class MASUserUtils():
             # Get MAXADMIN API key for authentication
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
 
-            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{user_id}"
+            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
             querystring = {
-                "lean": 1
+                "lean": 1,
+                "oslc.where": f"userid=\"{user_id}\""
             }
             headers = {
                 "Accept": "application/json",
@@ -229,6 +230,9 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
+            self.logger.info(f"GET {url} returned {response.status_code}")
+            self.logger.debug(f"Response: {response.text}")
+            self.logger.debug(f"Response json: {response.json}")
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -341,7 +345,7 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
-    def set_user_group_reassignment_auth(self, user_id, groupreassign, manage_api_key):
+    def set_user_group_reassignment_auth(self, resource_id, groupreassign, manage_api_key):
         """
         Set group reassignment authorization for a user via Manage API.
 
@@ -349,7 +353,7 @@ class MASUserUtils():
         which controls which security groups the user can reassign to other users.
 
         Args:
-            user_id (str): The unique identifier of the user.
+            resource_id (str): The resource identifier of the user (extracted from href).
             groupreassign (list): List of group objects in format [{"groupname": "GROUP1"}, {"groupname": "GROUP2"}, ...]
             manage_api_key (dict): API key record with 'apikey' field for authentication.
 
@@ -360,13 +364,13 @@ class MASUserUtils():
             Exception: If the update fails.
         """
         if not groupreassign or len(groupreassign) == 0:
-            self.logger.debug(f"No group reassignment authorization to set for user {user_id}")
+            self.logger.debug(f"No group reassignment authorization to set for resource {resource_id}")
             return
 
-        self.logger.info(f"Setting group reassignment authorization for user {user_id} with {len(groupreassign)} groups")
+        self.logger.info(f"Setting group reassignment authorization for resource {resource_id} with {len(groupreassign)} groups")
 
         # Use Manage API to update the user's grpreassignauth
-        url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{user_id}"
+        url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{resource_id}"
         querystring = {
             "lean": 1,
             "ccm": 1
@@ -398,7 +402,7 @@ class MASUserUtils():
         self.logger.info(f"Response text: {response.text}")
 
         if response.status_code == 200:
-            self.logger.info(f"Successfully set group reassignment authorization for user {user_id}")
+            self.logger.info(f"Successfully set group reassignment authorization for resource {resource_id}")
             return response.json()
 
         raise Exception(f"Failed to set group reassignment authorization: {response.status_code} {response.text}")
@@ -1617,6 +1621,18 @@ class MASUserUtils():
         self.logger.info(f"User def - {user_def}")
         user_info = self.get_or_create_user(user_def)
         self.logger.info(f"User info - {user_info}")
+
+        # Parse resource_id from user_info for version >= 9.1
+        resource_id = None
+        if Version(self.mas_version) >= Version('9.1') and user_info:
+            # Check if user_info has member array with href
+            if "member" in user_info and len(user_info["member"]) > 0:
+                href = user_info["member"][0].get("href", "")
+                # Extract resource_id from href (e.g., "api/os/masperuser/<resource_id>")
+                if href and "/" in href:
+                    resource_id = href.split("/")[-1]
+                    self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
+
         self.link_user_to_local_idp(user_id, email_password=True)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
 
@@ -1642,7 +1658,10 @@ class MASUserUtils():
                 for manage_security_group in manage_security_groups:
                     self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
             if Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
-                self.set_user_group_reassignment_auth(user_id, groupreassign, maxadmin_manage_api_key)
+                if resource_id:
+                    self.set_user_group_reassignment_auth(resource_id, groupreassign, maxadmin_manage_api_key)
+                else:
+                    self.logger.warning(f"Cannot set group reassignment auth: resource_id not found for user {user_id}")
 
             # # Grant authorization to reassign users to/from ALL security groups (PRIMARY users only)
             # if user_type == "PRIMARY":

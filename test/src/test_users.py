@@ -210,8 +210,9 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
     )
 
     # Mock Manage API endpoint for version >= 9.1
+    # Uses query parameter oslc.where instead of path parameter
     manage_mock = requests_mock.get(
-        f"{MANAGE_API_URL}/maximo/api/os/masperuser/{user_id}?lean=1",
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser?lean=1&oslc.where=userid%3D%22{user_id}%22",
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json=json,
         status_code=status_code,
@@ -1940,7 +1941,18 @@ def test_create_initial_user_for_saas(
         manage_security_groups = manage_security_groups_91
         permissions = None  # Not used in 9.1
         entitlement = None  # Not used in 9.1
-    user_utils.get_or_create_user = MagicMock()
+    # Mock get_or_create_user to return appropriate response based on version
+    # Note: user_id might be None at this point, it gets set to user_email later
+    actual_user_id = user_id if user_id is not None else user_email
+    if mas_version == '9.1':
+        # For 9.1, return response with member array containing href with resource_id
+        resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
+        user_utils.get_or_create_user = MagicMock(return_value={
+            "member": [{"href": f"api/os/masperuser/{resource_id}"}],
+            "id": actual_user_id
+        })
+    else:
+        user_utils.get_or_create_user = MagicMock(return_value={"id": actual_user_id})
     user_utils.link_user_to_local_idp = MagicMock()
     user_utils.add_user_to_workspace = MagicMock()
     mas_workspace_application_ids = ["manage", "iot", "facilities"]
@@ -2078,7 +2090,10 @@ def test_create_initial_user_for_saas(
         else:  # 9.1
             user_utils.add_user_to_manage_group.assert_not_called()
             if user_type == "PRIMARY":
-                user_utils.set_user_group_reassignment_auth.assert_called_once_with(user_id, [{"groupname": "USERMANAGEMENT"}], manage_api_key)
+                # For 9.1, resource_id is passed instead of user_id
+                actual_user_id = user_id if user_id is not None else user_email
+                resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
+                user_utils.set_user_group_reassignment_auth.assert_called_once_with(resource_id, [{"groupname": "USERMANAGEMENT"}], manage_api_key)
             else:
                 user_utils.set_user_group_reassignment_auth.assert_not_called()
     else:
