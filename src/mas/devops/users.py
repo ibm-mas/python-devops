@@ -217,6 +217,7 @@ class MASUserUtils():
             # Get MAXADMIN API key for authentication
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
 
+            # First request: Query to find user and get resource_id from href
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
             querystring = {
                 "lean": 1,
@@ -233,39 +234,40 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
-            user_info = response.json()
             self.logger.info(f"GET {url} returned {response.status_code}")
             self.logger.info(f"Response: {response.text}")
-            self.logger.info(f"Response json: {response.json}")
 
-            # Parse resource_id from user_info for version >= 9.1
-            if Version(self.mas_version) >= Version('9.1') and user_info:
-                # Check if user_info has member array with href
-                if "member" in user_info and len(user_info["member"]) > 0:
-                    href = user_info["member"][0].get("href", "")
-                    # Extract resource_id from href (e.g., "api/os/masperuser/<resource_id>")
-                    if href and "/" in href:
-                        resource_id = href.split("/")[-1]
-                        self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
+            user_info = response.json()
+            self.logger.info(f"Response json: {user_info}")
 
-            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
+            # Parse resource_id from user_info
+            if user_info and "member" in user_info and len(user_info["member"]) > 0:
+                href = user_info["member"][0].get("href", "")
+                # Extract resource_id from href (e.g., "api/os/masperuser/<resource_id>")
+                if href and "/" in href:
+                    resource_id = href.split("/")[-1]
+                    self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
+
+            # Second request: Get full user details using resource_id
+            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/"
+            querystring = {
+                "lean": 1,
+                "oslc.where": f"personid=\"{user_id}\"",
+                "oslc.select": "personid,displayname"
+            }
             headers = {
                 "Accept": "application/json",
                 "apikey": maxadmin_manage_api_key["apikey"]
             }
-            querystring = {
-                "lean": 1,
-                "oslc.where": f"userid=\"{user_id}\""
-            }
             response = requests.get(
                 url,
                 headers=headers,
+                params=querystring,
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
             self.logger.info(f"GET {url} returned {response.status_code}")
             self.logger.info(f"Response: {response.text}")
-            self.logger.info(f"Response json: {response.json}")
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"

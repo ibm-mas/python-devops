@@ -219,20 +219,18 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
     )
 
-    # Second request: If status is 200 and json is a dict (not a callback) with member array, mock the resource_id GET
-    if status_code == 200 and json and isinstance(json, dict) and "member" in json and len(json["member"]) > 0:
-        href = json["member"][0].get("href", "")
-        if href and "/" in href:
-            resource_id = href.split("/")[-1]
-            requests_mock.get(
-                f"{MANAGE_API_URL}/maximo/api/os/masperuser/{resource_id}",
-                request_headers={"apikey": mock_manage_api_key["apikey"]},
-                json=json,
-                status_code=status_code,
-                additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
-            )
+    # Second request: Mock the query-based request with personid
+    # This matches the actual implementation at line 258-275 in users.py
+    # Always mock this for version >= 9.1, regardless of status_code
+    manage_personid_mock = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser/?lean=1&oslc.where=personid%3D%22{user_id}%22&oslc.select=personid%2Cdisplayname",
+        request_headers={"apikey": mock_manage_api_key["apikey"]},
+        json=json,
+        status_code=status_code,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
 
-    return core_mock, manage_query_mock
+    return core_mock, manage_query_mock, manage_personid_mock
 
 
 def mock_get_user_200(requests_mock, user_id, mock_manage_api_key):
@@ -361,7 +359,7 @@ def test_mas_workspace_application_ids(user_utils, requests_mock):
 
 def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
     resource_id, user_data = user_utils.get_user(user_id)
     assert user_data["id"] == user_id
     assert user_data["displayName"] == user_id
@@ -383,7 +381,7 @@ def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
 
 def test_get_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
     resource_id, user_data = user_utils.get_user(user_id)
     assert resource_id is None
     assert user_data is None
@@ -399,7 +397,7 @@ def test_get_user_notfound(user_utils, requests_mock, mock_manage_api_key):
 
 def test_get_user_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage = mock_get_user_500(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_500(requests_mock, user_id, mock_manage_api_key)
     with pytest.raises(Exception):
         user_utils.get_user(user_id)
 
@@ -414,7 +412,7 @@ def test_get_user_error(user_utils, requests_mock, mock_manage_api_key):
 
 def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -462,7 +460,7 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
 
 def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -508,7 +506,7 @@ def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_
 
 def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -606,7 +604,7 @@ def test_update_user_display_name_error(user_utils, requests_mock):
 def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
-    get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
 
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local?emailPassword={email_password}",
@@ -630,7 +628,7 @@ def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
 
 def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local",
         additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
@@ -652,7 +650,7 @@ def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_man
 def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
-    get_core, get_manage = mock_get_user(
+    get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock, user_id, {"id": user_id, "identities": {"_local": {}}}, 200, mock_manage_api_key
     )
 
@@ -888,7 +886,7 @@ def test_resync_users(user_utils, requests_mock, mock_manage_api_key):
     gets_manage = []
     patches = []
     for user_id in user_ids:
-        get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
+        get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
         gets_core.append(get_core)
         gets_manage.append(get_manage)
 
@@ -930,13 +928,18 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
 
     def json_callback(request, context):
         nonlocal attempts
-        if attempts >= 2:
+        # For version >= 9.1, each get_user call makes 2 requests, so we need attempts >= 4
+        # For version < 9.1, each get_user call makes 1 request, so we need attempts >= 2
+        threshold = 4 if Version(user_utils.mas_version) >= Version('9.1') else 2
+        if attempts >= threshold:
             state = "SUCCESS"
         else:
             state = "PENDING"
         attempts = attempts + 1
+        resource_id = f"{user_id}_resource_id"
         return {
             "id": user_id,
+            "member": [{"href": f"api/os/masperuser/{resource_id}"}],
             "applications": {
                 "other": {
                     "sync": {
@@ -951,7 +954,7 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
             }
         }
 
-    get_core, get_manage = mock_get_user(
+    get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
         json_callback,
@@ -962,8 +965,11 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
 
     # Check that the correct endpoint was called based on version
+    # Note: For version >= 9.1, get_user makes 2 requests (query + resource_id GET)
+    # but we only track the first query request in get_manage mock
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
+        # Each get_user call makes 2 requests, but we only count the query request
         assert get_manage.call_count == 3
     else:
         assert get_core.call_count == 3
@@ -974,7 +980,7 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
     user_id = "user1"
     application_id = "manage"
 
-    get_core, get_manage = mock_get_user(
+    get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
         {
@@ -1019,10 +1025,15 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
 
     def json_callback(request, context):
         nonlocal attempts
-        if attempts >= 1:
+        resource_id = f"{user_id}_resource_id"
+        # For version >= 9.1, each get_user call makes 2 requests, so we need attempts >= 2
+        # For version < 9.1, each get_user call makes 1 request, so we need attempts >= 1
+        threshold = 2 if Version(user_utils.mas_version) >= Version('9.1') else 1
+        if attempts >= threshold:
             ret = {
                 "id": user_id,
                 "displayName": user_id,
+                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     "other": {
                         "sync": {
@@ -1040,6 +1051,7 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
             ret = {
                 "id": user_id,
                 "displayName": user_id,
+                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     "other": {
                         "sync": {
@@ -1058,7 +1070,7 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
         status_code=200
     )
 
-    get_core, get_manage = mock_get_user(
+    get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
         json_callback,
@@ -1071,7 +1083,9 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manag
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
+        # For version >= 9.1, each get_user call makes 2 requests
         assert get_manage.call_count == 3
+        assert get_manage_personid.call_count == 3
     else:
         assert get_core.call_count == 3
         assert get_manage.call_count == 0
@@ -1091,10 +1105,15 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
 
     def json_callback(request, context):
         nonlocal attempts
-        if attempts >= 1:
+        resource_id = f"{user_id}_resource_id"
+        # For version >= 9.1, each get_user call makes 2 requests, so we need attempts >= 2
+        # For version < 9.1, each get_user call makes 1 request, so we need attempts >= 1
+        threshold = 2 if Version(user_utils.mas_version) >= Version('9.1') else 1
+        if attempts >= threshold:
             ret = {
                 "id": user_id,
                 "displayName": user_id,
+                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     application_id: {
                         "sync": {
@@ -1107,6 +1126,7 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
             ret = {
                 "id": user_id,
                 "displayName": user_id,
+                "member": [{"href": f"api/os/masperuser/{resource_id}"}],
                 "applications": {
                     application_id: {
                         "sync": {
@@ -1125,7 +1145,7 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
         status_code=200
     )
 
-    get_core, get_manage = mock_get_user(
+    get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
         json_callback,
@@ -1138,7 +1158,9 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, moc
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
+        # For version >= 9.1, each get_user call makes 2 requests
         assert get_manage.call_count == 3
+        assert get_manage_personid.call_count == 3
     else:
         assert get_core.call_count == 3
         assert get_manage.call_count == 0
@@ -1158,7 +1180,7 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock, mo
         status_code=200
     )
 
-    get_core, get_manage = mock_get_user(
+    get_core, get_manage, get_manage_personid = mock_get_user(
         requests_mock,
         user_id,
         {
