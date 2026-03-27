@@ -199,8 +199,9 @@ def test_admin_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, 
     assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
-def mock_get_user(requests_mock, user_id, json, status_code):
-    return requests_mock.get(
+def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key):
+    # Mock Core API endpoint for version < 9.1
+    core_mock = requests_mock.get(
         f"{MAS_API_URL}/v3/users/{user_id}",
         request_headers={"x-access-token": TOKEN},
         json=json,
@@ -208,22 +209,33 @@ def mock_get_user(requests_mock, user_id, json, status_code):
         additional_matcher=lambda req: additional_matcher(req)
     )
 
+    # Mock Manage API endpoint for version >= 9.1
+    manage_mock = requests_mock.get(
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser/{user_id}?lean=1",
+        request_headers={"apikey": mock_manage_api_key["apikey"]},
+        json=json,
+        status_code=status_code,
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
 
-def mock_get_user_200(requests_mock, user_id):
+    return core_mock, manage_mock
+
+
+def mock_get_user_200(requests_mock, user_id, mock_manage_api_key):
     return mock_get_user(
-        requests_mock, user_id, {"id": user_id, "displayName": user_id}, 200
+        requests_mock, user_id, {"id": user_id, "displayName": user_id}, 200, mock_manage_api_key
     )
 
 
-def mock_get_user_404(requests_mock, user_id):
+def mock_get_user_404(requests_mock, user_id, mock_manage_api_key):
     return mock_get_user(
-        requests_mock, user_id, {"error": "notfound"}, 404
+        requests_mock, user_id, {"error": "notfound"}, 404, mock_manage_api_key
     )
 
 
-def mock_get_user_500(requests_mock, user_id):
+def mock_get_user_500(requests_mock, user_id, mock_manage_api_key):
     return mock_get_user(
-        requests_mock, user_id, {"error": "internal"}, 500
+        requests_mock, user_id, {"error": "internal"}, 500, mock_manage_api_key
     )
 
 
@@ -326,31 +338,52 @@ def test_mas_workspace_application_ids(user_utils, requests_mock):
     assert get.call_count == 1
 
 
-def test_get_user_exists(user_utils, requests_mock):
+def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get = mock_get_user_200(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
     assert user_utils.get_user(user_id) == {"id": user_id, "displayName": user_id}
-    assert get.call_count == 1
+
+    # Check that the correct endpoint was called based on version
+    if user_utils.mas_version >= '9.1':
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
+    else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
 
 
-def test_get_user_notfound(user_utils, requests_mock):
+def test_get_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get = mock_get_user_404(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
     assert user_utils.get_user(user_id) is None
-    assert get.call_count == 1
+
+    # Check that the correct endpoint was called based on version
+    if user_utils.mas_version >= '9.1':
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
+    else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
 
 
-def test_get_user_error(user_utils, requests_mock):
+def test_get_user_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get = mock_get_user_500(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_500(requests_mock, user_id, mock_manage_api_key)
     with pytest.raises(Exception):
         user_utils.get_user(user_id)
-    assert get.call_count == 1
+
+    # Check that the correct endpoint was called based on version
+    if user_utils.mas_version >= '9.1':
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
+    else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
 
 
 def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get = mock_get_user_200(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -378,14 +411,21 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
         payload = {"id": user_id}
 
     assert user_utils.get_or_create_user(payload) == {"id": user_id, "displayName": user_id}
-    assert get.call_count == 1
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
+    else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
     assert post_core.call_count == 0
     assert post_manage.call_count == 0
 
 
 def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get = mock_get_user_404(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -413,19 +453,23 @@ def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_
         payload = {"id": user_id}
 
     assert user_utils.get_or_create_user(payload) == {"id": user_id, "displayName": user_id}
-    assert get.call_count == 1
     # Check that the correct endpoint was called based on version
-    if user_utils.mas_version >= '9.1':
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
         assert post_core.call_count == 0
         assert post_manage.call_count == 1
     else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
         assert post_core.call_count == 1
         assert post_manage.call_count == 0
 
 
 def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get = mock_get_user_404(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -454,12 +498,16 @@ def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key
 
     with pytest.raises(Exception):
         user_utils.get_or_create_user(payload)
-    assert get.call_count == 1
     # Check that the correct endpoint was called based on version
-    if user_utils.mas_version >= '9.1':
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
         assert post_core.call_count == 0
         assert post_manage.call_count == 1
     else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
         assert post_core.call_count == 1
         assert post_manage.call_count == 0
 
@@ -518,10 +566,10 @@ def test_update_user_display_name_error(user_utils, requests_mock):
     assert patche.call_count == 1
 
 
-def test_link_user_to_local_idp(user_utils, requests_mock):
+def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
-    get = mock_get_user_200(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
 
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local?emailPassword={email_password}",
@@ -533,13 +581,20 @@ def test_link_user_to_local_idp(user_utils, requests_mock):
 
     user_utils.link_user_to_local_idp(user_id, email_password=email_password)
 
-    assert get.call_count == 1
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
+    else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
     assert put.call_count == 1
 
 
-def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock):
+def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get = mock_get_user_404(requests_mock, user_id)
+    get_core, get_manage = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local",
         additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
@@ -548,15 +603,22 @@ def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock):
     with pytest.raises(Exception):
         user_utils.link_user_to_local_idp(user_id)
 
-    assert get.call_count == 1
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
+    else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
     assert put.call_count == 0
 
 
-def test_link_user_to_local_idp_already_linked(user_utils, requests_mock):
+def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
-    get = mock_get_user(
-        requests_mock, user_id, {"id": user_id, "identities": {"_local": {}}}, 200
+    get_core, get_manage = mock_get_user(
+        requests_mock, user_id, {"id": user_id, "identities": {"_local": {}}}, 200, mock_manage_api_key
     )
 
     put = requests_mock.put(
@@ -569,7 +631,14 @@ def test_link_user_to_local_idp_already_linked(user_utils, requests_mock):
 
     user_utils.link_user_to_local_idp(user_id, email_password=email_password)
 
-    assert get.call_count == 1
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 1
+    else:
+        assert get_core.call_count == 1
+        assert get_manage.call_count == 0
     assert put.call_count == 0
 
 
@@ -778,13 +847,16 @@ def test_set_user_application_permissions_alreadyset(user_utils, requests_mock):
     assert put.call_count == 0
 
 
-def test_resync_users(user_utils, requests_mock):
+def test_resync_users(user_utils, requests_mock, mock_manage_api_key):
     user_ids = ["user1", "user2"]
 
-    gets = []
+    gets_core = []
+    gets_manage = []
     patches = []
     for user_id in user_ids:
-        gets.append(mock_get_user_200(requests_mock, user_id))
+        get_core, get_manage = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
+        gets_core.append(get_core)
+        gets_manage.append(get_manage)
 
         patches.append(
             requests_mock.patch(
@@ -799,14 +871,24 @@ def test_resync_users(user_utils, requests_mock):
 
     user_utils.resync_users(user_ids)
 
-    for get in gets:
-        assert get.call_count == 1
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        for get_core in gets_core:
+            assert get_core.call_count == 0
+        for get_manage in gets_manage:
+            assert get_manage.call_count == 1
+    else:
+        for get_core in gets_core:
+            assert get_core.call_count == 1
+        for get_manage in gets_manage:
+            assert get_manage.call_count == 0
 
     for patche in patches:
         assert patche.call_count == 1
 
 
-def test_check_user_sync(user_utils, requests_mock):
+def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     application_id = "manage"
 
@@ -836,22 +918,31 @@ def test_check_user_sync(user_utils, requests_mock):
             }
         }
 
-    get = mock_get_user(
+    get_core, get_manage = mock_get_user(
         requests_mock,
         user_id,
         json_callback,
-        200
+        200,
+        mock_manage_api_key
     )
 
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
-    assert get.call_count == 3
+
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 3
+    else:
+        assert get_core.call_count == 3
+        assert get_manage.call_count == 0
 
 
-def test_check_user_sync_timeout(user_utils, requests_mock):
+def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     application_id = "manage"
 
-    get = mock_get_user(
+    get_core, get_manage = mock_get_user(
         requests_mock,
         user_id,
         {
@@ -869,15 +960,24 @@ def test_check_user_sync_timeout(user_utils, requests_mock):
                 }
             }
         },
-        200
+        200,
+        mock_manage_api_key
     )
     with pytest.raises(Exception) as excinfo:
         user_utils.check_user_sync(user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05)
     assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
-    assert get.call_count > 1
+
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count > 1
+    else:
+        assert get_core.call_count > 1
+        assert get_manage.call_count == 0
 
 
-def test_check_user_sync_appstate_notfound(user_utils, requests_mock):
+def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     application_id = "manage"
 
@@ -927,21 +1027,30 @@ def test_check_user_sync_appstate_notfound(user_utils, requests_mock):
         status_code=200
     )
 
-    get = mock_get_user(
+    get_core, get_manage = mock_get_user(
         requests_mock,
         user_id,
         json_callback,
-        200
+        200,
+        mock_manage_api_key
     )
 
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
-    assert get.call_count == 3
+
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 3
+    else:
+        assert get_core.call_count == 3
+        assert get_manage.call_count == 0
 
     # a single resync should have been triggered
     assert patche.call_count == 1
 
 
-def test_check_user_sync_appstate_transient_error(user_utils, requests_mock):
+def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     application_id = "manage"
 
@@ -986,21 +1095,30 @@ def test_check_user_sync_appstate_transient_error(user_utils, requests_mock):
         status_code=200
     )
 
-    get = mock_get_user(
+    get_core, get_manage = mock_get_user(
         requests_mock,
         user_id,
         json_callback,
-        200
+        200,
+        mock_manage_api_key
     )
 
     user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
-    assert get.call_count == 3
+
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count == 3
+    else:
+        assert get_core.call_count == 3
+        assert get_manage.call_count == 0
 
     # a single resync should have been triggered
     assert patche.call_count == 1
 
 
-def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock):
+def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     application_id = "manage"
 
@@ -1011,7 +1129,7 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock):
         status_code=200
     )
 
-    get = mock_get_user(
+    get_core, get_manage = mock_get_user(
         requests_mock,
         user_id,
         {
@@ -1025,16 +1143,26 @@ def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock):
                 }
             }
         },
-        200
+        200,
+        mock_manage_api_key
     )
 
     with pytest.raises(Exception) as excinfo:
         user_utils.check_user_sync(user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05)
     assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
-    assert get.call_count > 1
 
-    # an "update_user_display_name" should have been triggered for every 2 get calls (1 call by check_user_sync, 1 by resync)
-    assert patche.call_count == get.call_count / 2
+    # Check that the correct endpoint was called based on version
+    from packaging.version import Version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        assert get_core.call_count == 0
+        assert get_manage.call_count > 1
+        # an "update_user_display_name" should have been triggered for every 2 get calls (1 call by check_user_sync, 1 by resync)
+        assert patche.call_count == get_manage.call_count / 2
+    else:
+        assert get_core.call_count > 1
+        assert get_manage.call_count == 0
+        # an "update_user_display_name" should have been triggered for every 2 get calls (1 call by check_user_sync, 1 by resync)
+        assert patche.call_count == get_core.call_count / 2
 
 
 def test_get_manage_api_key_for_user_exists(user_utils, requests_mock):

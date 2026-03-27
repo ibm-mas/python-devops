@@ -193,7 +193,10 @@ class MASUserUtils():
 
     def get_user(self, user_id):
         """
-        Retrieve a user's details from MAS Core API.
+        Retrieve a user's details from MAS API.
+
+        For MAS version >= 9.1, this method uses the Manage API masperuser endpoint.
+        For earlier versions, it uses the Core API v3/users endpoint.
 
         Args:
             user_id (str): The unique identifier of the user to retrieve.
@@ -205,16 +208,39 @@ class MASUserUtils():
             Exception: If the API returns an unexpected status code.
         """
         self.logger.debug(f"Getting user {user_id}")
-        url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
-        headers = {
-            "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
+
+        # For MAS version >= 9.1, use the Manage API masperuser endpoint
+        if Version(self.mas_version) >= Version('9.1'):
+            # Get MAXADMIN API key for authentication
+            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+
+            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{user_id}"
+            querystring = {
+                "lean": 1
+            }
+            headers = {
+                "Accept": "application/json",
+                "apikey": maxadmin_manage_api_key["apikey"]
+            }
+            response = requests.get(
+                url,
+                headers=headers,
+                params=querystring,
+                cert=self.manage_internal_client_pem_file_path,
+                verify=self.manage_internal_ca_pem_file_path
+            )
+        else:
+            # For earlier versions, use the Core API v3/users endpoint
+            url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
+            headers = {
+                "Accept": "application/json",
+                "x-access-token": self.superuser_auth_token
+            }
+            response = requests.get(
+                url,
+                headers=headers,
+                verify=self.core_internal_ca_pem_file_path
+            )
 
         if response.status_code == 404:
             return None
@@ -358,7 +384,7 @@ class MASUserUtils():
             ]
         }
 
-        response = requests.patch(
+        response = requests.post(
             url,
             json=payload,
             headers=headers,
@@ -1587,7 +1613,8 @@ class MASUserUtils():
             }
 
         self.logger.info(f"User def - {user_def}")
-        self.get_or_create_user(user_def)
+        user_info = self.get_or_create_user(user_def)
+        self.logger.info(f"User info - {user_info}")
         self.link_user_to_local_idp(user_id, email_password=True)
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
 
