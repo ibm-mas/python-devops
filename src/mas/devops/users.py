@@ -442,12 +442,11 @@ class MASUserUtils():
         }
 
         payload = {
-            "maxuser": [
-                {
-                    "grpreassignauth": groupreassign
-                }
-            ]
+            "maxuser": {
+                "grpreassignauth": groupreassign
+            }
         }
+        self.logger.info(f"Sending PATCH request to {url} with payload: {payload}")
 
         response = requests.post(
             url,
@@ -1467,6 +1466,7 @@ class MASUserUtils():
 
         all_security_groups = self.get_all_manage_groups()
         groupreassign = [{"groupname": group} for group in all_security_groups]
+        self.logger.info(f"Group reassign: {groupreassign}")
 
         for primary_user in primary_users:
             self.logger.info("")
