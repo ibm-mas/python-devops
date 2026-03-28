@@ -404,7 +404,7 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
-    def set_user_group_reassignment_auth(self, resource_id, groupreassign, manage_api_key):
+    def set_user_group_reassignment_auth(self, user_id, resource_id, groupreassign, manage_api_key):
         """
         Set group reassignment authorization for a user via Manage API.
 
@@ -443,6 +443,7 @@ class MASUserUtils():
 
         payload = {
             "maxuser": {
+                "userid": user_id,
                 "grpreassignauth": groupreassign
             }
         }
@@ -1712,7 +1713,7 @@ class MASUserUtils():
                     self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
             if Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
                 if resource_id:
-                    self.set_user_group_reassignment_auth(resource_id, groupreassign, maxadmin_manage_api_key)
+                    self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, maxadmin_manage_api_key)
                 else:
                     self.logger.warning(f"Cannot set group reassignment auth: resource_id not found for user {user_id}")
 

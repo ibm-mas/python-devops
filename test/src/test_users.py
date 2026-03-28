@@ -2246,10 +2246,10 @@ def test_create_initial_user_for_saas(
         else:  # 9.1
             user_utils.add_user_to_manage_group.assert_not_called()
             if user_type == "PRIMARY":
-                # For 9.1, resource_id is passed instead of user_id
+                # For 9.1, both user_id and resource_id are passed
                 actual_user_id = user_id if user_id is not None else user_email
                 resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
-                user_utils.set_user_group_reassignment_auth.assert_called_once_with(resource_id, [{"groupname": "USERMANAGEMENT"}], manage_api_key)
+                user_utils.set_user_group_reassignment_auth.assert_called_once_with(actual_user_id, resource_id, [{"groupname": "USERMANAGEMENT"}], manage_api_key)
             else:
                 user_utils.set_user_group_reassignment_auth.assert_not_called()
     else:
