@@ -539,7 +539,7 @@ class MASUserUtils():
 
         raise Exception(f"{response.status_code} {response.text}")
 
-    def link_user_to_local_idp(self, user_id, email_password=False):
+    def link_user_to_local_idp(self, user_id, email_password=False, manage_api_key=None, resource_id=None):
         """
         Link a user to the local identity provider (IDP).
 
@@ -547,10 +547,17 @@ class MASUserUtils():
         The method creates a local authentication identity for the user, enabling them to log in
         with username/password.
 
+        For MAS version < 9.1: Uses Core API PUT request
+        For MAS version >= 9.1: Uses Manage API PATCH request
+
         Args:
             user_id (str): The unique identifier of the user to link.
             email_password (bool, optional): Whether to enable email/password authentication.
                                             Defaults to False.
+            manage_api_key (dict, optional): API key record with 'apikey' field for authentication.
+                                            Required for MAS version >= 9.1.
+            resource_id (str, optional): The resource identifier of the user (extracted from href).
+                                        Required for MAS version >= 9.1.
 
         Returns:
             None: Always returns None (authentication token is not exposed).
@@ -563,40 +570,110 @@ class MASUserUtils():
             or returned for security reasons.
         """
 
-        # For the sake of idempotency, check if the user already has a local identity
-        resource_id, user = self.get_user(user_id)
-        if user is None:
-            raise Exception(f"User {user_id} was not found")
+        # Check MAS version to determine which API to use
+        current_version = Version(self.mas_version)
+        version_9_1 = Version("9.1")
 
-        if "identities" in user and "_local" in user["identities"]:
-            self.logger.info(f"User {user_id} already has a local identity")
+        if current_version >= version_9_1:
+            # Version >= 9.1: Use Manage API PATCH request
+            if manage_api_key is None:
+                raise Exception("manage_api_key is required for MAS version >= 9.1")
+            if resource_id is None:
+                raise Exception("resource_id is required for MAS version >= 9.1")
+
+            # For the sake of idempotency, check if the user already has a local identity
+            _, user = self.get_user(user_id)
+            if user is None:
+                raise Exception(f"User {user_id} was not found")
+
+            if "identities" in user and "_local" in user["identities"]:
+                self.logger.info(f"User {user_id} already has a local identity")
+                return None
+
+            self.logger.info(f"Linking user {user_id} to local IDP using Manage API (version {self.mas_version})")
+
+            url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{resource_id}"
+            querystring = {
+                "lean": 1,
+                "ccm": 1
+            }
+            headers = {
+                "Content-Type": "application/json",
+                "apikey": manage_api_key["apikey"],
+                "x-method-override": "PATCH",
+                "patchtype": "MERGE"
+            }
+
+            payload = {
+                "maxuser": {
+                    "userid": user_id,
+                    "masuseridp": [
+                        {
+                            "emailpassword": email_password,
+                            "idpid": "local",
+                            "logintype": "0",
+                            "idploginid": user_id,
+                            "idptype": "local",
+                            "enabled": True
+                        }
+                    ]
+                }
+            }
+            self.logger.info(f"Sending PATCH request to {url} with payload: {payload}")
+
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                params=querystring,
+                cert=self.manage_internal_client_pem_file_path,
+                verify=self.manage_internal_ca_pem_file_path
+            )
+            self.logger.info(f"Response status code: {response.status_code}")
+            self.logger.info(f"Response text: {response.text}")
+
+            if response.status_code in [200, 204]:
+                self.logger.info(f"Successfully linked user {user_id} to local IDP")
+                return None
+
+            raise Exception(f"Failed to link user to local IDP: {response.status_code} {response.text}")
+
+        else:
+            # Version < 9.1: Use Core API PUT request (existing implementation)
+            # For the sake of idempotency, check if the user already has a local identity
+            _, user = self.get_user(user_id)
+            if user is None:
+                raise Exception(f"User {user_id} was not found")
+
+            if "identities" in user and "_local" in user["identities"]:
+                self.logger.info(f"User {user_id} already has a local identity")
+                return None
+
+            self.logger.info(f"Linking user {user_id} to local IDP using Core API (version {self.mas_version}, email_password: {email_password})")
+            url = f"{self.mas_api_url_internal}/v3/users/{user_id}/idps/local"
+            querystring = {
+                "emailPassword": email_password
+            }
+            payload = {
+                "idpUserId": user_id,
+            }
+            headers = {
+                "Content-Type": "application/json",
+                "x-access-token": self.superuser_auth_token
+            }
+            response = requests.put(
+                url,
+                json=payload,
+                headers=headers,
+                params=querystring,
+                verify=self.core_internal_ca_pem_file_path
+            )
+            if response.status_code != 200:
+                raise Exception(response.text)
+
+            # Important: HTTP 200 output will contain generated user token; DO NOT LOG
+
             return None
-
-        self.logger.info(f"Linking user {user_id} to local IDP (email_password: {email_password})")
-        url = f"{self.mas_api_url_internal}/v3/users/{user_id}/idps/local"
-        querystring = {
-            "emailPassword": email_password
-        }
-        payload = {
-            "idpUserId": user_id,
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "x-access-token": self.superuser_auth_token
-        }
-        response = requests.put(
-            url,
-            json=payload,
-            headers=headers,
-            params=querystring,
-            verify=self.core_internal_ca_pem_file_path
-        )
-        if response.status_code != 200:
-            raise Exception(response.text)
-
-        # Important: HTTP 200 output will contain generated user token; DO NOT LOG
-
-        return None
 
     def get_user_workspaces(self, user_id):
         """
@@ -1690,7 +1767,17 @@ class MASUserUtils():
         self.logger.info(f"Resource ID - {resource_id}")
         self.logger.info(f"User info - {user_info}")
 
-        self.link_user_to_local_idp(user_id, email_password=True)
+        # For version >= 9.1, we always need a Manage API key and resource_id to link user to local IDP
+        # For version < 9.1, we may need it later for manage_security_groups
+        if Version(self.mas_version) >= Version('9.1') or (len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids):
+            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+            self.logger.info(f"Maxadmin manage api key - {maxadmin_manage_api_key}")
+
+        if Version(self.mas_version) >= Version('9.1'):
+            self.link_user_to_local_idp(user_id, email_password=True, manage_api_key=maxadmin_manage_api_key, resource_id=resource_id)
+        else:
+            self.link_user_to_local_idp(user_id, email_password=True)
+
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
 
         if Version(self.mas_version) < Version('9.1'):
@@ -1709,8 +1796,6 @@ class MASUserUtils():
                 self.check_user_sync(user_id, mas_application_id)
 
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
-            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
-            self.logger.info(f"Maxadmin manage api key - {maxadmin_manage_api_key}")
             if Version(self.mas_version) < Version('9.1'):
                 for manage_security_group in manage_security_groups:
                     self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
@@ -1719,7 +1804,3 @@ class MASUserUtils():
                     self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, maxadmin_manage_api_key)
                 else:
                     self.logger.warning(f"Cannot set group reassignment auth: resource_id not found for user {user_id}")
-
-            # # Grant authorization to reassign users to/from ALL security groups (PRIMARY users only)
-            # if user_type == "PRIMARY":
-            #     self.grant_all_group_reassignment_auth(user_id, maxadmin_manage_api_key)

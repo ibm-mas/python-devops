@@ -629,8 +629,10 @@ def test_update_user_display_name_error(user_utils, requests_mock):
 def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
+    resource_id = f"{user_id}_resource_id"
     get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
 
+    # Mock Core API PUT request for version < 9.1
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local?emailPassword={email_password}",
         request_headers={"x-access-token": TOKEN},
@@ -639,28 +641,75 @@ def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
         additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
     )
 
-    user_utils.link_user_to_local_idp(user_id, email_password=email_password)
+    # Mock Manage API PATCH request for version >= 9.1
+    patch = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser/{resource_id}?lean=1&ccm=1",
+        request_headers={
+            "Content-Type": "application/json",
+            "apikey": mock_manage_api_key["apikey"],
+            "x-method-override": "PATCH",
+            "patchtype": "MERGE"
+        },
+        json={"id": user_id},
+        status_code=200,
+        additional_matcher=lambda req: additional_matcher(
+            req,
+            json={
+                "maxuser": {
+                    "userid": user_id,
+                    "masuseridp": [{
+                        "emailpassword": True,
+                        "idpid": "local",
+                        "logintype": "0",
+                        "idploginid": user_id,
+                        "idptype": "local",
+                        "enabled": True
+                    }]
+                }
+            },
+            cert=PEM_PATH
+        )
+    )
+
+    # Call the function with appropriate parameters based on version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        user_utils.link_user_to_local_idp(user_id, email_password=email_password, manage_api_key=mock_manage_api_key, resource_id=resource_id)
+    else:
+        user_utils.link_user_to_local_idp(user_id, email_password=email_password)
 
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version('9.1'):
         assert get_core.call_count == 0
         assert get_manage.call_count == 1
+        assert put.call_count == 0
+        assert patch.call_count == 1
     else:
         assert get_core.call_count == 1
         assert get_manage.call_count == 0
-    assert put.call_count == 1
+        assert put.call_count == 1
+        assert patch.call_count == 0
 
 
 def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
+    resource_id = f"{user_id}_resource_id"
     get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
+
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local",
         additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
     )
 
+    patch = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser/{resource_id}?lean=1&ccm=1",
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
     with pytest.raises(Exception):
-        user_utils.link_user_to_local_idp(user_id)
+        if Version(user_utils.mas_version) >= Version('9.1'):
+            user_utils.link_user_to_local_idp(user_id, manage_api_key=mock_manage_api_key, resource_id=resource_id)
+        else:
+            user_utils.link_user_to_local_idp(user_id)
 
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version('9.1'):
@@ -670,6 +719,7 @@ def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_man
         assert get_core.call_count == 1
         assert get_manage.call_count == 0
     assert put.call_count == 0
+    assert patch.call_count == 0
 
 
 def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_manage_api_key):
@@ -700,7 +750,16 @@ def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_m
         additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id})
     )
 
-    user_utils.link_user_to_local_idp(user_id, email_password=email_password)
+    patch = requests_mock.post(
+        f"{MANAGE_API_URL}/maximo/api/os/masperuser/{resource_id}?lean=1&ccm=1",
+        additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
+    )
+
+    # Call the function with appropriate parameters based on version
+    if Version(user_utils.mas_version) >= Version('9.1'):
+        user_utils.link_user_to_local_idp(user_id, email_password=email_password, manage_api_key=mock_manage_api_key, resource_id=resource_id)
+    else:
+        user_utils.link_user_to_local_idp(user_id, email_password=email_password)
 
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version('9.1'):
@@ -710,6 +769,7 @@ def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_m
         assert get_core.call_count == 1
         assert get_manage.call_count == 0
     assert put.call_count == 0
+    assert patch.call_count == 0
 
 
 def test_get_user_workspaces(user_utils, requests_mock):
@@ -2206,7 +2266,14 @@ def test_create_initial_user_for_saas(
         }
 
     user_utils.get_or_create_user.assert_called_once_with(expected_user_def)
-    user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True)
+
+    # Check link_user_to_local_idp call based on version
+    if mas_version == '9.1':
+        resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
+        user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True, manage_api_key=manage_api_key, resource_id=resource_id)
+    else:
+        user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True)
+
     user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
 
     # For version < 9.1, await_mas_application_availability and set_user_application_permission are called
@@ -2233,9 +2300,14 @@ def test_create_initial_user_for_saas(
     else:  # 9.1
         user_utils.check_user_sync.assert_not_called()
 
-    if len(manage_security_groups) > 0:
+    # For version >= 9.1, API key is always created (needed for link_user_to_local_idp)
+    # For version < 9.1, API key is only created if there are manage_security_groups
+    if mas_version == '9.1' or len(manage_security_groups) > 0:
         user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MAXADMIN", temporary=True)
+    else:
+        user_utils.create_or_get_manage_api_key_for_user.assert_not_called()
 
+    if len(manage_security_groups) > 0:
         # For version < 9.1, add_user_to_manage_group is called
         # For version >= 9.1, set_user_group_reassignment_auth is called for PRIMARY users
         if mas_version == '9.0':
@@ -2252,10 +2324,6 @@ def test_create_initial_user_for_saas(
                 user_utils.set_user_group_reassignment_auth.assert_called_once_with(actual_user_id, resource_id, [{"groupname": "USERMANAGEMENT"}], manage_api_key)
             else:
                 user_utils.set_user_group_reassignment_auth.assert_not_called()
-    else:
-        user_utils.create_or_get_manage_api_key_for_user.assert_not_called()
-        user_utils.add_user_to_manage_group.assert_not_called()
-        user_utils.set_user_group_reassignment_auth.assert_not_called()
 
 
 def test_create_initial_users_for_saas_invalid_inputs(user_utils):
