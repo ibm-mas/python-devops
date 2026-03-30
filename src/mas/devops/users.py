@@ -209,7 +209,7 @@ class MASUserUtils():
         Raises:
             Exception: If the API returns an unexpected status code.
         """
-        self.logger.info(f"Getting user {user_id}")
+        self.logger.debug(f"Getting user {user_id}")
         resource_id = None
 
         # For MAS version >= 9.1, use the Manage API masperuser endpoint
@@ -234,11 +234,8 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
-            self.logger.info(f"GET {url} returned {response.status_code}")
-            self.logger.info(f"Response: {response.text}")
 
             user_info = response.json()
-            self.logger.info(f"Response json: {user_info}")
 
             # Parse resource_id from user_info
             if user_info and "member" in user_info and len(user_info["member"]) > 0:
@@ -248,7 +245,7 @@ class MASUserUtils():
                     resource_id = href.split("/")[-1]
                     self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
 
-            # Second request: Get full user details using resource_id
+            # Second request: Get full user details
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/"
             querystring = {
                 "lean": 1,
@@ -266,8 +263,6 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
-            self.logger.info(f"GET {url} returned {response.status_code}")
-            self.logger.info(f"Response: {response.json()}")
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
@@ -352,7 +347,7 @@ class MASUserUtils():
                 "Content-Type": "application/json",
                 "apikey": maxadmin_manage_api_key["apikey"]
             }
-            self.logger.info(f"Creating new user {user_id} with Manage API with payload {payload}")
+            self.logger.debug(f"Creating new user {user_id} with Manage API with payload {payload}")
             response = requests.post(
                 url,
                 json=payload,
@@ -361,8 +356,6 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
-            self.logger.info(f"Response status code: {response.status_code}")
-            self.logger.info(f"Response text: {response.text}")
             if response.status_code == 201:
                 # Manage API returns empty response body on success, fetch the user
                 if response.text:
@@ -373,7 +366,7 @@ class MASUserUtils():
                         href = response_data["member"][0].get("href", "")
                         if href and "/" in href:
                             resource_id = href.split("/")[-1]
-                            self.logger.info(f"Extracted resource_id: {resource_id} from create response")
+                            self.logger.debug(f"Extracted resource_id: {resource_id} from create response")
                     return resource_id, response_data
                 else:
                     # Fetch the newly created user
@@ -447,7 +440,7 @@ class MASUserUtils():
                 "grpreassignauth": groupreassign
             }
         }
-        self.logger.info(f"Sending PATCH request to {url} with payload: {payload}")
+        self.logger.debug(f"Sending PATCH request to {url} with payload: {payload}")
 
         response = requests.post(
             url,
@@ -457,8 +450,6 @@ class MASUserUtils():
             cert=self.manage_internal_client_pem_file_path,
             verify=self.manage_internal_ca_pem_file_path
         )
-        self.logger.info(f"Response status code: {response.status_code}")
-        self.logger.info(f"Response text: {response.text}")
 
         if response.status_code in [200, 204]:
             self.logger.info(f"Successfully set group reassignment authorization for resource {resource_id}")
@@ -619,7 +610,7 @@ class MASUserUtils():
                     ]
                 }
             }
-            self.logger.info(f"Sending PATCH request to {url} with payload: {payload}")
+            self.logger.debug(f"Sending PATCH request to {url} with payload: {payload}")
 
             response = requests.post(
                 url,
@@ -629,8 +620,6 @@ class MASUserUtils():
                 cert=self.manage_internal_client_pem_file_path,
                 verify=self.manage_internal_ca_pem_file_path
             )
-            self.logger.info(f"Response status code: {response.status_code}")
-            self.logger.info(f"Response text: {response.text}")
 
             if response.status_code in [200, 204]:
                 self.logger.info(f"Successfully linked user {user_id} to local IDP")
@@ -1005,7 +994,6 @@ class MASUserUtils():
         Raises:
             Exception: If the API call fails.
         """
-        self.logger.info(f"Getting Manage API Key for user {user_id}")
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapiapikey"
         querystring = {
             "ccm": 1,
@@ -1024,7 +1012,6 @@ class MASUserUtils():
             verify=self.manage_internal_ca_pem_file_path,
             cert=self.manage_internal_client_pem_file_path
         )
-        self.logger.info(f"Response: {response.status_code} {response.text}")
 
         if response.status_code == 200:
             json = response.json()
@@ -1269,92 +1256,6 @@ class MASUserUtils():
         self.logger.info(f"Found {len(groups)} security groups in Manage")
         return groups
 
-    # def grant_group_reassignment_auth(self, user_id, group_name, manage_api_key):
-    #     """
-    #     Grant a user authorization to reassign users to/from a specific security group.
-
-    #     This adds an entry to the grpreassignauth collection for the user, allowing them
-    #     to manage membership in the specified security group.
-
-    #     Args:
-    #         user_id (str): The unique identifier of the user.
-    #         group_name (str): The name of the security group to grant authorization for.
-    #         manage_api_key (dict): API key record with 'apikey' field for authentication.
-
-    #     Returns:
-    #         None: Returns None on success.
-
-    #     Raises:
-    #         Exception: If the operation fails.
-    #     """
-    #     self.logger.info(f"Granting user {user_id} authorization to reassign group {group_name}")
-
-    #     url = f"{self.manage_api_url_internal}/maximo/oslc/os/masperuser"
-    #     querystring = {
-    #         "lean": 1,
-    #         "oslc.where": f"personid=\"{user_id}\"",
-    #     }
-    #     headers = {
-    #         "Content-Type": "application/json",
-    #         "Accept": "application/json",
-    #         "x-method-override": "PATCH",
-    #         "patchtype": "MERGE",
-    #         "apikey": manage_api_key["apikey"],
-    #     }
-    #     payload = {
-    #         "maxuser": [
-    #             {
-    #                 "userid": user_id,
-    #                 "grpreassignauth": [
-    #                     {
-    #                         "groupname": group_name
-    #                     }
-    #                 ]
-    #             }
-    #         ]
-    #     }
-    #     response = requests.post(
-    #         url,
-    #         headers=headers,
-    #         params=querystring,
-    #         json=payload,
-    #         verify=self.manage_internal_ca_pem_file_path,
-    #     )
-    #     if response.status_code != 204:
-    #         raise Exception(f"{response.status_code} {response.text}")
-
-    #     return None
-
-    # def grant_all_group_reassignment_auth(self, user_id, manage_api_key):
-    #     """
-    #     Grant a user authorization to reassign users to/from ALL security groups.
-
-    #     This method fetches all security groups and grants reassignment authorization
-    #     for each one, allowing the user to fully manage security group memberships.
-
-    #     Args:
-    #         user_id (str): The unique identifier of the user.
-    #         manage_api_key (dict): API key record with 'apikey' field for authentication.
-
-    #     Returns:
-    #         None: Returns None on success.
-
-    #     Raises:
-    #         Exception: If the operation fails.
-    #     """
-    #     self.logger.info(f"Granting user {user_id} authorization to reassign ALL security groups")
-
-    #     groups = self.get_all_manage_groups(manage_api_key)
-
-    #     for group_name in groups:
-    #         try:
-    #             self.grant_group_reassignment_auth(user_id, group_name, manage_api_key)
-    #         except Exception as e:
-    #             self.logger.warning(f"Failed to grant reassignment auth for group {group_name}: {str(e)}")
-    #             # Continue with other groups even if one fails
-
-    #     self.logger.info(f"Completed granting group reassignment authorization for {len(groups)} groups")
-
     def get_mas_applications_in_workspace(self):
         """
         Retrieve all MAS applications configured in the workspace.
@@ -1547,7 +1448,6 @@ class MASUserUtils():
 
         all_security_groups = self.get_all_manage_groups()
         groupreassign = [{"groupname": group} for group in all_security_groups]
-        self.logger.info(f"Group reassign: {groupreassign}")
 
         for primary_user in primary_users:
             self.logger.info("")
@@ -1750,30 +1650,18 @@ class MASUserUtils():
                 "personid": user_id,
                 "primaryemailtype": "Work",
                 "primaryemail": user_email,
-                # "username": username,
                 "primaryphone": "",
                 "addressline1": "",
                 "displayName": display_name,
                 "maxuser": maxuser_def,
-                # "issuer": "local",
-                # "permissions": permissions,
-                # "entitlement": entitlement,
-                # "givenName": user_given_name,
-                # "familyName": user_family_name
             }
 
-        self.logger.info(f"User def - {user_def}")
-        resource_id, user_info = self.get_or_create_user(user_def)
-        self.logger.info(f"Resource ID - {resource_id}")
-        self.logger.info(f"User info - {user_info}")
+        resource_id, _ = self.get_or_create_user(user_def)
 
         # For version >= 9.1, we always need a Manage API key and resource_id to link user to local IDP
         # For version < 9.1, we may need it later for manage_security_groups
         if Version(self.mas_version) >= Version('9.1') or (len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids):
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
-            self.logger.info(f"Maxadmin manage api key - {maxadmin_manage_api_key}")
-
-        if Version(self.mas_version) >= Version('9.1'):
             self.link_user_to_local_idp(user_id, email_password=True, manage_api_key=maxadmin_manage_api_key, resource_id=resource_id)
         else:
             self.link_user_to_local_idp(user_id, email_password=True)

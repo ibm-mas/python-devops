@@ -223,7 +223,6 @@ def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key
     )
 
     # Second request: Mock the query-based request with personid
-    # This matches the actual implementation at line 258-275 in users.py
     # Always mock this for version >= 9.1, regardless of status_code
     manage_personid_mock = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/masperuser/?lean=1&oslc.where=personid%3D%22{user_id}%22&oslc.select=personid%2Cdisplayname",
@@ -2152,7 +2151,7 @@ def test_create_initial_user_for_saas(
     # Mock get_or_create_user to return appropriate response based on version
     # Note: user_id might be None at this point, it gets set to user_email later
     actual_user_id = user_id if user_id is not None else user_email
-    if mas_version == '9.1':
+    if Version(mas_version) >= Version('9.1'):
         # For 9.1, return tuple (resource_id, user_data) with member array containing href
         resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
         user_utils.get_or_create_user = MagicMock(return_value=(
@@ -2195,7 +2194,7 @@ def test_create_initial_user_for_saas(
     username = user_id
 
     # For version 9.1 PRIMARY users, pass groupreassign parameter
-    if mas_version == '9.1' and user_type == "PRIMARY":
+    if Version(mas_version) >= Version('9.1') and user_type == "PRIMARY":
         groupreassign = [{"groupname": "USERMANAGEMENT"}]
         user_utils.create_initial_user_for_saas(initial_users, user_type, groupreassign)
     else:
@@ -2224,7 +2223,7 @@ def test_create_initial_user_for_saas(
             "givenName": user_given_name,
             "familyName": user_family_name
         }
-    else:  # 9.1
+    else:  # >=9.1
         if user_type == "PRIMARY":
             maxuser_def = {
                 "userid": user_id,
@@ -2268,7 +2267,7 @@ def test_create_initial_user_for_saas(
     user_utils.get_or_create_user.assert_called_once_with(expected_user_def)
 
     # Check link_user_to_local_idp call based on version
-    if mas_version == '9.1':
+    if Version(mas_version) >= Version('9.1'):
         resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
         user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True, manage_api_key=manage_api_key, resource_id=resource_id)
     else:
@@ -2285,7 +2284,7 @@ def test_create_initial_user_for_saas(
             call(user_id, "iot", application_role),
             call(user_id, "facilities", facilities_role),
         ])
-    else:  # 9.1
+    else:  # >=9.1
         user_utils.await_mas_application_availability.assert_not_called()
         user_utils.set_user_application_permission.assert_not_called()
 
@@ -2302,7 +2301,7 @@ def test_create_initial_user_for_saas(
 
     # For version >= 9.1, API key is always created (needed for link_user_to_local_idp)
     # For version < 9.1, API key is only created if there are manage_security_groups
-    if mas_version == '9.1' or len(manage_security_groups) > 0:
+    if Version(mas_version) >= Version('9.1') or len(manage_security_groups) > 0:
         user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MAXADMIN", temporary=True)
     else:
         user_utils.create_or_get_manage_api_key_for_user.assert_not_called()
@@ -2315,10 +2314,10 @@ def test_create_initial_user_for_saas(
                 list(map(lambda sg: call(user_id, sg, manage_api_key), manage_security_groups))
             )
             user_utils.set_user_group_reassignment_auth.assert_not_called()
-        else:  # 9.1
+        else:  # >=9.1
             user_utils.add_user_to_manage_group.assert_not_called()
             if user_type == "PRIMARY":
-                # For 9.1, both user_id and resource_id are passed
+                # For versions >= 9.1, both user_id and resource_id are passed
                 actual_user_id = user_id if user_id is not None else user_email
                 resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
                 user_utils.set_user_group_reassignment_auth.assert_called_once_with(actual_user_id, resource_id, [{"groupname": "USERMANAGEMENT"}], manage_api_key)
