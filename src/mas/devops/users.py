@@ -460,9 +460,12 @@ class MASUserUtils():
         self.logger.info(f"Response status code: {response.status_code}")
         self.logger.info(f"Response text: {response.text}")
 
-        if response.status_code == 200:
+        if response.status_code in [200, 204]:
             self.logger.info(f"Successfully set group reassignment authorization for resource {resource_id}")
-            return response.json()
+            # 204 No Content doesn't have a response body
+            if response.status_code == 200:
+                return response.json()
+            return None
 
         raise Exception(f"Failed to set group reassignment authorization: {response.status_code} {response.text}")
 
