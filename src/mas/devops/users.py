@@ -1662,11 +1662,13 @@ class MASUserUtils():
         resource_id, _ = self.get_or_create_user(user_def)
 
         # For version >= 9.1, we always need a Manage API key and resource_id to link user to local IDP
-        # For version < 9.1, we may need it later for manage_security_groups
-        if Version(self.mas_version) >= Version('9.1') or (len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids):
+        # For version < 9.1, link user to local IDP first, then create API key only if needed for manage_security_groups
+        maxadmin_manage_api_key = None
+        if Version(self.mas_version) >= Version('9.1'):
             maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
             self.link_user_to_local_idp(user_id, email_password=True, manage_api_key=maxadmin_manage_api_key, resource_id=resource_id)
         else:
+            # For version < 9.1, link user to local IDP without manage_api_key and resource_id
             self.link_user_to_local_idp(user_id, email_password=True)
 
         self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
@@ -1688,10 +1690,11 @@ class MASUserUtils():
 
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
             if Version(self.mas_version) < Version('9.1'):
+                maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
                 for manage_security_group in manage_security_groups:
                     self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
-            if Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
-                if resource_id:
+            elif Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
+                if resource_id and maxadmin_manage_api_key:
                     self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, maxadmin_manage_api_key)
                 else:
                     self.logger.warning(f"Cannot set group reassignment auth: resource_id not found for user {user_id}")
