@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--coreapi-port", required=False, default=443)
     parser.add_argument("--admin-dashboard-port", required=False, default=443)
     parser.add_argument("--manage-api-port", required=False, default=443)
-    parser.add_argument("--mas_version", required=False, default="9.1")
+    parser.add_argument("--mas-version", required=False, default="9.0")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--initial-users-yaml-file")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     logger.info("--------------")
     logger.info(f"mas_instance_id:           {mas_instance_id}")
     logger.info(f"mas_workspace_id:          {mas_workspace_id}")
-    logger.info(msg=f"mas_version:               {mas_version}")
+    logger.info(f"mas_version:               {mas_version}")
     logger.info(f"initial_users_yaml_file:   {initial_users_yaml_file}")
     logger.info(f"initial_users_secret_name: {initial_users_secret_name}")
     logger.info(f"log_level:                 {log_level}")

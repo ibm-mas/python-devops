@@ -970,7 +970,6 @@ class MASUserUtils():
         # otherwise, retrieve the apikey (either it already existed, or we just created it)
 
         apikey = self.get_manage_api_key_for_user(user_id)
-        self.logger.info(f"Retrieved Manage API Key for user {user_id}: {apikey}")
         if apikey is None:
             # either create call reported that apikey already exists, or we created the api key
             # so we expect the get call to find it
@@ -1203,8 +1202,6 @@ class MASUserUtils():
             json=payload,
             verify=self.manage_internal_ca_pem_file_path,
         )
-        self.logger.info(f"Response status code: {response.status_code}")
-        self.logger.info(f"Response text: {response.text}")
         if response.status_code == 204:
             return None
 
@@ -1505,13 +1502,19 @@ class MASUserUtils():
             Exception: If required fields are missing or user creation fails.
 
         Note:
+            For version < 9.1,
             PRIMARY users get:
             - userAdmin permission
+            - PREMIUM application entitlement
+            - Workspace admin access
+            - ADMIN role for most apps, MANAGEUSER for Manage
+            - MAXADMIN security group membership
+
+            For version >= 9.1,
+            PRIMARY users get:
             - apikeyAdmin permission (API Key Management)
             - idpAdmin permission (IDP Management)
-            - PREMIUM application entitlement
             - Regular workspace access (not workspace admin)
-            - ADMIN role for most apps, MANAGEUSER for Manage
             - USERMANAGEMENT security group membership
             - Group reassignment authorization for ALL security groups
 
