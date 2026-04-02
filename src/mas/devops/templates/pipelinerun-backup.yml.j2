@@ -31,6 +31,10 @@ spec:
     # Backup Configuration
     - name: backup_version
       value: "{{ backup_version }}"
+    {% if clean_backup is defined and clean_backup != "" %}
+    - name: clean_backup
+      value: "{{ clean_backup }}"
+    {% endif %}
 
     # Component Flags
     {% if include_sls is defined and include_sls != "" %}
