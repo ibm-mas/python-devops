@@ -72,6 +72,7 @@ setup(
             'flake8',         # MIT License
             'pytest',         # MIT License
             'pytest-mock',    # MIT License
+            'pytest-timeout',  # MIT License
             'requests-mock',  # Apache Software License
             'setuptools',     # MIT License
         ],
