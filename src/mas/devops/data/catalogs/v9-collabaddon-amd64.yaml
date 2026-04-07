@@ -1,0 +1,107 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog v9-collabaddon (AMD64)
+# -----------------------------------------------------------------------------
+# This catalog is specifically for the Collaborate addon and includes
+# Redis image configurations for the Collaborate product.
+
+catalog_digest: sha256:e5bb0fd0b5a6c11fbcd4bc9f068cf4285333a6ea6752af471d6252a21928cab7
+
+ocp_compatibility:
+- "4.16"
+- "4.17"
+- "4.18"
+- "4.19"
+- "4.20"
+
+# Dependencies
+# -----------------------------------------------------------------------------
+ibm_licensing_version: 4.2.17
+common_svcs_version: 4.13.0
+common_svcs_version_1: 4.11.0
+
+cp4d_platform_version: 5.2.0+20250709.170324
+ibm_zen_version: 6.2.0+20250530.152516.232
+
+db2u_version: 7.3.1+20250821.161005.16793
+db2_channel_default: v110509.0
+events_version: 5.0.1
+uds_version: 2.0.12
+sls_version: 3.12.6
+tsm_version: 1.7.5
+dd_version: 1.1.23
+appconnect_version: 6.2.0
+wsl_version: 11.0.0+20250521.202913.73
+wsl_runtimes_version: 11.0.0+20250515.090949.21
+wml_version: 11.0.0+20250530.193146.282
+postgress_version: 5.16.0+20250827.110911.2626
+
+ccs_build: 11.0.0+20250605.130237.468
+
+spark_version: 11.0.0+20250604.163055.2097
+cognos_version: 28.0.0+20250515.175459.10054
+couchdb_version: 1.0.13
+elasticsearch_version: 1.1.2667
+opensearch_version: 1.1.2494
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.2.x-feature: 9.2.0-pre.stable_16717
+  9.1.x: 9.1.14
+  9.0.x: 9.0.23
+  8.10.x: 8.10.36
+  8.11.x: 8.11.33
+mas_assist_version:
+  9.1.x: 9.1.9
+  9.0.x: 9.0.15
+  8.10.x: 8.7.8
+  8.11.x: 8.8.7
+
+# Extra Images for UDS
+# ------------------------------------------------------------------------------
+uds_extras_version: 1.5.0
+
+# Extra Images for Mongo
+# ------------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.17
+
+# Variables used to mirror additional mongo image versions
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.23
+mongo_extras_version_8: 8.0.17
+
+# Extra Images for Db2u
+# ------------------------------------------------------------------------------
+db2u_extras_version: 1.0.6
+db2u_filter: db2
+
+# Extra Images for CCS used for PCD 5.2.0 Hotfix
+# ------------------------------------------------------------------------------
+ccs_extras_version: 11.0.0
+
+# Extra Images for Amlen
+# ------------------------------------------------------------------------------
+amlen_extras_version: 1.1.4
+
+# Extra Images for Redis (Collaborate)
+# ------------------------------------------------------------------------------
+redis_extras_version: 2.1.40
+
+# Default Cloud Pak for Data version
+# ------------------------------------------------------------------------------
+cpd_product_version_default: 5.2.0
+
+manage_extras_913: 9.1.3
+minio_version: RELEASE.2025-06-13T11-33-47Z
+
+editorial:
+  whats_new:
+  - title: '**Collaborate Addon Catalog**'
+    details:
+    - This catalog includes Redis image configurations for IBM Maximo Collaborate
+    - Redis version 2.1.40 with HAProxy and common utilities
+
+  known_issues:
+    - title: This is a specialized catalog for Collaborate addon deployment
