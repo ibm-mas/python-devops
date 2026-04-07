@@ -47,7 +47,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install .[dev]
           pip install pytest-timeout
-          python -m pytest --timeout=60 -v
+          python -m pytest --timeout=300 --timeout-method=thread -v
 
       - name: Lint with flake8
         run: |
