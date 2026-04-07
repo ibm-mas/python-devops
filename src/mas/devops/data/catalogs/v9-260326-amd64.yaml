@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:03e9c06ea43f22c8108861ed54fc7eee7d1f838b691f715cf2f83a1a334ea0f4
+catalog_digest: sha256:c0cc7bfca67a47d12a3fce6bcf6ad25ee83d75234c17b0e32e736af5e30b971c
 
 ocp_compatibility:
 - "4.16"
@@ -13,13 +13,12 @@ ocp_compatibility:
 - "4.18"
 - "4.19"
 - "4.20"
-- "4.21"
 
 # Dependencies
 # -----------------------------------------------------------------------------
 ibm_licensing_version: 4.2.17                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
 common_svcs_version: 4.13.0                  # Operator version 4.13.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
-common_svcs_version_1: 4.11.0                  # Additional version 4.11.0
+common_svcs_version_1: 4.11.0                # Additional version 4.11.0
 
 cp4d_platform_version: 5.2.0+20250709.170324               # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
 ibm_zen_version: 6.2.0+20250530.152516.232                     # For CPD5 ibm-zen has to be explicitily mirrored
@@ -28,13 +27,13 @@ db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to fi
 db2_channel_default: v110509.0               # Default Channel version for db2u-operator
 events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.6     # Updated         # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.5      # Updated            # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-dd_version: 1.1.23                           # Operator version 1.1.23 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
+sls_version: 3.12.6     # Updated        # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.5      # Updated        # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+dd_version: 1.1.23      # Updated            # Operator version 1.1.23 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
-wsl_version: 11.0.0+20250521.202913.73                     # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
+wsl_version: 11.0.0+20250521.202913.73                        # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
 wsl_runtimes_version: 11.0.0+20250515.090949.21               # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
-wml_version: 11.0.0+20250530.193146.282                             # Operator version 5.2.0
+wml_version: 11.0.0+20250530.193146.282                       # Operator version 5.2.0
 postgress_version: 5.16.0+20250827.110911.2626                # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d 
 
 ccs_build: 11.0.0+20250605.130237.468       # cpd 5.2.0 using ccs build
@@ -49,7 +48,7 @@ opensearch_version: 1.1.2494                # Operator version 1.1.2494
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_12926 #  No Update
+  9.2.x-feature: 9.2.0-pre.stable_16717 #  Updated
   9.1.x: 9.1.14        # Updated
   9.0.x: 9.0.23        # Updated
   8.10.x: 8.10.36      # Updated
@@ -70,7 +69,7 @@ mas_iot_version:
   8.10.x: 8.7.32   # Updated
   8.11.x: 8.8.29   # Updated
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_13730 #  No Update
+  9.2.x-feature: 9.2.0-pre.stable_17064 #  Updated
   9.1.x: 9.1.15        # Updated
   9.0.x: 9.0.24        # Updated
   8.10.x: 8.6.37       # Updated
@@ -118,14 +117,14 @@ uds_extras_version: 1.5.0
 
 # Extra Images for Mongo
 # ------------------------------------------------------------------------------
-mongo_extras_version_default: 8.2.5
+mongo_extras_version_default: 8.0.17
 
 # Variables used to mirror additional mongo image versions
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.2.5
+mongo_extras_version_8: 8.0.17
 
 # Extra Images for Db2u
 # ------------------------------------------------------------------------------
@@ -155,8 +154,23 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform v9.0.22
-    - IBM Truststore Manager v1.7 
+    - IBM Maximo Application Suite Core Platform [v8.10.36](https://www.ibm.com/support/pages/node/7267462), [v8.11.33](https://www.ibm.com/support/pages/node/7267463), [v9.0.23](https://www.ibm.com/support/pages/node/7267464) and [v9.1.14](https://www.ibm.com/support/pages/node/7267465)
+    - IBM Maximo Manage [v8.6.37](https://www.ibm.com/support/pages/node/7266693), [v8.7.31](https://www.ibm.com/support/pages/node/7266692), [v9.0.24](https://www.ibm.com/support/pages/node/7266691) and [v9.1.15](https://www.ibm.com/support/pages/node/7266690)
+    - IBM Maximo IoT [v8.7.32](https://www.ibm.com/support/pages/node/7267121), [v8.8.29](https://www.ibm.com/support/pages/node/7267122), [v9.0.18](https://www.ibm.com/support/pages/node/7267123) and [v9.1.9](https://www.ibm.com/support/pages/node/7267124)
+    - IBM Maximo Monitor [v8.10.29](https://www.ibm.com/support/pages/node/7267303), [v8.11.27](https://www.ibm.com/support/pages/node/7267304), [v9.0.19](https://www.ibm.com/support/pages/node/7267305) and [v9.1.9](https://www.ibm.com/support/pages/node/7267306)
+    - IBM Maximo Optimizer [v8.4.27](https://www.ibm.com/support/pages/node/7266732),[v8.5.26](https://www.ibm.com/support/pages/node/7266734), [v9.0.21](https://www.ibm.com/support/pages/node/7266738) and [v9.1.10](https://www.ibm.com/support/pages/node/7266745)
+    - IBM Maximo Assist/Collaborate [v9.0.15](https://www.ibm.com/support/pages/node/7267220), [v9.1.9](https://www.ibm.com/support/pages/node/7267222) 
+    - IBM Maximo Predict [v8.8.14](https://www.ibm.com/support/pages/node/7267302), [v8.9.16](https://www.ibm.com/support/pages/node/7267299), [v9.0.13](https://www.ibm.com/support/pages/node/7267298) and [v9.1.6](https://www.ibm.com/support/pages/node/7267181)
+    - IBM Maximo Visual Inspection [v9.0.18](https://www.ibm.com/support/pages/node/7267485)
+    - IBM Maximo Real Estate and Facilities [v9.1.9](https://www.ibm.com/support/pages/node/7267132)
+    - IBM Maximo AI Service [v9.1.13](https://www.ibm.com/support/pages/node/7266231)
+    - IBM Data Dictionary v1.1
+    - IBM Truststore Manager v1.7
+    - IBM Suite License Service v3.12
+
   known_issues:
     - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
+    - title: A known issue has been identified in Db2u warehouse operator in this catalog. Customers restoring/upgrading Db2, intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. If you are facing this problem, please refer to the workaround provided in this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).
+    - title: A known issue exists in the February 26, 2026 release affecting IBM Maximo Real Estate and Facilities. Customers with MREF installed should avoid upgrading to the February 9.1.8 release. Installation of MREF 9.1.x should be deferred until the March 2026 patch.
+    - title: A know issue in IBM Maximo Real Estate and Facilities, users may encounter failures during upgrade scenarios (9.1.x → 9.2 FC) and experience slow installation in airgap environments in the March 26, 2026 release.

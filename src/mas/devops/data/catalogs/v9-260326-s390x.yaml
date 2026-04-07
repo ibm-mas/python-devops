@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:c01c46e7fff60b84543192f232c2a3b6b6da295692886b005f144ae63889476e
+catalog_digest: sha256:e8f185bdec56281ea3f431b43edbc36f2512615a45561bd44df274a2b4cca6df
 
 ocp_compatibility:
 - "4.16"
@@ -22,13 +22,13 @@ db2u_version: 7.3.1+20250821.161005.16793     # Operator version 110509.0.6 to f
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_12926 # No Update 
+  9.2.x-feature: 9.2.0-pre.stable_16717 #  Updated
   9.1.x: 9.1.14                         # Updated
   9.0.x: 9.0.23                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_13730 # No Update
+  9.2.x-feature: 9.2.0-pre.stable_17064 #  Updated
   9.1.x: 9.1.15                         # Updated
   9.0.x: 9.0.24                         # Updated
   8.10.x: ""                            # Not Supported
@@ -53,8 +53,8 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform v9.1.11
-    - IBM Maximo Manage 9.1.12
+    - IBM Maximo Application Suite Core Platform [v9.0.23](https://www.ibm.com/support/pages/node/7267464) and [v9.1.14](https://www.ibm.com/support/pages/node/7267465)
+    - IBM Maximo Manage [v9.0.24](https://www.ibm.com/support/pages/node/7266691) and [v9.1.15](https://www.ibm.com/support/pages/node/7266690)
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.12
   known_issues:
