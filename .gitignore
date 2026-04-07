@@ -18,5 +18,6 @@ venv/
 
 # Other
 kubectl.exe
+/build
 /.vscode
 /site

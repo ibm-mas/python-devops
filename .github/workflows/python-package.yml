@@ -46,7 +46,8 @@ jobs:
           cat ${GITHUB_WORKSPACE}/src/mas/devops/__init__.py
           python -m pip install --upgrade pip
           pip install .[dev]
-          python -m pytest
+          pip install pytest-timeout
+          python -m pytest --timeout=60 -v
 
       - name: Lint with flake8
         run: |
