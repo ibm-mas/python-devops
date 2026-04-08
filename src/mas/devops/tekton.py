@@ -158,6 +158,7 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
         logger.error("OpenShift Pipelines postgres PVC is NOT ready")
         return False
 
+
 def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
     """
     Enable the OpenShift Pipelines console plugin for OCP 4.21+.
@@ -243,6 +244,7 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
     except Exception as e:
         logger.error(f"Error enabling Pipelines console plugin: {e}")
         return False
+
 
 def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
     """
