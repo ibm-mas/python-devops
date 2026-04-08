@@ -162,16 +162,16 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
 def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
     """
     Enable the OpenShift Pipelines console plugin for OCP 4.21+.
-    
+
     In OpenShift 4.21 and later, the Pipelines console plugin must be manually
     enabled by patching the Console operator configuration. This function:
     1. Detects the OCP version
     2. Checks if version >= 4.21
     3. Enables the plugin if not already enabled
-    
+
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
-    
+
     Returns:
         bool: True if plugin is enabled or already enabled, False on error
     """
@@ -181,46 +181,46 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         if not clusterVersion:
             logger.warning("Unable to determine cluster version, skipping plugin enablement")
             return True  # Non-fatal, return True to continue
-        
+
         logger.debug(f"Detected OpenShift version: {clusterVersion}")
-        
+
         # Parse version (e.g., "4.21.0" -> major=4, minor=21)
         versionParts = clusterVersion.split('.')
         if len(versionParts) < 2:
             logger.warning(f"Unable to parse cluster version '{clusterVersion}', skipping plugin enablement")
             return True
-        
+
         try:
             majorVersion = int(versionParts[0])
             minorVersion = int(versionParts[1])
         except ValueError:
             logger.warning(f"Unable to parse version numbers from '{clusterVersion}', skipping plugin enablement")
             return True
-        
+
         # Check if version requires plugin enablement (4.21+)
         requiresPlugin = (majorVersion == 4 and minorVersion >= 21) or (majorVersion > 4)
-        
+
         if not requiresPlugin:
             logger.info(f"OpenShift version {clusterVersion} does not require manual plugin enablement")
             return True
-        
+
         logger.info(f"OpenShift version {clusterVersion} requires Pipelines console plugin to be enabled")
-        
+
         # Get Console Operator
         consoleAPI = dynClient.resources.get(api_version="operator.openshift.io/v1", kind="Console")
         console = consoleAPI.get(name="cluster")
-        
+
         # Check if plugin is already enabled
         currentPlugins = console.spec.plugins if hasattr(console.spec, 'plugins') and console.spec.plugins else []
         pluginName = "pipelines-console-plugin"
-        
+
         if pluginName in currentPlugins:
             logger.info(f"Pipelines console plugin is already enabled")
             return True
-        
+
         # Enable the plugin by patching the Console operator
         logger.info(f"Enabling Pipelines console plugin...")
-        
+
         # Create patch to add plugin to the list
         updatedPlugins = list(currentPlugins) + [pluginName]
         patch = {
@@ -228,16 +228,16 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
                 "plugins": updatedPlugins
             }
         }
-        
+
         consoleAPI.patch(
             name="cluster",
             body=patch,
             content_type="application/merge-patch+json"
         )
-        
+
         logger.info(f"Successfully enabled Pipelines console plugin")
         return True
-        
+
     except NotFoundError as e:
         logger.warning(f"Console operator not found: {e}")
         return True  # Non-fatal, plugin can be enabled manually
