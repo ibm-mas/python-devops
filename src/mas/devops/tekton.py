@@ -205,7 +205,7 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         
         logger.info(f"OpenShift version {clusterVersion} requires Pipelines console plugin to be enabled")
         
-        # Get Console operator
+        # Get Console Operator
         consoleAPI = dynClient.resources.get(api_version="operator.openshift.io/v1", kind="Console")
         console = consoleAPI.get(name="cluster")
         
