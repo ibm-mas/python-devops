@@ -707,6 +707,10 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_app_channel_monitor
       value: "{{ mas_app_channel_monitor }}"
+  {%- if mas_monitor_install_order is defined and mas_monitor_install_order != "" %}
+    - name: mas_monitor_install_order
+      value: "{{ mas_monitor_install_order }}"
+  {%- endif %}
 {%- endif %}
 {%- if mas_app_channel_optimizer is defined and mas_app_channel_optimizer != "" %}
 
@@ -759,6 +763,10 @@ spec:
 {%- if mas_ws_facilities_size is defined and mas_ws_facilities_size != "" %}
     - name: mas_ws_facilities_size
       value: "{{ mas_ws_facilities_size }}"
+{%- endif %}
+{%- if mas_ws_facilities_app_om_upgrade_mode is defined and mas_ws_facilities_app_om_upgrade_mode != "" %}
+    - name: mas_ws_facilities_app_om_upgrade_mode
+      value: "{{ mas_ws_facilities_app_om_upgrade_mode }}"
 {%- endif %}
 {%- if mas_ws_facilities_routes_timeout is defined and mas_ws_facilities_routes_timeout != "" %}
     - name: mas_ws_facilities_routes_timeout

@@ -1,0 +1,15 @@
+---
+# PVC for backup storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: mas-{{ mas_instance_id }}-pipelines
+spec:
+  accessModes:
+    - {{ pipeline_storage_accessmode }}
+  volumeMode: Filesystem
+  storageClassName: {{ pipeline_storage_class }}
+  resources:
+    requests:
+      storage: {{ backup_storage_size }}

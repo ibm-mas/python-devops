@@ -263,7 +263,7 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
         logger.debug(line)
 
 
-def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True, createConfigPVC: bool = True, createBackupPVC: bool = False, backupStorageSize: str = "20Gi"):
     """
     Prepare a namespace for MAS pipelines by creating RBAC and PVC resources.
 
@@ -277,6 +277,9 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         accessMode (str, optional): Access mode for the PVC. Defaults to None.
         waitForBind (bool, optional): Whether to wait for PVC to bind. Defaults to True.
         configureRBAC (bool, optional): Whether to configure RBAC. Defaults to True.
+        createConfigPVC (bool, optional): Whether to create config PVC. Defaults to True.
+        createBackupPVC (bool, optional): Whether to create backup PVC. Defaults to False.
+        backupStorageSize (str, optional): Size of the backup PVC storage. Defaults to "20Gi".
 
     Returns:
         None
@@ -305,32 +308,66 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
 
     # Create PVC (instanceId namespace only)
     if instanceId is not None:
-        template = env.get_template("pipelines-pvc.yml.j2")
-        renderedTemplate = template.render(
-            mas_instance_id=instanceId,
-            pipeline_storage_class=storageClass,
-            pipeline_storage_accessmode=accessMode
-        )
-        logger.debug(renderedTemplate)
-        pvc = yaml.safe_load(renderedTemplate)
         pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
-        pvcAPI.apply(body=pvc, namespace=namespace)
+
         # Automatically determine if we should wait for PVC binding based on storage class
         volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
         waitForBind = (volumeBindingMode == "Immediate")
-        if waitForBind:
-            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
-            pvcIsBound = False
-            while not pvcIsBound:
-                configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
-                if configPVC.status.phase == "Bound":
-                    pvcIsBound = True
-                else:
-                    logger.debug("Waiting 15s before checking status of PVC again")
-                    logger.debug(configPVC)
-                    sleep(15)
-        else:
-            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
+
+        # Create config PVC if requested
+        if createConfigPVC:
+            logger.info("Creating config PVC")
+            template = env.get_template("pipelines-pvc.yml.j2")
+            renderedTemplate = template.render(
+                mas_instance_id=instanceId,
+                pipeline_storage_class=storageClass,
+                pipeline_storage_accessmode=accessMode
+            )
+            logger.debug(renderedTemplate)
+            pvc = yaml.safe_load(renderedTemplate)
+            pvcAPI.apply(body=pvc, namespace=namespace)
+
+            if waitForBind:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for config PVC to bind")
+                pvcIsBound = False
+                while not pvcIsBound:
+                    configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                    if configPVC.status.phase == "Bound":
+                        pvcIsBound = True
+                    else:
+                        logger.debug("Waiting 15s before checking status of config PVC again")
+                        logger.debug(configPVC)
+                        sleep(15)
+            else:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping config PVC bind wait")
+
+        # Create backup PVC if requested
+        if createBackupPVC:
+            logger.info("Creating backup PVC")
+            backupTemplate = env.get_template("pipelines-backup-pvc.yml.j2")
+            renderedBackupTemplate = backupTemplate.render(
+                mas_instance_id=instanceId,
+                pipeline_storage_class=storageClass,
+                pipeline_storage_accessmode=accessMode,
+                backup_storage_size=backupStorageSize
+            )
+            logger.debug(renderedBackupTemplate)
+            backupPvc = yaml.safe_load(renderedBackupTemplate)
+            pvcAPI.apply(body=backupPvc, namespace=namespace)
+
+            if waitForBind:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for backup PVC to bind")
+                backupPvcIsBound = False
+                while not backupPvcIsBound:
+                    backupPVC = pvcAPI.get(name="backup-pvc", namespace=namespace)
+                    if backupPVC.status.phase == "Bound":
+                        backupPvcIsBound = True
+                    else:
+                        logger.debug("Waiting 15s before checking status of backup PVC again")
+                        logger.debug(backupPVC)
+                        sleep(15)
+            else:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping backup PVC bind wait")
 
 
 def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
@@ -735,6 +772,52 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-update", params)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-update-{timestamp}"
+    return pipelineURL
+
+
+def launchBackupPipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to backup a MAS instance.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Backup parameters including instance ID and configuration
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
+    instanceId = params["mas_instance_id"]
+    backupVersion = params["backup_version"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-backup", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{backupVersion}-{timestamp}"
+    return pipelineURL
+
+
+def launchRestorePipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to restore a MAS instance.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Backup/Restore parameters including instance ID and configuration
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
+    instanceId = params["mas_instance_id"]
+    restoreVersion = params["restore_version"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-restore", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-restore-{restoreVersion}-{timestamp}"
     return pipelineURL
 
 
