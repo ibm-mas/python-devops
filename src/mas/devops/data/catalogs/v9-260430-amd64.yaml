@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260326 (AMD64)
+# Case bundle configuration for IBM Maximo Operator Catalog 260430 (AMD64)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:c852ac109d2a17fab9c58b38389bdf87ed60b9d6273811eb380b8ba2a0c0184f
+catalog_digest: sha256:fd545e6d8a2a96e0bdb3c0d463438f6af95ea4f2781bf4aa1c40d3ef070c4aaa
 
 ocp_compatibility:
 - "4.16"
