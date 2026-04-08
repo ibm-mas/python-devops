@@ -9,6 +9,11 @@
 # https://access.redhat.com/support/policy/updates/openshift/
 
 ocp_versions:
+  "4.21":
+    ga_date: "February 3, 2026"
+    standard_support: "GA of 4.22 + 3 Months"
+    extended_support: "N/A"
+
   "4.20":
     ga_date: "October 21, 2025"
     standard_support: "May 3, 2026"
