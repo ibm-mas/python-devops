@@ -436,6 +436,46 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
+def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None):
+    """
+    Create or update secret required for MAS Restore pipeline.
+
+    Creates secret in the specified namespace:
+        - pipeline-restore-configs
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to create secrets in
+        restoreConfigs (dict, optional): configuration data for restore. Defaults to None (empty secret).
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If secrets cannot be created
+    """
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # 1. Secret/pipeline-restore-configs
+    # -------------------------------------------------------------------------
+    # Must exist, but can be empty
+    try:
+        secretsAPI.delete(name="pipeline-restore-configs", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if restoreConfigs is None:
+        restoreConfigs = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-restore-configs"
+            }
+        }
+    secretsAPI.create(body=restoreConfigs, namespace=namespace)
+
+
 def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
