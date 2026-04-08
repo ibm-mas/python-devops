@@ -215,11 +215,11 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         pluginName = "pipelines-console-plugin"
 
         if pluginName in currentPlugins:
-            logger.info(f"Pipelines console plugin is already enabled")
+            logger.info("Pipelines console plugin is already enabled")
             return True
 
         # Enable the plugin by patching the Console operator
-        logger.info(f"Enabling Pipelines console plugin...")
+        logger.info("Enabling Pipelines console plugin...")
 
         # Create patch to add plugin to the list
         updatedPlugins = list(currentPlugins) + [pluginName]
@@ -235,7 +235,7 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
             content_type="application/merge-patch+json"
         )
 
-        logger.info(f"Successfully enabled Pipelines console plugin")
+        logger.info("Successfully enabled Pipelines console plugin")
         return True
 
     except NotFoundError as e:
