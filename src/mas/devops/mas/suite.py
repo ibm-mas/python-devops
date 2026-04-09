@@ -262,6 +262,35 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
         return masSubscription.spec.channel
 
 
+def getSuitePermissionMode(dynClient: DynamicClient, instanceId: str) -> str:
+    """
+    Get the permission mode from Suite CR.
+    
+    Args:
+        dynClient: OpenShift Dynamic Client
+        instanceId: MAS instance ID
+    
+    Returns:
+        'cluster', 'nonEssential', 'essential', or 'unknown'
+    """
+    try:
+        suiteAPI = dynClient.resources.get(
+            api_version='core.mas.ibm.com/v1',
+            kind='Suite'
+        )
+        suite = suiteAPI.get(
+            name=instanceId,
+            namespace=f'mas-{instanceId}-core'
+        )
+        
+        # Get permissionMode from spec.settings.permissionMode
+        # Default to 'cluster' if not set (backward compatibility)
+        return suite.spec.get('settings', {}).get('permissionMode', 'cluster')
+    except Exception as e:
+        logger.warning(f"Could not determine permission mode for {instanceId}: {e}")
+        return 'unknown'
+
+
 def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
     """
     Create or update the IBM Entitlement secret for accessing IBM container registries.

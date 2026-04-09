@@ -12,5 +12,6 @@ from .suite import (  # noqa: F401
     getWorkspaceId,
     verifyMasInstance,
     getMasChannel,
+    getSuitePermissionMode,
     updateIBMEntitlementKey,
 )
