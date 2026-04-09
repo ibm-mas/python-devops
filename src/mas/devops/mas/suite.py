@@ -265,11 +265,11 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
 def getSuitePermissionMode(dynClient: DynamicClient, instanceId: str) -> str:
     """
     Get the permission mode from Suite CR.
-    
+
     Args:
         dynClient: OpenShift Dynamic Client
         instanceId: MAS instance ID
-    
+
     Returns:
         'cluster', 'nonEssential', 'essential', or 'unknown'
     """
@@ -282,7 +282,7 @@ def getSuitePermissionMode(dynClient: DynamicClient, instanceId: str) -> str:
             name=instanceId,
             namespace=f'mas-{instanceId}-core'
         )
-        
+
         # Get permissionMode from spec.settings.permissionMode
         # Default to 'cluster' if not set (backward compatibility)
         return suite.spec.get('settings', {}).get('permissionMode', 'cluster')
