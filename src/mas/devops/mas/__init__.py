@@ -14,4 +14,5 @@ from .suite import (  # noqa: F401
     getMasChannel,
     getSuitePermissionMode,
     updateIBMEntitlementKey,
+    getMasPublicClusterIssuer,
 )

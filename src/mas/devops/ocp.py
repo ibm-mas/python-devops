@@ -318,7 +318,7 @@ def getConsoleURL(dynClient: DynamicClient) -> str:
     return f"https://{consoleRoute.spec.host}"
 
 
-def getNodes(dynClient: DynamicClient) -> str:
+def getNodes(dynClient: DynamicClient) -> dict:
     """
     Get all nodes in the cluster.
 
@@ -336,7 +336,7 @@ def getNodes(dynClient: DynamicClient) -> str:
     return nodes
 
 
-def getStorageClass(dynClient: DynamicClient, name: str) -> str:
+def getStorageClass(dynClient: DynamicClient, name: str) -> dict | None:
     """
     Get a specific StorageClass by name.
 
@@ -376,6 +376,30 @@ def getStorageClasses(dynClient: DynamicClient) -> list:
     return storageClasses
 
 
+def getStorageClassVolumeBindingMode(dynClient: DynamicClient, storageClassName: str) -> str:
+    """
+    Get the volumeBindingMode for a storage class.
+
+    Args:
+        dynClient: OpenShift dynamic client
+        storageClassName: Name of the storage class
+
+    Returns:
+        str: "Immediate" or "WaitForFirstConsumer" (defaults to "Immediate" if not found)
+    """
+    try:
+        storageClass = getStorageClass(dynClient, storageClassName)
+        if storageClass and hasattr(storageClass, 'volumeBindingMode'):
+            return storageClass.volumeBindingMode
+        # Default to Immediate if not specified (Kubernetes default)
+        logger.debug(f"Storage class {storageClassName} does not have volumeBindingMode set, defaulting to 'Immediate'")
+        return "Immediate"
+    except Exception as e:
+        logger.warning(f"Unable to determine volumeBindingMode for storage class {storageClassName}: {e}")
+        # Default to Immediate to maintain backward compatibility
+        return "Immediate"
+
+
 def isSNO(dynClient: DynamicClient) -> bool:
     """
     Check if the cluster is a Single Node OpenShift (SNO) deployment.
@@ -411,6 +435,64 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
     except NotFoundError:
         logger.debug(f"CRD does not exist: {crdName}")
         return False
+
+
+def getCR(dynClient: DynamicClient, cr_api_version: str, cr_kind: str, cr_name: str, namespace: str = None) -> dict:
+    """
+    Get a Custom Resource
+    """
+
+    try:
+        crAPI = dynClient.resources.get(api_version=cr_api_version, kind=cr_kind)
+        if namespace:
+            cr = crAPI.get(name=cr_name, namespace=namespace)
+        else:
+            cr = crAPI.get(name=cr_name)
+        return cr
+    except NotFoundError:
+        logger.debug(f"CR {cr_name} of kind {cr_kind} does not exist in namespace {namespace}")
+    except Exception as e:
+        logger.debug(f"Error retrieving CR {cr_name} of kind {cr_kind} in namespace {namespace}: {e}")
+
+    return {}
+
+
+def getSecret(dynClient: DynamicClient, namespace: str, secret_name: str) -> dict:
+    """
+    Get a Secret
+    """
+    try:
+        secretAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+        secret = secretAPI.get(name=secret_name, namespace=namespace)
+        logger.debug(f"Secret {secret_name} exists in namespace {namespace}")
+        return secret.to_dict()
+    except NotFoundError:
+        logger.debug(f"Secret {secret_name} does not exist in namespace {namespace}")
+    return {}
+
+
+def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str):
+    """
+    Apply a Kubernetes resource from its YAML definition.
+    If the resource already exists, it will be updated.
+    If it does not exist, it will be created.
+    """
+    resource_dict = yaml.safe_load(resource_yaml)
+    kind = resource_dict['kind']
+    api_version = resource_dict['apiVersion']
+    metadata = resource_dict['metadata']
+    name = metadata['name']
+
+    try:
+        resource = dynClient.resources.get(api_version=api_version, kind=kind)
+        # Try to get the existing resource
+        resource.get(name=name, namespace=namespace)
+        # If found, skip creation
+        logger.debug(f"{kind} '{name}' already exists in namespace '{namespace}', skipping creation.")
+    except NotFoundError:
+        # If not found, create it
+        logger.debug(f"Creating new {kind} '{name}' in namespace '{namespace}'")
+        resource.create(body=resource_dict, namespace=namespace)
 
 
 def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
@@ -608,3 +690,95 @@ def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username:
         "registry": registryUrl,
         "changed": True
     }
+
+
+def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControllerName: str = "default") -> bool:
+    """
+    Configure OpenShift IngressController for path-based routing.
+
+    Sets the namespaceOwnership to InterNamespaceAllowed on the specified IngressController,
+    which is required for path-based routing mode in MAS.
+
+    Args:
+        dynClient: OpenShift Dynamic Client
+        ingressControllerName (optional): Name of the IngressController to configure. Defaults to "default".
+
+    Returns:
+        bool: True if configuration was successful or already configured, False otherwise
+
+    Raises:
+        NotFoundError: If the IngressController resource cannot be found
+    """
+    logger.info(f"Configuring IngressController '{ingressControllerName}' for path-based routing")
+
+    try:
+        ingressControllerAPI = dynClient.resources.get(
+            api_version="operator.openshift.io/v1",
+            kind="IngressController"
+        )
+
+        try:
+            ingressController = ingressControllerAPI.get(
+                name=ingressControllerName,
+                namespace="openshift-ingress-operator"
+            )
+        except NotFoundError:
+            logger.error(f"IngressController '{ingressControllerName}' not found in namespace 'openshift-ingress-operator'")
+            return False
+
+        currentPolicy = None
+        if hasattr(ingressController, 'spec') and hasattr(ingressController.spec, 'routeAdmission'):
+            if hasattr(ingressController.spec.routeAdmission, 'namespaceOwnership'):
+                currentPolicy = ingressController.spec.routeAdmission.namespaceOwnership
+
+        logger.debug(f"Current namespaceOwnership policy: {currentPolicy if currentPolicy else 'Not set'}")
+
+        if currentPolicy == "InterNamespaceAllowed":
+            logger.info(f"IngressController '{ingressControllerName}' is already configured with namespaceOwnership: InterNamespaceAllowed")
+            return True
+
+        logger.info(f"Patching IngressController '{ingressControllerName}' to enable InterNamespaceAllowed")
+
+        patch = {
+            "spec": {
+                "routeAdmission": {
+                    "namespaceOwnership": "InterNamespaceAllowed"
+                }
+            }
+        }
+
+        ingressControllerAPI.patch(
+            body=patch,
+            name=ingressControllerName,
+            namespace="openshift-ingress-operator",
+            content_type="application/merge-patch+json"
+        )
+
+        maxRetries = 5
+        retryDelay = 5
+
+        for attempt in range(maxRetries):
+            sleep(retryDelay)
+            try:
+                updatedController = ingressControllerAPI.get(
+                    name=ingressControllerName,
+                    namespace="openshift-ingress-operator"
+                )
+
+                if (hasattr(updatedController, 'spec') and hasattr(updatedController.spec, 'routeAdmission') and hasattr(updatedController.spec.routeAdmission, 'namespaceOwnership') and updatedController.spec.routeAdmission.namespaceOwnership == "InterNamespaceAllowed"):
+
+                    logger.info(f"Successfully configured IngressController '{ingressControllerName}' for path-based routing")
+                    return True
+
+            except NotFoundError:
+                logger.warning(f"IngressController '{ingressControllerName}' not found during verification (attempt {attempt + 1}/{maxRetries})")
+
+            if attempt < maxRetries - 1:
+                logger.debug(f"Waiting for IngressController to reconcile (attempt {attempt + 1}/{maxRetries})")
+
+        logger.error(f"Failed to verify IngressController configuration after {maxRetries} attempts")
+        return False
+
+    except Exception as e:
+        logger.error(f"Failed to configure IngressController '{ingressControllerName}': {str(e)}")
+        return False

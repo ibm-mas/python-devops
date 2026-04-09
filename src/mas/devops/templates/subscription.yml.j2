@@ -9,6 +9,12 @@ spec:
     channel: {{ package_channel }}
     source: {{ catalog_name }}
     sourceNamespace: {{ catalog_namespace }}
+    {%- if install_plan_approval is not none %}
+    installPlanApproval: {{ install_plan_approval }}
+    {%- endif %}
+    {%- if starting_csv is not none %}
+    startingCSV: {{ starting_csv }}
+    {%- endif %}
     {%- if subscription_config is not none %}
     config: {{ subscription_config }}
     {%- endif %}

@@ -93,7 +93,7 @@ spec:
       value: "{{ eck_remote_es_password }}"
   {%- endif %}
 {%- endif %}
-{%- if db2_action_system == "install" or db2_action_manage == "install" %}
+{%- if db2_action_system == "install" or db2_action_manage == "install" or db2_action_aiservice == "install" %}
 
     # Dependencies - Db2 - Actions
     # -------------------------------------------------------------------------
@@ -103,6 +103,8 @@ spec:
       value: "{{ db2_action_manage }}"
     - name: db2_action_facilities
       value: "{{ db2_action_facilities}}"
+    - name: db2_action_aiservice
+      value: "{{ db2_action_aiservice }}"   
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -114,6 +116,8 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
+    - name: db2u_kind
+      value: "{{ db2u_kind }}"
   {%- if db2_meta_storage_accessmode is defined and db2_meta_storage_accessmode != "" %}
 
     # Dependencies - Db2 - Access Mode
@@ -533,6 +537,22 @@ spec:
     - name: mas_routing_mode
       value: "{{ mas_routing_mode }}"
 {%- endif %}
+{%- if mas_ingress_controller_name is defined and mas_ingress_controller_name != "" %}
+    - name: mas_ingress_controller_name
+      value: "{{ mas_ingress_controller_name }}"
+{%- endif %}
+{%- if mas_deployment_progression is defined and mas_deployment_progression != "" %}
+    - name: mas_deployment_progression
+      value: "{{ mas_deployment_progression }}"
+{%- endif %}
+{%- if mas_usability_metrics is defined and mas_usability_metrics != "" %}
+    - name: mas_usability_metrics
+      value: "{{ mas_usability_metrics }}"
+{%- endif %}
+{%- if mas_feature_usage is defined and mas_feature_usage != "" %}
+    - name: mas_feature_usage
+      value: "{{ mas_feature_usage }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
@@ -555,12 +575,10 @@ spec:
     - name: mas_app_settings_iot_mqttbroker_pvc_storage_class
       value: "{{ mas_app_settings_iot_mqttbroker_pvc_storage_class }}"
 {%- endif %}
-{%- if install_arcgis is defined and install_arcgis != "" %}
+{%- if mas_arcgis_channel is defined and mas_arcgis_channel != "" and mas_arcgis_channel %}
 
     # IBM Maximo Location Services for Esri (arcgis)
     # -------------------------------------------------------------------------
-    - name: install_arcgis
-      value: "{{ install_arcgis }}"
     - name: mas_arcgis_channel
       value: "{{ mas_arcgis_channel }}"
 {%- endif %}
@@ -689,6 +707,10 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_app_channel_monitor
       value: "{{ mas_app_channel_monitor }}"
+  {%- if mas_monitor_install_order is defined and mas_monitor_install_order != "" %}
+    - name: mas_monitor_install_order
+      value: "{{ mas_monitor_install_order }}"
+  {%- endif %}
 {%- endif %}
 {%- if mas_app_channel_optimizer is defined and mas_app_channel_optimizer != "" %}
 
@@ -742,6 +764,10 @@ spec:
     - name: mas_ws_facilities_size
       value: "{{ mas_ws_facilities_size }}"
 {%- endif %}
+{%- if mas_ws_facilities_app_om_upgrade_mode is defined and mas_ws_facilities_app_om_upgrade_mode != "" %}
+    - name: mas_ws_facilities_app_om_upgrade_mode
+      value: "{{ mas_ws_facilities_app_om_upgrade_mode }}"
+{%- endif %}
 {%- if mas_ws_facilities_routes_timeout is defined and mas_ws_facilities_routes_timeout != "" %}
     - name: mas_ws_facilities_routes_timeout
       value: "{{ mas_ws_facilities_routes_timeout }}"
@@ -785,8 +811,6 @@ spec:
       value: "{{ aiservice_instance_id }}"
     - name: aiservice_channel
       value: "{{ aiservice_channel }}"
-    - name: db2_action_aiservice
-      value: "{{ db2_action_aiservice }}"
 
     - name: environment_type
       value: "{{ environment_type }}"
@@ -841,6 +865,13 @@ spec:
     - name: aiservice_odh_model_deployment_type
       value: "{{ aiservice_odh_model_deployment_type }}"
 
+    # AI Service - Red Hat Openshift AI
+    # -------------------------------------------------------------------------
+    - name: aiservice_rhoai_model_deployment_type
+      value: "{{ aiservice_rhoai_model_deployment_type }}"
+    - name: rhoai
+      value: "{{ rhoai }}"
+
     # AI Service - watsonX
     # -------------------------------------------------------------------------
     - name: aiservice_watsonxai_apikey
@@ -865,6 +896,14 @@ spec:
       value: "{{ aiservice_watsonxai_space_id }}"
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
+
+    # AI Service - watsonX
+    # -------------------------------------------------------------------------
+{%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
+    - name: aiservice_certificate_issuer
+      value: "{{ aiservice_certificate_issuer }}"
+{%- endif %}
+
 {%- endif %}
 
   workspaces:

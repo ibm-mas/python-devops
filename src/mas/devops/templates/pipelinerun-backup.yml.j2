@@ -1,0 +1,166 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: "{{ mas_instance_id }}-backup-{{ backup_version }}-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: mas-backup
+spec:
+  pipelineRef:
+    name: mas-backup
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
+  workspaces:
+    - name: shared-backups
+      persistentVolumeClaim:
+        claimName: backup-pvc
+  params:
+    # Common Parameters
+    - name: image_pull_policy
+      value: IfNotPresent
+    - name: mas_instance_id
+      value: "{{ mas_instance_id }}"
+
+    {% if skip_pre_check is defined and skip_pre_check != "" %}
+    # Pipeline config
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+    {% endif %}
+
+    # Backup Configuration
+    - name: backup_version
+      value: "{{ backup_version }}"
+    {% if clean_backup is defined and clean_backup != "" %}
+    - name: clean_backup
+      value: "{{ clean_backup }}"
+    {% endif %}
+
+    # Component Flags
+    {% if include_sls is defined and include_sls != "" %}
+    - name: include_sls
+      value: "{{ include_sls }}"
+    {% endif %}
+
+    {% if include_mongo is defined and include_mongo != "" %}
+    - name: include_mongo
+      value: "{{ include_mongo }}"
+    {% endif %}
+
+    # MongoDB Configuration
+    {% if mongodb_namespace is defined and mongodb_namespace != "" %}
+    - name: mongodb_namespace
+      value: "{{ mongodb_namespace }}"
+    {% endif %}
+    {% if mongodb_instance_name is defined and mongodb_instance_name != "" %}
+    - name: mongodb_instance_name
+      value: "{{ mongodb_instance_name }}"
+    {% endif %}
+    {% if mongodb_provider is defined and mongodb_provider != "" %}
+    - name: mongodb_provider
+      value: "{{ mongodb_provider }}"
+    {% endif %}
+
+    # SLS Configuration
+    {% if sls_namespace is defined and sls_namespace != "" %}
+    - name: sls_namespace
+      value: "{{ sls_namespace }}"
+    {% endif %}
+
+    # Certificate Manager Configuration
+    {% if cert_manager_provider is defined and cert_manager_provider != "" %}
+    - name: cert_manager_provider
+      value: "{{ cert_manager_provider }}"
+    {% endif %}
+
+    # Development Build Support
+    {% if artifactory_username is defined and artifactory_username != "" %}
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    {% endif %}
+    {% if artifactory_token is defined and artifactory_token != "" %}
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+    {% endif %}
+
+    # Upload Configuration
+    {% if upload_backup is defined and upload_backup != "" %}
+    - name: upload_backup
+      value: "{{ upload_backup }}"
+    {% endif %}
+    {% if aws_access_key_id is defined and aws_access_key_id != "" %}
+    - name: aws_access_key_id
+      value: "{{ aws_access_key_id }}"
+    {% endif %}
+    {% if aws_secret_access_key is defined and aws_secret_access_key != "" %}
+    - name: aws_secret_access_key
+      value: "{{ aws_secret_access_key }}"
+    {% endif %}
+    {% if s3_bucket_name is defined and s3_bucket_name != "" %}
+    - name: s3_bucket_name
+      value: "{{ s3_bucket_name }}"
+    {% endif %}
+    {% if s3_region is defined and s3_region != "" %}
+    - name: s3_region
+      value: "{{ s3_region }}"
+    {% endif %}
+    {% if s3_endpoint_url is defined and s3_endpoint_url != "" %}
+    - name: s3_endpoint_url
+      value: "{{ s3_endpoint_url }}"
+    {% endif %}
+    {% if artifactory_url is defined and artifactory_url != "" %}
+    - name: artifactory_url
+      value: "{{ artifactory_url }}"
+    {% endif %}
+    {% if artifactory_repository is defined and artifactory_repository != "" %}
+    - name: artifactory_repository
+      value: "{{ artifactory_repository }}"
+    {% endif %}
+
+    # Manage Application Backup Configuration
+    {% if backup_manage_app is defined and backup_manage_app != "" %}
+    - name: backup_manage_app
+      value: "{{ backup_manage_app }}"
+    {% endif %}
+    {% if backup_manage_db is defined and backup_manage_db != "" %}
+    - name: backup_manage_db
+      value: "{{ backup_manage_db }}"
+    {% endif %}
+    {% if manage_workspace_id is defined and manage_workspace_id != "" %}
+    - name: manage_workspace_id
+      value: "{{ manage_workspace_id }}"
+    {% endif %}
+
+    # Manage Db2 Backup Configuration
+    {% if manage_db2_namespace is defined and manage_db2_namespace != "" %}
+    - name: manage_db2_namespace
+      value: "{{ manage_db2_namespace }}"
+    {% endif %}
+    {% if manage_db2_instance_name is defined and manage_db2_instance_name != "" %}
+    - name: manage_db2_instance_name
+      value: "{{ manage_db2_instance_name }}"
+    {% endif %}
+    {% if manage_db2_backup_type is defined and manage_db2_backup_type != "" %}
+    - name: manage_db2_backup_type
+      value: "{{ manage_db2_backup_type }}"
+    {% endif %}
+    {% if manage_db2_backup_vendor is defined and manage_db2_backup_vendor != "" %}
+    - name: manage_db2_backup_vendor
+      value: "{{ manage_db2_backup_vendor }}"
+    {% endif %}
+    {% if backup_s3_endpoint is defined and backup_s3_endpoint != "" %}
+    - name: backup_s3_endpoint
+      value: "{{ backup_s3_endpoint }}"
+    {% endif %}
+    {% if backup_s3_bucket is defined and backup_s3_bucket != "" %}
+    - name: backup_s3_bucket
+      value: "{{ backup_s3_bucket }}"
+    {% endif %}
+    {% if backup_s3_access_key is defined and backup_s3_access_key != "" %}
+    - name: backup_s3_access_key
+      value: "{{ backup_s3_access_key }}"
+    {% endif %}
+    {% if backup_s3_secret_key is defined and backup_s3_secret_key != "" %}
+    - name: backup_s3_secret_key
+      value: "{{ backup_s3_secret_key }}"
+    {% endif %}
