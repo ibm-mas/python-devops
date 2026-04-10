@@ -207,6 +207,17 @@ spec:
       value: "{{ ibm_mongo_admin_password }}"
   {%- endif %}
 {%- endif %}
+{%- if redis_action is defined and redis_action != "" %}
+
+    # Dependencies - Redis
+    # -------------------------------------------------------------------------
+    - name: redis_action
+      value: "{{ redis_action }}"
+    - name: redis_namespace
+      value: "{{ redis_namespace }}"
+    - name: redis_replicas
+      value: "{{ redis_replicas }}"
+{%- endif %}
 {%- if kafka_action_system == "install" %}
 
     # Dependencies - Kafka
