@@ -105,7 +105,7 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
         sys.exit(1)
 
     # Check if thread already exists
-    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId)
     if threadInfo is not None:
         print("Pipeline start notification already sent")
         return threadInfo
@@ -145,9 +145,9 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
             return False
 
     # Create ConfigMap with all channel/thread info
-    SlackUtil.createThreadConfigMap(namespace, instanceId, pipelineName)
-    SlackUtil.updateThreadConfigMap(namespace, instanceId, configMapData, pipelineName)
-    return SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
+    SlackUtil.createThreadConfigMap(namespace, "", "", instanceId)
+    SlackUtil.updateThreadConfigMap(namespace, instanceId, configMapData)
+    return SlackUtil.getThreadConfigMap(namespace, instanceId)
 
 
 def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
@@ -158,7 +158,7 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
         sys.exit(1)
 
     # Get thread information, create if doesn't exist
-    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId)
     if threadInfo is None:
         print("No thread found - creating pipeline start notification")
         threadInfo = notifyPipelineStart(channels, instanceId, pipelineName)
@@ -197,7 +197,7 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
 
     # Update ConfigMap with all task message timestamps
     if taskMessageData:
-        SlackUtil.updateThreadConfigMap(namespace, instanceId, taskMessageData, pipelineName)
+        SlackUtil.updateThreadConfigMap(namespace, instanceId, taskMessageData)
 
     return allSuccess
 
@@ -210,7 +210,7 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
         sys.exit(1)
 
     # Get thread information, create if doesn't exist
-    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId)
     if threadInfo is None:
         print("No thread found - creating pipeline start notification")
         threadInfo = notifyPipelineStart(channels, instanceId, pipelineName)
@@ -293,7 +293,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
         sys.exit(1)
 
     # Get thread information
-    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
+    threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId)
     if threadInfo is None:
         print("No thread information found - pipeline may not have started properly")
         return False
@@ -353,7 +353,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
             allSuccess = False
 
     # Clean up ConfigMap
-    SlackUtil.deleteThreadConfigMap(namespace, instanceId, pipelineName)
+    SlackUtil.deleteThreadConfigMap(namespace, instanceId)
 
     return allSuccess
 

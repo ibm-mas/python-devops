@@ -271,7 +271,7 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit divider element
         """
-    def createThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> bool:
+    def createThreadConfigMap(cls, namespace: str, channelId: str, threadId: str, instanceId: str) -> bool:
         """
         Create a ConfigMap to store Slack thread information for a pipeline run.
 
@@ -291,14 +291,15 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            configmap_name = f"slack-thread-{instanceId}"
             configmap = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
                     name=configmap_name,
                     namespace=namespace
                 ),
                 data={
-                    "pipelineName": pipelineRunName,
+                    "threadId": threadId,
+                    "channelId": channelId,
                     "instanceId": instanceId,
                     "startTime": datetime.now(timezone.utc)
                 }
@@ -310,7 +311,7 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to create ConfigMap: {e}")
             return False
 
-    def getThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> dict | None:
+    def getThreadConfigMap(cls, namespace: str, instanceId: str) -> dict | None:
         """
         Retrieve Slack thread information from a ConfigMap.
 
@@ -328,7 +329,7 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            configmap_name = f"slack-thread-{instanceId}"
             configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.debug(f"Retrieved ConfigMap {configmap_name} from namespace {namespace}")
             return configmap.data
@@ -342,7 +343,7 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to retrieve ConfigMap: {e}")
             return None
 
-    def updateThreadConfigMap(cls, namespace: str, instanceId: str, updates: dict, pipelineRunName: str) -> bool:
+    def updateThreadConfigMap(cls, namespace: str, instanceId: str, updates: dict) -> bool:
         """
         Update the ConfigMap with additional data (e.g., task message timestamps).
 
@@ -361,7 +362,7 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            configmap_name = f"slack-thread-{instanceId}"
 
             # Get existing ConfigMap
             configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
@@ -379,7 +380,7 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to update ConfigMap: {e}")
             return False
 
-    def deleteThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> bool:
+    def deleteThreadConfigMap(cls, namespace: str, instanceId: str) -> bool:
         """
         Delete the ConfigMap containing Slack thread information.
 
@@ -398,7 +399,7 @@ class SlackUtilMeta(type):
                 config.load_kube_config()
 
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            configmap_name = f"slack-thread-{instanceId}"
             v1.delete_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.info(f"Deleted ConfigMap {configmap_name} from namespace {namespace}")
             return True
