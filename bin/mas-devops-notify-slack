@@ -112,15 +112,15 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
 
     # Send pipeline started message to all channels
     toolchainLink = _getToolchainLink()
-    instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
+    instanceInfo = f"Instance ID: `{instanceId}`" if instanceId else ""
     message = [
         SlackUtil.buildHeader(f"🚀 MAS {pipelineName} Pipeline Started"),
-        SlackUtil.buildSection(f"Pipeline Run: {instanceInfo}\n{toolchainLink}")
+        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}\n{toolchainLink}")
     ]
     response = SlackUtil.postMessageBlocks(channels, message)
 
     # Store thread information for all channels in ConfigMap
-    configMapData = {"instanceId": instanceId}
+    configMapData = {"instanceId": instanceId, "pipelineName": pipelineName}
 
     if isinstance(response, list):
         # Multiple channels - store each channel's thread info
@@ -323,7 +323,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
         except Exception:
             pass
 
-    instanceInfo = f"\nInstance ID: `{instanceId}`" if instanceId else ""
+    instanceInfo = f"Instance ID: `{instanceId}`" if instanceId else ""
     if rc == 0:
         emoji = "🎉"
         status = "Completed Successfully"
@@ -335,7 +335,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
 
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
-        SlackUtil.buildSection(f"Pipeline Run: {instanceInfo}{durationText}{additionalInfo}")
+        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}{durationText}{additionalInfo}")
     ]
 
     allSuccess = True
