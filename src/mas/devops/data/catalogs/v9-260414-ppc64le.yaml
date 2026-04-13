@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:f16ecdcb3fc7c4498c93e03ef732ec822c24f426746af747cbb2f6dcc28ecf4a
+catalog_digest: sha256:98ce4c020d8d6552ccb9b65aa09d136f5b13a45c798e932f847b0c451d76c7d2
 
 ocp_compatibility:
 - "4.16"
