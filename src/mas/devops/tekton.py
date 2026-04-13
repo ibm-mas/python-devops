@@ -894,8 +894,8 @@ def prepareInstallRBAC(dynClient: DynamicClient, namespace: str, instanceId: str
             if resourceBody is None:
                 continue
 
-            apiVersion = resourceBody.get("apiVersion")
-            kind = resourceBody.get("kind")
+            apiVersion = resourceBody["apiVersion"]
+            kind = resourceBody["kind"]
             metadata = resourceBody.get("metadata", {})
             name = metadata.get("name", "<unnamed>")
             namespace = metadata.get("namespace")
