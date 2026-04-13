@@ -135,3 +135,11 @@ spec:
     - name: skip_entitlement_key_flag
       value: "{{ skip_entitlement_key_flag }}"
 {%- endif %}
+{%- if aiservice_instance_ids is defined and aiservice_instance_ids != "" %}
+    - name: aiservice_instance_ids
+      value: "{{ aiservice_instance_ids }}"
+{%- endif %}
+{%- if aiservice_channel is defined and aiservice_channel != "" %}
+    - name: aiservice_channel
+      value: "{{ aiservice_channel }}"
+{%- endif %}
