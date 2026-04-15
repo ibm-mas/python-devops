@@ -334,7 +334,7 @@ class SlackUtilMeta(type):
             return configmap.data
         except client.exceptions.ApiException as e:
             if e.status == 404:
-                logger.debug(f"ConfigMap slack-thread-{instanceId} not found in namespace {namespace}")
+                logger.debug(f"ConfigMap slack-thread-{instanceId}-{pipelineRunName} not found in namespace {namespace}")
             else:
                 logger.error(f"Failed to retrieve ConfigMap: {e}")
             return None
@@ -404,7 +404,7 @@ class SlackUtilMeta(type):
             return True
         except client.exceptions.ApiException as e:
             if e.status == 404:
-                logger.warning(f"ConfigMap slack-thread-{instanceId} not found in namespace {namespace}")
+                logger.warning(f"ConfigMap slack-thread-{instanceId}-{pipelineRunName} not found in namespace {namespace}")
             else:
                 logger.error(f"Failed to delete ConfigMap: {e}")
             return False
