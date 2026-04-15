@@ -70,7 +70,7 @@ mas_iot_version:
   8.11.x: 8.8.28   #  No Update
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_13730 #  No Update
-  9.1.x: 9.1.14.       #  Updated
+  9.1.x: 9.1.14        #  Updated
   9.0.x: 9.0.23        #  No Update
   8.10.x: 8.6.36       #  No Update
   8.11.x: 8.7.30       #  No Update
