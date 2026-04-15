@@ -475,7 +475,7 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: dict | None = None, additionalConfigs: dict | None = None, certs: dict | None = None, podTemplates: dict | None = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: dict | None = None, additionalConfigs: dict | None = None, certs: dict | None = None, podTemplates: dict | None = None, db2LicenseFile: dict | None = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
@@ -486,6 +486,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to create secrets in
         slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
         certs (dict, optional): Certificate data. Defaults to None (empty secret).
         podTemplates (dict, optional): Pod template data. Defaults to None (empty secret).
@@ -572,6 +573,24 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
             }
         }
     secretsAPI.create(body=podTemplates, namespace=namespace)
+
+    # 6. Secret/pipeline-db2-license
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
 
 
 def testCLI() -> None:
