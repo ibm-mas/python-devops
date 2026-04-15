@@ -146,3 +146,8 @@ spec:
     - name: odh_to_rhoai_migration
       value: "{{ odh_to_rhoai_migration }}"
 {%- endif %}
+
+{%- if aiservice_instance_ids is defined and aiservice_instance_ids != "" %}
+    - name: aiservice_instance_ids
+      value: "{{ aiservice_instance_ids }}"
+{%- endif %}
