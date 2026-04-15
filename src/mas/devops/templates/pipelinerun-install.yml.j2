@@ -118,6 +118,9 @@ spec:
       value: "{{ db2_timezone }}"
     - name: db2u_kind
       value: "{{ db2u_kind }}"
+{%- if db2_license_file is defined and db2_license_file != "" %}
+    - name: db2_license_file
+      value: "{{ db2_license_file }}"
   {%- if db2_meta_storage_accessmode is defined and db2_meta_storage_accessmode != "" %}
 
     # Dependencies - Db2 - Access Mode
