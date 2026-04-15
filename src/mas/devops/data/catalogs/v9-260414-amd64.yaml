@@ -40,6 +40,10 @@ postgress_version: 5.16.0+20250827.110911.2626                # ibm-cpd-cloud-na
 ccs_build: 11.0.0+20250605.130237.468       # cpd 5.2.0 using ccs build
 # datarefinery_build: +20240517.202103.146
 
+# I have added this as a guess as to the actual version used, we are currently using the wsl_version, but that does not exist for datarefinery
+# See: https://ibm-mas.slack.com/archives/C02PUHKQB5L/p1770849370378689
+datarefinery_version: 11.0.0+20250513.203727.232
+
 spark_version: 11.0.0+20250604.163055.2097                      # Operator version 5.2.0
 cognos_version: 28.0.0+20250515.175459.10054                     # Operator version 25.0.0
 couchdb_version: 1.0.13                     # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
