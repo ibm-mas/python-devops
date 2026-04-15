@@ -15,40 +15,103 @@ ocp_compatibility:
 - "4.20"
 - "4.21"
 
-# Dependencies
+# Dependencies - Cloud Pak for Data
 # -----------------------------------------------------------------------------
-ibm_licensing_version: 4.2.17                # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
-common_svcs_version: 4.13.0                  # Operator version 4.13.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
-common_svcs_version_1: 4.11.0                # Additional version 4.11.0
+cpd_product_version_default: 5.2.0
 
-cp4d_platform_version: 5.2.0+20250709.170324               # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
-ibm_zen_version: 6.2.0+20250530.152516.232                     # For CPD5 ibm-zen has to be explicitily mirrored
+ibm_licensing_version: 4.2.17                    # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+common_svcs_version: 4.13.0                      # Operator version 4.13.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
+common_svcs_version_1: 4.11.0                    # TODO: Do we really still need to mirror two different versions of common services?  If so, why?
+cp4d_platform_version: 5.2.0+20250709.170324     # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+ibm_zen_version: 6.2.0+20250530.152516.232       # For CPD5 ibm-zen has to be explicitily mirrored
+wsl_version: 11.0.0+20250521.202913.73
+wsl_runtimes_version: 11.0.0+20250515.090949.21
+wml_version: 11.0.0+20250530.193146.282          # Operator version 5.2.0
+spark_version: 11.0.0+20250604.163055.2097       # Operator version 5.2.0
+cognos_version: 28.0.0+20250515.175459.10054     # Operator version 25.0.0
 
-db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
-db2_channel_default: v110509.0               # Default Channel version for db2u-operator
-events_version: 5.0.1                        # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
-uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.7     # Updated        # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.6      # Updated        # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-dd_version: 1.1.23      # Updated            # Operator version 1.1.23 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
-appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
-wsl_version: 11.0.0+20250521.202913.73                        # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
-wsl_runtimes_version: 11.0.0+20250515.090949.21               # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
-wml_version: 11.0.0+20250530.193146.282                       # Operator version 5.2.0
-postgress_version: 5.16.0+20250827.110911.2626                # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
+postgress_version: 5.16.0+20250827.110911.2626   # ibm-cpd-cloud-native-postgresql-operator 5.2.0
+ccs_build: 11.0.0+20250605.130237.468            # cpd 5.2.0
+ccs_extras_version: 11.0.0                       # Extra Images for CCS used for PCD 5.2.0 Hotfix
 
-ccs_build: 11.0.0+20250605.130237.468       # cpd 5.2.0 using ccs build
+# TODO: If this is only used in CPD 5.1.3, we shouldn't need this in this catalog metadata file
+elasticsearch_version: 1.1.2667                  # Operator version 1.1.2667 - used in cpd 5.1.3 only
+opensearch_version: 1.1.2494                     # Operator version 1.1.2494
+
+# TODO: Why is this here, but commented out?
 # datarefinery_build: +20240517.202103.146
 
 # I have added this as a guess as to the actual version used, we are currently using the wsl_version, but that does not exist for datarefinery
 # See: https://ibm-mas.slack.com/archives/C02PUHKQB5L/p1770849370378689
 datarefinery_version: 11.0.0+20250513.203727.232
 
-spark_version: 11.0.0+20250604.163055.2097                      # Operator version 5.2.0
-cognos_version: 28.0.0+20250515.175459.10054                     # Operator version 25.0.0
-couchdb_version: 1.0.13                     # Operator version 2.2.1 (1.0.13) sticking with 1.0.13 # (This is required for Assist 9.0, https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
-elasticsearch_version: 1.1.2667           # Operator version 1.1.2667 # used in cpd 5.1.3 only
-opensearch_version: 1.1.2494                # Operator version 1.1.2494
+# TODO: Why is this here, there is no evidence that it is being used in image mirroring?
+events_version: 5.0.1  # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
+
+
+# Dependencies - Db2u
+# -----------------------------------------------------------------------------
+db2u_version: 7.3.1+20250821.161005.16793    # Operator version 110509.0.7 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_extras_version: 1.0.6 # No Update
+db2u_filter: db2
+
+db2_channel_default: v110509.0               # Default Channel version for db2u-operator
+
+
+# Dependencies - CouchDb
+# -----------------------------------------------------------------------------
+# Note: This is required for Assist 9.0 (https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
+couchdb_version: 1.0.13  # Operator version 2.2.1 (1.0.13) sticking with 1.0.13
+
+
+# Dependencies - Minio
+# -----------------------------------------------------------------------------
+minio_version: RELEASE.2025-06-13T11-33-47Z
+
+
+# Dependencies - MongoDB
+# -----------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.17
+# TODO: We probably don't need to keep carrying forward the now unsupported versions
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.23
+mongo_extras_version_8: 8.0.17
+
+
+# Dependencies - Amlen
+# -----------------------------------------------------------------------------
+amlen_extras_version: 1.1.4
+
+
+# Dependencies - UDS
+# -----------------------------------------------------------------------------
+uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+uds_extras_version: 1.5.0
+
+
+# Dependencies - App Connect
+# -----------------------------------------------------------------------------
+appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
+
+
+# Dependencies - Suite License Service
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-sls/releases
+sls_version: 3.12.7
+
+
+# Dependencies - Truststore Manager
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
+tsm_version: 1.7.6
+
+
+# Dependencies - Data Dictionary
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
+dd_version: 1.1.23
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -116,45 +179,12 @@ aiservice_version:
   9.1.x: 9.1.13  # Updated
 
 
-# Extra Images for UDS
-# ------------------------------------------------------------------------------
-uds_extras_version: 1.5.0
-
-# Extra Images for Mongo
-# ------------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.17
-
-# Variables used to mirror additional mongo image versions
-mongo_extras_version_4: 4.4.21
-mongo_extras_version_5: 5.0.23
-mongo_extras_version_6: 6.0.12
-mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.17
-
-# Extra Images for Db2u
-# ------------------------------------------------------------------------------
-db2u_extras_version: 1.0.6 # No Update
-db2u_filter: db2
-
-# Extra Images for CCS used for PCD 5.2.0 Hotfix
-# ------------------------------------------------------------------------------
-ccs_extras_version: 11.0.0
-
-# Extra Images for IBM Watson Discovery
-# ------------------------------------------------------------------------------
-#wd_extras_version: 1.0.4
-
-# Extra Images for Amlen
-# ------------------------------------------------------------------------------
-amlen_extras_version: 1.1.4
-
-# Default Cloud Pak for Data version
-# ------------------------------------------------------------------------------
-cpd_product_version_default: 5.2.0
-
+# TODO: What is this?  It almost certainly should not be here.
 manage_extras_913: 9.1.3
-minio_version: RELEASE.2025-06-13T11-33-47Z
 
+
+# Editorial
+# ------------------------------------------------------------------------------
 editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
