@@ -22,15 +22,15 @@ db2u_version: 7.3.1+20250821.161005.16793     # Operator version 110509.0.6 to f
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_16717 #  Updated
+  9.2.x-feature: 9.2.0-pre.stable_16717 #  No Update
   9.1.x: 9.1.15                         # Updated
-  9.0.x: 9.0.23                         # Updated
+  9.0.x: 9.0.23                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_17064 #  Updated
+  9.2.x-feature: 9.2.0-pre.stable_17064 #  No Update
   9.1.x: 9.1.16                         # Updated
-  9.0.x: 9.0.24                         # Updated
+  9.0.x: 9.0.24                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
@@ -53,8 +53,8 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.23](https://www.ibm.com/support/pages/node/7267464) and [v9.1.14](https://www.ibm.com/support/pages/node/7267465)
-    - IBM Maximo Manage [v9.0.24](https://www.ibm.com/support/pages/node/7266691) and [v9.1.15](https://www.ibm.com/support/pages/node/7266690)
+    - IBM Maximo Application Suite Core Platform 9.1.15
+    - IBM Maximo Manage 9.1.16
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.12
   known_issues:
