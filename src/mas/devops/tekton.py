@@ -615,6 +615,69 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     secretsAPI.create(body=podTemplates, namespace=namespace)
 
 
+def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None) -> None:
+    """
+    Create or update mas-devops-slack secret in mas-pipelines namespace for update pipeline.
+
+    Creates the slack secret in mas-pipelines namespace if it exists and slack credentials are provided.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        slack_token (str, optional): Slack bot token for notifications. Defaults to None.
+        slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If namespace doesn't exist (will be caught and logged)
+    """
+    namespace = "mas-pipelines"
+
+    # Check if namespace exists
+    try:
+        namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
+        namespaceAPI.get(name=namespace)
+    except NotFoundError:
+        logger.warning(f"Namespace {namespace} does not exist, skipping slack secret creation")
+        return
+
+    # Only create secret if both slack_token and slack_channel are provided
+    if not slack_token or not slack_channel:
+        logger.debug("Slack token or channel not provided, skipping slack secret creation")
+        return
+
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # Delete existing secret if it exists
+    try:
+        secretsAPI.delete(name="mas-devops-slack", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    # Create the secret with SLACK_TOKEN and SLACK_CHANNEL
+    secret_data = {}
+
+    if slack_token:
+        secret_data["SLACK_TOKEN"] = base64.b64encode(slack_token.encode()).decode()
+
+    if slack_channel:
+        secret_data["SLACK_CHANNEL"] = base64.b64encode(slack_channel.encode()).decode()
+
+    mas_devops_secret = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "type": "Opaque",
+        "metadata": {
+            "name": "mas-devops-slack"
+        },
+        "data": secret_data
+    }
+
+    secretsAPI.create(body=mas_devops_secret, namespace=namespace)
+    logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
+
+
 def testCLI() -> None:
     pass
     # echo -n "Testing availability of $CLI_IMAGE in cluster ..."
