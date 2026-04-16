@@ -279,7 +279,7 @@ class SlackUtilMeta(type):
             namespace (str): Kubernetes namespace for the ConfigMap
             channelId (str): Slack channel ID where the thread was created
             threadId (str): Slack thread timestamp
-            instanceId (str): Name of the Mas Instance ID
+            instanceId (str): Name of the Mas Instance ID (can be None or empty for update pipeline)
 
         Returns:
             bool: True if ConfigMap was created successfully, False otherwise
@@ -291,7 +291,9 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            # For update pipeline (no instance ID), use "update" as identifier
+            instance_identifier = instanceId if instanceId else "update"
+            configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
             configmap = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
                     name=configmap_name,
@@ -316,7 +318,7 @@ class SlackUtilMeta(type):
 
         Parameters:
             namespace (str): Kubernetes namespace containing the ConfigMap
-            instanceId (str): Unique identifier for the pipeline run
+            instanceId (str): Unique identifier for the pipeline run (can be None or empty for update pipeline)
 
         Returns:
             dict | None: Dictionary containing threadId, channelId, pipelineName, and startTime, or None if not found
@@ -328,7 +330,9 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            # For update pipeline (no instance ID), use "update" as identifier
+            instance_identifier = instanceId if instanceId else "update"
+            configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
             configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.debug(f"Retrieved ConfigMap {configmap_name} from namespace {namespace}")
             return configmap.data
@@ -348,7 +352,7 @@ class SlackUtilMeta(type):
 
         Parameters:
             namespace (str): Kubernetes namespace containing the ConfigMap
-            instanceId (str): Unique identifier for the pipeline run
+            instanceId (str): Unique identifier for the pipeline run (can be None or empty for update pipeline)
             updates (dict): Dictionary of key-value pairs to add/update in the ConfigMap
 
         Returns:
@@ -361,7 +365,9 @@ class SlackUtilMeta(type):
             except Exception:
                 config.load_kube_config()
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            # For update pipeline (no instance ID), use "update" as identifier
+            instance_identifier = instanceId if instanceId else "update"
+            configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
 
             # Get existing ConfigMap
             configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
@@ -385,6 +391,7 @@ class SlackUtilMeta(type):
 
         Parameters:
             namespace (str): Kubernetes namespace containing the ConfigMap
+            instanceId (str): Unique identifier for the pipeline run (can be None or empty for update pipeline)
             pipelineRunName (str): Unique identifier for the pipeline run
 
         Returns:
@@ -398,7 +405,9 @@ class SlackUtilMeta(type):
                 config.load_kube_config()
 
             v1 = client.CoreV1Api()
-            configmap_name = f"slack-thread-{instanceId}-{pipelineRunName}"
+            # For update pipeline (no instance ID), use "update" as identifier
+            instance_identifier = instanceId if instanceId else "update"
+            configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
             v1.delete_namespaced_config_map(name=configmap_name, namespace=namespace)
             logger.info(f"Deleted ConfigMap {configmap_name} from namespace {namespace}")
             return True

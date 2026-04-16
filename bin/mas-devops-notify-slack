@@ -99,10 +99,12 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None 
 
 def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipelineName: str | None = None) -> dict | None:
     """Send Slack notification about pipeline start and create thread for all channels."""
-    namespace = f"mas-{instanceId}-pipelines"
+    # For update pipeline, use mas-pipelines namespace (no instance ID)
+    # For install/upgrade pipelines, use mas-{instanceId}-pipelines namespace
     if instanceId is None or instanceId == "":
-        print("instanceId must be set")
-        sys.exit(1)
+        namespace = "mas-pipelines"
+    else:
+        namespace = f"mas-{instanceId}-pipelines"
 
     # Check if thread already exists
     threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
@@ -152,10 +154,12 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
 
 def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
     """Send Slack notification about Ansible task start to all channels."""
-    namespace = f"mas-{instanceId}-pipelines"
+    # For update pipeline, use mas-pipelines namespace (no instance ID)
+    # For install/upgrade pipelines, use mas-{instanceId}-pipelines namespace
     if instanceId is None or instanceId == "":
-        print("instanceId must be set")
-        sys.exit(1)
+        namespace = "mas-pipelines"
+    else:
+        namespace = f"mas-{instanceId}-pipelines"
 
     # Get thread information, create if doesn't exist
     threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
@@ -204,10 +208,12 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
 
 def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
     """Send Slack notification about Ansible task completion status to all channels."""
-    namespace = f"mas-{instanceId}-pipelines"
+    # For update pipeline, use mas-pipelines namespace (no instance ID)
+    # For install/upgrade pipelines, use mas-{instanceId}-pipelines namespace
     if instanceId is None or instanceId == "":
-        print("instanceId must be set")
-        sys.exit(1)
+        namespace = "mas-pipelines"
+    else:
+        namespace = f"mas-{instanceId}-pipelines"
 
     # Get thread information, create if doesn't exist
     threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
@@ -287,10 +293,12 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
 
 def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None = None, pipelineName: str | None = None) -> bool:
     """Send Slack notification about pipeline completion to all channels and cleanup ConfigMap."""
-    namespace = f"mas-{instanceId}-pipelines"
+    # For update pipeline, use mas-pipelines namespace (no instance ID)
+    # For install/upgrade pipelines, use mas-{instanceId}-pipelines namespace
     if instanceId is None or instanceId == "":
-        print("instanceId must be set")
-        sys.exit(1)
+        namespace = "mas-pipelines"
+    else:
+        namespace = f"mas-{instanceId}-pipelines"
 
     # Get thread information
     threadInfo = SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
