@@ -281,18 +281,9 @@ def test_notifyPipelineStart_existing_thread(mock_get):
     assert result == existing_thread
 
 
-def test_notifyPipelineStart_missing_instance_id():
-    """Test notifyPipelineStart exits when instanceId is missing"""
-    with pytest.raises(SystemExit) as exc_info:
-        notify_slack.notifyPipelineStart(['#test-channel'], None, 'Install')
-    assert exc_info.value.code == 1
-
-
-def test_notifyPipelineStart_empty_instance_id():
-    """Test notifyPipelineStart exits when instanceId is empty"""
-    with pytest.raises(SystemExit) as exc_info:
-        notify_slack.notifyPipelineStart(['#test-channel'], '', 'Install')
-    assert exc_info.value.code == 1
+# These tests are removed because None/empty instanceId is now valid for update pipeline
+# See new tests: test_notifyPipelineStart_update_pipeline_no_instance_id and
+# test_notifyPipelineStart_update_pipeline_empty_instance_id
 
 
 @patch.object(SlackUtil, 'getThreadConfigMap')
@@ -383,11 +374,8 @@ def test_notifyAnsibleStart_creates_thread_if_missing(mock_update, mock_post, mo
     assert mock_post.call_count == 2  # Once for pipeline start, once for task start
 
 
-def test_notifyAnsibleStart_missing_instance_id():
-    """Test notifyAnsibleStart exits when instanceId is missing"""
-    with pytest.raises(SystemExit) as exc_info:
-        notify_slack.notifyAnsibleStart(['#test-channel'], 'task-name', None, 'Install')
-    assert exc_info.value.code == 1
+# This test is removed because None instanceId is now valid for update pipeline
+# See new test: test_notifyAnsibleStart_update_pipeline_no_instance_id
 
 
 @patch.object(SlackUtil, 'getThreadConfigMap')
@@ -468,11 +456,8 @@ def test_notifyAnsibleComplete_no_start_message(mock_post, mock_get):
     mock_post.assert_called_once()
 
 
-def test_notifyAnsibleComplete_missing_instance_id():
-    """Test notifyAnsibleComplete exits when instanceId is missing"""
-    with pytest.raises(SystemExit) as exc_info:
-        notify_slack.notifyAnsibleComplete(['#test-channel'], 0, 'task-name', None, 'Install')
-    assert exc_info.value.code == 1
+# This test is removed because None instanceId is now valid for update pipeline
+# See new test: test_notifyAnsibleComplete_update_pipeline_no_instance_id
 
 
 @patch.object(SlackUtil, 'getThreadConfigMap')
@@ -561,11 +546,8 @@ def test_notifyPipelineComplete_no_thread_info(mock_get):
     assert result is False
 
 
-def test_notifyPipelineComplete_missing_instance_id():
-    """Test notifyPipelineComplete exits when instanceId is missing"""
-    with pytest.raises(SystemExit) as exc_info:
-        notify_slack.notifyPipelineComplete(['#test-channel'], 0, None, 'Install')
-    assert exc_info.value.code == 1
+# This test is removed because None instanceId is now valid for update pipeline
+# See new test: test_notifyPipelineComplete_update_pipeline_no_instance_id
 
 
 @patch.object(SlackUtil, 'getThreadConfigMap')
@@ -627,3 +609,161 @@ def test_notifyPipelineComplete_with_duration(mock_delete, mock_post, mock_get):
     # Verify that postMessageBlocks was called
     mock_post.assert_called_once()
     mock_delete.assert_called_once()
+
+
+# Tests for update pipeline (no instance ID) scenarios
+@patch.object(SlackUtil, 'getThreadConfigMap')
+@patch.object(SlackUtil, 'postMessageBlocks')
+@patch.object(SlackUtil, 'createThreadConfigMap')
+@patch.object(SlackUtil, 'updateThreadConfigMap')
+def test_notifyPipelineStart_update_pipeline_no_instance_id(mock_update, mock_create, mock_post, mock_get):
+    """Test notifyPipelineStart for update pipeline with no instance ID"""
+    # First call returns None, second call returns the created thread info
+    thread_info = {
+        'instanceId': '',
+        'channel_0': 'C123',
+        'threadId_0': '1234567890.123456',
+        'channel_count': '1'
+    }
+    mock_get.side_effect = [None, thread_info]
+    mock_response = Mock()
+    mock_response.data = {'ok': True, 'channel': 'C123', 'ts': '1234567890.123456'}
+    mock_response.__getitem__ = lambda self, key: mock_response.data[key] if key in ['ts', 'channel'] else None
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineStart(['#test-channel'], None, 'Update')
+
+    assert result is not None
+    assert result == thread_info
+    mock_post.assert_called_once()
+    mock_create.assert_called_once()
+    # Verify that createThreadConfigMap was called with None for instanceId
+    assert mock_create.call_args[0][1] is None
+    mock_update.assert_called_once()
+
+
+@patch.object(SlackUtil, 'getThreadConfigMap')
+@patch.object(SlackUtil, 'postMessageBlocks')
+@patch.object(SlackUtil, 'updateThreadConfigMap')
+def test_notifyAnsibleStart_update_pipeline_no_instance_id(mock_update, mock_post, mock_get):
+    """Test notifyAnsibleStart for update pipeline with no instance ID"""
+    mock_get.return_value = {
+        'instanceId': '',
+        'channel_0': 'C123',
+        'threadId_0': '1234567890.123456',
+        'channel_count': '1'
+    }
+    mock_response = Mock()
+    mock_response.data = {'ok': True, 'ts': '1234567890.123457'}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyAnsibleStart(['#test-channel'], 'update-catalog', None, 'Update')
+
+    assert result is True
+    mock_post.assert_called_once()
+    mock_update.assert_called_once()
+    # Verify that updateThreadConfigMap was called with None for instanceId
+    assert mock_update.call_args[0][1] is None
+
+
+@patch.object(SlackUtil, 'getThreadConfigMap')
+@patch.object(SlackUtil, 'updateMessageBlocks')
+def test_notifyAnsibleComplete_update_pipeline_no_instance_id(mock_update, mock_get):
+    """Test notifyAnsibleComplete for update pipeline with no instance ID"""
+    mock_get.return_value = {
+        'instanceId': '',
+        'channel_0': 'C123',
+        'threadId_0': '1234567890.123456',
+        'task_update-catalog_0': '1234567890.123457',
+        'channel_count': '1'
+    }
+    mock_response = Mock()
+    mock_response.data = {'ok': True}
+    mock_update.return_value = mock_response
+
+    result = notify_slack.notifyAnsibleComplete(['#test-channel'], 0, 'update-catalog', None, 'Update')
+
+    assert result is True
+    mock_update.assert_called_once()
+
+
+@patch.object(SlackUtil, 'getThreadConfigMap')
+@patch.object(SlackUtil, 'postMessageBlocks')
+@patch.object(SlackUtil, 'deleteThreadConfigMap')
+def test_notifyPipelineComplete_update_pipeline_no_instance_id(mock_delete, mock_post, mock_get):
+    """Test notifyPipelineComplete for update pipeline with no instance ID"""
+    mock_get.return_value = {
+        'instanceId': '',
+        'channel_0': 'C123',
+        'threadId_0': '1234567890.123456',
+        'channel_count': '1'
+    }
+    mock_response = Mock()
+    mock_response.data = {'ok': True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineComplete(['#test-channel'], 0, None, 'Update')
+
+    assert result is True
+    mock_post.assert_called_once()
+    mock_delete.assert_called_once()
+    # Verify that deleteThreadConfigMap was called with None for instanceId
+    assert mock_delete.call_args[0][1] is None
+
+
+@patch.object(SlackUtil, 'getThreadConfigMap')
+@patch.object(SlackUtil, 'postMessageBlocks')
+@patch.object(SlackUtil, 'deleteThreadConfigMap')
+def test_notifyPipelineComplete_update_pipeline_empty_instance_id(mock_delete, mock_post, mock_get):
+    """Test notifyPipelineComplete for update pipeline with empty string instance ID"""
+    mock_get.return_value = {
+        'instanceId': '',
+        'channel_0': 'C123',
+        'threadId_0': '1234567890.123456',
+        'channel_count': '1'
+    }
+    mock_response = Mock()
+    mock_response.data = {'ok': True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineComplete(['#test-channel'], 0, '', 'Update')
+
+    assert result is True
+    mock_post.assert_called_once()
+    mock_delete.assert_called_once()
+    # Verify that deleteThreadConfigMap was called with empty string for instanceId
+    assert mock_delete.call_args[0][1] == ''
+
+
+@patch.object(SlackUtil, 'getThreadConfigMap')
+@patch.object(SlackUtil, 'postMessageBlocks')
+@patch.object(SlackUtil, 'createThreadConfigMap')
+@patch.object(SlackUtil, 'updateThreadConfigMap')
+def test_notifyPipelineStart_update_pipeline_multiple_channels(mock_update, mock_create, mock_post, mock_get):
+    """Test notifyPipelineStart for update pipeline with multiple channels and no instance ID"""
+    # First call returns None, second call returns the created thread info
+    thread_info = {
+        'instanceId': '',
+        'channel_0': 'C123',
+        'threadId_0': '1234567890.123456',
+        'channel_1': 'C456',
+        'threadId_1': '1234567890.123457',
+        'channel_count': '2'
+    }
+    mock_get.side_effect = [None, thread_info]
+    mock_response1 = Mock()
+    mock_response1.data = {'ok': True, 'channel': 'C123', 'ts': '1234567890.123456'}
+    mock_response1.__getitem__ = lambda self, key: mock_response1.data[key] if key in ['ts', 'channel'] else None
+    mock_response2 = Mock()
+    mock_response2.data = {'ok': True, 'channel': 'C456', 'ts': '1234567890.123457'}
+    mock_response2.__getitem__ = lambda self, key: mock_response2.data[key] if key in ['ts', 'channel'] else None
+    mock_post.return_value = [mock_response1, mock_response2]
+
+    result = notify_slack.notifyPipelineStart(['#channel1', '#channel2'], None, 'Update')
+
+    assert result is not None
+    # Verify that channel_count is set to 2
+    update_call_args = mock_update.call_args[0][2]
+    assert update_call_args['channel_count'] == '2'
+    # Verify namespace is mas-pipelines (not mas-None-pipelines)
+    assert mock_create.call_args[0][0] == 'mas-pipelines'
