@@ -143,3 +143,15 @@ spec:
     - name: skip_entitlement_key_flag
       value: "{{ skip_entitlement_key_flag }}"
 {%- endif %}
+{%- if odh_to_rhoai_migration is defined and odh_to_rhoai_migration != "" %}
+
+    # AI Service Migration (ODH to RHOAI)
+    # -------------------------------------------------------------------------
+    - name: odh_to_rhoai_migration
+      value: "{{ odh_to_rhoai_migration }}"
+{%- endif %}
+
+{%- if aiservice_instance_ids is defined and aiservice_instance_ids != "" %}
+    - name: aiservice_instance_ids
+      value: "{{ aiservice_instance_ids }}"
+{%- endif %}
