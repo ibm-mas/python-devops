@@ -35,10 +35,13 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 wsl_version: 11.0.0+20250521.202913.73                        # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
 wsl_runtimes_version: 11.0.0+20250515.090949.21               # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
 wml_version: 11.0.0+20250530.193146.282                       # Operator version 5.2.0
-postgress_version: 5.16.0+20250827.110911.2626                # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d 
+postgress_version: 5.16.0+20250827.110911.2626                # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
 
 ccs_build: 11.0.0+20250605.130237.468       # cpd 5.2.0 using ccs build
-# datarefinery_build: +20240517.202103.146
+
+# I have added this as a guess as to the actual version used, we are currently using the wsl_version, but that does not exist for datarefinery
+# See: https://ibm-mas.slack.com/archives/C02PUHKQB5L/p1770849370378689
+datarefinery_version: 11.0.0+20250513.203727.232
 
 spark_version: 11.0.0+20250604.163055.2097                      # Operator version 5.2.0
 cognos_version: 28.0.0+20250515.175459.10054                     # Operator version 25.0.0
@@ -110,7 +113,7 @@ mas_facilities_version:
 aiservice_version:
   9.2.x-feature: 9.2.0-pre.stable_16576 #  Updated
   9.1.x: 9.1.13  # Updated
- 
+
 
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
@@ -164,7 +167,7 @@ editorial:
     - IBM Maximo IoT [v8.7.32](https://www.ibm.com/support/pages/node/7267121), [v8.8.29](https://www.ibm.com/support/pages/node/7267122), [v9.0.18](https://www.ibm.com/support/pages/node/7267123) and [v9.1.9](https://www.ibm.com/support/pages/node/7267124)
     - IBM Maximo Monitor [v8.10.29](https://www.ibm.com/support/pages/node/7267303), [v8.11.27](https://www.ibm.com/support/pages/node/7267304), [v9.0.19](https://www.ibm.com/support/pages/node/7267305) and [v9.1.9](https://www.ibm.com/support/pages/node/7267306)
     - IBM Maximo Optimizer [v8.4.27](https://www.ibm.com/support/pages/node/7266732),[v8.5.26](https://www.ibm.com/support/pages/node/7266734), [v9.0.21](https://www.ibm.com/support/pages/node/7266738) and [v9.1.10](https://www.ibm.com/support/pages/node/7266745)
-    - IBM Maximo Assist/Collaborate [v9.0.15](https://www.ibm.com/support/pages/node/7267220), [v9.1.9](https://www.ibm.com/support/pages/node/7267222) 
+    - IBM Maximo Assist/Collaborate [v9.0.15](https://www.ibm.com/support/pages/node/7267220), [v9.1.9](https://www.ibm.com/support/pages/node/7267222)
     - IBM Maximo Predict [v8.8.14](https://www.ibm.com/support/pages/node/7267302), [v8.9.16](https://www.ibm.com/support/pages/node/7267299), [v9.0.13](https://www.ibm.com/support/pages/node/7267298) and [v9.1.6](https://www.ibm.com/support/pages/node/7267181)
     - IBM Maximo Visual Inspection [v9.0.18](https://www.ibm.com/support/pages/node/7267485)
     - IBM Maximo Real Estate and Facilities [v9.1.9](https://www.ibm.com/support/pages/node/7267132)
