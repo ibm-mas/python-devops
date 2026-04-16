@@ -303,6 +303,10 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
             if not response.data.get("ok", False):
                 allSuccess = False
 
+    # Special case, mas-update pipeline
+    if namespace == "mas-pipelines" and taskName == "post-deps-update-verify-ingress":
+        allSuccess: bool = notifyPipelineComplete(channels, rc, instanceId, pipelineName)
+
     return allSuccess
 
 
