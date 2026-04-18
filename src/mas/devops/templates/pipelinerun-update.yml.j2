@@ -14,6 +14,14 @@ spec:
     pipeline: "0"
 
   params:
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+
     # Catalog version
     # -------------------------------------------------------------------------
     - name: mas_catalog_version
