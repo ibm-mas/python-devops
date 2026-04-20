@@ -193,7 +193,18 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         catalog_namespace=catalogSourceNamespace
     )
     subscription = yaml.safe_load(renderedTemplate)
-    subscriptionsAPI.apply(body=subscription, namespace=namespace)
+
+    # apply should work regardless of if the subscription already exists or not,
+    # however if two parallel processes call it at the same time it can result 
+    # in a 409 error in that case trying again will resolve the issue
+    try:
+        subscriptionsAPI.apply(body=subscription, namespace=namespace)
+    except Exception as e:
+        if "409" in str(e) or "AlreadyExists" in str(e):
+            logger.warning(f"Subscription {name} already exists and produced a conflict, retrying the apply")
+            subscriptionsAPI.apply(body=subscription, namespace=namespace)
+        else:
+            raise
 
     # Wait for InstallPlan to be created
     logger.debug(f"Waiting for {packageName}.{namespace} InstallPlans")
