@@ -195,7 +195,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
     subscription = yaml.safe_load(renderedTemplate)
 
     # apply should work regardless of if the subscription already exists or not,
-    # however if two parallel processes call it at the same time it can result 
+    # however if two parallel processes call it at the same time it can result
     # in a 409 error in that case trying again will resolve the issue
     try:
         subscriptionsAPI.apply(body=subscription, namespace=namespace)
