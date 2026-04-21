@@ -14,6 +14,14 @@ spec:
     pipeline: "0"
 
   params:
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+
     # Catalog version
     # -------------------------------------------------------------------------
     - name: mas_catalog_version
@@ -134,4 +142,16 @@ spec:
     # without needing to pass this flag in
     - name: skip_entitlement_key_flag
       value: "{{ skip_entitlement_key_flag }}"
+{%- endif %}
+{%- if odh_to_rhoai_migration is defined and odh_to_rhoai_migration != "" %}
+
+    # AI Service Migration (ODH to RHOAI)
+    # -------------------------------------------------------------------------
+    - name: odh_to_rhoai_migration
+      value: "{{ odh_to_rhoai_migration }}"
+{%- endif %}
+
+{%- if aiservice_instance_ids is defined and aiservice_instance_ids != "" %}
+    - name: aiservice_instance_ids
+      value: "{{ aiservice_instance_ids }}"
 {%- endif %}
