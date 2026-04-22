@@ -545,6 +545,10 @@ spec:
     - name: mas_ingress_controller_name
       value: "{{ mas_ingress_controller_name }}"
 {%- endif %}
+{%- if mas_use_service_mesh is defined and mas_use_service_mesh != "" %}
+    - name: mas_use_service_mesh
+      value: "{{ mas_use_service_mesh }}"
+{%- endif %}
 {%- if mas_deployment_progression is defined and mas_deployment_progression != "" %}
     - name: mas_deployment_progression
       value: "{{ mas_deployment_progression }}"
