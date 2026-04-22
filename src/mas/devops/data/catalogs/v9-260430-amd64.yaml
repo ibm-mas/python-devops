@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:096e153b38b133de44b1c2dfa27ea8fbdecac81c6e3d73631df33ea775174e1a
+catalog_digest: sha256:7fba531ccd6db98504ae438803ededa598cf6f1c9e393bee3dd9fe23112c0d4e
 
 ocp_compatibility:
 - "4.16"
@@ -28,7 +28,7 @@ db2u_version: 7.3.1+20250821.161005.16793       # Operator version 110509.0.6 (h
 db2_channel_default: v110509.0                  # Default Channel version for db2u-operator
 events_version: 5.0.1                           # Operator version 5.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-events-operator)
 uds_version: 2.0.12                             # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.7             # No Update       # Operator version 3.12.7 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+sls_version: 3.12.8             # Updated       # Operator version 3.12.7 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.6              # No Update       # Operator version 1.7.6 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 dd_version: 1.1.23              # No Update       # Operator version 1.1.23 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
 appconnect_version: 6.2.0                       # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
@@ -85,10 +85,10 @@ mas_monitor_version:
   8.11.x: 8.11.27                       # No Update
 mas_optimizer_version:
   9.2.x-feature: 9.2.0-pre.stable_16613 # No Update
-  9.1.x: 9.1.10                         # No Update
-  9.0.x: 9.0.21                         # No Update
-  8.10.x: 8.4.27                        # No Update
-  8.11.x: 8.5.27                        # No Update
+  9.1.x: 9.1.11                         # Updated
+  9.0.x: 9.0.22                         # Updated
+  8.10.x: 8.4.28                        # Updated
+  8.11.x: 8.5.28                        # Updated
 mas_predict_version:
   9.1.x: 9.1.6                          # No Update
   9.0.x: 9.0.13                         # No Update
@@ -112,7 +112,7 @@ mas_facilities_version:
 # ------------------------------------------------------------------------------
 aiservice_version:
   9.2.x-feature: 9.2.0-pre.stable_16576 # No Update
-  9.1.x: 9.1.13                         # No Update
+  9.1.x: 9.1.14                         # Updated
 
 
 # Extra Images for UDS
