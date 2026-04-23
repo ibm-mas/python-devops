@@ -23,7 +23,7 @@ db2u_version: 7.3.1+20250821.161005.16793 # Operator version 110509.0.6 to find 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_16717   # No Update
+  9.2.x-feature: 9.2.0-pre.stable_21734   # Updated
   9.1.x: 9.1.16                           # Updated
   9.0.x: 9.0.24                           # Updated
   8.10.x: ""                              # Not Supported
