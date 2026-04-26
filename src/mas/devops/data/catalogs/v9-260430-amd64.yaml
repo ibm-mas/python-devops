@@ -74,7 +74,7 @@ mas_iot_version:
   8.10.x: 8.7.33                        # Updated
   8.11.x: 8.8.30                        # Updated
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_17064 # No Update
+  9.2.x-feature: 9.2.0-pre.stable_21956 # Updated
   9.1.x: 9.1.17                         # Updated
   9.0.x: 9.0.25                         # Updated
   8.10.x: 8.6.38                        # Updated
@@ -92,7 +92,7 @@ mas_optimizer_version:
   8.10.x: 8.4.28                        # Updated
   8.11.x: 8.5.28                        # Updated
 mas_predict_version:
-  9.2.x-feature: 9.2.0-pre.stable_22006 # Updated
+  9.2.x-feature: 9.2.0-pre.stable_22454 # Updated
   9.1.x: 9.1.7                          # Updated
   9.0.x: 9.0.14                         # Updated
   8.10.x: 8.8.15                        # Updated
