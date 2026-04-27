@@ -973,3 +973,59 @@ def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{aiserviceInstanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{aiserviceInstanceId}-upgrade-{timestamp}"
     return pipelineURL
+
+
+def prepareInstallRBAC(dynClient: DynamicClient, namespace: str, instanceId: str, installRBACDir: str) -> None:
+    """
+    Apply the minimal install RBAC bundle for a MAS instance.
+
+    The bundle is defined by the kustomization under cli/rbac/install and creates the install-user and install-pipeline service accounts
+    and their associated role bindings.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        instanceId (str): MAS instance ID used to render the RBAC templates
+        installRBACDir (str): Path to the directory containing the RBAC kustomization and templates
+
+    Returns:
+        None
+
+    Raises:
+        FileNotFoundError: If the RBAC bundle directory or kustomization file does not exists
+    """
+    kustomizationFile = path.join(installRBACDir, "kustomization.yaml")
+    if not path.isfile(kustomizationFile):
+        logger.error(f"Cannot find kustomization file for install RBAC at {kustomizationFile}")
+        raise FileNotFoundError(f"Cannot find kustomization file for install RBAC at {kustomizationFile}")
+
+    with open(kustomizationFile, "r") as file:
+        kustomization = yaml.safe_load(file)
+
+    env = Environment()
+    for resourcePath in kustomization.get("resources", []):
+        manifestFile = path.join(installRBACDir, resourcePath)
+        if not path.isfile(manifestFile):
+            logger.error(f"Cannot find RBAC manifest file at {manifestFile}")
+            raise FileNotFoundError(f"Cannot find RBAC manifest file at {manifestFile}")
+
+        with open(manifestFile, "r") as file:
+            template = env.from_string(file.read())
+            renderedManifest = template.render(mas_instance_id=instanceId)
+            logger.debug(f"Applying RBAC manifest {manifestFile} for instance {instanceId}:\n{renderedManifest}")
+
+        for resourceBody in yaml.safe_load_all(renderedManifest):
+            if resourceBody is None:
+                continue
+
+            apiVersion = resourceBody["apiVersion"]
+            kind = resourceBody["kind"]
+            metadata = resourceBody.get("metadata", {})
+            name = metadata.get("name", "<unnamed>")
+            namespace = metadata.get("namespace")
+
+            logger.debug(f"Applying RBAC resource {kind}/{name} in namespace {namespace} for instance {instanceId}")
+            resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
+            if namespace:
+                resourceAPI.apply(body=resourceBody, namespace=namespace)
+            else:
+                resourceAPI.apply(body=resourceBody)
