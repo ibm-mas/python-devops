@@ -117,7 +117,7 @@ aiservice_version:
   9.2.x-feature: 9.2.0-pre.stable_21747 # Updated
   9.1.x: 9.1.14                         # Updated
 
-aiservice-tenant_version:
+aiservice_tenant_version:
   9.2.x-feature: 9.2.0-pre.stable_21714 # Updated
 
 
