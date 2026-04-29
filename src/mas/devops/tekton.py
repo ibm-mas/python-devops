@@ -634,7 +634,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     secretsAPI.create(body=db2LicenseFile, namespace=namespace)
 
 
-def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None) -> None:
+def prepareUpdateSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None, db2LicenseFile: dict | None = None) -> None:
     """
     Create or update mas-devops-slack secret in mas-pipelines namespace for update pipeline.
 
@@ -644,6 +644,7 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
         dynClient (DynamicClient): OpenShift Dynamic Client
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
 
     Returns:
         None
@@ -695,6 +696,23 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
 
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
+
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
 
 
 def testCLI() -> None:
