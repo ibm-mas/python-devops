@@ -159,3 +159,11 @@ spec:
     - name: aiservice_instance_ids
       value: "{{ aiservice_instance_ids }}"
 {%- endif %}
+workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+
+    # The Db2 license file
+    - name: shared-db2
+      secret:
+        secretName: pipeline-db2-license
