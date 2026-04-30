@@ -17,7 +17,7 @@ ocp_compatibility:
 
 uds_version: 2.0.12                       # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.8       # Updated       # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.6        # No Update       # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+tsm_version: 1.7.6        # Updated       # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 db2u_version: 7.3.1+20250821.161005.16793 # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
@@ -54,8 +54,8 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v8.10.37](https://www.ibm.com/support/pages/node/7270974), [v8.11.34](https://www.ibm.com/support/pages/node/7270975), [v9.0.24](https://www.ibm.com/support/pages/node/7270976) and [v9.1.16](https://www.ibm.com/support/pages/node/7270977)
-    - IBM Maximo Manage [v8.6.38](https://www.ibm.com/support/pages/node/7270968), [v8.7.32](https://www.ibm.com/support/pages/node/7270969), [v9.0.25](https://www.ibm.com/support/pages/node/7270970) and [v9.1.17](https://www.ibm.com/support/pages/node/7270971)
+    - IBM Maximo Application Suite Core Platform [v9.0.24](https://www.ibm.com/support/pages/node/7270976) and [v9.1.16](https://www.ibm.com/support/pages/node/7270977)
+    - IBM Maximo Manage [v9.0.25](https://www.ibm.com/support/pages/node/7270970) and [v9.1.17](https://www.ibm.com/support/pages/node/7270971)
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.12
   known_issues:
