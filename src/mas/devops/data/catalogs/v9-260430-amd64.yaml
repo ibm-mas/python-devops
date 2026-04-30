@@ -168,23 +168,19 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v8.10.36](https://www.ibm.com/support/pages/node/7267462), [v8.11.36](https://www.ibm.com/support/pages/node/7267463), [v9.0.23](https://www.ibm.com/support/pages/node/7267464) and [v9.1.14](https://www.ibm.com/support/pages/node/7267465)
-    - IBM Maximo Manage [v8.6.37](https://www.ibm.com/support/pages/node/7266693), [v8.7.31](https://www.ibm.com/support/pages/node/7266692), [v9.0.24](https://www.ibm.com/support/pages/node/7266691) and [v9.1.15](https://www.ibm.com/support/pages/node/7266690)
-    - IBM Maximo IoT [v8.7.32](https://www.ibm.com/support/pages/node/7267121), [v8.8.29](https://www.ibm.com/support/pages/node/7267122), [v9.0.18](https://www.ibm.com/support/pages/node/7267123) and [v9.1.9](https://www.ibm.com/support/pages/node/7267124)
-    - IBM Maximo Monitor [v8.10.29](https://www.ibm.com/support/pages/node/7267303), [v8.11.27](https://www.ibm.com/support/pages/node/7267304), [v9.0.19](https://www.ibm.com/support/pages/node/7267305) and [v9.1.9](https://www.ibm.com/support/pages/node/7267306)
-    - IBM Maximo Optimizer [v8.4.27](https://www.ibm.com/support/pages/node/7266732),[v8.5.26](https://www.ibm.com/support/pages/node/7266734), [v9.0.21](https://www.ibm.com/support/pages/node/7266738) and [v9.1.10](https://www.ibm.com/support/pages/node/7266745)
-    - IBM Maximo Assist/Collaborate [v9.0.15](https://www.ibm.com/support/pages/node/7267220), [v9.1.9](https://www.ibm.com/support/pages/node/7267222)
-    - IBM Maximo Predict [v8.8.14](https://www.ibm.com/support/pages/node/7267302), [v8.9.16](https://www.ibm.com/support/pages/node/7267299), [v9.0.13](https://www.ibm.com/support/pages/node/7267298) and [v9.1.6](https://www.ibm.com/support/pages/node/7267181)
-    - IBM Maximo Visual Inspection [v9.0.18](https://www.ibm.com/support/pages/node/7267485)
-    - IBM Maximo Real Estate and Facilities [v9.1.9](https://www.ibm.com/support/pages/node/7267132)
-    - IBM Maximo AI Service [v9.1.13](https://www.ibm.com/support/pages/node/7266231)
+    - IBM Maximo Application Suite Core Platform [v8.10.37](https://www.ibm.com/support/pages/node/7270974), [v8.11.34](https://www.ibm.com/support/pages/node/7270975), [v9.0.24](https://www.ibm.com/support/pages/node/7270976) and [v9.1.16](https://www.ibm.com/support/pages/node/7270977)
+    - IBM Maximo Manage [v8.6.38](https://www.ibm.com/support/pages/node/7270968), [v8.7.32](https://www.ibm.com/support/pages/node/7270969), [v9.0.25](https://www.ibm.com/support/pages/node/7270970) and [v9.1.17](https://www.ibm.com/support/pages/node/7270971)
+    - IBM Maximo IoT [v8.7.33](https://www.ibm.com/support/pages/node/7270683), [v8.8.30](https://www.ibm.com/support/pages/node/7270684), [v9.0.19](https://www.ibm.com/support/pages/node/7270685) and [v9.1.10](https://www.ibm.com/support/pages/node/7270686)
+    - IBM Maximo Monitor [v8.10.30](https://www.ibm.com/support/pages/node/7271126), [v8.11.28](https://www.ibm.com/support/pages/node/7271125), [v9.0.20](https://www.ibm.com/support/pages/node/7271124) and [v9.1.10](https://www.ibm.com/support/pages/node/7270981)
+    - IBM Maximo Optimizer [v8.4.27](https://www.ibm.com/support/pages/node/7266732),[v8.5.28](https://www.ibm.com/support/pages/node/7270110), [v9.0.22](https://www.ibm.com/support/pages/node/7270109) and [v9.1.11](https://www.ibm.com/support/pages/node/7270108)
+    - IBM Maximo Assist/Collaborate [v9.0.16](https://www.ibm.com/support/pages/node/7270678), [v9.1.10](https://www.ibm.com/support/pages/node/7270662)
+    - IBM Maximo Predict [v8.8.15](https://www.ibm.com/support/pages/node/7270810), [v8.9.17](https://www.ibm.com/support/pages/node/7270809), [v9.0.14](https://www.ibm.com/support/pages/node/7270807) and [v9.1.7](https://www.ibm.com/support/pages/node/7270808)
+    - IBM Maximo Visual Inspection [v8.9.21](https://www.ibm.com/support/pages/node/7270958), [v9.0.19](https://www.ibm.com/support/pages/node/7270959), [v9.1.12](https://www.ibm.com/support/pages/node/7270961)
+    - IBM Maximo Real Estate and Facilities [v9.1.10](https://www.ibm.com/support/pages/node/7270843)
+    - IBM Maximo AI Service [v9.1.14](https://www.ibm.com/support/pages/node/7270125)
     - IBM Data Dictionary v1.1
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.12
 
   known_issues:
-    - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
-    - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
-    - title: A known issue has been identified in Db2u warehouse operator in this catalog. Customers restoring/upgrading Db2, intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. If you are facing this problem, please refer to the workaround provided in this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).
-    - title: A known issue exists in the February 26, 2026 release affecting IBM Maximo Real Estate and Facilities. Customers with MREF installed should avoid upgrading to the February 9.1.8 release. Installation of MREF 9.1.x should be deferred until the March 2026 patch.
-    - title: A know issue in IBM Maximo Real Estate and Facilities, users may encounter failures during upgrade scenarios (9.1.x → 9.2 FC) and experience slow installation in airgap environments in the March 26, 2026 release.
+    - title: A know issue in IBM Maximo Real Estate and Facilities, users may encounter failures during upgrade scenarios (9.1.9 → 9.2 FC).
