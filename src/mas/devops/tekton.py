@@ -665,7 +665,6 @@ def prepareUpdateSecrets(dynClient: DynamicClient, slack_token: str = None, slac
     # Only create secret if both slack_token and slack_channel are provided
     if not slack_token or not slack_channel:
         logger.debug("Slack token or channel not provided, skipping slack secret creation")
-        return
 
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
