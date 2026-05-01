@@ -9,6 +9,7 @@
 # *****************************************************************************
 
 import logging
+import re
 from time import sleep
 from os import path
 from typing import Optional
@@ -116,6 +117,55 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
     elif len(subscriptions.items) > 0:
         logger.warning(f"More than one ({len(subscriptions.items)}) Subscriptions found for {packageName} in {namespace}")
     return subscriptions.items[0]
+
+
+def _getSubscriptionConstraintMessage(subscriptionResource):
+    conditions = getattr(getattr(subscriptionResource, "status", None), "conditions", [])
+    for condition in conditions:
+        conditionType = getattr(condition, "type", None)
+        reason = getattr(condition, "reason", None)
+        message = getattr(condition, "message", None)
+        if conditionType == "ResolutionFailed" and reason == "ConstraintsNotSatisfiable" and message is not None:
+            return message
+    return None
+
+
+def _parseConstraintMessage(message: str):
+    existingCSVMatch = re.search(r"clusterserviceversion\s+([A-Za-z0-9.\-]+)\s+exists and is not referenced by a subscription", message)
+    requiredCSVMatch = re.search(r"subscription\s+[A-Za-z0-9.\-]+\s+requires\s+[^\s]+/([A-Za-z0-9.\-]+)", message)
+
+    existingCSV = existingCSVMatch.group(1) if existingCSVMatch else None
+    requiredCSV = requiredCSVMatch.group(1) if requiredCSVMatch else None
+
+    scenario = None
+    if existingCSV and requiredCSV:
+        existingVersion = existingCSV.rsplit(".v", 1)[-1] if ".v" in existingCSV else existingCSV
+        requiredVersion = requiredCSV.rsplit(".v", 1)[-1] if ".v" in requiredCSV else requiredCSV
+        if existingVersion > requiredVersion:
+            scenario = "catalog_behind"
+        else:
+            scenario = "marketplace_cache"
+
+    return {
+        "scenario": scenario,
+        "existingCSV": existingCSV,
+        "requiredCSV": requiredCSV
+    }
+
+
+def _deleteInstallPlansBySelector(installPlanAPI, namespace: str, labelSelector: str):
+    installPlans = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
+    for item in installPlans.items:
+        logger.warning(f"Deleting stale InstallPlan {item.metadata.name} in {namespace}")
+        installPlanAPI.delete(name=item.metadata.name, namespace=namespace)
+
+
+def _deleteMarketplaceCatalogJobs(dynClient: DynamicClient, catalogSourceNamespace: str = "openshift-marketplace"):
+    jobsAPI = dynClient.resources.get(api_version="batch/v1", kind="Job")
+    jobs = jobsAPI.get(namespace=catalogSourceNamespace)
+    for job in jobs.items:
+        logger.warning(f"Deleting marketplace catalog cache job {job.metadata.name} in {catalogSourceNamespace}")
+        jobsAPI.delete(name=job.metadata.name, namespace=catalogSourceNamespace)
 
 
 def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: Optional[str] = None, catalogSource: Optional[str] = None, catalogSourceNamespace: str = "openshift-marketplace", config: Optional[dict] = None, installMode: str = "OwnNamespace", installPlanApproval: Optional[str] = None, startingCSV: Optional[str] = None):
@@ -322,9 +372,69 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
 
     # Wait for Subscription to complete
     logger.debug(f"Waiting for Subscription {name} in {namespace}")
+    constraintRecoveryAttempted = False
     while True:
         subscriptionResource = subscriptionsAPI.get(name=name, namespace=namespace)
         state = getattr(subscriptionResource.status, "state", None)
+        constraintMessage = _getSubscriptionConstraintMessage(subscriptionResource)
+
+        if constraintMessage is not None:
+            parsedConstraint = _parseConstraintMessage(constraintMessage)
+            existingCSV = parsedConstraint["existingCSV"]
+            requiredCSV = parsedConstraint["requiredCSV"]
+            scenario = parsedConstraint["scenario"]
+
+            logger.warning(f"Subscription {name} in {namespace} hit ConstraintsNotSatisfiable: {constraintMessage}")
+
+            if scenario == "catalog_behind":
+                logger.error(
+                    f"Catalog appears behind for {packageName} in {namespace}: existing CSV {existingCSV} is newer than required CSV {requiredCSV}. "
+                    f"Rebuild or republish the operator catalog, delete the stale Subscription and CSV, then retry."
+                )
+                deleteSubscription(dynClient, namespace, packageName)
+                raise OLMException(
+                    f"Catalog is behind for {packageName} in {namespace}. Rebuild the operator catalog, "
+                    f"remove stale subscription/CSV, and retry. existingCSV={existingCSV}, requiredCSV={requiredCSV}"
+                )
+
+            elif scenario == "marketplace_cache":
+                if constraintRecoveryAttempted:
+                    logger.error(
+                        f"Constraint recovery already attempted for {packageName} in {namespace} but subscription is still stuck. "
+                        f"Manual cleanup may be required. existingCSV={existingCSV}, requiredCSV={requiredCSV}"
+                    )
+                    raise OLMException(
+                        f"Subscription {name} in {namespace} is still stuck after automatic constraint recovery. "
+                        f"existingCSV={existingCSV}, requiredCSV={requiredCSV}"
+                    )
+
+                logger.warning(
+                    f"Detected stale OLM resolution for {packageName} in {namespace}. "
+                    f"Cleaning stale subscription, CSV, installplans and marketplace jobs before retrying."
+                )
+                deleteSubscription(dynClient, namespace, packageName)
+                _deleteInstallPlansBySelector(installPlanAPI, namespace, labelSelector)
+                _deleteMarketplaceCatalogJobs(dynClient, catalogSourceNamespace)
+
+                constraintRecoveryAttempted = True
+                sleep(30)
+                logger.info(f"Re-applying subscription {name} in {namespace} after constraint recovery")
+                try:
+                    subscriptionsAPI.apply(body=subscription, namespace=namespace)
+                except Exception as e:
+                    if "409" in str(e) or "AlreadyExists" in str(e):
+                        logger.warning(f"Subscription {name} already exists and produced a conflict during recovery, retrying the apply")
+                        subscriptionsAPI.apply(body=subscription, namespace=namespace)
+                    else:
+                        raise
+                sleep(30)
+                continue
+
+            else:
+                logger.error(f"Unable to distinguish ConstraintsNotSatisfiable scenario for {packageName} in {namespace}")
+                raise OLMException(
+                    f"Subscription {name} in {namespace} hit ConstraintsNotSatisfiable but scenario could not be determined: {constraintMessage}"
+                )
 
         # When manual approval is used with startingCSV, the state will be "UpgradePending"
         # after the initial installation completes (indicating newer versions are available
