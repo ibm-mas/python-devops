@@ -21,6 +21,7 @@ from jinja2 import Environment, FileSystemLoader
 import yaml
 
 from .ocp import createNamespace
+from .utils import isVersionEqualOrAfter
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,9 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
 
 def _getSubscriptionConstraintMessage(subscriptionResource):
     conditions = getattr(getattr(subscriptionResource, "status", None), "conditions", [])
+    if not isinstance(conditions, list):
+        return None
+
     for condition in conditions:
         conditionType = getattr(condition, "type", None)
         reason = getattr(condition, "reason", None)
@@ -137,14 +141,15 @@ def _parseConstraintMessage(message: str):
     existingCSV = existingCSVMatch.group(1) if existingCSVMatch else None
     requiredCSV = requiredCSVMatch.group(1) if requiredCSVMatch else None
 
+    existingVersion = existingCSV.rsplit(".v", 1)[-1] if existingCSV and ".v" in existingCSV else None
+    requiredVersion = requiredCSV.rsplit(".v", 1)[-1] if requiredCSV and ".v" in requiredCSV else None
+
     scenario = None
-    if existingCSV and requiredCSV:
-        existingVersion = existingCSV.rsplit(".v", 1)[-1] if ".v" in existingCSV else existingCSV
-        requiredVersion = requiredCSV.rsplit(".v", 1)[-1] if ".v" in requiredCSV else requiredCSV
-        if existingVersion > requiredVersion:
-            scenario = "catalog_behind"
-        else:
+    if existingVersion and requiredVersion:
+        if isVersionEqualOrAfter(existingVersion, requiredVersion):
             scenario = "marketplace_cache"
+        else:
+            scenario = "catalog_behind"
 
     return {
         "scenario": scenario,
