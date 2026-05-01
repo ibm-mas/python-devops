@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:ab5c8a8b9cfdf43f9c105ca6b59a51c4515bf1e93ef7b20d66e5abfb702bef0e
+catalog_digest: sha256:28a6ba509cb960381dd67312173d13daadf0c7aa06d05775cf81e84789043443
 
 ocp_compatibility:
 - "4.16"
@@ -16,22 +16,22 @@ ocp_compatibility:
 - "4.21"
 
 uds_version: 2.0.12                       # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.7         # No Update     # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.6          # No Update     # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+sls_version: 3.12.8         # Updated     # Operator version 3.12.5 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.6          # Updated     # Operator version 1.7.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
 db2u_version: 7.3.1+20250821.161005.16793 # Operator version 110509.0.6 to find the version 7.3.1+20250821.161005.16793, search db2u-operator digest on repo (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x-feature: 9.2.0-pre.stable_16717 # No Update
-  9.1.x: 9.1.15                         # No Update
-  9.0.x: 9.0.23                         # No Update
+  9.2.x-feature: 9.2.0-pre.stable_21734 # Updated
+  9.1.x: 9.1.16                         # Updated
+  9.0.x: 9.0.24                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x-feature: 9.2.0-pre.stable_17064 # No Update
-  9.1.x: 9.1.16                         # No Update
-  9.0.x: 9.0.24                         # No Update
+  9.2.x-feature: 9.2.0-pre.stable_21956 # Updated
+  9.1.x: 9.1.17                         # Updated
+  9.0.x: 9.0.25                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
@@ -54,9 +54,9 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.23](https://www.ibm.com/support/pages/node/7267464) and [v9.1.14](https://www.ibm.com/support/pages/node/7267465)
-    - IBM Maximo Manage [v9.0.24](https://www.ibm.com/support/pages/node/7266691) and [v9.1.15](https://www.ibm.com/support/pages/node/7266690)
+    - IBM Maximo Application Suite Core Platform [v9.0.24](https://www.ibm.com/support/pages/node/7270976) and [v9.1.16](https://www.ibm.com/support/pages/node/7270977)
+    - IBM Maximo Manage [v9.0.25](https://www.ibm.com/support/pages/node/7270970) and [v9.1.17](https://www.ibm.com/support/pages/node/7270971)
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.12
   known_issues:
-    - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
+    - title: A know issue in IBM Maximo Real Estate and Facilities, users may encounter failures during upgrade scenarios (9.1.9 → 9.2 FC).
