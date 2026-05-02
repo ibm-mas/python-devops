@@ -561,10 +561,6 @@ spec:
     - name: mas_permission_mode
       value: "{{ mas_permission_mode }}"
 {%- endif %}
-{%- if mas_selected_apps is defined and mas_selected_apps != "" %}
-    - name: mas_selected_apps
-      value: "{{ mas_selected_apps }}"
-{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
