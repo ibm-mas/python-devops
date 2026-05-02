@@ -22,11 +22,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_PREINSTALL_MAS_RBAC_ROOT = "/opt/app-root/rbac"
 
 
-def _validate_preinstall_mas_rbac_permission_mode(permissionMode: str) -> None:
-    if permissionMode not in {"cluster", "namespaced", "minimal"}:
-        raise ValueError(f"Unsupported permission mode: {permissionMode}")
-
-
 def _validate_selected_apps(selectedApps: list[str] | None) -> set[str]:
     if not selectedApps:
         return set()
@@ -79,6 +74,11 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -
 
     if not (lowerName.endswith(".yml") or lowerName.endswith(".yaml")):
         return False
+
+    # TODO: Sort out this openshift-ingress exception properly.
+    # For now, always apply this manifest in any permission mode.
+    if lowerName == "role-essential-core-entitymgr-suite-openshift-ingress.yaml":
+        return True
 
     if permissionMode == "cluster":
         return lowerName.startswith("cluster-role-")
@@ -164,7 +164,7 @@ def _discover_preinstall_mas_rbac_files(
             )
         )
 
-    return sorted(set(manifestFiles))
+    return list(dict.fromkeys(manifestFiles))
 
 
 def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, permissionMode: str, selectedApps: set[str]) -> set[str]:

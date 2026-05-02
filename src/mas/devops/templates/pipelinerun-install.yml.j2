@@ -561,6 +561,10 @@ spec:
     - name: mas_permission_mode
       value: "{{ mas_permission_mode }}"
 {%- endif %}
+{%- if mas_internal_certificate_issuer_kind is defined and mas_internal_certificate_issuer_kind != "" %}
+    - name: mas_internal_certificate_issuer_kind
+      value: "{{ mas_internal_certificate_issuer_kind }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
