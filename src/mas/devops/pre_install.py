@@ -174,10 +174,10 @@ def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, permissionMode: str,
     # if permissionMode == "minimal":
     #     return set()
 
-    namespaces = {f"mas-{masInstanceId}-core"}
-
     if permissionMode == "cluster":
-        return namespaces
+        return set()
+
+    namespaces = {f"mas-{masInstanceId}-core"}
 
     appNamespaces = {
         "aiservice": f"mas-{masInstanceId}-aiservice",
