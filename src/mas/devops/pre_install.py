@@ -136,9 +136,10 @@ def _discover_preinstall_mas_rbac_files(
 ) -> list[str]:
     if not rbacRootDir:
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
-
-    if permissionMode == "minimal":
-        return []
+    
+    # Due to ingresscontroller role we need to apply the preinstall RBAC for the minimal permission mode
+    # if permissionMode == "minimal":
+    #     return []
 
     selectedOperatorDirs = _get_selected_operator_dirs(selectedApps)
 
@@ -168,8 +169,10 @@ def _discover_preinstall_mas_rbac_files(
 
 
 def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, permissionMode: str, selectedApps: set[str]) -> set[str]:
-    if permissionMode == "minimal":
-        return set()
+    
+    # Due to ingresscontroller role we need to apply the preinstall RBAC for the minimal permission mode
+    # if permissionMode == "minimal":
+    #     return set()
 
     namespaces = {f"mas-{masInstanceId}-core"}
 
