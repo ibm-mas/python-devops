@@ -557,6 +557,10 @@ spec:
     - name: mas_feature_usage
       value: "{{ mas_feature_usage }}"
 {%- endif %}
+{%- if mas_issuer_kind is defined and mas_issuer_kind != "" %}
+    - name: mas_issuer_kind
+      value: "{{ mas_issuer_kind }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
