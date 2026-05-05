@@ -563,12 +563,12 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, db2LicenseFile: dict | None = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
     Creates five secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
-    pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.
+    pipeline-sls-entitlement, pipeline-certificates, pipeline-pod-templates and pipeline-aiservice-config.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -580,6 +580,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
 
     Returns:
         None
@@ -702,6 +703,24 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         }
     secretsAPI.create(body=podTemplates, namespace=namespace)
 
+    # 5. Secret/pipeline-aiservice-config
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-aiservice-config", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if aiserviceConfig is None:
+        aiserviceConfig = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-aiservice-config"
+            }
+        }
+    secretsAPI.create(body=aiserviceConfig, namespace=namespace)
+    
     # 6. Secret/pipeline-db2-license
     # -------------------------------------------------------------------------
     try:
