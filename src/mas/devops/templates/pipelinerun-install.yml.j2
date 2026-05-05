@@ -541,6 +541,10 @@ spec:
     - name: mas_ingress_controller_name
       value: "{{ mas_ingress_controller_name }}"
 {%- endif %}
+{%- if mas_use_service_mesh is defined and mas_use_service_mesh != "" %}
+    - name: mas_use_service_mesh
+      value: "{{ mas_use_service_mesh }}"
+{%- endif %}
 {%- if mas_deployment_progression is defined and mas_deployment_progression != "" %}
     - name: mas_deployment_progression
       value: "{{ mas_deployment_progression }}"
@@ -823,6 +827,10 @@ spec:
       value: "{{ tenant_entitlement_start_date }}"
     - name: tenant_entitlement_end_date
       value: "{{ tenant_entitlement_end_date }}"
+{%- if tenant_scheduling_config_file is defined and tenant_scheduling_config_file != "" %}
+    - name: tenant_scheduling_cfg_file
+      value: "{{ tenant_scheduling_config_file }}"
+{%- endif %}
 
     #Removed rsl_org, rsl_rl, rsl_token
 
@@ -890,7 +898,7 @@ spec:
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
 
-    # AI Service - watsonX
+    # AI Service - Certificate Issuer
     # -------------------------------------------------------------------------
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
@@ -933,3 +941,9 @@ spec:
     - name: shared-certificates
       secret:
         secretName: pipeline-certificates
+
+    # AI Service configurations
+    # -------------------------------------------------------------------------
+    - name: shared-aiservice-config
+      secret:
+        secretName: pipeline-aiservice-config
