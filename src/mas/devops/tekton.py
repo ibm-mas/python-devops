@@ -720,7 +720,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
             }
         }
     secretsAPI.create(body=aiserviceConfig, namespace=namespace)
-    
+
     # 6. Secret/pipeline-db2-license
     # -------------------------------------------------------------------------
     try:
