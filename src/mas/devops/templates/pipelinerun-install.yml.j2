@@ -831,6 +831,10 @@ spec:
       value: "{{ tenant_entitlement_start_date }}"
     - name: tenant_entitlement_end_date
       value: "{{ tenant_entitlement_end_date }}"
+{%- if tenant_scheduling_config_file is defined and tenant_scheduling_config_file != "" %}
+    - name: tenant_scheduling_cfg_file
+      value: "{{ tenant_scheduling_config_file }}"
+{%- endif %}
 
     # RSL
     # -------------------------------------------------------------------------
@@ -905,7 +909,7 @@ spec:
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
 
-    # AI Service - watsonX
+    # AI Service - Certificate Issuer
     # -------------------------------------------------------------------------
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
@@ -948,3 +952,9 @@ spec:
     - name: shared-certificates
       secret:
         secretName: pipeline-certificates
+
+    # AI Service configurations
+    # -------------------------------------------------------------------------
+    - name: shared-aiservice-config
+      secret:
+        secretName: pipeline-aiservice-config
