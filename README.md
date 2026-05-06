@@ -21,7 +21,7 @@ from mas.devops.tekton import installOpenShiftPipelines, updateTektonDefinitions
 instanceId = "mymas"
 pipelinesNamespace = f"mas-{instanceId}-pipelines"
 
-# Create an OpenShift client
+# Create  an OpenShift client
 dynClient = dynamic.DynamicClient(
     api_client.ApiClient(configuration=config.load_kube_config())
 )
