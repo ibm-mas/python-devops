@@ -161,7 +161,6 @@ redis_extras_version: 2.1.40             # No Update
 # ------------------------------------------------------------------------------
 cpd_product_version_default: 5.2.0       # No Update
 
-manage_extras_913: 9.1.3
 minio_version: RELEASE.2025-06-13T11-33-47Z
 
 editorial:
