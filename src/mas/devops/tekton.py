@@ -564,22 +564,24 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
     Creates five secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
-    pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.
+    pipeline-sls-entitlement, pipeline-certificates, pipeline-pod-templates and pipeline-aiservice-config.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to create secrets in (format: mas-{instance_id}-pipelines or aiservice-{instance_id}-pipelines)
-        slsLicenseFile (str, optional): SLS license file content. Defaults to None (empty secret).
+        slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
         certs (str, optional): Certificate data. Defaults to None (empty secret).
         podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
 
     Returns:
         None
@@ -705,8 +707,44 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         }
     secretsAPI.create(body=podTemplates, namespace=namespace)
 
+    # 5. Secret/pipeline-aiservice-config
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-aiservice-config", namespace=namespace)
+    except NotFoundError:
+        pass
 
-def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None) -> None:
+    if aiserviceConfig is None:
+        aiserviceConfig = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-aiservice-config"
+            }
+        }
+    secretsAPI.create(body=aiserviceConfig, namespace=namespace)
+
+    # 6. Secret/pipeline-db2-license
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+
+
+def prepareUpdateSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None, db2LicenseFile: dict | None = None) -> None:
     """
     Create or update mas-devops-slack secret in mas-pipelines namespace for update pipeline.
 
@@ -716,6 +754,7 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
         dynClient (DynamicClient): OpenShift Dynamic Client
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
 
     Returns:
         None
@@ -736,7 +775,6 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
     # Only create secret if both slack_token and slack_channel are provided
     if not slack_token or not slack_channel:
         logger.debug("Slack token or channel not provided, skipping slack secret creation")
-        return
 
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
@@ -767,6 +805,23 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
 
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
+
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
 
 
 def testCLI() -> None:
