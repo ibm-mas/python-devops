@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:0bfac9285f78d3466049af97cde087f2fa7e7442752c584036e296e2258779c0
+catalog_digest: sha256:090ab4b9736a6b7747fe91ca5038150321acb4b51704a0f7a3768e5423206360
 
 ocp_compatibility:
 - "4.16"
@@ -24,7 +24,7 @@ db2u_version: 7.3.1+20250821.161005.16793 # Operator version 110509.0.6 to find 
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_21734 # No Update
-  9.1.x: 9.1.16                         # No Update
+  9.1.x: 9.1.17                         # Updated
   9.0.x: 9.0.24                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
