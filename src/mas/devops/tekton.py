@@ -9,6 +9,7 @@
 # *****************************************************************************
 
 import logging
+import re
 import yaml
 import base64
 
@@ -572,7 +573,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The namespace to create secrets in (format: mas-{instance_id}-pipelines)
+        namespace (str): The namespace to create secrets in (format: mas-{instance_id}-pipelines or aiservice-{instance_id}-pipelines)
         slsLicenseFile (str, optional): SLS license file content. Defaults to None (empty secret).
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
         certs (str, optional): Certificate data. Defaults to None (empty secret).
@@ -588,10 +589,13 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     """
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
-    # Extract instance ID from namespace (format: mas-{instance_id}-pipelines)
+    # Extract instance ID from namespace using regex
+    # Supports both formats: mas-{instance_id}-pipelines and aiservice-{instance_id}-pipelines
     instance_id = None
-    if namespace.startswith("mas-") and namespace.endswith("-pipelines"):
-        instance_id = namespace[4:-10]  # Remove "mas-" prefix and "-pipelines" suffix
+    namespace_pattern = r'^(?:mas|aiservice)-(.+)-pipelines$'
+    match = re.match(namespace_pattern, namespace)
+    if match:
+        instance_id = match.group(1)
 
     # 0. Secret/mas-devops-slack
     # -------------------------------------------------------------------------
@@ -763,74 +767,6 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
 
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
-
-
-def prepareAIServiceInstallSecrets(dynClient: DynamicClient, instanceId: str, slack_token: str = None, slack_channel: str = None) -> None:
-    """
-    Create or update mas-devops-slack secret in aiservice-{instanceId}-pipelines namespace for AI Service install pipeline.
-
-    Creates the slack secret in aiservice-{instanceId}-pipelines namespace if it exists and slack credentials are provided.
-    This function is specifically for AI Service installations which use a different namespace pattern than MAS installations.
-
-    Parameters:
-        dynClient (DynamicClient): OpenShift Dynamic Client
-        instanceId (str): AI Service instance ID
-        slack_token (str, optional): Slack bot token for notifications. Defaults to None.
-        slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
-
-    Returns:
-        None
-
-    Raises:
-        NotFoundError: If namespace doesn't exist (will be caught and logged)
-    """
-    namespace = f"aiservice-{instanceId}-pipelines"
-
-    # Check if namespace exists
-    try:
-        namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
-        namespaceAPI.get(name=namespace)
-    except NotFoundError:
-        logger.warning(f"Namespace {namespace} does not exist, skipping slack secret creation")
-        return
-
-    # Only create secret if both slack_token and slack_channel are provided
-    if not slack_token or not slack_channel:
-        logger.debug("Slack token or channel not provided, skipping slack secret creation")
-        return
-
-    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
-
-    # Delete existing secret if it exists
-    try:
-        secretsAPI.delete(name="mas-devops-slack", namespace=namespace)
-    except NotFoundError:
-        pass
-
-    # Create the secret with MAS_INSTANCE_ID, SLACK_TOKEN and SLACK_CHANNEL
-    # Note: We use MAS_INSTANCE_ID (not AISERVICE_INSTANCE_ID) to maintain consistency with MAS install secrets
-    secret_data = {
-        "MAS_INSTANCE_ID": base64.b64encode(instanceId.encode()).decode()
-    }
-
-    if slack_token:
-        secret_data["SLACK_TOKEN"] = base64.b64encode(slack_token.encode()).decode()
-
-    if slack_channel:
-        secret_data["SLACK_CHANNEL"] = base64.b64encode(slack_channel.encode()).decode()
-
-    mas_devops_secret = {
-        "apiVersion": "v1",
-        "kind": "Secret",
-        "type": "Opaque",
-        "metadata": {
-            "name": "mas-devops-slack"
-        },
-        "data": secret_data
-    }
-
-    secretsAPI.create(body=mas_devops_secret, namespace=namespace)
-    logger.info(f"Created mas-devops-slack secret with MAS_INSTANCE_ID={instanceId} in namespace {namespace}")
 
 
 def testCLI() -> None:
