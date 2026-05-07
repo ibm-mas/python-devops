@@ -189,7 +189,7 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
 
     # Send task start message as thread reply to all channels
     taskMessage = [
-        SlackUtil.buildSection(f"⏳ **{taskName}** - Started")
+        SlackUtil.buildSection(f"⏳ *{taskName}* - Started")
     ]
 
     allSuccess = True
@@ -292,7 +292,7 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
 
         # Build the completion message
         taskMessage = [
-            SlackUtil.buildSection(f"{emoji} **{taskName}** - {status}{durationText}")
+            SlackUtil.buildSection(f"{emoji} *{taskName}* - {status}{durationText}")
         ]
         if rc != 0:
             taskMessage.append(SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details"))
