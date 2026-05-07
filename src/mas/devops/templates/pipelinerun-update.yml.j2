@@ -14,6 +14,14 @@ spec:
     pipeline: "0"
 
   params:
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+
     # Catalog version
     # -------------------------------------------------------------------------
     - name: mas_catalog_version
@@ -44,6 +52,16 @@ spec:
     # -------------------------------------------------------------------------
     - name: db2_namespace
       value: "{{ db2_namespace }}"
+{%- if db2_v12_upgrade is defined and db2_v12_upgrade != "" %}
+    - name: db2_v12_upgrade
+      value: "{{ db2_v12_upgrade }}"
+{%- endif %}
+{%- if db2_license_file is defined and db2_license_file != "" %}
+    - name: db2_license_file
+      value: "{{ db2_license_file }}"
+{%- endif %}
+    - name: db2_channel
+      value: "{{ db2_channel }}"
 {%- endif %}
 {%- if mongodb_namespace is defined and mongodb_namespace != "" %}
 
@@ -147,3 +165,11 @@ spec:
     - name: aiservice_instance_ids
       value: "{{ aiservice_instance_ids }}"
 {%- endif %}
+  workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+
+    # The Db2 license file
+    - name: shared-db2
+      secret:
+        secretName: pipeline-db2-license
