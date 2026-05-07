@@ -23,7 +23,7 @@ from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClasses, getStorageClassVolumeBindingMode
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClasses, getStorageClassVolumeBindingMode, getClusterVersion
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +157,93 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
         return True
     else:
         logger.error("OpenShift Pipelines postgres PVC is NOT ready")
+        return False
+
+
+def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
+    """
+    Enable the OpenShift Pipelines console plugin for OCP 4.21+.
+
+    In OpenShift 4.21 and later, the Pipelines console plugin must be manually
+    enabled by patching the Console operator configuration. This function:
+    1. Detects the OCP version
+    2. Checks if version >= 4.21
+    3. Enables the plugin if not already enabled
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+
+    Returns:
+        bool: True if plugin is enabled or already enabled, False on error
+    """
+    try:
+        # Get cluster version
+        clusterVersion = getClusterVersion(dynClient)
+        if not clusterVersion:
+            logger.warning("Unable to determine cluster version, skipping plugin enablement")
+            return True  # Non-fatal, return True to continue
+
+        logger.debug(f"Detected OpenShift version: {clusterVersion}")
+
+        # Parse version (e.g., "4.21.0" -> major=4, minor=21)
+        versionParts = clusterVersion.split('.')
+        if len(versionParts) < 2:
+            logger.warning(f"Unable to parse cluster version '{clusterVersion}', skipping plugin enablement")
+            return True
+
+        try:
+            majorVersion = int(versionParts[0])
+            minorVersion = int(versionParts[1])
+        except ValueError:
+            logger.warning(f"Unable to parse version numbers from '{clusterVersion}', skipping plugin enablement")
+            return True
+
+        # Check if version requires plugin enablement (4.21+)
+        requiresPlugin = (majorVersion == 4 and minorVersion >= 21) or (majorVersion > 4)
+
+        if not requiresPlugin:
+            logger.info(f"OpenShift version {clusterVersion} does not require manual plugin enablement")
+            return True
+
+        logger.info(f"OpenShift version {clusterVersion} requires Pipelines console plugin to be enabled")
+
+        # Get Console Operator
+        consoleAPI = dynClient.resources.get(api_version="operator.openshift.io/v1", kind="Console")
+        console = consoleAPI.get(name="cluster")
+
+        # Check if plugin is already enabled
+        currentPlugins = console.spec.plugins if hasattr(console.spec, 'plugins') and console.spec.plugins else []
+        pluginName = "pipelines-console-plugin"
+
+        if pluginName in currentPlugins:
+            logger.info("Pipelines console plugin is already enabled")
+            return True
+
+        # Enable the plugin by patching the Console operator
+        logger.info("Enabling Pipelines console plugin...")
+
+        # Create patch to add plugin to the list
+        updatedPlugins = list(currentPlugins) + [pluginName]
+        patch = {
+            "spec": {
+                "plugins": updatedPlugins
+            }
+        }
+
+        consoleAPI.patch(
+            name="cluster",
+            body=patch,
+            content_type="application/merge-patch+json"
+        )
+
+        logger.info("Successfully enabled Pipelines console plugin")
+        return True
+
+    except NotFoundError as e:
+        logger.warning(f"Console operator not found: {e}")
+        return True  # Non-fatal, plugin can be enabled manually
+    except Exception as e:
+        logger.error(f"Error enabling Pipelines console plugin: {e}")
         return False
 
 
@@ -476,22 +563,24 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
     Creates five secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
-    pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.
+    pipeline-sls-entitlement, pipeline-certificates, pipeline-pod-templates and pipeline-aiservice-config.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The namespace to create secrets in (format: mas-{instance_id}-pipelines)
-        slsLicenseFile (str, optional): SLS license file content. Defaults to None (empty secret).
+        namespace (str): The namespace to create secrets in
+        slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
         certs (str, optional): Certificate data. Defaults to None (empty secret).
         podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
 
     Returns:
         None
@@ -614,8 +703,44 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         }
     secretsAPI.create(body=podTemplates, namespace=namespace)
 
+    # 5. Secret/pipeline-aiservice-config
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-aiservice-config", namespace=namespace)
+    except NotFoundError:
+        pass
 
-def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None) -> None:
+    if aiserviceConfig is None:
+        aiserviceConfig = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-aiservice-config"
+            }
+        }
+    secretsAPI.create(body=aiserviceConfig, namespace=namespace)
+
+    # 6. Secret/pipeline-db2-license
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+
+
+def prepareUpdateSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None, db2LicenseFile: dict | None = None) -> None:
     """
     Create or update mas-devops-slack secret in mas-pipelines namespace for update pipeline.
 
@@ -625,6 +750,7 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
         dynClient (DynamicClient): OpenShift Dynamic Client
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
 
     Returns:
         None
@@ -645,7 +771,6 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
     # Only create secret if both slack_token and slack_channel are provided
     if not slack_token or not slack_channel:
         logger.debug("Slack token or channel not provided, skipping slack secret creation")
-        return
 
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
@@ -676,6 +801,23 @@ def prepareUpdateSlackSecrets(dynClient: DynamicClient, slack_token: str = None,
 
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
+
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
 
 
 def testCLI() -> None:

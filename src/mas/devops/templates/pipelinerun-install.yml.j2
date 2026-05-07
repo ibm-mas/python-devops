@@ -118,6 +118,10 @@ spec:
       value: "{{ db2_timezone }}"
     - name: db2u_kind
       value: "{{ db2u_kind }}"
+  {%- if db2_license_file is defined and db2_license_file != "" %}
+    - name: db2_license_file
+      value: "{{ db2_license_file }}"
+  {%- endif %}
   {%- if db2_meta_storage_accessmode is defined and db2_meta_storage_accessmode != "" %}
 
     # Dependencies - Db2 - Access Mode
@@ -557,6 +561,10 @@ spec:
     - name: mas_feature_usage
       value: "{{ mas_feature_usage }}"
 {%- endif %}
+{%- if mas_issuer_kind is defined and mas_issuer_kind != "" %}
+    - name: mas_issuer_kind
+      value: "{{ mas_issuer_kind }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
@@ -827,6 +835,10 @@ spec:
       value: "{{ tenant_entitlement_start_date }}"
     - name: tenant_entitlement_end_date
       value: "{{ tenant_entitlement_end_date }}"
+{%- if tenant_scheduling_config_file is defined and tenant_scheduling_config_file != "" %}
+    - name: tenant_scheduling_cfg_file
+      value: "{{ tenant_scheduling_config_file }}"
+{%- endif %}
 
     # RSL
     # -------------------------------------------------------------------------
@@ -901,7 +913,7 @@ spec:
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
 
-    # AI Service - watsonX
+    # AI Service - Certificate Issuer
     # -------------------------------------------------------------------------
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
@@ -944,3 +956,14 @@ spec:
     - name: shared-certificates
       secret:
         secretName: pipeline-certificates
+    
+    # The Db2 license file
+    - name: shared-db2
+      secret:
+        secretName: pipeline-db2-license
+
+    # AI Service configurations
+    # -------------------------------------------------------------------------
+    - name: shared-aiservice-config
+      secret:
+        secretName: pipeline-aiservice-config
