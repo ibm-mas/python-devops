@@ -9,6 +9,7 @@
 # *****************************************************************************
 
 import logging
+import re
 import yaml
 import base64
 
@@ -572,7 +573,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The namespace to create secrets in
+        namespace (str): The namespace to create secrets in (format: mas-{instance_id}-pipelines or aiservice-{instance_id}-pipelines)
         slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).
         db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
         additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
@@ -590,10 +591,13 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
     """
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
-    # Extract instance ID from namespace (format: mas-{instance_id}-pipelines)
+    # Extract instance ID from namespace using regex
+    # Supports both formats: mas-{instance_id}-pipelines and aiservice-{instance_id}-pipelines
     instance_id = None
-    if namespace.startswith("mas-") and namespace.endswith("-pipelines"):
-        instance_id = namespace[4:-10]  # Remove "mas-" prefix and "-pipelines" suffix
+    namespace_pattern = r'^(?:mas|aiservice)-(.+)-pipelines$'
+    match = re.match(namespace_pattern, namespace)
+    if match:
+        instance_id = match.group(1)
 
     # 0. Secret/mas-devops-slack
     # -------------------------------------------------------------------------
