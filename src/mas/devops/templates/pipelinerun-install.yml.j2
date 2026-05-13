@@ -823,6 +823,10 @@ spec:
       value: "{{ aiservice_instance_id }}"
     - name: aiservice_channel
       value: "{{ aiservice_channel }}"
+{%- if configure_aiassistant is defined and configure_aiassistant != "" %}
+    - name: configure_aiassistant
+      value: "{{ configure_aiassistant }}"
+{%- endif %}
 
     - name: environment_type
       value: "{{ environment_type }}"
