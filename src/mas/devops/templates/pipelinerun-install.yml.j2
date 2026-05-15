@@ -627,7 +627,7 @@ spec:
       value: "{{ mas_appws_bindings_jdbc_manage }}"
   {%- endif %}
   {%- if mas_appws_bindings_kafka_manage is defined and mas_appws_bindings_kafka_manage != "" %}
-    - name: mas_appws_bindings_kafka_manage
+    - name: mas_appws_bindings_kafka
       value: "{{ mas_appws_bindings_kafka_manage }}"
   {%- endif %}
   {%- if mas_app_settings_persistent_volumes_flag is defined and mas_app_settings_persistent_volumes_flag != "" %}
