@@ -844,11 +844,11 @@ spec:
       value: "{{ tenant_scheduling_config_file }}"
 {%- endif %}
 
-{%- if rsl_ca_cert is defined and rsl_ca_cert != "" %}
+{%- if rsl_ca_crt is defined and rsl_ca_crt != "" %}
     # RSL - CA Certificate
     # -------------------------------------------------------------------------
-    - name: rsl_ca_cert
-      value: "{{ rsl_ca_cert }}"
+    - name: rsl_ca_crt
+      value: "{{ rsl_ca_crt }}"
 {%- endif %}
 
     # S3
