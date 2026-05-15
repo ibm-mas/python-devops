@@ -840,7 +840,12 @@ spec:
       value: "{{ tenant_scheduling_config_file }}"
 {%- endif %}
 
-    #Removed rsl_org, rsl_rl, rsl_token
+{%- if rsl_ca_cert is defined and rsl_ca_cert != "" %}
+    # RSL - CA Certificate
+    # -------------------------------------------------------------------------
+    - name: rsl_ca_cert
+      value: "{{ rsl_ca_cert }}"
+{%- endif %}
 
     # S3
     # -------------------------------------------------------------------------
