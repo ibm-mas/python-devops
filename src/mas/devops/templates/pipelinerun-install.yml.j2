@@ -104,7 +104,7 @@ spec:
     - name: db2_action_facilities
       value: "{{ db2_action_facilities}}"
     - name: db2_action_aiservice
-      value: "{{ db2_action_aiservice }}"   
+      value: "{{ db2_action_aiservice }}"
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -626,6 +626,10 @@ spec:
     - name: mas_appws_bindings_jdbc_manage
       value: "{{ mas_appws_bindings_jdbc_manage }}"
   {%- endif %}
+  {%- if mas_appws_bindings_kafka_manage is defined and mas_appws_bindings_kafka_manage != "" %}
+    - name: mas_appws_bindings_kafka_manage
+      value: "{{ mas_appws_bindings_kafka_manage }}"
+  {%- endif %}
   {%- if mas_app_settings_persistent_volumes_flag is defined and mas_app_settings_persistent_volumes_flag != "" %}
     - name: mas_app_settings_persistent_volumes_flag
       value: "{{ mas_app_settings_persistent_volumes_flag }}"
@@ -958,7 +962,7 @@ spec:
     - name: shared-certificates
       secret:
         secretName: pipeline-certificates
-    
+
     # The Db2 license file
     - name: shared-db2
       secret:
