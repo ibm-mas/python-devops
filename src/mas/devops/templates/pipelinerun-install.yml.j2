@@ -545,7 +545,7 @@ spec:
     - name: mas_ingress_controller_name
       value: "{{ mas_ingress_controller_name }}"
 {%- endif %}
-{%- if mas_manual_route_mgmt is defined %}
+{%- if mas_manual_route_mgmt is defined and mas_manual_route_mgmt != "" %}
     - name: mas_manual_route_mgmt
       value: "{{ mas_manual_route_mgmt }}"
 {%- endif %}
