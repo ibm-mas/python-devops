@@ -104,7 +104,7 @@ spec:
     - name: db2_action_facilities
       value: "{{ db2_action_facilities}}"
     - name: db2_action_aiservice
-      value: "{{ db2_action_aiservice }}"   
+      value: "{{ db2_action_aiservice }}"
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -630,6 +630,10 @@ spec:
     - name: mas_appws_bindings_jdbc_manage
       value: "{{ mas_appws_bindings_jdbc_manage }}"
   {%- endif %}
+  {%- if mas_appws_bindings_kafka_manage is defined and mas_appws_bindings_kafka_manage != "" %}
+    - name: mas_appws_bindings_kafka_manage
+      value: "{{ mas_appws_bindings_kafka_manage }}"
+  {%- endif %}
   {%- if mas_app_settings_persistent_volumes_flag is defined and mas_app_settings_persistent_volumes_flag != "" %}
     - name: mas_app_settings_persistent_volumes_flag
       value: "{{ mas_app_settings_persistent_volumes_flag }}"
@@ -827,6 +831,10 @@ spec:
       value: "{{ aiservice_instance_id }}"
     - name: aiservice_channel
       value: "{{ aiservice_channel }}"
+{%- if configure_aiassistant is defined and configure_aiassistant != "" %}
+    - name: configure_aiassistant
+      value: "{{ configure_aiassistant }}"
+{%- endif %}
 
     - name: environment_type
       value: "{{ environment_type }}"
@@ -844,14 +852,12 @@ spec:
       value: "{{ tenant_scheduling_config_file }}"
 {%- endif %}
 
-    # RSL
+{%- if rsl_ca_crt is defined and rsl_ca_crt != "" %}
+    # RSL - CA Certificate
     # -------------------------------------------------------------------------
-    - name: rsl_url
-      value: "{{ rsl_url }}"
-    - name: rsl_org_id
-      value: "{{ rsl_org_id }}"
-    - name: rsl_token
-      value: "{{ rsl_token }}"
+    - name: rsl_ca_crt
+      value: "{{ rsl_ca_crt }}"
+{%- endif %}
 
     # S3
     # -------------------------------------------------------------------------
@@ -960,7 +966,7 @@ spec:
     - name: shared-certificates
       secret:
         secretName: pipeline-certificates
-    
+
     # The Db2 license file
     - name: shared-db2
       secret:
