@@ -545,6 +545,10 @@ spec:
     - name: mas_ingress_controller_name
       value: "{{ mas_ingress_controller_name }}"
 {%- endif %}
+{%- if mas_manual_route_mgmt is defined and mas_manual_route_mgmt != "" %}
+    - name: mas_manual_route_mgmt
+      value: "{{ mas_manual_route_mgmt }}"
+{%- endif %}
 {%- if mas_use_service_mesh is defined and mas_use_service_mesh != "" %}
     - name: mas_use_service_mesh
       value: "{{ mas_use_service_mesh }}"
