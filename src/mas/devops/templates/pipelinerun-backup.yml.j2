@@ -164,3 +164,35 @@ spec:
     - name: backup_s3_secret_key
       value: "{{ backup_s3_secret_key }}"
     {% endif %}
+
+    # Facilities Application Backup Configuration
+    {% if backup_facilities_app is defined and backup_facilities_app != "" %}
+    - name: backup_facilities_app
+      value: "{{ backup_facilities_app }}"
+    {% endif %}
+    {% if backup_facilities_db is defined and backup_facilities_db != "" %}
+    - name: backup_facilities_db
+      value: "{{ backup_facilities_db }}"
+    {% endif %}
+    {% if facilities_workspace_id is defined and facilities_workspace_id != "" %}
+    - name: facilities_workspace_id
+      value: "{{ facilities_workspace_id }}"
+    {% endif %}
+
+    # Facilities Db2 Backup Configuration
+    {% if facilities_db2_namespace is defined and facilities_db2_namespace != "" %}
+    - name: facilities_db2_namespace
+      value: "{{ facilities_db2_namespace }}"
+    {% endif %}
+    {% if facilities_db2_instance_name is defined and facilities_db2_instance_name != "" %}
+    - name: facilities_db2_instance_name
+      value: "{{ facilities_db2_instance_name }}"
+    {% endif %}
+    {% if facilities_db2_backup_type is defined and facilities_db2_backup_type != "" %}
+    - name: facilities_db2_backup_type
+      value: "{{ facilities_db2_backup_type }}"
+    {% endif %}
+    {% if facilities_db2_backup_vendor is defined and facilities_db2_backup_vendor != "" %}
+    - name: facilities_db2_backup_vendor
+      value: "{{ facilities_db2_backup_vendor }}"
+    {% endif %}
