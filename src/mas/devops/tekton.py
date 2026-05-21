@@ -20,7 +20,7 @@ from time import sleep
 
 from kubeconfig import kubectl
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
+from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError, ApiException
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -1152,7 +1152,54 @@ def prepareInstallRBAC(dynClient: DynamicClient, namespace: str, instanceId: str
 
             logger.debug(f"Applying RBAC resource {kind}/{name} in namespace {namespace} for instance {instanceId}")
             resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
-            if namespace:
-                resourceAPI.apply(body=resourceBody, namespace=namespace)
-            else:
-                resourceAPI.apply(body=resourceBody)
+
+            # Optimized retry logic for transient API server errors
+            max_retries = 10  # Reduced from 30 to 10 retries
+            base_delay = 1  # Reduced initial delay from 2s to 1s
+            max_delay = 15  # Reduced max delay from 30s to 15s
+
+            for attempt in range(max_retries):
+                try:
+                    if namespace:
+                        resourceAPI.apply(body=resourceBody, namespace=namespace)
+                    else:
+                        resourceAPI.apply(body=resourceBody)
+
+                    # Log success only if there were previous failures
+                    if attempt > 0:
+                        logger.info(f"Successfully applied {kind}/{name} after {attempt + 1} attempts")
+                    break  # Success, exit retry loop
+
+                except ApiException as e:
+                    # Check if it's a retryable error (429, 503, 504, or API server shutdown)
+                    is_retryable = (e.status in [429, 503, 504] or "apiserver is shutting down" in str(e).lower() or "connection refused" in str(e).lower() or "too many requests" in str(e).lower())
+
+                    if is_retryable and attempt < max_retries - 1:
+                        # Exponential backoff with jitter to avoid thundering herd
+                        import random
+                        wait_time = min(base_delay * (2 ** attempt), max_delay)
+                        jitter = random.uniform(0, 0.1 * wait_time)  # Add up to 10% jitter
+                        total_wait = wait_time + jitter
+
+                        logger.warning(
+                            f"API server temporarily unavailable for {kind}/{name} "
+                            f"(attempt {attempt + 1}/{max_retries}, status: {e.status}). "
+                            f"Retrying in {total_wait:.1f}s..."
+                        )
+                        sleep(total_wait)
+                    elif is_retryable:
+                        # Exhausted all retries
+                        logger.error(
+                            f"Failed to apply RBAC resource {kind}/{name} after {max_retries} attempts. "
+                            f"API server may be unavailable. Last error: {e.status} - {str(e)[:200]}"
+                        )
+                        raise
+                    else:
+                        # Non-retryable error (permissions, invalid resource, etc.)
+                        logger.error(f"Failed to apply RBAC resource {kind}/{name}: {e.status} - {str(e)[:200]}")
+                        raise
+
+                except Exception as e:
+                    # Catch any other unexpected errors
+                    logger.error(f"Unexpected error applying RBAC resource {kind}/{name}: {type(e).__name__} - {str(e)[:200]}")
+                    raise
