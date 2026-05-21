@@ -75,11 +75,6 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -
     if not (lowerName.endswith(".yml") or lowerName.endswith(".yaml")):
         return False
 
-    # TODO: Sort out this openshift-ingress exception properly.
-    # For now, always apply this manifest in any permission mode.
-    if lowerName == "role-essential-core-entitymgr-suite-openshift-ingress.yaml":
-        return True
-
     if permissionMode == "cluster":
         return lowerName.startswith("cluster-role-")
 
@@ -137,9 +132,6 @@ def _discover_preinstall_mas_rbac_files(
     if not rbacRootDir:
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
 
-    # Due to ingresscontroller role we need to apply the preinstall RBAC for the minimal permission mode
-    # if permissionMode == "minimal":
-    #     return []
 
     selectedOperatorDirs = _get_selected_operator_dirs(selectedApps)
 
@@ -280,11 +272,21 @@ def applyPreInstallMASRBAC(
     if not rbacRootDir:
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
 
-    validatedApps = _validate_selected_apps(selectedApps)
-
-    if not validatedApps:
-        logger.info("No selected apps provided for pre-install MAS RBAC apply")
+    # Minimal mode - essential roles will be applied by each operator
+    if permissionMode == "minimal":
+        logger.info("Minimal permission mode - essential roles will be applied by each operator")
         return
+
+    # For cluster mode, use ibm-mas operator only (apps not required)
+    if permissionMode == "cluster":
+        validatedApps = {"core"}  # Use core which maps to ibm-mas operator
+        logger.info("Cluster permission mode - using ibm-mas operator only")
+    else:
+        # For namespaced mode, validate and use selected apps
+        validatedApps = _validate_selected_apps(selectedApps)
+        if not validatedApps:
+            logger.info("No selected apps provided for namespaced mode pre-install MAS RBAC apply")
+            return
 
     manifestFiles = _discover_preinstall_mas_rbac_files(
         rbacRootDir=rbacRootDir,
