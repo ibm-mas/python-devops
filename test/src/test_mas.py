@@ -8,12 +8,15 @@
 #
 # *****************************************************************************
 
+import pytest
 from openshift import dynamic
 from kubernetes import config
 from kubernetes.client import api_client
 from kubernetes.dynamic.resource import ResourceInstance
 
 from mas.devops import mas
+
+pytestmark = pytest.mark.openshift
 
 dynClient = dynamic.DynamicClient(
     api_client.ApiClient(configuration=config.load_kube_config())
