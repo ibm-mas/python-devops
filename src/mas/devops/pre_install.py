@@ -132,7 +132,6 @@ def _discover_preinstall_mas_rbac_files(
     if not rbacRootDir:
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
 
-
     selectedOperatorDirs = _get_selected_operator_dirs(selectedApps)
 
     sourceRoots = [
