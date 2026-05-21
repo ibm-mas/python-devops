@@ -55,6 +55,7 @@ setup(
         'openshift',               # Apache Software License
         'kubernetes',              # Apache Software License
         'kubeconfig',              # BSD License
+        'setuptools',              # MIT License (required to install kubeconfig)
         'jinja2',                  # BSD License
         'jinja2-base64-filters',   # MIT License
         'semver',                  # BSD License
@@ -69,7 +70,6 @@ setup(
             'pytest',         # MIT License
             'pytest-mock',    # MIT License
             'requests-mock',  # Apache Software License
-            'setuptools',     # MIT License
         ],
         'docs': [
             'mkdocs',                      # BSD License
