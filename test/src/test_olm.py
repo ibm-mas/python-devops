@@ -8,25 +8,18 @@
 #
 # *****************************************************************************
 
-import pytest
 from openshift import dynamic
 from kubernetes import config
 from kubernetes.client import api_client
 
 from mas.devops import olm, ocp
 
-pytestmark = pytest.mark.openshift
+dynClient = dynamic.DynamicClient(
+    api_client.ApiClient(configuration=config.load_kube_config())
+)
 
 
-@pytest.fixture(scope="module")
-def dynClient():
-    """Create DynamicClient for OpenShift cluster access."""
-    return dynamic.DynamicClient(
-        api_client.ApiClient(configuration=config.load_kube_config())
-    )
-
-
-def test_get_manifest(dynClient):
+def test_get_manifest():
     manifest = olm.getPackageManifest(dynClient, "ibm-sls")
     assert manifest is not None
     assert manifest.metadata.name == "ibm-sls"
@@ -37,12 +30,12 @@ def test_get_manifest(dynClient):
     assert manifest.status.packageName == "ibm-sls"
 
 
-def test_get_manifest_none(dynClient):
+def test_get_manifest_none():
     manifest = olm.getPackageManifest(dynClient, "ibm-sls2")
     assert manifest is None
 
 
-def test_crud(dynClient):
+def test_crud():
     namespace = "cli-fvt-1"
     subscription = olm.applySubscription(dynClient, namespace, "ibm-sls", packageChannel="3.x")
     assert subscription.metadata.name == "ibm-sls"
@@ -69,7 +62,7 @@ def test_crud(dynClient):
     assert failedSubscriptionLookup2 is None
 
 
-def test_crud_with_config(dynClient):
+def test_crud_with_config():
     namespace = "cli-fvt-2"
     # We don't need this, just want to test that it works
     testConfig = {
@@ -88,7 +81,7 @@ def test_crud_with_config(dynClient):
     ocp.deleteNamespace(dynClient, namespace)
 
 
-def test_crud_with_manual_approval(dynClient):
+def test_crud_with_manual_approval():
     """
     Test that when installPlanApproval is Manual without a startingCSV,
     an OLMException is raised.
@@ -112,7 +105,7 @@ def test_crud_with_manual_approval(dynClient):
         # Test passed - exception was raised as expected
 
 
-def test_crud_with_starting_csv(dynClient):
+def test_crud_with_starting_csv():
     namespace = "cli-fvt-4"
     # Note: This test assumes a specific CSV version exists in the catalog
     # You may need to adjust the version based on what's available
@@ -134,7 +127,7 @@ def test_crud_with_starting_csv(dynClient):
     ocp.deleteNamespace(dynClient, namespace)
 
 
-def test_crud_with_manual_approval_and_starting_csv(dynClient):
+def test_crud_with_manual_approval_and_starting_csv():
     """
     Test that when installPlanApproval is Manual and startingCSV is specified,
     the first InstallPlan is automatically approved to reach the startingCSV.
