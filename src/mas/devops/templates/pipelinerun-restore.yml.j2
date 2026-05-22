@@ -236,3 +236,45 @@ spec:
     - name: manage_db_storage_class_rwx
       value: "{{ manage_db_storage_class_rwx }}"
     {% endif %}
+
+    # Facilities Application Restore Configuration
+    {% if restore_facilities_app is defined and restore_facilities_app != "" %}
+    - name: restore_facilities_app
+      value: "{{ restore_facilities_app }}"
+    {% endif %}
+    {% if restore_facilities_db is defined and restore_facilities_db != "" %}
+    - name: restore_facilities_db
+      value: "{{ restore_facilities_db }}"
+    {% endif %}
+    # Facilities App Storage class
+    {% if facilities_app_override_storageclass is defined and facilities_app_override_storageclass != "" %}
+    - name: facilities_app_override_storageclass
+      value: "{{ facilities_app_override_storageclass }}"
+    {% endif %}
+    {% if facilities_app_storage_class_rwx is defined and facilities_app_storage_class_rwx != "" %}
+    - name: facilities_app_storage_class_rwx
+      value: "{{ facilities_app_storage_class_rwx }}"
+    {% endif %}
+    {% if facilities_app_storage_class_rwo is defined and facilities_app_storage_class_rwo != "" %}
+    - name: facilities_app_storage_class_rwo
+      value: "{{ facilities_app_storage_class_rwo }}"
+    {% endif %}
+
+    # Facilities Db2 Restore Configuration
+    {% if facilities_db2_restore_vendor is defined and facilities_db2_restore_vendor != "" %}
+    - name: facilities_db2_restore_vendor
+      value: "{{ facilities_db2_restore_vendor }}"
+    {% endif %}
+
+    {% if facilities_db_override_storageclass is defined and facilities_db_override_storageclass != "" %}
+    - name: facilities_db_override_storageclass
+      value: "{{ facilities_db_override_storageclass }}"
+    {% endif %}
+    {% if facilities_db_storage_class_rwo is defined and facilities_db_storage_class_rwo != "" %}
+    - name: facilities_db_storage_class_rwo
+      value: "{{ facilities_db_storage_class_rwo }}"
+    {% endif %}
+    {% if facilities_db_storage_class_rwx is defined and facilities_db_storage_class_rwx != "" %}
+    - name: facilities_db_storage_class_rwx
+      value: "{{ facilities_db_storage_class_rwx }}"
+    {% endif %}
