@@ -52,8 +52,8 @@ opensearch_version: 1.1.2494                    # Operator version 1.1.2494
 # -----------------------------------------------------------------------------
 mas_core_version:
   9.2.x-feature: 9.2.0-pre.stable_21734 # No Update
-  9.1.x: 9.1.17                         # Updated
-  9.0.x: 9.0.24                         # No Update
+  9.1.x: 9.1.18                         # Updated
+  9.0.x: 9.0.26                         # Updated
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
