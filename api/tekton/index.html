@@ -6214,7 +6214,54 @@ and their associated role bindings.</p>
 <span class="normal"><a href="#__codelineno-0-1155">1155</a></span>
 <span class="normal"><a href="#__codelineno-0-1156">1156</a></span>
 <span class="normal"><a href="#__codelineno-0-1157">1157</a></span>
-<span class="normal"><a href="#__codelineno-0-1158">1158</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1105" name="__codelineno-0-1105"></a><span class="k">def</span><span class="w"> </span><span class="nf">prepareInstallRBAC</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">installRBACDir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-1158">1158</a></span>
+<span class="normal"><a href="#__codelineno-0-1159">1159</a></span>
+<span class="normal"><a href="#__codelineno-0-1160">1160</a></span>
+<span class="normal"><a href="#__codelineno-0-1161">1161</a></span>
+<span class="normal"><a href="#__codelineno-0-1162">1162</a></span>
+<span class="normal"><a href="#__codelineno-0-1163">1163</a></span>
+<span class="normal"><a href="#__codelineno-0-1164">1164</a></span>
+<span class="normal"><a href="#__codelineno-0-1165">1165</a></span>
+<span class="normal"><a href="#__codelineno-0-1166">1166</a></span>
+<span class="normal"><a href="#__codelineno-0-1167">1167</a></span>
+<span class="normal"><a href="#__codelineno-0-1168">1168</a></span>
+<span class="normal"><a href="#__codelineno-0-1169">1169</a></span>
+<span class="normal"><a href="#__codelineno-0-1170">1170</a></span>
+<span class="normal"><a href="#__codelineno-0-1171">1171</a></span>
+<span class="normal"><a href="#__codelineno-0-1172">1172</a></span>
+<span class="normal"><a href="#__codelineno-0-1173">1173</a></span>
+<span class="normal"><a href="#__codelineno-0-1174">1174</a></span>
+<span class="normal"><a href="#__codelineno-0-1175">1175</a></span>
+<span class="normal"><a href="#__codelineno-0-1176">1176</a></span>
+<span class="normal"><a href="#__codelineno-0-1177">1177</a></span>
+<span class="normal"><a href="#__codelineno-0-1178">1178</a></span>
+<span class="normal"><a href="#__codelineno-0-1179">1179</a></span>
+<span class="normal"><a href="#__codelineno-0-1180">1180</a></span>
+<span class="normal"><a href="#__codelineno-0-1181">1181</a></span>
+<span class="normal"><a href="#__codelineno-0-1182">1182</a></span>
+<span class="normal"><a href="#__codelineno-0-1183">1183</a></span>
+<span class="normal"><a href="#__codelineno-0-1184">1184</a></span>
+<span class="normal"><a href="#__codelineno-0-1185">1185</a></span>
+<span class="normal"><a href="#__codelineno-0-1186">1186</a></span>
+<span class="normal"><a href="#__codelineno-0-1187">1187</a></span>
+<span class="normal"><a href="#__codelineno-0-1188">1188</a></span>
+<span class="normal"><a href="#__codelineno-0-1189">1189</a></span>
+<span class="normal"><a href="#__codelineno-0-1190">1190</a></span>
+<span class="normal"><a href="#__codelineno-0-1191">1191</a></span>
+<span class="normal"><a href="#__codelineno-0-1192">1192</a></span>
+<span class="normal"><a href="#__codelineno-0-1193">1193</a></span>
+<span class="normal"><a href="#__codelineno-0-1194">1194</a></span>
+<span class="normal"><a href="#__codelineno-0-1195">1195</a></span>
+<span class="normal"><a href="#__codelineno-0-1196">1196</a></span>
+<span class="normal"><a href="#__codelineno-0-1197">1197</a></span>
+<span class="normal"><a href="#__codelineno-0-1198">1198</a></span>
+<span class="normal"><a href="#__codelineno-0-1199">1199</a></span>
+<span class="normal"><a href="#__codelineno-0-1200">1200</a></span>
+<span class="normal"><a href="#__codelineno-0-1201">1201</a></span>
+<span class="normal"><a href="#__codelineno-0-1202">1202</a></span>
+<span class="normal"><a href="#__codelineno-0-1203">1203</a></span>
+<span class="normal"><a href="#__codelineno-0-1204">1204</a></span>
+<span class="normal"><a href="#__codelineno-0-1205">1205</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1105" name="__codelineno-0-1105"></a><span class="k">def</span><span class="w"> </span><span class="nf">prepareInstallRBAC</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">installRBACDir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-1106" name="__codelineno-0-1106"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1107" name="__codelineno-0-1107"></a><span class="sd">    Apply the minimal install RBAC bundle for a MAS instance.</span>
 <a id="__codelineno-0-1108" name="__codelineno-0-1108"></a>
@@ -6264,10 +6311,57 @@ and their associated role bindings.</p>
 <a id="__codelineno-0-1152" name="__codelineno-0-1152"></a>
 <a id="__codelineno-0-1153" name="__codelineno-0-1153"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Applying RBAC resource </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> in namespace </span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2"> for instance </span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-1154" name="__codelineno-0-1154"></a>            <span class="n">resourceAPI</span> <span class="o">=</span> <span class="n">dynClient</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">api_version</span><span class="o">=</span><span class="n">apiVersion</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">)</span>
-<a id="__codelineno-0-1155" name="__codelineno-0-1155"></a>            <span class="k">if</span> <span class="n">namespace</span><span class="p">:</span>
-<a id="__codelineno-0-1156" name="__codelineno-0-1156"></a>                <span class="n">resourceAPI</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="n">resourceBody</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">)</span>
-<a id="__codelineno-0-1157" name="__codelineno-0-1157"></a>            <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1158" name="__codelineno-0-1158"></a>                <span class="n">resourceAPI</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="n">resourceBody</span><span class="p">)</span>
+<a id="__codelineno-0-1155" name="__codelineno-0-1155"></a>
+<a id="__codelineno-0-1156" name="__codelineno-0-1156"></a>            <span class="c1"># Optimized retry logic for transient API server errors</span>
+<a id="__codelineno-0-1157" name="__codelineno-0-1157"></a>            <span class="n">max_retries</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># Reduced from 30 to 10 retries</span>
+<a id="__codelineno-0-1158" name="__codelineno-0-1158"></a>            <span class="n">base_delay</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># Reduced initial delay from 2s to 1s</span>
+<a id="__codelineno-0-1159" name="__codelineno-0-1159"></a>            <span class="n">max_delay</span> <span class="o">=</span> <span class="mi">15</span>  <span class="c1"># Reduced max delay from 30s to 15s</span>
+<a id="__codelineno-0-1160" name="__codelineno-0-1160"></a>
+<a id="__codelineno-0-1161" name="__codelineno-0-1161"></a>            <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_retries</span><span class="p">):</span>
+<a id="__codelineno-0-1162" name="__codelineno-0-1162"></a>                <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-1163" name="__codelineno-0-1163"></a>                    <span class="k">if</span> <span class="n">namespace</span><span class="p">:</span>
+<a id="__codelineno-0-1164" name="__codelineno-0-1164"></a>                        <span class="n">resourceAPI</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="n">resourceBody</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">)</span>
+<a id="__codelineno-0-1165" name="__codelineno-0-1165"></a>                    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1166" name="__codelineno-0-1166"></a>                        <span class="n">resourceAPI</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="n">resourceBody</span><span class="p">)</span>
+<a id="__codelineno-0-1167" name="__codelineno-0-1167"></a>
+<a id="__codelineno-0-1168" name="__codelineno-0-1168"></a>                    <span class="c1"># Log success only if there were previous failures</span>
+<a id="__codelineno-0-1169" name="__codelineno-0-1169"></a>                    <span class="k">if</span> <span class="n">attempt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-1170" name="__codelineno-0-1170"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Successfully applied </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> after </span><span class="si">{</span><span class="n">attempt</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> attempts&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-1171" name="__codelineno-0-1171"></a>                    <span class="k">break</span>  <span class="c1"># Success, exit retry loop</span>
+<a id="__codelineno-0-1172" name="__codelineno-0-1172"></a>
+<a id="__codelineno-0-1173" name="__codelineno-0-1173"></a>                <span class="k">except</span> <span class="n">ApiException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-1174" name="__codelineno-0-1174"></a>                    <span class="c1"># Check if it&#39;s a retryable error (429, 503, 504, or API server shutdown)</span>
+<a id="__codelineno-0-1175" name="__codelineno-0-1175"></a>                    <span class="n">is_retryable</span> <span class="o">=</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">429</span><span class="p">,</span> <span class="mi">503</span><span class="p">,</span> <span class="mi">504</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">&quot;apiserver is shutting down&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;connection refused&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;too many requests&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+<a id="__codelineno-0-1176" name="__codelineno-0-1176"></a>
+<a id="__codelineno-0-1177" name="__codelineno-0-1177"></a>                    <span class="k">if</span> <span class="n">is_retryable</span> <span class="ow">and</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="n">max_retries</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-1178" name="__codelineno-0-1178"></a>                        <span class="c1"># Exponential backoff with jitter to avoid thundering herd</span>
+<a id="__codelineno-0-1179" name="__codelineno-0-1179"></a>                        <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<a id="__codelineno-0-1180" name="__codelineno-0-1180"></a>                        <span class="n">wait_time</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">base_delay</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">),</span> <span class="n">max_delay</span><span class="p">)</span>
+<a id="__codelineno-0-1181" name="__codelineno-0-1181"></a>                        <span class="n">jitter</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">wait_time</span><span class="p">)</span>  <span class="c1"># Add up to 10% jitter</span>
+<a id="__codelineno-0-1182" name="__codelineno-0-1182"></a>                        <span class="n">total_wait</span> <span class="o">=</span> <span class="n">wait_time</span> <span class="o">+</span> <span class="n">jitter</span>
+<a id="__codelineno-0-1183" name="__codelineno-0-1183"></a>
+<a id="__codelineno-0-1184" name="__codelineno-0-1184"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<a id="__codelineno-0-1185" name="__codelineno-0-1185"></a>                            <span class="sa">f</span><span class="s2">&quot;API server temporarily unavailable for </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> &quot;</span>
+<a id="__codelineno-0-1186" name="__codelineno-0-1186"></a>                            <span class="sa">f</span><span class="s2">&quot;(attempt </span><span class="si">{</span><span class="n">attempt</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">max_retries</span><span class="si">}</span><span class="s2">, status: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">). &quot;</span>
+<a id="__codelineno-0-1187" name="__codelineno-0-1187"></a>                            <span class="sa">f</span><span class="s2">&quot;Retrying in </span><span class="si">{</span><span class="n">total_wait</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s...&quot;</span>
+<a id="__codelineno-0-1188" name="__codelineno-0-1188"></a>                        <span class="p">)</span>
+<a id="__codelineno-0-1189" name="__codelineno-0-1189"></a>                        <span class="n">sleep</span><span class="p">(</span><span class="n">total_wait</span><span class="p">)</span>
+<a id="__codelineno-0-1190" name="__codelineno-0-1190"></a>                    <span class="k">elif</span> <span class="n">is_retryable</span><span class="p">:</span>
+<a id="__codelineno-0-1191" name="__codelineno-0-1191"></a>                        <span class="c1"># Exhausted all retries</span>
+<a id="__codelineno-0-1192" name="__codelineno-0-1192"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+<a id="__codelineno-0-1193" name="__codelineno-0-1193"></a>                            <span class="sa">f</span><span class="s2">&quot;Failed to apply RBAC resource </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> after </span><span class="si">{</span><span class="n">max_retries</span><span class="si">}</span><span class="s2"> attempts. &quot;</span>
+<a id="__codelineno-0-1194" name="__codelineno-0-1194"></a>                            <span class="sa">f</span><span class="s2">&quot;API server may be unavailable. Last error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)[:</span><span class="mi">200</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-1195" name="__codelineno-0-1195"></a>                        <span class="p">)</span>
+<a id="__codelineno-0-1196" name="__codelineno-0-1196"></a>                        <span class="k">raise</span>
+<a id="__codelineno-0-1197" name="__codelineno-0-1197"></a>                    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1198" name="__codelineno-0-1198"></a>                        <span class="c1"># Non-retryable error (permissions, invalid resource, etc.)</span>
+<a id="__codelineno-0-1199" name="__codelineno-0-1199"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to apply RBAC resource </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)[:</span><span class="mi">200</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-1200" name="__codelineno-0-1200"></a>                        <span class="k">raise</span>
+<a id="__codelineno-0-1201" name="__codelineno-0-1201"></a>
+<a id="__codelineno-0-1202" name="__codelineno-0-1202"></a>                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-1203" name="__codelineno-0-1203"></a>                    <span class="c1"># Catch any other unexpected errors</span>
+<a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected error applying RBAC resource </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)[:</span><span class="mi">200</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-1205" name="__codelineno-0-1205"></a>                    <span class="k">raise</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
