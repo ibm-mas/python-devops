@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:0807dcca08cfcc7d1da1feffbef1f6e052d42d1fe8feb08347001009850d395a
+catalog_digest: sha256:5cc398a7de843d8581763ac83793d9f595bd35f7be24d5bce0ecd3ad9623b692
 
 ocp_compatibility:
 - "4.16"
@@ -74,7 +74,7 @@ mas_iot_version:
   8.11.x: 8.8.30                        # No Update
 mas_manage_version:
   9.2.x-feature: 9.2.0-pre.stable_21956 # No Update
-  9.1.x: 9.1.17                         # No Update
+  9.1.x: 9.1.18                         # Updated
   9.0.x: 9.0.26                         # Updated
   8.10.x: 8.6.38                        # No Update
   8.11.x: 8.7.32                        # No Update
