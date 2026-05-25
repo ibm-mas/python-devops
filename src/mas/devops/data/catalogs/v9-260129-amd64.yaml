@@ -95,6 +95,10 @@ tsm_version: 1.7.2
 # https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
 dd_version: 1.1.21
 
+# Dependencies - Opendata hub
+# -----------------------------------------------------------------------------
+# https://github.com/opendatahub-io/opendatahub-operator/releases
+odh_version: 2.32.0
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
