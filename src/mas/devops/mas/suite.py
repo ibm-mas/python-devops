@@ -313,3 +313,137 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
 
     secret = secretsAPI.apply(body=secret, namespace=namespace)
     return secret
+
+
+def getMasPublicClusterIssuer(dynClient: DynamicClient, instanceId: str) -> str | None:
+    """
+    Retrieve the Public Cluster Issuer for a MAS instance.
+
+    This function queries the Suite custom resource and attempts to retrieve the
+    certificate issuer name from spec.certificateIssuer.name. If the keys don't exist,
+    it returns the default issuer name.
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier to use.
+
+    Returns:
+        str: The name of the cluster issuer used for the passed in MAS Instance.
+             Returns the default "mas-{instanceId}-core-public-issuer" if the suite
+             doesn't specify a custom issuer, or None if the suite is not found.
+    """
+    try:
+        suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
+        suite = suitesAPI.get(name=instanceId, namespace=f"mas-{instanceId}-core")
+
+        # Check if spec.certificateIssuer.name exists
+        if hasattr(suite, 'spec') and hasattr(suite.spec, 'certificateIssuer') and hasattr(suite.spec.certificateIssuer, 'name'):
+            issuerName = suite.spec.certificateIssuer.name
+            logger.debug(f"Found custom certificate issuer: {issuerName}")
+            return issuerName
+
+        # Keys don't exist, return default
+        defaultIssuer = f"mas-{instanceId}-core-public-issuer"
+        logger.debug(f"No custom certificate issuer found, using default: {defaultIssuer}")
+        return defaultIssuer
+
+    except NotFoundError:
+        logger.warning(f"Suite instance '{instanceId}' not found")
+        return None
+    except ResourceNotFoundError:
+        # The MAS Suite CRD has not even been installed in the cluster
+        logger.warning("MAS Suite CRD not found in the cluster")
+        return None
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to retrieve MAS instance due to failed authorization: {e}")
+        return None
+
+
+def getPermissionMode(dynClient: DynamicClient, instanceId: str) -> str | None:
+    """
+    Detect the current RBAC permission mode for a MAS instance.
+
+    This function determines whether MAS is installed with cluster-level permissions,
+    namespace-scoped permissions (essential + non-essential), or minimal essential-only
+    permissions by checking for the existence of RBAC resources in the cluster.
+
+    RBAC Resource Distribution:
+    - Cluster mode: ClusterRoles + Essential Roles
+    - Namespaced mode: Essential Roles + Non-essential Roles
+    - Minimal mode: Essential Roles ONLY
+
+    Detection Logic:
+    1. Check for ClusterRoles → cluster mode
+    2. Check for non-essential openshift-marketplace Role → namespaced mode
+    3. No ClusterRole and no openshift-marketplace Role → minimal mode
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier.
+
+    Returns:
+        str: Permission mode - "cluster", "namespaced", or "minimal"
+             Returns None if unable to determine (e.g., no RBAC resources found)
+    """
+    try:
+        # Step 1: Check for ClusterRoles (indicates cluster mode)
+        clusterRoleAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRole")
+
+        # Look for MAS ClusterRoles with the instance ID pattern
+        clusterRoleName = f"mas:{instanceId}:core:coreapi"
+        try:
+            clusterRoleAPI.get(name=clusterRoleName)
+            logger.info(f"Found ClusterRole '{clusterRoleName}' - permission mode is 'cluster'")
+            return "cluster"
+        except NotFoundError:
+            logger.debug(f"ClusterRole '{clusterRoleName}' not found, checking for non-essential Roles")
+
+        # Step 2: Check for non-essential openshift-marketplace Role (only exists in namespaced mode)
+        roleAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="Role")
+
+        # This role only exists in namespaced mode (applied via role-non-essential-core-coreapi-openshift-marketplace.yaml)
+        marketplaceRoleName = f"mas:{instanceId}:core:coreapi:openshift-marketplace"
+        marketplaceNamespace = "openshift-marketplace"
+
+        try:
+            roleAPI.get(name=marketplaceRoleName, namespace=marketplaceNamespace)
+            logger.info(f"Found non-essential Role '{marketplaceRoleName}' in namespace '{marketplaceNamespace}' - permission mode is 'namespaced'")
+            return "namespaced"
+        except NotFoundError:
+            logger.debug("Non-essential openshift-marketplace Role not found, checking for essential roles")
+
+        # Step 3: Verify minimal mode by checking for essential roles in mas-{instanceId}-core namespace
+        # Essential roles have pattern: mas:{instanceId}:core:suite:{app}:essential
+        coreNamespace = f"mas-{instanceId}-core"
+
+        # Try to find at least one essential role to confirm minimal mode
+        # Check common apps that might be installed
+        essentialRolePatterns = [
+            f"mas:{instanceId}:core:suite:manage:essential",
+            f"mas:{instanceId}:core:suite:iot:essential",
+            f"mas:{instanceId}:core:suite:monitor:essential",
+            f"mas:{instanceId}:core:suite:predict:essential",
+            f"mas:{instanceId}:core:suite:arcgis:essential",
+            f"mas:{instanceId}:core:suite:facilities:essential",
+            f"mas:{instanceId}:core:suite:optimizer:essential",
+            f"mas:{instanceId}:core:suite:visualinspection:essential"
+        ]
+
+        for essentialRoleName in essentialRolePatterns:
+            try:
+                roleAPI.get(name=essentialRoleName, namespace=coreNamespace)
+                logger.info(f"Found essential Role '{essentialRoleName}' in namespace '{coreNamespace}' with no non-essential roles - permission mode is 'minimal'")
+                return "minimal"
+            except NotFoundError:
+                continue
+
+        # If we couldn't find any RBAC resources, return None
+        logger.warning(f"Unable to determine permission mode for instance '{instanceId}' ")
+        return None
+
+    except ResourceNotFoundError:
+        logger.warning("Required API resources not found in the cluster")
+        return None
+    except UnauthorizedError as e:
+        logger.error(f"Error: Unable to check permissions due to failed authorization: {e}")
+        return None

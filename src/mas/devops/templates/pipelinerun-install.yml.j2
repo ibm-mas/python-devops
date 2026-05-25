@@ -104,7 +104,7 @@ spec:
     - name: db2_action_facilities
       value: "{{ db2_action_facilities}}"
     - name: db2_action_aiservice
-      value: "{{ db2_action_aiservice }}"   
+      value: "{{ db2_action_aiservice }}"
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -116,6 +116,12 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
+    - name: db2u_kind
+      value: "{{ db2u_kind }}"
+  {%- if db2_license_file is defined and db2_license_file != "" %}
+    - name: db2_license_file
+      value: "{{ db2_license_file }}"
+  {%- endif %}
   {%- if db2_meta_storage_accessmode is defined and db2_meta_storage_accessmode != "" %}
 
     # Dependencies - Db2 - Access Mode
@@ -539,6 +545,14 @@ spec:
     - name: mas_ingress_controller_name
       value: "{{ mas_ingress_controller_name }}"
 {%- endif %}
+{%- if mas_manual_route_mgmt is defined and mas_manual_route_mgmt != "" %}
+    - name: mas_manual_route_mgmt
+      value: "{{ mas_manual_route_mgmt }}"
+{%- endif %}
+{%- if mas_use_service_mesh is defined and mas_use_service_mesh != "" %}
+    - name: mas_use_service_mesh
+      value: "{{ mas_use_service_mesh }}"
+{%- endif %}
 {%- if mas_deployment_progression is defined and mas_deployment_progression != "" %}
     - name: mas_deployment_progression
       value: "{{ mas_deployment_progression }}"
@@ -550,6 +564,10 @@ spec:
 {%- if mas_feature_usage is defined and mas_feature_usage != "" %}
     - name: mas_feature_usage
       value: "{{ mas_feature_usage }}"
+{%- endif %}
+{%- if mas_issuer_kind is defined and mas_issuer_kind != "" %}
+    - name: mas_issuer_kind
+      value: "{{ mas_issuer_kind }}"
 {%- endif %}
 
     # MAS Workspace
@@ -611,6 +629,10 @@ spec:
   {%- if mas_appws_bindings_jdbc_manage is defined and mas_appws_bindings_jdbc_manage != "" %}
     - name: mas_appws_bindings_jdbc_manage
       value: "{{ mas_appws_bindings_jdbc_manage }}"
+  {%- endif %}
+  {%- if mas_appws_bindings_kafka_manage is defined and mas_appws_bindings_kafka_manage != "" %}
+    - name: mas_appws_bindings_kafka_manage
+      value: "{{ mas_appws_bindings_kafka_manage }}"
   {%- endif %}
   {%- if mas_app_settings_persistent_volumes_flag is defined and mas_app_settings_persistent_volumes_flag != "" %}
     - name: mas_app_settings_persistent_volumes_flag
@@ -705,6 +727,10 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_app_channel_monitor
       value: "{{ mas_app_channel_monitor }}"
+  {%- if mas_monitor_install_order is defined and mas_monitor_install_order != "" %}
+    - name: mas_monitor_install_order
+      value: "{{ mas_monitor_install_order }}"
+  {%- endif %}
 {%- endif %}
 {%- if mas_app_channel_optimizer is defined and mas_app_channel_optimizer != "" %}
 
@@ -758,6 +784,10 @@ spec:
     - name: mas_ws_facilities_size
       value: "{{ mas_ws_facilities_size }}"
 {%- endif %}
+{%- if mas_ws_facilities_app_om_upgrade_mode is defined and mas_ws_facilities_app_om_upgrade_mode != "" %}
+    - name: mas_ws_facilities_app_om_upgrade_mode
+      value: "{{ mas_ws_facilities_app_om_upgrade_mode }}"
+{%- endif %}
 {%- if mas_ws_facilities_routes_timeout is defined and mas_ws_facilities_routes_timeout != "" %}
     - name: mas_ws_facilities_routes_timeout
       value: "{{ mas_ws_facilities_routes_timeout }}"
@@ -801,6 +831,10 @@ spec:
       value: "{{ aiservice_instance_id }}"
     - name: aiservice_channel
       value: "{{ aiservice_channel }}"
+{%- if configure_aiassistant is defined and configure_aiassistant != "" %}
+    - name: configure_aiassistant
+      value: "{{ configure_aiassistant }}"
+{%- endif %}
 
     - name: environment_type
       value: "{{ environment_type }}"
@@ -813,15 +847,17 @@ spec:
       value: "{{ tenant_entitlement_start_date }}"
     - name: tenant_entitlement_end_date
       value: "{{ tenant_entitlement_end_date }}"
+{%- if tenant_scheduling_config_file is defined and tenant_scheduling_config_file != "" %}
+    - name: tenant_scheduling_cfg_file
+      value: "{{ tenant_scheduling_config_file }}"
+{%- endif %}
 
-    # RSL
+{%- if rsl_ca_crt is defined and rsl_ca_crt != "" %}
+    # RSL - CA Certificate
     # -------------------------------------------------------------------------
-    - name: rsl_url
-      value: "{{ rsl_url }}"
-    - name: rsl_org_id
-      value: "{{ rsl_org_id }}"
-    - name: rsl_token
-      value: "{{ rsl_token }}"
+    - name: rsl_ca_crt
+      value: "{{ rsl_ca_crt }}"
+{%- endif %}
 
     # S3
     # -------------------------------------------------------------------------
@@ -887,7 +923,7 @@ spec:
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
 
-    # AI Service - watsonX
+    # AI Service - Certificate Issuer
     # -------------------------------------------------------------------------
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
@@ -930,3 +966,14 @@ spec:
     - name: shared-certificates
       secret:
         secretName: pipeline-certificates
+
+    # The Db2 license file
+    - name: shared-db2
+      secret:
+        secretName: pipeline-db2-license
+
+    # AI Service configurations
+    # -------------------------------------------------------------------------
+    - name: shared-aiservice-config
+      secret:
+        secretName: pipeline-aiservice-config

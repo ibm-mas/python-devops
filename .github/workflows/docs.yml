@@ -49,5 +49,3 @@ jobs:
         with:
           branch: gh-pages
           folder: site
-
-# Made with Bob

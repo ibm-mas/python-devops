@@ -34,9 +34,6 @@ ccs_extras_version: 11.0.0                       # Extra Images for CCS used for
 elasticsearch_version: 1.1.2667                  # Operator version 1.1.2667 - used in cpd 5.1.3 only
 opensearch_version: 1.1.2494                     # Operator version 1.1.2494
 
-# TODO: Why is this here, but commented out?
-# datarefinery_build: +20240517.202103.146
-
 # I have added this as a guess as to the actual version used, we are currently using the wsl_version, but that does not exist for datarefinery
 # See: https://ibm-mas.slack.com/archives/C02PUHKQB5L/p1770849370378689
 datarefinery_version: 11.0.0+20250513.203727.232
@@ -97,6 +94,10 @@ tsm_version: 1.7.2
 # https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
 dd_version: 1.1.21
 
+# Dependencies - Opendata hub
+# -----------------------------------------------------------------------------
+# https://github.com/opendatahub-io/opendatahub-operator/releases
+odh_version: 2.32.0
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -177,3 +178,4 @@ editorial:
   known_issues:
     - title: Customers using **Maximo Assist v8.7 or v8.8** should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
     - title: A known issue exists in the January 29, 2026 release affecting HSE and Oil & Gas (9.0.23 / 9.1.64). Customers with HSE installed should avoid upgrading to the January release. Installation of HSE or Oil & Gas on Manage 9.0.x / 9.1.x should be deferred until the February 2026 patch.
+    - title: A known issue has been identified in Db2u warehouse operator in this catalog. Customers restoring/upgrading Db2, intermittently get db2 `SQL0290N  Table space access is not allowed.  SQLSTATE=55039` error causing connectivity issue between MAS and Db2. If you are facing this problem, please refer to the workaround provided in this [documentation](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.3.x?topic=SSQNUZ_5.3.x/svc-db2/known-issues-dbs.htm#known-issues-dbs__db2-instance-fails-sql0290n__title__1).

@@ -14,6 +14,14 @@ spec:
     pipeline: "0"
 
   params:
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+
     # Target MAS Instance
     # -------------------------------------------------------------------------
     - name: mas_instance_id
@@ -118,6 +126,13 @@ spec:
     - name: db2_data_storage_size
       value: "{{ db2_data_storage_size }}"
   {%- endif %}
+{%- endif %}
+{%- if mas_monitor_install_order is defined and mas_monitor_install_order != "" %}
+
+    # Monitor Install Order
+    # -------------------------------------------------------------------------
+    - name: mas_monitor_install_order
+      value: "{{ mas_monitor_install_order }}"
 {%- endif %}
 {%- if mas_app_channel_manage is defined and mas_app_channel_manage != "" %}
 

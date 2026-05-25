@@ -14,13 +14,8 @@ import os
 sys.path.insert(0, 'src')
 
 
-if not os.path.exists('README.rst'):
-    import pypandoc
-    pypandoc.download_pandoc(targetfolder='~/bin/')
-    pypandoc.convert_file('README.md', 'rst', outputfile='README.rst')
-
 here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # Maintain a single source of versioning
@@ -54,16 +49,19 @@ setup(
     license='Eclipse Public License - v1.0',
     description='Python for Maximo Application Suite Dev/Ops',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     install_requires=[
         'pyyaml',                  # MIT License
         'openshift',               # Apache Software License
-        'kubernetes',              # Apache Software License
+        'kubernetes<36',           # Apache Software License
         'kubeconfig',              # BSD License
+        'setuptools',              # MIT License (required to install kubeconfig)
         'jinja2',                  # BSD License
         'jinja2-base64-filters',   # MIT License
         'semver',                  # BSD License
         'boto3',                   # Apache Software License
         'slack_sdk',               # MIT License
+        "packaging",               # Apache Software License
     ],
     extras_require={
         'dev': [
@@ -72,7 +70,6 @@ setup(
             'pytest',         # MIT License
             'pytest-mock',    # MIT License
             'requests-mock',  # Apache Software License
-            'setuptools',     # MIT License
         ],
         'docs': [
             'mkdocs',                      # BSD License

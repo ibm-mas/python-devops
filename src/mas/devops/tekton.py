@@ -9,7 +9,9 @@
 # *****************************************************************************
 
 import logging
+import re
 import yaml
+import base64
 
 from datetime import datetime
 from os import path
@@ -18,11 +20,11 @@ from time import sleep
 
 from kubeconfig import kubectl
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError
+from openshift.dynamic.exceptions import NotFoundError, UnprocessibleEntityError, ApiException
 
 from jinja2 import Environment, FileSystemLoader
 
-from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClasses, getStorageClassVolumeBindingMode
+from .ocp import getConsoleURL, waitForCRD, waitForDeployment, crdExists, waitForPVC, getStorageClasses, getStorageClassVolumeBindingMode, getClusterVersion
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +161,93 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
         return False
 
 
+def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
+    """
+    Enable the OpenShift Pipelines console plugin for OCP 4.21+.
+
+    In OpenShift 4.21 and later, the Pipelines console plugin must be manually
+    enabled by patching the Console operator configuration. This function:
+    1. Detects the OCP version
+    2. Checks if version >= 4.21
+    3. Enables the plugin if not already enabled
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+
+    Returns:
+        bool: True if plugin is enabled or already enabled, False on error
+    """
+    try:
+        # Get cluster version
+        clusterVersion = getClusterVersion(dynClient)
+        if not clusterVersion:
+            logger.warning("Unable to determine cluster version, skipping plugin enablement")
+            return True  # Non-fatal, return True to continue
+
+        logger.debug(f"Detected OpenShift version: {clusterVersion}")
+
+        # Parse version (e.g., "4.21.0" -> major=4, minor=21)
+        versionParts = clusterVersion.split('.')
+        if len(versionParts) < 2:
+            logger.warning(f"Unable to parse cluster version '{clusterVersion}', skipping plugin enablement")
+            return True
+
+        try:
+            majorVersion = int(versionParts[0])
+            minorVersion = int(versionParts[1])
+        except ValueError:
+            logger.warning(f"Unable to parse version numbers from '{clusterVersion}', skipping plugin enablement")
+            return True
+
+        # Check if version requires plugin enablement (4.21+)
+        requiresPlugin = (majorVersion == 4 and minorVersion >= 21) or (majorVersion > 4)
+
+        if not requiresPlugin:
+            logger.info(f"OpenShift version {clusterVersion} does not require manual plugin enablement")
+            return True
+
+        logger.info(f"OpenShift version {clusterVersion} requires Pipelines console plugin to be enabled")
+
+        # Get Console Operator
+        consoleAPI = dynClient.resources.get(api_version="operator.openshift.io/v1", kind="Console")
+        console = consoleAPI.get(name="cluster")
+
+        # Check if plugin is already enabled
+        currentPlugins = console.spec.plugins if hasattr(console.spec, 'plugins') and console.spec.plugins else []
+        pluginName = "pipelines-console-plugin"
+
+        if pluginName in currentPlugins:
+            logger.info("Pipelines console plugin is already enabled")
+            return True
+
+        # Enable the plugin by patching the Console operator
+        logger.info("Enabling Pipelines console plugin...")
+
+        # Create patch to add plugin to the list
+        updatedPlugins = list(currentPlugins) + [pluginName]
+        patch = {
+            "spec": {
+                "plugins": updatedPlugins
+            }
+        }
+
+        consoleAPI.patch(
+            name="cluster",
+            body=patch,
+            content_type="application/merge-patch+json"
+        )
+
+        logger.info("Successfully enabled Pipelines console plugin")
+        return True
+
+    except NotFoundError as e:
+        logger.warning(f"Console operator not found: {e}")
+        return True  # Non-fatal, plugin can be enabled manually
+    except Exception as e:
+        logger.error(f"Error enabling Pipelines console plugin: {e}")
+        return False
+
+
 def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
     """
     OpenShift Pipelines has a problem when there is no default storage class defined in a cluster, this function
@@ -262,7 +351,7 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
         logger.debug(line)
 
 
-def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True, createConfigPVC: bool = True, createBackupPVC: bool = False, backupStorageSize: str = "20Gi"):
     """
     Prepare a namespace for MAS pipelines by creating RBAC and PVC resources.
 
@@ -276,6 +365,9 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         accessMode (str, optional): Access mode for the PVC. Defaults to None.
         waitForBind (bool, optional): Whether to wait for PVC to bind. Defaults to True.
         configureRBAC (bool, optional): Whether to configure RBAC. Defaults to True.
+        createConfigPVC (bool, optional): Whether to create config PVC. Defaults to True.
+        createBackupPVC (bool, optional): Whether to create backup PVC. Defaults to False.
+        backupStorageSize (str, optional): Size of the backup PVC storage. Defaults to "20Gi".
 
     Returns:
         None
@@ -304,32 +396,66 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
 
     # Create PVC (instanceId namespace only)
     if instanceId is not None:
-        template = env.get_template("pipelines-pvc.yml.j2")
-        renderedTemplate = template.render(
-            mas_instance_id=instanceId,
-            pipeline_storage_class=storageClass,
-            pipeline_storage_accessmode=accessMode
-        )
-        logger.debug(renderedTemplate)
-        pvc = yaml.safe_load(renderedTemplate)
         pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
-        pvcAPI.apply(body=pvc, namespace=namespace)
+
         # Automatically determine if we should wait for PVC binding based on storage class
         volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
         waitForBind = (volumeBindingMode == "Immediate")
-        if waitForBind:
-            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
-            pvcIsBound = False
-            while not pvcIsBound:
-                configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
-                if configPVC.status.phase == "Bound":
-                    pvcIsBound = True
-                else:
-                    logger.debug("Waiting 15s before checking status of PVC again")
-                    logger.debug(configPVC)
-                    sleep(15)
-        else:
-            logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
+
+        # Create config PVC if requested
+        if createConfigPVC:
+            logger.info("Creating config PVC")
+            template = env.get_template("pipelines-pvc.yml.j2")
+            renderedTemplate = template.render(
+                mas_instance_id=instanceId,
+                pipeline_storage_class=storageClass,
+                pipeline_storage_accessmode=accessMode
+            )
+            logger.debug(renderedTemplate)
+            pvc = yaml.safe_load(renderedTemplate)
+            pvcAPI.apply(body=pvc, namespace=namespace)
+
+            if waitForBind:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for config PVC to bind")
+                pvcIsBound = False
+                while not pvcIsBound:
+                    configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                    if configPVC.status.phase == "Bound":
+                        pvcIsBound = True
+                    else:
+                        logger.debug("Waiting 15s before checking status of config PVC again")
+                        logger.debug(configPVC)
+                        sleep(15)
+            else:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping config PVC bind wait")
+
+        # Create backup PVC if requested
+        if createBackupPVC:
+            logger.info("Creating backup PVC")
+            backupTemplate = env.get_template("pipelines-backup-pvc.yml.j2")
+            renderedBackupTemplate = backupTemplate.render(
+                mas_instance_id=instanceId,
+                pipeline_storage_class=storageClass,
+                pipeline_storage_accessmode=accessMode,
+                backup_storage_size=backupStorageSize
+            )
+            logger.debug(renderedBackupTemplate)
+            backupPvc = yaml.safe_load(renderedBackupTemplate)
+            pvcAPI.apply(body=backupPvc, namespace=namespace)
+
+            if waitForBind:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for backup PVC to bind")
+                backupPvcIsBound = False
+                while not backupPvcIsBound:
+                    backupPVC = pvcAPI.get(name="backup-pvc", namespace=namespace)
+                    if backupPVC.status.phase == "Bound":
+                        backupPvcIsBound = True
+                    else:
+                        logger.debug("Waiting 15s before checking status of backup PVC again")
+                        logger.debug(backupPVC)
+                        sleep(15)
+            else:
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping backup PVC bind wait")
 
 
 def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
@@ -398,20 +524,17 @@ def prepareAiServicePipelinesNamespace(dynClient: DynamicClient, instanceId: str
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: dict | None = None, additionalConfigs: dict | None = None, certs: dict | None = None, podTemplates: dict | None = None) -> None:
+def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None):
     """
-    Create or update secrets required for MAS installation pipelines.
+    Create or update secret required for MAS Restore pipeline.
 
-    Creates four secrets in the specified namespace: pipeline-additional-configs,
-    pipeline-sls-entitlement, pipeline-certificates, and pipeline-pod-templates.
+    Creates secret in the specified namespace:
+        - pipeline-restore-configs
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to create secrets in
-        slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).
-        additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
-        certs (dict, optional): Certificate data. Defaults to None (empty secret).
-        podTemplates (dict, optional): Pod template data. Defaults to None (empty secret).
+        restoreConfigs (dict, optional): configuration data for restore. Defaults to None (empty secret).
 
     Returns:
         None
@@ -420,6 +543,94 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         NotFoundError: If secrets cannot be created
     """
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # 1. Secret/pipeline-restore-configs
+    # -------------------------------------------------------------------------
+    # Must exist, but can be empty
+    try:
+        secretsAPI.delete(name="pipeline-restore-configs", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if restoreConfigs is None:
+        restoreConfigs = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-restore-configs"
+            }
+        }
+    secretsAPI.create(body=restoreConfigs, namespace=namespace)
+
+
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None) -> None:
+    """
+    Create or update secrets required for MAS installation pipelines.
+
+    Creates five secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
+    pipeline-sls-entitlement, pipeline-certificates, pipeline-pod-templates and pipeline-aiservice-config.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to create secrets in (format: mas-{instance_id}-pipelines or aiservice-{instance_id}-pipelines)
+        slsLicenseFile (dict, optional): SLS license file content. Defaults to None (empty secret).
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
+        additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
+        certs (str, optional): Certificate data. Defaults to None (empty secret).
+        podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
+        slack_token (str, optional): Slack bot token for notifications. Defaults to None.
+        slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If secrets cannot be created
+    """
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # Extract instance ID from namespace using regex
+    # Supports both formats: mas-{instance_id}-pipelines and aiservice-{instance_id}-pipelines
+    instance_id = None
+    namespace_pattern = r'^(?:mas|aiservice)-(.+)-pipelines$'
+    match = re.match(namespace_pattern, namespace)
+    if match:
+        instance_id = match.group(1)
+
+    # 0. Secret/mas-devops-slack
+    # -------------------------------------------------------------------------
+    # Create mas-devops-slack secret with MAS_INSTANCE_ID, SLACK_TOKEN, and SLACK_CHANNEL keys
+    if instance_id:
+        try:
+            secretsAPI.delete(name="mas-devops-slack", namespace=namespace)
+        except NotFoundError:
+            pass
+
+        secret_data = {
+            "MAS_INSTANCE_ID": base64.b64encode(instance_id.encode()).decode()
+        }
+
+        # Add slack_token if provided
+        if slack_token:
+            secret_data["SLACK_TOKEN"] = base64.b64encode(slack_token.encode()).decode()
+
+        # Add slack_channel if provided
+        if slack_channel:
+            secret_data["SLACK_CHANNEL"] = base64.b64encode(slack_channel.encode()).decode()
+
+        mas_devops_secret = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "mas-devops-slack"
+            },
+            "data": secret_data
+        }
+        secretsAPI.create(body=mas_devops_secret, namespace=namespace)
+        logger.info(f"Created mas-devops-slack secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}")
 
     # 1. Secret/pipeline-additional-configs
     # -------------------------------------------------------------------------
@@ -495,6 +706,122 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
             }
         }
     secretsAPI.create(body=podTemplates, namespace=namespace)
+
+    # 5. Secret/pipeline-aiservice-config
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-aiservice-config", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if aiserviceConfig is None:
+        aiserviceConfig = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-aiservice-config"
+            }
+        }
+    secretsAPI.create(body=aiserviceConfig, namespace=namespace)
+
+    # 6. Secret/pipeline-db2-license
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+
+
+def prepareUpdateSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None, db2LicenseFile: dict | None = None) -> None:
+    """
+    Create or update mas-devops-slack secret in mas-pipelines namespace for update pipeline.
+
+    Creates the slack secret in mas-pipelines namespace if it exists and slack credentials are provided.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        slack_token (str, optional): Slack bot token for notifications. Defaults to None.
+        slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If namespace doesn't exist (will be caught and logged)
+    """
+    namespace = "mas-pipelines"
+
+    # Check if namespace exists
+    try:
+        namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
+        namespaceAPI.get(name=namespace)
+    except NotFoundError:
+        logger.warning(f"Namespace {namespace} does not exist, skipping slack secret creation")
+        return
+
+    # Only create secret if both slack_token and slack_channel are provided
+    if not slack_token or not slack_channel:
+        logger.debug("Slack token or channel not provided, skipping slack secret creation")
+
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # Delete existing secret if it exists
+    try:
+        secretsAPI.delete(name="mas-devops-slack", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    # Create the secret with SLACK_TOKEN and SLACK_CHANNEL
+    secret_data = {}
+
+    if slack_token:
+        secret_data["SLACK_TOKEN"] = base64.b64encode(slack_token.encode()).decode()
+
+    if slack_channel:
+        secret_data["SLACK_CHANNEL"] = base64.b64encode(slack_channel.encode()).decode()
+
+    mas_devops_secret = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "type": "Opaque",
+        "metadata": {
+            "name": "mas-devops-slack"
+        },
+        "data": secret_data
+    }
+
+    secretsAPI.create(body=mas_devops_secret, namespace=namespace)
+    logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
+
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-db2-license"
+            }
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
 
 
 def testCLI() -> None:
@@ -697,6 +1024,52 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
     return pipelineURL
 
 
+def launchBackupPipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to backup a MAS instance.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Backup parameters including instance ID and configuration
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
+    instanceId = params["mas_instance_id"]
+    backupVersion = params["backup_version"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-backup", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-backup-{backupVersion}-{timestamp}"
+    return pipelineURL
+
+
+def launchRestorePipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to restore a MAS instance.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Backup/Restore parameters including instance ID and configuration
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
+    instanceId = params["mas_instance_id"]
+    restoreVersion = params["restore_version"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-restore", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-restore-{restoreVersion}-{timestamp}"
+    return pipelineURL
+
+
 def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
                                    aiserviceInstanceId: str,
                                    skipPreCheck: bool = False,
@@ -727,3 +1100,106 @@ def launchAiServiceUpgradePipeline(dynClient: DynamicClient,
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{aiserviceInstanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{aiserviceInstanceId}-upgrade-{timestamp}"
     return pipelineURL
+
+
+def prepareInstallRBAC(dynClient: DynamicClient, namespace: str, instanceId: str, installRBACDir: str) -> None:
+    """
+    Apply the minimal install RBAC bundle for a MAS instance.
+
+    The bundle is defined by the kustomization under cli/rbac/install and creates the install-user and install-pipeline service accounts
+    and their associated role bindings.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        instanceId (str): MAS instance ID used to render the RBAC templates
+        installRBACDir (str): Path to the directory containing the RBAC kustomization and templates
+
+    Returns:
+        None
+
+    Raises:
+        FileNotFoundError: If the RBAC bundle directory or kustomization file does not exists
+    """
+    kustomizationFile = path.join(installRBACDir, "kustomization.yaml")
+    if not path.isfile(kustomizationFile):
+        logger.error(f"Cannot find kustomization file for install RBAC at {kustomizationFile}")
+        raise FileNotFoundError(f"Cannot find kustomization file for install RBAC at {kustomizationFile}")
+
+    with open(kustomizationFile, "r") as file:
+        kustomization = yaml.safe_load(file)
+
+    env = Environment()
+    for resourcePath in kustomization.get("resources", []):
+        manifestFile = path.join(installRBACDir, resourcePath)
+        if not path.isfile(manifestFile):
+            logger.error(f"Cannot find RBAC manifest file at {manifestFile}")
+            raise FileNotFoundError(f"Cannot find RBAC manifest file at {manifestFile}")
+
+        with open(manifestFile, "r") as file:
+            template = env.from_string(file.read())
+            renderedManifest = template.render(mas_instance_id=instanceId)
+            logger.debug(f"Applying RBAC manifest {manifestFile} for instance {instanceId}:\n{renderedManifest}")
+
+        for resourceBody in yaml.safe_load_all(renderedManifest):
+            if resourceBody is None:
+                continue
+
+            apiVersion = resourceBody["apiVersion"]
+            kind = resourceBody["kind"]
+            metadata = resourceBody.get("metadata", {})
+            name = metadata.get("name", "<unnamed>")
+            namespace = metadata.get("namespace")
+
+            logger.debug(f"Applying RBAC resource {kind}/{name} in namespace {namespace} for instance {instanceId}")
+            resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
+
+            # Optimized retry logic for transient API server errors
+            max_retries = 10  # Reduced from 30 to 10 retries
+            base_delay = 1  # Reduced initial delay from 2s to 1s
+            max_delay = 15  # Reduced max delay from 30s to 15s
+
+            for attempt in range(max_retries):
+                try:
+                    if namespace:
+                        resourceAPI.apply(body=resourceBody, namespace=namespace)
+                    else:
+                        resourceAPI.apply(body=resourceBody)
+
+                    # Log success only if there were previous failures
+                    if attempt > 0:
+                        logger.info(f"Successfully applied {kind}/{name} after {attempt + 1} attempts")
+                    break  # Success, exit retry loop
+
+                except ApiException as e:
+                    # Check if it's a retryable error (429, 503, 504, or API server shutdown)
+                    is_retryable = (e.status in [429, 503, 504] or "apiserver is shutting down" in str(e).lower() or "connection refused" in str(e).lower() or "too many requests" in str(e).lower())
+
+                    if is_retryable and attempt < max_retries - 1:
+                        # Exponential backoff with jitter to avoid thundering herd
+                        import random
+                        wait_time = min(base_delay * (2 ** attempt), max_delay)
+                        jitter = random.uniform(0, 0.1 * wait_time)  # Add up to 10% jitter
+                        total_wait = wait_time + jitter
+
+                        logger.warning(
+                            f"API server temporarily unavailable for {kind}/{name} "
+                            f"(attempt {attempt + 1}/{max_retries}, status: {e.status}). "
+                            f"Retrying in {total_wait:.1f}s..."
+                        )
+                        sleep(total_wait)
+                    elif is_retryable:
+                        # Exhausted all retries
+                        logger.error(
+                            f"Failed to apply RBAC resource {kind}/{name} after {max_retries} attempts. "
+                            f"API server may be unavailable. Last error: {e.status} - {str(e)[:200]}"
+                        )
+                        raise
+                    else:
+                        # Non-retryable error (permissions, invalid resource, etc.)
+                        logger.error(f"Failed to apply RBAC resource {kind}/{name}: {e.status} - {str(e)[:200]}")
+                        raise
+
+                except Exception as e:
+                    # Catch any other unexpected errors
+                    logger.error(f"Unexpected error applying RBAC resource {kind}/{name}: {type(e).__name__} - {str(e)[:200]}")
+                    raise

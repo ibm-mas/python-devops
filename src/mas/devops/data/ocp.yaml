@@ -9,6 +9,16 @@
 # https://access.redhat.com/support/policy/updates/openshift/
 
 ocp_versions:
+  "4.21":
+    ga_date: "February 3, 2026"
+    standard_support: "GA of 4.22 + 3 Months"
+    extended_support: "N/A"
+
+  "4.20":
+    ga_date: "October 21, 2025"
+    standard_support: "April 21, 2027"
+    extended_support: "October 21, 2028"
+
   "4.19":
     ga_date: "June 17, 2025"
     standard_support: "December 17, 2026"
@@ -16,8 +26,8 @@ ocp_versions:
 
   "4.18":
     ga_date: "February 25, 2025"
-    standard_support: "GA of 4.19 + 3 Months"
-    extended_support: "August 25, 2026"
+    standard_support: "August 25, 2026"
+    extended_support: "February 25, 2028"
 
   "4.17":
     ga_date: "October 1, 2024"
@@ -54,5 +64,3 @@ ocp_versions:
 # - Extended Support (EUS): Additional 6 months available for purchase
 # - EUS is included with Premium subscriptions
 # - Not all versions have EUS available
-
-# Made with Bob

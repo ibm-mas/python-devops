@@ -13,4 +13,6 @@ from .suite import (  # noqa: F401
     verifyMasInstance,
     getMasChannel,
     updateIBMEntitlementKey,
+    getMasPublicClusterIssuer,
+    getPermissionMode,
 )
