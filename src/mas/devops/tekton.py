@@ -564,12 +564,13 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None, facilitiesProperties: dict | None = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
-    Creates five secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
-    pipeline-sls-entitlement, pipeline-certificates, pipeline-pod-templates and pipeline-aiservice-config.
+    Creates secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
+    pipeline-sls-entitlement, pipeline-certificates, pipeline-pod-templates, pipeline-aiservice-config,
+    pipeline-db2-license, and pipeline-facilities-properties.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -582,6 +583,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
         aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
+        facilitiesProperties (dict, optional): Facilities properties file content. Defaults to None (empty secret).
 
     Returns:
         None
@@ -742,6 +744,24 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
             }
         }
     secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+
+    # 7. Secret/pipeline-facilities-properties
+    # -------------------------------------------------------------------------
+    try:
+        secretsAPI.delete(name="pipeline-facilities-properties", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if facilitiesProperties is None:
+        facilitiesProperties = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {
+                "name": "pipeline-facilities-properties"
+            }
+        }
+    secretsAPI.create(body=facilitiesProperties, namespace=namespace)
 
 
 def prepareUpdateSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None, db2LicenseFile: dict | None = None) -> None:
