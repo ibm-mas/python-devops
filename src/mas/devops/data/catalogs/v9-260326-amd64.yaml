@@ -173,6 +173,7 @@ mas_facilities_version:
   8.10.x: ""      # Not Supported
   8.11.x: ""      # Not Supported
 mas_arcgis_version:
+  9.2.x-feature: 9.2.0-pre.stable_26682 #  Updated
   9.1.x: 9.1.8  # New
   9.0.x: 9.0.9  # New
   8.10.x: ""    # Not Supported
