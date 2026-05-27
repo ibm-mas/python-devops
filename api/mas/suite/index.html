@@ -1045,6 +1045,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#mas.devops.mas.suite.getPermissionMode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;getPermissionMode
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1797,6 +1808,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;getMasPublicClusterIssuer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mas.devops.mas.suite.getPermissionMode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;getPermissionMode
       
     </span>
   </a>
@@ -3383,6 +3405,285 @@ it returns the default issuer name.</p>
 <a id="__codelineno-0-357" name="__codelineno-0-357"></a>    <span class="k">except</span> <span class="n">UnauthorizedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
 <a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Unable to retrieve MAS instance due to failed authorization: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-359" name="__codelineno-0-359"></a>        <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="mas.devops.mas.suite.getPermissionMode" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">getPermissionMode</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Detect the current RBAC permission mode for a MAS instance.</p>
+<p>This function determines whether MAS is installed with cluster-level permissions,
+namespace-scoped permissions (essential + non-essential), or minimal essential-only
+permissions by checking for the existence of RBAC resources in the cluster.</p>
+<p>RBAC Resource Distribution:
+- Cluster mode: ClusterRoles + Essential Roles
+- Namespaced mode: Essential Roles + Non-essential Roles
+- Minimal mode: Essential Roles ONLY</p>
+<p>Detection Logic:
+1. Check for ClusterRoles → cluster mode
+2. Check for non-essential openshift-marketplace Role → namespaced mode
+3. No ClusterRole and no openshift-marketplace Role → minimal mode</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dynClient</code>
+            </td>
+            <td>
+                  <code><span title="openshift.dynamic.DynamicClient">DynamicClient</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>OpenShift dynamic client for cluster API interactions.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>instanceId</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The MAS instance identifier.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Permission mode - "cluster", "namespaced", or "minimal"
+ Returns None if unable to determine (e.g., no RBAC resources found)</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/mas/devops/mas/suite.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-362">362</a></span>
+<span class="normal"><a href="#__codelineno-0-363">363</a></span>
+<span class="normal"><a href="#__codelineno-0-364">364</a></span>
+<span class="normal"><a href="#__codelineno-0-365">365</a></span>
+<span class="normal"><a href="#__codelineno-0-366">366</a></span>
+<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#__codelineno-0-368">368</a></span>
+<span class="normal"><a href="#__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#__codelineno-0-375">375</a></span>
+<span class="normal"><a href="#__codelineno-0-376">376</a></span>
+<span class="normal"><a href="#__codelineno-0-377">377</a></span>
+<span class="normal"><a href="#__codelineno-0-378">378</a></span>
+<span class="normal"><a href="#__codelineno-0-379">379</a></span>
+<span class="normal"><a href="#__codelineno-0-380">380</a></span>
+<span class="normal"><a href="#__codelineno-0-381">381</a></span>
+<span class="normal"><a href="#__codelineno-0-382">382</a></span>
+<span class="normal"><a href="#__codelineno-0-383">383</a></span>
+<span class="normal"><a href="#__codelineno-0-384">384</a></span>
+<span class="normal"><a href="#__codelineno-0-385">385</a></span>
+<span class="normal"><a href="#__codelineno-0-386">386</a></span>
+<span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span>
+<span class="normal"><a href="#__codelineno-0-389">389</a></span>
+<span class="normal"><a href="#__codelineno-0-390">390</a></span>
+<span class="normal"><a href="#__codelineno-0-391">391</a></span>
+<span class="normal"><a href="#__codelineno-0-392">392</a></span>
+<span class="normal"><a href="#__codelineno-0-393">393</a></span>
+<span class="normal"><a href="#__codelineno-0-394">394</a></span>
+<span class="normal"><a href="#__codelineno-0-395">395</a></span>
+<span class="normal"><a href="#__codelineno-0-396">396</a></span>
+<span class="normal"><a href="#__codelineno-0-397">397</a></span>
+<span class="normal"><a href="#__codelineno-0-398">398</a></span>
+<span class="normal"><a href="#__codelineno-0-399">399</a></span>
+<span class="normal"><a href="#__codelineno-0-400">400</a></span>
+<span class="normal"><a href="#__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#__codelineno-0-405">405</a></span>
+<span class="normal"><a href="#__codelineno-0-406">406</a></span>
+<span class="normal"><a href="#__codelineno-0-407">407</a></span>
+<span class="normal"><a href="#__codelineno-0-408">408</a></span>
+<span class="normal"><a href="#__codelineno-0-409">409</a></span>
+<span class="normal"><a href="#__codelineno-0-410">410</a></span>
+<span class="normal"><a href="#__codelineno-0-411">411</a></span>
+<span class="normal"><a href="#__codelineno-0-412">412</a></span>
+<span class="normal"><a href="#__codelineno-0-413">413</a></span>
+<span class="normal"><a href="#__codelineno-0-414">414</a></span>
+<span class="normal"><a href="#__codelineno-0-415">415</a></span>
+<span class="normal"><a href="#__codelineno-0-416">416</a></span>
+<span class="normal"><a href="#__codelineno-0-417">417</a></span>
+<span class="normal"><a href="#__codelineno-0-418">418</a></span>
+<span class="normal"><a href="#__codelineno-0-419">419</a></span>
+<span class="normal"><a href="#__codelineno-0-420">420</a></span>
+<span class="normal"><a href="#__codelineno-0-421">421</a></span>
+<span class="normal"><a href="#__codelineno-0-422">422</a></span>
+<span class="normal"><a href="#__codelineno-0-423">423</a></span>
+<span class="normal"><a href="#__codelineno-0-424">424</a></span>
+<span class="normal"><a href="#__codelineno-0-425">425</a></span>
+<span class="normal"><a href="#__codelineno-0-426">426</a></span>
+<span class="normal"><a href="#__codelineno-0-427">427</a></span>
+<span class="normal"><a href="#__codelineno-0-428">428</a></span>
+<span class="normal"><a href="#__codelineno-0-429">429</a></span>
+<span class="normal"><a href="#__codelineno-0-430">430</a></span>
+<span class="normal"><a href="#__codelineno-0-431">431</a></span>
+<span class="normal"><a href="#__codelineno-0-432">432</a></span>
+<span class="normal"><a href="#__codelineno-0-433">433</a></span>
+<span class="normal"><a href="#__codelineno-0-434">434</a></span>
+<span class="normal"><a href="#__codelineno-0-435">435</a></span>
+<span class="normal"><a href="#__codelineno-0-436">436</a></span>
+<span class="normal"><a href="#__codelineno-0-437">437</a></span>
+<span class="normal"><a href="#__codelineno-0-438">438</a></span>
+<span class="normal"><a href="#__codelineno-0-439">439</a></span>
+<span class="normal"><a href="#__codelineno-0-440">440</a></span>
+<span class="normal"><a href="#__codelineno-0-441">441</a></span>
+<span class="normal"><a href="#__codelineno-0-442">442</a></span>
+<span class="normal"><a href="#__codelineno-0-443">443</a></span>
+<span class="normal"><a href="#__codelineno-0-444">444</a></span>
+<span class="normal"><a href="#__codelineno-0-445">445</a></span>
+<span class="normal"><a href="#__codelineno-0-446">446</a></span>
+<span class="normal"><a href="#__codelineno-0-447">447</a></span>
+<span class="normal"><a href="#__codelineno-0-448">448</a></span>
+<span class="normal"><a href="#__codelineno-0-449">449</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="k">def</span><span class="w"> </span><span class="nf">getPermissionMode</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">    Detect the current RBAC permission mode for a MAS instance.</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">    This function determines whether MAS is installed with cluster-level permissions,</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="sd">    namespace-scoped permissions (essential + non-essential), or minimal essential-only</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">    permissions by checking for the existence of RBAC resources in the cluster.</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">    RBAC Resource Distribution:</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="sd">    - Cluster mode: ClusterRoles + Essential Roles</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">    - Namespaced mode: Essential Roles + Non-essential Roles</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">    - Minimal mode: Essential Roles ONLY</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">    Detection Logic:</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">    1. Check for ClusterRoles → cluster mode</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">    2. Check for non-essential openshift-marketplace Role → namespaced mode</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    3. No ClusterRole and no openshift-marketplace Role → minimal mode</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">        instanceId (str): The MAS instance identifier.</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        str: Permission mode - &quot;cluster&quot;, &quot;namespaced&quot;, or &quot;minimal&quot;</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">             Returns None if unable to determine (e.g., no RBAC resources found)</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a>        <span class="c1"># Step 1: Check for ClusterRoles (indicates cluster mode)</span>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a>        <span class="n">clusterRoleAPI</span> <span class="o">=</span> <span class="n">dynClient</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">api_version</span><span class="o">=</span><span class="s2">&quot;rbac.authorization.k8s.io/v1&quot;</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;ClusterRole&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a>        <span class="c1"># Look for MAS ClusterRoles with the instance ID pattern</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>        <span class="n">clusterRoleName</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:coreapi&quot;</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>            <span class="n">clusterRoleAPI</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">clusterRoleName</span><span class="p">)</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found ClusterRole &#39;</span><span class="si">{</span><span class="n">clusterRoleName</span><span class="si">}</span><span class="s2">&#39; - permission mode is &#39;cluster&#39;&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a>            <span class="k">return</span> <span class="s2">&quot;cluster&quot;</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>        <span class="k">except</span> <span class="n">NotFoundError</span><span class="p">:</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ClusterRole &#39;</span><span class="si">{</span><span class="n">clusterRoleName</span><span class="si">}</span><span class="s2">&#39; not found, checking for non-essential Roles&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a>        <span class="c1"># Step 2: Check for non-essential openshift-marketplace Role (only exists in namespaced mode)</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a>        <span class="n">roleAPI</span> <span class="o">=</span> <span class="n">dynClient</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">api_version</span><span class="o">=</span><span class="s2">&quot;rbac.authorization.k8s.io/v1&quot;</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;Role&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a>        <span class="c1"># This role only exists in namespaced mode (applied via role-non-essential-core-coreapi-openshift-marketplace.yaml)</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>        <span class="n">marketplaceRoleName</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:coreapi:openshift-marketplace&quot;</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a>        <span class="n">marketplaceNamespace</span> <span class="o">=</span> <span class="s2">&quot;openshift-marketplace&quot;</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a>            <span class="n">roleAPI</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">marketplaceRoleName</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">marketplaceNamespace</span><span class="p">)</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found non-essential Role &#39;</span><span class="si">{</span><span class="n">marketplaceRoleName</span><span class="si">}</span><span class="s2">&#39; in namespace &#39;</span><span class="si">{</span><span class="n">marketplaceNamespace</span><span class="si">}</span><span class="s2">&#39; - permission mode is &#39;namespaced&#39;&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a>            <span class="k">return</span> <span class="s2">&quot;namespaced&quot;</span>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a>        <span class="k">except</span> <span class="n">NotFoundError</span><span class="p">:</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Non-essential openshift-marketplace Role not found, checking for essential roles&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a>        <span class="c1"># Step 3: Verify minimal mode by checking for essential roles in mas-{instanceId}-core namespace</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a>        <span class="c1"># Essential roles have pattern: mas:{instanceId}:core:suite:{app}:essential</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a>        <span class="n">coreNamespace</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;mas-</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">-core&quot;</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a>        <span class="c1"># Try to find at least one essential role to confirm minimal mode</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a>        <span class="c1"># Check common apps that might be installed</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a>        <span class="n">essentialRolePatterns</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:manage:essential&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:iot:essential&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:monitor:essential&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:predict:essential&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:arcgis:essential&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-427" name="__codelineno-0-427"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:facilities:essential&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:optimizer:essential&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a>            <span class="sa">f</span><span class="s2">&quot;mas:</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">:core:suite:visualinspection:essential&quot;</span>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a>        <span class="p">]</span>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a>        <span class="k">for</span> <span class="n">essentialRoleName</span> <span class="ow">in</span> <span class="n">essentialRolePatterns</span><span class="p">:</span>
+<a id="__codelineno-0-433" name="__codelineno-0-433"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a>                <span class="n">roleAPI</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">essentialRoleName</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">coreNamespace</span><span class="p">)</span>
+<a id="__codelineno-0-435" name="__codelineno-0-435"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found essential Role &#39;</span><span class="si">{</span><span class="n">essentialRoleName</span><span class="si">}</span><span class="s2">&#39; in namespace &#39;</span><span class="si">{</span><span class="n">coreNamespace</span><span class="si">}</span><span class="s2">&#39; with no non-essential roles - permission mode is &#39;minimal&#39;&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-436" name="__codelineno-0-436"></a>                <span class="k">return</span> <span class="s2">&quot;minimal&quot;</span>
+<a id="__codelineno-0-437" name="__codelineno-0-437"></a>            <span class="k">except</span> <span class="n">NotFoundError</span><span class="p">:</span>
+<a id="__codelineno-0-438" name="__codelineno-0-438"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-439" name="__codelineno-0-439"></a>
+<a id="__codelineno-0-440" name="__codelineno-0-440"></a>        <span class="c1"># If we couldn&#39;t find any RBAC resources, return None</span>
+<a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to determine permission mode for instance &#39;</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">&#39; &quot;</span><span class="p">)</span>
+<a id="__codelineno-0-442" name="__codelineno-0-442"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-443" name="__codelineno-0-443"></a>
+<a id="__codelineno-0-444" name="__codelineno-0-444"></a>    <span class="k">except</span> <span class="n">ResourceNotFoundError</span><span class="p">:</span>
+<a id="__codelineno-0-445" name="__codelineno-0-445"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Required API resources not found in the cluster&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-446" name="__codelineno-0-446"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-447" name="__codelineno-0-447"></a>    <span class="k">except</span> <span class="n">UnauthorizedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-448" name="__codelineno-0-448"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Unable to check permissions due to failed authorization: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-449" name="__codelineno-0-449"></a>        <span class="k">return</span> <span class="kc">None</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
