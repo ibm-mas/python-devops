@@ -747,21 +747,13 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
 
     # 7. Secret/pipeline-facilities-properties
     # -------------------------------------------------------------------------
-    try:
-        secretsAPI.delete(name="pipeline-facilities-properties", namespace=namespace)
-    except NotFoundError:
-        pass
-
-    if facilitiesProperties is None:
-        facilitiesProperties = {
-            "apiVersion": "v1",
-            "kind": "Secret",
-            "type": "Opaque",
-            "metadata": {
-                "name": "pipeline-facilities-properties"
-            }
-        }
-    secretsAPI.create(body=facilitiesProperties, namespace=namespace)
+    # Only create secret if custom facilities properties are provided
+    if facilitiesProperties is not None:
+        try:
+            secretsAPI.delete(name="pipeline-facilities-properties", namespace=namespace)
+        except NotFoundError:
+            pass
+        secretsAPI.create(body=facilitiesProperties, namespace=namespace)
 
 
 def prepareUpdateSecrets(dynClient: DynamicClient, slack_token: str = None, slack_channel: str = None, db2LicenseFile: dict | None = None) -> None:

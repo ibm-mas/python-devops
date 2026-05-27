@@ -990,10 +990,9 @@ spec:
       secret:
         secretName: pipeline-aiservice-config
 
-{%- if mas_ws_facilities_custom_properties is defined and mas_ws_facilities_custom_properties == "true" %}
-
     # Facilities Properties configurations
     # -------------------------------------------------------------------------
+{%- if mas_ws_facilities_custom_properties is defined and mas_ws_facilities_custom_properties == "true" %}
     - name: shared-facilities-properties
       secret:
         secretName: pipeline-facilities-properties
