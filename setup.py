@@ -53,7 +53,7 @@ setup(
     install_requires=[
         'pyyaml',                  # MIT License
         'openshift',               # Apache Software License
-        'kubernetes',              # Apache Software License
+        'kubernetes<36',           # Apache Software License
         'kubeconfig',              # BSD License
         'setuptools',              # MIT License (required to install kubeconfig)
         'jinja2',                  # BSD License
