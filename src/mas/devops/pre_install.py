@@ -222,18 +222,18 @@ def buildClusterAdminPermissionMatrix() -> list[dict[str, str]]:
     ]
 
 
-def shouldApplyPreInstallRBAC(
+def requiresPreInstallRBAC(
     dynClient: DynamicClient,
     targetVersion: str,
     permissionMode: str | None = None,
     skipPreinstallRbac: bool = False
 ) -> bool:
     """
-    Evaluate if pre-install RBAC should be applied based on target version and user permissions.
+    Determine if pre-install RBAC is required and can be applied for the target version.
 
     This function is used across install, update, and upgrade operations to determine
-    if RBAC resources should be applied before launching the pipeline. It will raise
-    an exception if permissions are missing and RBAC is required.
+    if RBAC resources are required and should be applied before launching the pipeline.
+    It will raise an exception if permissions are missing and RBAC is required.
 
     Args:
         dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
