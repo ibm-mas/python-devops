@@ -992,6 +992,8 @@ spec:
 
     # Facilities Properties configurations
     # -------------------------------------------------------------------------
+    {% if mas_ws_facilities_custom_properties == "true" %}
     - name: shared-facilities-properties
       secret:
         secretName: pipeline-facilities-properties
+    {% endif %}
