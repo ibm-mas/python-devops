@@ -66,7 +66,7 @@ def _get_selected_operator_dirs(selectedApps: set[str]) -> set[str]:
     return {appToOperatorDir[app] for app in selectedApps}
 
 
-def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -> bool:
+def _should_apply_preinstall_mas_rbac_file(fileName: str, adminMode: str) -> bool:
     lowerName = path.basename(fileName).lower()
 
     if lowerName == "kustomization.yaml":
@@ -75,10 +75,10 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -
     if not (lowerName.endswith(".yml") or lowerName.endswith(".yaml")):
         return False
 
-    if permissionMode == "cluster":
+    if adminMode == "cluster":
         return lowerName.startswith("cluster-role-")
 
-    if permissionMode == "namespaced":
+    if adminMode == "namespaced":
         return lowerName.startswith("role-non-essential-")
 
     return False
@@ -87,7 +87,7 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -
 def _collect_preinstall_mas_rbac_files_from_source(
     sourceOperatorsRoot: str,
     masVersion: str,
-    permissionMode: str,
+    adminMode: str,
     operatorNames: set[str] | None = None
 ) -> list[str]:
     if not path.isdir(sourceOperatorsRoot):
@@ -117,7 +117,7 @@ def _collect_preinstall_mas_rbac_files_from_source(
             if not path.isfile(manifestFile):
                 continue
 
-            if _should_apply_preinstall_mas_rbac_file(manifestName, permissionMode):
+            if _should_apply_preinstall_mas_rbac_file(manifestName, adminMode):
                 manifestFiles.append(manifestFile)
 
     return manifestFiles
@@ -126,7 +126,7 @@ def _collect_preinstall_mas_rbac_files_from_source(
 def _discover_preinstall_mas_rbac_files(
     rbacRootDir: str | None,
     masVersion: str,
-    permissionMode: str,
+    adminMode: str,
     selectedApps: set[str]
 ) -> list[str]:
     if not rbacRootDir:
@@ -151,7 +151,7 @@ def _discover_preinstall_mas_rbac_files(
             _collect_preinstall_mas_rbac_files_from_source(
                 sourceOperatorsRoot=sourceRoot,
                 masVersion=masVersion,
-                permissionMode=permissionMode,
+                adminMode=adminMode,
                 operatorNames=operatorNames
             )
         )
@@ -159,13 +159,9 @@ def _discover_preinstall_mas_rbac_files(
     return list(dict.fromkeys(manifestFiles))
 
 
-def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, permissionMode: str, selectedApps: set[str]) -> set[str]:
+def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, adminMode: str, selectedApps: set[str]) -> set[str]:
 
-    # Due to ingresscontroller role we need to apply the preinstall RBAC for the minimal permission mode
-    # if permissionMode == "minimal":
-    #     return set()
-
-    if permissionMode == "cluster":
+    if adminMode == "cluster":
         return set()
 
     namespaces = {f"mas-{masInstanceId}-core"}
@@ -332,7 +328,7 @@ def applyPreInstallMASRBAC(
     dynClient: DynamicClient,
     masVersion: str,
     masInstanceId: str,
-    permissionMode: str,
+    adminMode: str,
     selectedApps: list[str] | None = None,
     rbacRootDir: str | None = None
 ) -> None:
@@ -340,14 +336,14 @@ def applyPreInstallMASRBAC(
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
 
     # Minimal mode - essential roles will be applied by each operator
-    if permissionMode == "minimal":
-        logger.info("Minimal permission mode - essential roles will be applied by each operator")
+    if adminMode == "minimal":
+        logger.info("Minimal admin mode - essential roles will be applied by each operator")
         return
 
     # For cluster mode, use ibm-mas operator only (apps not required)
-    if permissionMode == "cluster":
+    if adminMode == "cluster":
         validatedApps = {"core"}  # Use core which maps to ibm-mas operator
-        logger.info("Cluster permission mode - using ibm-mas operator only")
+        logger.info("Cluster admin mode - using ibm-mas operator only")
     else:
         # For namespaced mode, validate and use selected apps
         validatedApps = _validate_selected_apps(selectedApps)
@@ -358,13 +354,13 @@ def applyPreInstallMASRBAC(
     manifestFiles = _discover_preinstall_mas_rbac_files(
         rbacRootDir=rbacRootDir,
         masVersion=masVersion,
-        permissionMode=permissionMode,
+        adminMode=adminMode,
         selectedApps=validatedApps
     )
 
     logger.info(
         f"Applying pre-install MAS RBAC from {rbacRootDir} for MAS {masVersion}, "
-        f"masInstanceId={masInstanceId}, permissionMode={permissionMode}, "
+        f"masInstanceId={masInstanceId}, adminMode={adminMode}, "
         f"selectedApps={sorted(validatedApps)}, "
         f"manifestCount={len(manifestFiles)}"
     )
@@ -376,7 +372,7 @@ def applyPreInstallMASRBAC(
     namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
     requiredNamespaces = _get_preinstall_mas_rbac_namespaces(
         masInstanceId=masInstanceId,
-        permissionMode=permissionMode,
+        adminMode=adminMode,
         selectedApps=validatedApps
     )
 
