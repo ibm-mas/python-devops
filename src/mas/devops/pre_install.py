@@ -221,8 +221,7 @@ def buildClusterAdminPermissionMatrix() -> list[dict[str, str]]:
 def requiresPreInstallRBAC(
     dynClient: DynamicClient,
     targetVersion: str,
-    permissionMode: str | None = None,
-    skipPreinstallRbac: bool = False
+    adminMode: str | None = None
 ) -> bool:
     """
     Determine if pre-install RBAC is required and can be applied for the target version.
@@ -234,9 +233,8 @@ def requiresPreInstallRBAC(
     Args:
         dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
         targetVersion (str): Target MAS version (e.g., "9.2.0", "9.2.x", "9.2.0-pre.stable").
-        permissionMode (str | None): Permission mode ("cluster", "namespaced", "minimal").
-                                     If "minimal", RBAC is skipped.
-        skipPreinstallRbac (bool): If True, skip RBAC application (for install --skip-preinstall-rbac).
+        adminMode (str | None): Admin mode ("cluster", "namespaced", "minimal").
+                                If "minimal", RBAC is skipped.
 
     Returns:
         bool: True if RBAC should be applied, False if it should be skipped.
@@ -255,13 +253,8 @@ def requiresPreInstallRBAC(
         return False
 
     # Skip for minimal mode - operator will apply essential roles
-    if permissionMode == "minimal":
-        logger.info("Minimal permission mode detected, skipping pre-install RBAC")
-        return False
-
-    # Skip if explicitly requested (install --skip-preinstall-rbac)
-    if skipPreinstallRbac:
-        logger.info("Skipping pre-install RBAC as requested by --skip-preinstall-rbac flag")
+    if adminMode == "minimal":
+        logger.info("Minimal admin mode detected, skipping pre-install RBAC")
         return False
 
     # Check if user has cluster-admin permissions
@@ -275,13 +268,13 @@ def requiresPreInstallRBAC(
     # No permissions - this is a blocking error
     errorMsg = (
         f"Current user does not have cluster-admin permissions required to apply pre-install RBAC for MAS {targetVersion}. "
-        f"Permission mode '{permissionMode or 'cluster'}' requires the following permissions:\n"
+        f"Admin mode '{adminMode or 'cluster'}' requires the following permissions:\n"
     )
     for result in permissionResults:
         if not result["allowed"]:
             errorMsg += f"  - {result['verb']} {result['resource']} (group: {result.get('group', 'core')})\n"
 
-    errorMsg += "\nPlease contact your OpenShift cluster administrator to apply the required RBAC, or use --skip-preinstall-rbac if RBAC was already applied."
+    errorMsg += "\nPlease contact your OpenShift cluster administrator to apply the required RBAC."
 
     raise PermissionError(errorMsg)
 
