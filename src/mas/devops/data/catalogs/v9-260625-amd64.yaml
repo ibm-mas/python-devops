@@ -63,7 +63,7 @@ mas_core_version:
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
   9.1.x: 9.1.11                         # Updated
-  9.0.x: 9.0.17                         # Updated
+  9.0.x: 9.0.17                         # No Update
   8.10.x: 8.7.8                         # No Update
   8.11.x: 8.8.7                         # No Update
 mas_hputilities_version:
