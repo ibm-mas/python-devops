@@ -218,67 +218,6 @@ def buildClusterAdminPermissionMatrix() -> list[dict[str, str]]:
     ]
 
 
-def requiresPreInstallRBAC(
-    dynClient: DynamicClient,
-    targetVersion: str,
-    adminMode: str | None = None
-) -> bool:
-    """
-    Determine if pre-install RBAC is required and can be applied for the target version.
-
-    This function is used across install, update, and upgrade operations to determine
-    if RBAC resources are required and should be applied before launching the pipeline.
-    It will raise an exception if permissions are missing and RBAC is required.
-
-    Args:
-        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
-        targetVersion (str): Target MAS version (e.g., "9.2.0", "9.2.x", "9.2.0-pre.stable").
-        adminMode (str | None): Admin mode ("cluster", "namespaced", "minimal").
-                                If "minimal", RBAC is skipped.
-
-    Returns:
-        bool: True if RBAC should be applied, False if it should be skipped.
-
-    Raises:
-        PermissionError: If user lacks required permissions and RBAC is needed.
-    """
-    from .utils import isVersionEqualOrAfter
-
-    # Extract base version for comparison
-    baseVersion = targetVersion.split("-")[0].replace(".x", ".0") if targetVersion else ""
-
-    # Only apply for MAS >= 9.2.0
-    if not baseVersion or not isVersionEqualOrAfter("9.2.0", baseVersion):
-        logger.info(f"Target version {targetVersion} is < 9.2.0, skipping pre-install RBAC")
-        return False
-
-    # Skip for minimal mode - operator will apply essential roles
-    if adminMode == "minimal":
-        logger.info("Minimal admin mode detected, skipping pre-install RBAC")
-        return False
-
-    # Check if user has cluster-admin permissions
-    permissionResults = permissionCheckForRBAC(dynClient)
-    hasPreInstallRBACAccess = all(result["allowed"] for result in permissionResults)
-
-    if hasPreInstallRBACAccess:
-        logger.info(f"User has required permissions for pre-install RBAC (target version: {targetVersion})")
-        return True
-
-    # No permissions - this is a blocking error
-    errorMsg = (
-        f"Current user does not have cluster-admin permissions required to apply pre-install RBAC for MAS {targetVersion}. "
-        f"Admin mode '{adminMode or 'cluster'}' requires the following permissions:\n"
-    )
-    for result in permissionResults:
-        if not result["allowed"]:
-            errorMsg += f"  - {result['verb']} {result['resource']} (group: {result.get('group', 'core')})\n"
-
-    errorMsg += "\nPlease contact your OpenShift cluster administrator to apply the required RBAC."
-
-    raise PermissionError(errorMsg)
-
-
 def permissionCheckForRBAC(
     dynClient: DynamicClient,
     checks: list[dict[str, str]] | None = None
