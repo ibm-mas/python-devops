@@ -104,7 +104,7 @@ spec:
     - name: db2_action_facilities
       value: "{{ db2_action_facilities}}"
     - name: db2_action_aiservice
-      value: "{{ db2_action_aiservice }}"   
+      value: "{{ db2_action_aiservice }}"
 
     # Dependencies - Db2u Operator
     # -------------------------------------------------------------------------
@@ -545,6 +545,10 @@ spec:
     - name: mas_ingress_controller_name
       value: "{{ mas_ingress_controller_name }}"
 {%- endif %}
+{%- if mas_manual_route_mgmt is defined and mas_manual_route_mgmt != "" %}
+    - name: mas_manual_route_mgmt
+      value: "{{ mas_manual_route_mgmt }}"
+{%- endif %}
 {%- if mas_use_service_mesh is defined and mas_use_service_mesh != "" %}
     - name: mas_use_service_mesh
       value: "{{ mas_use_service_mesh }}"
@@ -625,6 +629,10 @@ spec:
   {%- if mas_appws_bindings_jdbc_manage is defined and mas_appws_bindings_jdbc_manage != "" %}
     - name: mas_appws_bindings_jdbc_manage
       value: "{{ mas_appws_bindings_jdbc_manage }}"
+  {%- endif %}
+  {%- if mas_appws_bindings_kafka_manage is defined and mas_appws_bindings_kafka_manage != "" %}
+    - name: mas_appws_bindings_kafka_manage
+      value: "{{ mas_appws_bindings_kafka_manage }}"
   {%- endif %}
   {%- if mas_app_settings_persistent_volumes_flag is defined and mas_app_settings_persistent_volumes_flag != "" %}
     - name: mas_app_settings_persistent_volumes_flag
@@ -844,14 +852,12 @@ spec:
       value: "{{ tenant_scheduling_config_file }}"
 {%- endif %}
 
-    # RSL
+{%- if rsl_ca_crt is defined and rsl_ca_crt != "" %}
+    # RSL - CA Certificate
     # -------------------------------------------------------------------------
-    - name: rsl_url
-      value: "{{ rsl_url }}"
-    - name: rsl_org_id
-      value: "{{ rsl_org_id }}"
-    - name: rsl_token
-      value: "{{ rsl_token }}"
+    - name: rsl_ca_crt
+      value: "{{ rsl_ca_crt }}"
+{%- endif %}
 
     # S3
     # -------------------------------------------------------------------------
@@ -960,7 +966,7 @@ spec:
     - name: shared-certificates
       secret:
         secretName: pipeline-certificates
-    
+
     # The Db2 license file
     - name: shared-db2
       secret:

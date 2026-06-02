@@ -3,3 +3,8 @@ requires = [
   "setuptools"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+markers = [
+    "openshift: marks tests as requiring an OpenShift cluster (deselect with '-m \"not openshift\"')",
+]

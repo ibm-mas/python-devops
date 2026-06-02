@@ -8,6 +8,7 @@
 #
 # *****************************************************************************
 
+import pytest
 from openshift import dynamic
 from kubernetes import config
 from kubernetes.client import api_client
@@ -15,12 +16,18 @@ from kubernetes.dynamic.resource import ResourceInstance
 
 from mas.devops import mas
 
-dynClient = dynamic.DynamicClient(
-    api_client.ApiClient(configuration=config.load_kube_config())
-)
+pytestmark = pytest.mark.openshift
 
 
-def test_entitlement():
+@pytest.fixture(scope="module")
+def dynClient():
+    """Create DynamicClient for OpenShift cluster access."""
+    return dynamic.DynamicClient(
+        api_client.ApiClient(configuration=config.load_kube_config())
+    )
+
+
+def test_entitlement(dynClient):
     icrUsername = "testing-i"
     icrPassword = "not-a-real-password-i"
 
@@ -30,7 +37,7 @@ def test_entitlement():
     assert secret.metadata.name == "ibm-entitlement"
 
 
-def test_entitlement_with_artifactory():
+def test_entitlement_with_artifactory(dynClient):
     artifactoryUsername = "testing-a"
     artifactoryPassword = "not-a-real-password-a"
 
@@ -43,7 +50,7 @@ def test_entitlement_with_artifactory():
     assert secret.metadata.name == "ibm-entitlement"
 
 
-def test_entitlement_alt_name():
+def test_entitlement_alt_name(dynClient):
     icrUsername = "testing-i"
     icrPassword = "not-a-real-password-i"
 
@@ -53,23 +60,23 @@ def test_entitlement_alt_name():
     assert secret.metadata.name == "ibm-entitlement-key"
 
 
-def test_get_channel():
+def test_get_channel(dynClient):
     channel = mas.getMasChannel(dynClient, "doesnotexist")
     assert channel is None
 
 
-def test_is_airgap_install():
+def test_is_airgap_install(dynClient):
     # The cluster we are using to test with does not have the MAS ICSP or IDMS installed
     assert mas.isAirgapInstall(dynClient) is False
     assert mas.isAirgapInstall(dynClient, checkICSP=False) is False
 
 
-def test_get_mas_public_cluster_issuer():
+def test_get_mas_public_cluster_issuer(dynClient):
     # Test with non-existent instance - should return None
     issuer = mas.getMasPublicClusterIssuer(dynClient, "doesnotexist")
     assert issuer is None
 
 
-# def test_is_app_ready():
+# def test_is_app_ready(dynClient):
 #     mas.waitForAppReady(dynClient, "fvtcpd", "iot")
 #     mas.waitForAppReady(dynClient, "fvtcpd", "iot", "masdev")
