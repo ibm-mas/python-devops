@@ -824,6 +824,18 @@ spec:
     - name: mas_ws_facilities_config_map_name
       value: "{{ mas_ws_facilities_config_map_name }}"
 {%- endif %}
+{%- if mas_ws_facilities_custom_properties is defined and mas_ws_facilities_custom_properties != "" %}
+    - name: mas_ws_facilities_custom_properties
+      value: "{{ mas_ws_facilities_custom_properties }}"
+{%- endif %}
+{%- if mas_ws_facilities_properties_file_local is defined and mas_ws_facilities_properties_file_local != "" %}
+    - name: mas_ws_facilities_properties_file_local
+      value: "{{ mas_ws_facilities_properties_file_local }}"
+{%- endif %}
+{%- if mas_ws_facilities_properties_secret_name is defined and mas_ws_facilities_properties_secret_name != "" %}
+    - name: mas_ws_facilities_properties_secret_name
+      value: "{{ mas_ws_facilities_properties_secret_name }}"
+{%- endif %}
 
 {%- endif %}
 
@@ -981,3 +993,11 @@ spec:
     - name: shared-aiservice-config
       secret:
         secretName: pipeline-aiservice-config
+
+    # Facilities Properties configurations
+    # -------------------------------------------------------------------------
+    {% if mas_ws_facilities_custom_properties == "true" %}
+    - name: shared-facilities-properties
+      secret:
+        secretName: pipeline-facilities-properties
+    {% endif %}
