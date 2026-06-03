@@ -74,20 +74,3 @@ def isVersionEqualOrAfter(_compare_to_version, _current_version):
     current_version = semver.VersionInfo.parse(strippedVersion)
     compareToVersion = semver.VersionInfo.parse(_compare_to_version)
     return current_version.compare(compareToVersion) >= 0
-
-
-def isPreReleaseVersion(version: str) -> bool:
-    """
-    Check if a version string represents a pre-release version.
-
-    Pre-release versions contain "-pre" in the version string, such as
-    "9.2.0-pre.stable+21734" or "9.2.0-pre.m1dev86".
-
-    Args:
-        version (str): Version string to check (e.g., "9.2.0-pre.stable+21734").
-
-    Returns:
-        bool: True if the version is a pre-release, False otherwise.
-              Returns False if version is None or empty.
-    """
-    return "-pre" in version if version else False
