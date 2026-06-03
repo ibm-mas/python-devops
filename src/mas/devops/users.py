@@ -188,7 +188,9 @@ class MASUserUtils():
     @property
     def mas_workspace_application_ids(self):
         if self._mas_workspace_application_ids is None:
-            self._mas_workspace_application_ids = list(map(lambda ma: ma["id"], self.get_mas_applications_in_workspace()))
+            # Filter out "health"
+            all_apps = self.get_mas_applications_in_workspace()
+            self._mas_workspace_application_ids = [app["id"] for app in all_apps if app["id"] != "health"]
         return self._mas_workspace_application_ids
 
     def get_user(self, user_id):

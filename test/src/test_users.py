@@ -369,6 +369,18 @@ def test_mas_workspace_application_ids(user_utils, requests_mock):
     assert get.call_count == 1
 
 
+def test_mas_workspace_application_ids_filters_health(user_utils, requests_mock):
+    get = requests_mock.get(
+        f"{MAS_API_URL}/workspaces/{MAS_WORKSPACE_ID}/applications",
+        request_headers={"x-access-token": TOKEN},
+        json=[{"id": "manage"}, {"id": "health"}, {"id": "iot"}],
+        status_code=200
+    )
+    # health should be filtered out
+    assert user_utils.mas_workspace_application_ids == ["manage", "iot"]
+    assert get.call_count == 1
+
+
 def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
