@@ -274,7 +274,7 @@ def applyPreInstallMASRBAC(
 
     # For cluster mode, use ibm-mas operator only (apps not required)
     if adminMode == "cluster":
-        validatedApps = {"core"}  # Use core which maps to ibm-mas operator
+        validatedApps = {"core","arcgis"}  # Use core which maps to ibm-mas operator
         logger.info("Cluster admin mode - using ibm-mas operator only")
     else:
         # For namespaced mode, validate and use selected apps
