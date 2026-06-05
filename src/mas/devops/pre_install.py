@@ -81,10 +81,6 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, adminMode: str) -> boo
     if adminMode == "namespaced":
         return lowerName.startswith("role-non-essential-")
 
-    if adminMode == "minimal":
-        # In minimal mode, apply pipeline-specific and arcgis cluster role RBAC files
-        return lowerName.startswith("role-pipeline-") or lowerName.startswith("cluster-role-arcgis-")
-
     return False
 
 
@@ -271,20 +267,15 @@ def applyPreInstallMASRBAC(
     if not rbacRootDir:
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
 
+    # Minimal mode - essential roles will be applied by each operator
+    if adminMode == "minimal":
+        logger.info("Minimal admin mode - essential roles will be applied by each operator")
+        return
+
     # For cluster mode, use ibm-mas operator only (apps not required)
     if adminMode == "cluster":
-        validatedApps = {"core"}  # Use core which maps to ibm-mas operator
+        validatedApps = {"core", "arcgis"}  # Use core which maps to ibm-mas operator
         logger.info("Cluster admin mode - using ibm-mas operator only")
-    elif adminMode == "minimal":
-        # Minimal mode - apply pipeline-specific roles and arcgis cluster roles if arcgis is selected
-        validatedApps = {"core"}  # Use core for pipeline RBAC
-
-        # Add arcgis if it's in selected apps
-        if selectedApps and "arcgis" in selectedApps:
-            validatedApps.add("arcgis")
-            logger.info("Minimal admin mode - applying pipeline-specific RBAC and arcgis cluster roles")
-        else:
-            logger.info("Minimal admin mode - applying pipeline-specific RBAC, operators will apply their own essential roles")
     else:
         # For namespaced mode, validate and use selected apps
         validatedApps = _validate_selected_apps(selectedApps)
