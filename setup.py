@@ -94,5 +94,6 @@ setup(
         'bin/mas-devops-create-initial-users-for-saas',
         'bin/mas-devops-saas-job-cleaner',
         'bin/mas-devops-notify-slack',
+        'bin/mas-devops-apply-preinstall-rbac-for-saas',
     ]
 )
