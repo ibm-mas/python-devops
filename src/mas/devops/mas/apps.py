@@ -216,3 +216,38 @@ def getAppsSubscriptionChannel(dynClient: DynamicClient, instanceId: str) -> lis
     except UnauthorizedError:
         logger.error("Error: Unable to get MAS app subscriptions due to failed authorization: {e}")
         return []
+
+
+def getInstalledApps(dynClient: DynamicClient, instanceId: str) -> list:
+    """
+    Get list of installed apps for the given MAS instance for RBAC application.
+    Always includes 'core' since core RBAC is required.
+
+    This is a convenience wrapper around getAppsSubscriptionChannel() that:
+    1. Always includes 'core' in the list
+    2. Extracts just the appId from the subscription data
+    3. Handles errors gracefully
+
+    Args:
+        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.
+        instanceId (str): The MAS instance identifier.
+
+    Returns:
+        list: List of app IDs including 'core' (e.g., ['core', 'manage', 'iot'])
+    """
+    # Always include core for RBAC application
+    installedApps = ["core"]
+
+    try:
+        appsWithSubscriptions = getAppsSubscriptionChannel(dynClient, instanceId)
+        logger.info(f"Apps with subscriptions detected for {instanceId}: {[app.get('appId') for app in appsWithSubscriptions]}")
+
+        for app in appsWithSubscriptions:
+            appId = app.get("appId")
+            if appId:
+                installedApps.append(appId)
+    except Exception as e:
+        logger.warning(f"Could not query app subscriptions for {instanceId}: {e}")
+        # Return at least core if we can't query apps
+
+    return installedApps
