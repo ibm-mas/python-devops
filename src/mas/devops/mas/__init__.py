@@ -2,7 +2,7 @@ from .apps import (  # noqa: F401
     verifyAppInstance,
     getAppsSubscriptionChannel,
     waitForAppReady,
-    getInstalledAppsForRBAC
+    getInstalledApps
 )
 
 from .suite import (  # noqa: F401

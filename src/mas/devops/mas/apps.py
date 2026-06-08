@@ -218,7 +218,7 @@ def getAppsSubscriptionChannel(dynClient: DynamicClient, instanceId: str) -> lis
         return []
 
 
-def getInstalledAppsForRBAC(dynClient: DynamicClient, instanceId: str) -> list:
+def getInstalledApps(dynClient: DynamicClient, instanceId: str) -> list:
     """
     Get list of installed apps for the given MAS instance for RBAC application.
     Always includes 'core' since core RBAC is required.
