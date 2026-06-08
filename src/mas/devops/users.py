@@ -245,7 +245,7 @@ class MASUserUtils():
                 # Extract resource_id from href (e.g., "api/os/masperuser/<resource_id>")
                 if href and "/" in href:
                     resource_id = href.split("/")[-1]
-                    self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
+                    self.logger.debug(f"Extracted resource_id: {resource_id} from user_info")
 
             # Second request: Get full user details
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/"
@@ -957,7 +957,7 @@ class MASUserUtils():
 
             if "Error" in error_json and "reasonCode" in error_json["Error"] and error_json["Error"]["reasonCode"] == "BMXAA10051E":
                 # BMXAA10051E - Only one API key allowed per user.
-                self.logger.info(f"Reusing existing Manage API Key for user {user_id}")
+                self.logger.debug(f"Reusing existing Manage API Key for user {user_id}")
                 pass
             else:
                 # any other 400 error is unexpected
