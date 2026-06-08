@@ -155,7 +155,7 @@ ccs_extras_version: 11.0.0               # No Update
 
 # Extra Images for Amlen
 # ------------------------------------------------------------------------------
-amlen_extras_version: 1.1.4              # No Update
+amlen_extras_version: 1.1.5
 
 # Extra Images for Redis (Collaborate)
 # ------------------------------------------------------------------------------
