@@ -1497,7 +1497,7 @@ class MASUserUtils():
 
         Note:
             Appropriate user creation procedure is chosen based on MAS version.
-            
+
         """
 
         if "email" not in user:
@@ -1517,13 +1517,10 @@ class MASUserUtils():
             # default to email if no id provided
             user_id = user_email
 
-
         if Version(self.mas_version) < Version('9.1'):
             self.create_initial_user_for_saas_pre_9_1(user_email, user_given_name, user_family_name, user_id, user_type)
         else:
             self.create_initial_user_for_saas_post_9_1(user_email, user_given_name, user_family_name, user_id, user_type, groupreassign)
-
-
 
     def create_initial_user_for_saas_pre_9_1(self, user_email, user_given_name, user_family_name, user_id, user_type):
         """
@@ -1560,7 +1557,6 @@ class MASUserUtils():
             - MAXADMIN security group membership
 
         """
-
 
         username = user_id
         # display_name = re.search('^([^@]+)@', user_email).group(1) # local part of the email
@@ -1655,10 +1651,6 @@ class MASUserUtils():
             for manage_security_group in manage_security_groups:
                 self.add_user_to_manage_group(user_id, manage_security_group, mxintadm_manage_api_key)
 
-
-
-
-
     def create_initial_user_for_saas_post_9_1(self, user_email, user_given_name, user_family_name, user_id, user_type, groupreassign=None):
         """
         Create and fully configure a single initial user for MAS SaaS post 9.1 using the Manage APIs
@@ -1669,7 +1661,7 @@ class MASUserUtils():
             user_family_name (str, required): User's last name
             user_id (str, required): User ID
             user_type (str): Either "PRIMARY" or "SECONDARY" to determine permissions level.
-        
+
         Returns:
             None
 
@@ -1697,7 +1689,6 @@ class MASUserUtils():
 
         # display_name = re.search('^([^@]+)@', user_email).group(1) # local part of the email
         display_name = f"{user_given_name} {user_family_name}"
-
 
         if user_type == "PRIMARY":
             maxuser_def = {
