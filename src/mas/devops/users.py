@@ -35,14 +35,14 @@ class MASUserUtils():
     - Manage API (API keys, security groups)
 
     Attributes:
-        MAXADMIN (str): Constant for the MAXADMIN user identifier.
+        MXINTADM (str): Constant for the MXINTADM user identifier.
         mas_instance_id (str): The MAS instance identifier.
         mas_workspace_id (str): The workspace identifier within the MAS instance.
         mas_core_namespace (str): Kubernetes namespace for MAS core components.
         manage_namespace (str): Kubernetes namespace for Manage application.
     """
 
-    MAXADMIN = "MAXADMIN"
+    MXINTADM = "MXINTADM"
 
     def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, mas_version: str = '9.0', coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
         """
@@ -216,8 +216,8 @@ class MASUserUtils():
 
         # For MAS version >= 9.1, use the Manage API masperuser endpoint
         if Version(self.mas_version) >= Version('9.1'):
-            # Get MAXADMIN API key for authentication
-            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+            # Get MXINTADM API key for authentication
+            mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
 
             # First request: Query to find user and get resource_id from href
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
@@ -227,7 +227,7 @@ class MASUserUtils():
             }
             headers = {
                 "Accept": "application/json",
-                "apikey": maxadmin_manage_api_key["apikey"]
+                "apikey": mxintadm_manage_api_key["apikey"]
             }
             response = requests.get(
                 url,
@@ -256,7 +256,7 @@ class MASUserUtils():
             }
             headers = {
                 "Accept": "application/json",
-                "apikey": maxadmin_manage_api_key["apikey"]
+                "apikey": mxintadm_manage_api_key["apikey"]
             }
             response = requests.get(
                 url,
@@ -338,8 +338,8 @@ class MASUserUtils():
 
         # For MAS version >= 9.1, use the Manage API masapiuser endpoint
         if Version(self.mas_version) >= Version('9.1'):
-            # Get MAXADMIN API key for authentication
-            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+            # Get MXINTADM API key for authentication
+            mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
 
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
             querystring = {
@@ -347,7 +347,7 @@ class MASUserUtils():
             }
             headers = {
                 "Content-Type": "application/json",
-                "apikey": maxadmin_manage_api_key["apikey"]
+                "apikey": mxintadm_manage_api_key["apikey"]
             }
             self.logger.debug(f"Creating new user {user_id} with Manage API with payload {payload}")
             response = requests.post(
@@ -1651,9 +1651,9 @@ class MASUserUtils():
             self.check_user_sync(user_id, mas_application_id)
 
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
-            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+            mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
             for manage_security_group in manage_security_groups:
-                self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
+                self.add_user_to_manage_group(user_id, manage_security_group, mxintadm_manage_api_key)
 
 
 
@@ -1746,12 +1746,12 @@ class MASUserUtils():
         resource_id, _ = self.get_or_create_user(user_def)
 
         # For version >= 9.1, we always need a Manage API key and resource_id to link user to local IDP
-        maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
-        self.link_user_to_local_idp(user_id, email_password=True, manage_api_key=maxadmin_manage_api_key, resource_id=resource_id)
+        mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
+        self.link_user_to_local_idp(user_id, email_password=True, manage_api_key=mxintadm_manage_api_key, resource_id=resource_id)
 
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
             if user_type == "PRIMARY" and groupreassign is not None:
-                if resource_id and maxadmin_manage_api_key:
-                    self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, maxadmin_manage_api_key)
+                if resource_id and mxintadm_manage_api_key:
+                    self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, mxintadm_manage_api_key)
                 else:
                     self.logger.warning(f"Cannot set group reassignment auth: resource_id not found for user {user_id}")
