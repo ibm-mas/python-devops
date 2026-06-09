@@ -140,22 +140,22 @@ def mock_manage_api_key(requests_mock):
     user_id = "user1"
     apikey = {"userid": user_id, "apikey": "test-api-key-12345", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/theapikeyid"}  # pragma: allowlist secret
 
-    # Also setup for MAXADMIN user
-    maxadmin_apikey = {"userid": "MAXADMIN", "apikey": "maxadmin-api-key-67890", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/maxadminapikeyid"}  # pragma: allowlist secret
+    # Also setup for MXINTADM user
+    mxintadm_apikey = {"userid": "MXINTADM", "apikey": "mxintadm-api-key-67890", "href": f"https://{MANAGE_API_URL}/maximo/api/os/mxapikey/mxintadmapikeyid"}  # pragma: allowlist secret
 
-    def maxadmin_matcher(req):
-        return req.json().get("userid") == "MAXADMIN" and req.verify == PEM_PATH and req.cert == PEM_PATH
+    def mxintadm_matcher(req):
+        return req.json().get("userid") == "MXINTADM" and req.verify == PEM_PATH and req.cert == PEM_PATH
 
     def user1_matcher(req):
         return req.json().get("userid") == user_id and req.verify == PEM_PATH and req.cert == PEM_PATH
 
-    # Mock for MAXADMIN API key creation (returns 400 - key already exists)
+    # Mock for MXINTADM API key creation (returns 400 - key already exists)
     requests_mock.post(
         f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1",
         request_headers={"content-type": "application/json"},
         json={"Error": {"reasonCode": "BMXAA10051E", "message": "Only one API key allowed per user"}},
         status_code=400,
-        additional_matcher=maxadmin_matcher
+        additional_matcher=mxintadm_matcher
     )
 
     # Mock for user1 API key creation
@@ -176,16 +176,16 @@ def mock_manage_api_key(requests_mock):
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
     )
 
-    # Mock for MAXADMIN API key retrieval (returns existing key)
+    # Mock for MXINTADM API key retrieval (returns existing key)
     requests_mock.get(
-        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"MAXADMIN\"",
+        f"{MANAGE_API_URL}/maximo/api/os/mxapiapikey?ccm=1&lean=1&oslc.select=*&oslc.where=userid=\"MXINTADM\"",
         request_headers={"accept": "application/json"},
-        json={"member": [maxadmin_apikey]},
+        json={"member": [mxintadm_apikey]},
         status_code=200,
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH)
     )
 
-    yield maxadmin_apikey
+    yield mxintadm_apikey
 
 
 def test_admin_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
@@ -2284,8 +2284,7 @@ def test_create_initial_user_for_saas(
         user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True, manage_api_key=manage_api_key, resource_id=resource_id)
     else:
         user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True)
-
-    user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
+        user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
 
     # For version < 9.1, await_mas_application_availability and set_user_application_permission are called
     # For version >= 9.1, they are NOT called
@@ -2314,7 +2313,7 @@ def test_create_initial_user_for_saas(
     # For version >= 9.1, API key is always created (needed for link_user_to_local_idp)
     # For version < 9.1, API key is only created if there are manage_security_groups
     if Version(mas_version) >= Version('9.1') or len(manage_security_groups) > 0:
-        user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MAXADMIN", temporary=True)
+        user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MXINTADM", temporary=True)
     else:
         user_utils.create_or_get_manage_api_key_for_user.assert_not_called()
 
