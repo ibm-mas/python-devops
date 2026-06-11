@@ -93,7 +93,7 @@ spec:
       value: "{{ eck_remote_es_password }}"
   {%- endif %}
 {%- endif %}
-{%- if db2_action_system == "install" or db2_action_manage == "install" or db2_action_aiservice == "install" %}
+{%- if db2_action_system == "install" or db2_action_manage == "install" or db2_action_aiservice == "install" or db2_action_facilities == "install" %}
 
     # Dependencies - Db2 - Actions
     # -------------------------------------------------------------------------
@@ -116,6 +116,10 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
+  {%- if db2_action_facilities == "install" %}      
+    - name: db2_facilities_timezone
+      value: "{{ db2_facilities_timezone }}"
+  {%- endif %}
     - name: db2u_kind
       value: "{{ db2u_kind }}"
   {%- if db2_license_file is defined and db2_license_file != "" %}
