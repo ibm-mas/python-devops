@@ -966,12 +966,12 @@
   <a href="#mas.devops.mas.apps-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Functions
+        Functions:
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Functions">
+    <nav class="md-nav" aria-label="Functions:">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1012,6 +1012,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;getAppsSubscriptionChannel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mas.devops.mas.apps.getInstalledApps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;getInstalledApps
       
     </span>
   </a>
@@ -1641,12 +1652,12 @@
   <a href="#mas.devops.mas.apps-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Functions
+        Functions:
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Functions">
+    <nav class="md-nav" aria-label="Functions:">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1687,6 +1698,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;getAppsSubscriptionChannel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mas.devops.mas.apps.getInstalledApps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;getInstalledApps
       
     </span>
   </a>
@@ -1757,7 +1779,7 @@
 
 
 
-<h3 id="mas.devops.mas.apps-functions">Functions</h3>
+<h3 id="mas.devops.mas.apps-functions">Functions:</h3>
 
 <div class="doc doc-object doc-function">
 
@@ -2586,6 +2608,168 @@ MAS application and returns a list of installed applications with their update c
 <a id="__codelineno-0-216" name="__codelineno-0-216"></a>    <span class="k">except</span> <span class="n">UnauthorizedError</span><span class="p">:</span>
 <a id="__codelineno-0-217" name="__codelineno-0-217"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error: Unable to get MAS app subscriptions due to failed authorization: </span><span class="si">{e}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-218" name="__codelineno-0-218"></a>        <span class="k">return</span> <span class="p">[]</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="mas.devops.mas.apps.getInstalledApps" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">getInstalledApps</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get list of installed apps for the given MAS instance for RBAC application.
+Always includes 'core' since core RBAC is required.</p>
+<p>This is a convenience wrapper around getAppsSubscriptionChannel() that:
+1. Always includes 'core' in the list
+2. Extracts just the appId from the subscription data
+3. Handles errors gracefully</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dynClient</code>
+            </td>
+            <td>
+                  <code><span title="openshift.dynamic.DynamicClient">DynamicClient</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>OpenShift dynamic client for cluster API interactions.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>instanceId</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The MAS instance identifier.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>list</code></td>            <td>
+                  <code><span title="list">list</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of app IDs including 'core' (e.g., ['core', 'manage', 'iot'])</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/mas/devops/mas/apps.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-221">221</a></span>
+<span class="normal"><a href="#__codelineno-0-222">222</a></span>
+<span class="normal"><a href="#__codelineno-0-223">223</a></span>
+<span class="normal"><a href="#__codelineno-0-224">224</a></span>
+<span class="normal"><a href="#__codelineno-0-225">225</a></span>
+<span class="normal"><a href="#__codelineno-0-226">226</a></span>
+<span class="normal"><a href="#__codelineno-0-227">227</a></span>
+<span class="normal"><a href="#__codelineno-0-228">228</a></span>
+<span class="normal"><a href="#__codelineno-0-229">229</a></span>
+<span class="normal"><a href="#__codelineno-0-230">230</a></span>
+<span class="normal"><a href="#__codelineno-0-231">231</a></span>
+<span class="normal"><a href="#__codelineno-0-232">232</a></span>
+<span class="normal"><a href="#__codelineno-0-233">233</a></span>
+<span class="normal"><a href="#__codelineno-0-234">234</a></span>
+<span class="normal"><a href="#__codelineno-0-235">235</a></span>
+<span class="normal"><a href="#__codelineno-0-236">236</a></span>
+<span class="normal"><a href="#__codelineno-0-237">237</a></span>
+<span class="normal"><a href="#__codelineno-0-238">238</a></span>
+<span class="normal"><a href="#__codelineno-0-239">239</a></span>
+<span class="normal"><a href="#__codelineno-0-240">240</a></span>
+<span class="normal"><a href="#__codelineno-0-241">241</a></span>
+<span class="normal"><a href="#__codelineno-0-242">242</a></span>
+<span class="normal"><a href="#__codelineno-0-243">243</a></span>
+<span class="normal"><a href="#__codelineno-0-244">244</a></span>
+<span class="normal"><a href="#__codelineno-0-245">245</a></span>
+<span class="normal"><a href="#__codelineno-0-246">246</a></span>
+<span class="normal"><a href="#__codelineno-0-247">247</a></span>
+<span class="normal"><a href="#__codelineno-0-248">248</a></span>
+<span class="normal"><a href="#__codelineno-0-249">249</a></span>
+<span class="normal"><a href="#__codelineno-0-250">250</a></span>
+<span class="normal"><a href="#__codelineno-0-251">251</a></span>
+<span class="normal"><a href="#__codelineno-0-252">252</a></span>
+<span class="normal"><a href="#__codelineno-0-253">253</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-221" name="__codelineno-0-221"></a><span class="k">def</span><span class="w"> </span><span class="nf">getInstalledApps</span><span class="p">(</span><span class="n">dynClient</span><span class="p">:</span> <span class="n">DynamicClient</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a><span class="sd">    Get list of installed apps for the given MAS instance for RBAC application.</span>
+<a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">    Always includes &#39;core&#39; since core RBAC is required.</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">    This is a convenience wrapper around getAppsSubscriptionChannel() that:</span>
+<a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="sd">    1. Always includes &#39;core&#39; in the list</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">    2. Extracts just the appId from the subscription data</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">    3. Handles errors gracefully</span>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">        dynClient (DynamicClient): OpenShift dynamic client for cluster API interactions.</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">        instanceId (str): The MAS instance identifier.</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">        list: List of app IDs including &#39;core&#39; (e.g., [&#39;core&#39;, &#39;manage&#39;, &#39;iot&#39;])</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a>    <span class="c1"># Always include core for RBAC application</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>    <span class="n">installedApps</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;core&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="n">appsWithSubscriptions</span> <span class="o">=</span> <span class="n">getAppsSubscriptionChannel</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">)</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Apps with subscriptions detected for </span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="p">[</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;appId&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">app</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">appsWithSubscriptions</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a>        <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="n">appsWithSubscriptions</span><span class="p">:</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a>            <span class="n">appId</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;appId&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>            <span class="k">if</span> <span class="n">appId</span><span class="p">:</span>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>                <span class="n">installedApps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">appId</span><span class="p">)</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not query app subscriptions for </span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>        <span class="c1"># Return at least core if we can&#39;t query apps</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>    <span class="k">return</span> <span class="n">installedApps</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
