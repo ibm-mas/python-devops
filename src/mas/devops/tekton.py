@@ -51,15 +51,46 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
 
     # Create the Operator Subscription
-    try:
-        if not crdExists(dynClient, "pipelines.tekton.dev"):
-            manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
+    if not crdExists(dynClient, "pipelines.tekton.dev"):
+        # Retry logic for finding the package manifest
+        max_retries = 50
+        retry_delay = 20  # seconds
+        attempts = 0
+        manifest = None
+
+        logger.info("Attempting to locate OpenShift Pipelines Operator package manifest...")
+
+        while attempts < max_retries:
+            try:
+                manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
+                logger.info("Successfully found OpenShift Pipelines Operator package manifest")
+                break
+            except NotFoundError as e:
+                attempts += 1
+                if attempts < max_retries:
+                    logger.warning(f"Package manifest not found (attempt {attempts}/{max_retries}). Retrying in {retry_delay} seconds...")
+                    sleep(retry_delay)
+                else:
+                    logger.error(f"Failed to find package manifest for Red Hat OpenShift Pipelines Operator after {max_retries} attempts")
+                    logger.error(f"The operator package manifest is not available in the openshift-marketplace namespace: {e}")
+                    return False
+            except Exception as e:
+                logger.error(f"Unexpected error while retrieving package manifest: {e}")
+                return False
+
+        if manifest is None:
+            logger.error("Failed to retrieve package manifest - cannot proceed with operator installation")
+            return False
+
+        # Extract operator details from manifest
+        try:
             defaultChannel = manifest.status.defaultChannel
             catalogSource = manifest.status.catalogSource
             catalogSourceNamespace = manifest.status.catalogSourceNamespace
 
             logger.info(f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}")
 
+            # Create subscription
             templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
             env = Environment(
                 loader=FileSystemLoader(searchpath=templateDir)
@@ -75,11 +106,14 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
             )
             subscription = yaml.safe_load(renderedTemplate)
             subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")
+            logger.info("OpenShift Pipelines Operator subscription created successfully")
 
-    except NotFoundError:
-        logger.warning("Error: Couldn't find package manifest for Red Hat Openshift Pipelines Operator")
-    except UnprocessibleEntityError:
-        logger.warning("Error: Couldn't create/update OpenShift Pipelines Operator Subscription")
+        except UnprocessibleEntityError as e:
+            logger.error(f"Error: Couldn't create/update OpenShift Pipelines Operator Subscription: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error while creating operator subscription: {e}")
+            return False
 
     # Wait for the CRD to be available
     logger.debug("Waiting for tasks.tekton.dev CRD to be available")
