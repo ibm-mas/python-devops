@@ -113,6 +113,10 @@ dd_version: 1.1.23
 # https://github.com/opendatahub-io/opendatahub-operator/releases
 odh_version: 2.32.0
 
+# Dependencies - Minio
+# -----------------------------------------------------------------------------
+minio_extras_version: 1.0.0
+
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
