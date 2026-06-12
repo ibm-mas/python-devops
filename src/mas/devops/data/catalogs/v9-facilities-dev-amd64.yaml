@@ -50,7 +50,7 @@ mas_core_version:
 
 mas_facilities_version:
   9.2.x-stable: 9.2.0-pre.stable_29422
-  9.2.x-feature: 9.2.0-pre.stable_16853
+  9.2.x-feature: 9.2.0-pre.stable_29422
   9.1.x-dev: 9.1.12-pre.maint91xdev-29259
   9.1.x: 9.1.11
 
