@@ -1,0 +1,138 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog v9-facilities-dev (AMD64)
+# -----------------------------------------------------------------------------
+# Custom development catalog for Facilities team
+
+catalog_digest: sha256:f4f458475beac300376c4894c1551e0ffd6c2bf8c35d47c8fd7013abb8af3e1a
+
+ocp_compatibility:
+- "4.16"
+- "4.17"
+- "4.18"
+- "4.19"
+- "4.20"
+- "4.21"
+
+# Dependencies
+# -----------------------------------------------------------------------------
+ibm_licensing_version: 4.2.17
+common_svcs_version: 4.13.0
+cp4d_platform_version: 5.2.0+20250709.170324
+ibm_zen_version: 6.2.0+20250530.152516.232
+db2u_version: 7.3.1+20250821.161005.16793
+db2_channel_default: v110509.0
+uds_version: 2.0.12
+sls_version: 3.12.8
+tsm_version: 1.7.6
+dd_version: 1.1.23
+appconnect_version: 6.2.0
+wsl_version: 11.0.0+20250521.202913.73
+wsl_runtimes_version: 11.0.0+20250515.090949.21
+wml_version: 11.0.0+20250530.193146.282
+postgress_version: 5.16.0+20250827.110911.2626
+ccs_build: 11.0.0+20250605.130237.468
+datarefinery_version: 11.0.0+20250513.203727.232
+spark_version: 11.0.0+20250604.163055.2097
+cognos_version: 28.0.0+20250515.175459.10054
+couchdb_version: 1.0.13
+elasticsearch_version: 1.1.2667
+opensearch_version: 1.1.2494
+odh_version: 2.32.0
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.2.x-stable: 9.2.0-pre.at-upgrade-fix_29436
+  9.2.x-feature: 9.2.0-pre.stable_29418
+  9.1.x: 9.1.18
+  9.0.x: 9.0.26
+  8.10.x: 8.10.37
+  8.11.x: 8.11.34
+
+mas_facilities_version:
+  9.2.x-stable: 9.2.0-pre.stable_29422
+  9.2.x-feature: 9.2.0-pre.stable_29422
+  9.1.x-dev: 9.1.12-pre.maint91xdev-29259
+  9.1.x: 9.1.11
+
+mas_assist_version:
+  9.1.x: 9.1.11
+  9.0.x: 9.0.17
+  8.10.x: 8.7.8
+  8.11.x: 8.8.7
+
+mas_iot_version:
+  9.2.x-feature: 9.2.0-pre.stable_21024
+  9.1.x: 9.1.11
+  9.0.x: 9.0.20
+  8.10.x: 8.7.33
+  8.11.x: 8.8.30
+
+mas_manage_version:
+  9.2.x-stable: 9.2.0-pre.stable_29344
+  9.1.x: 9.1.18
+  9.0.x: 9.0.26
+  8.10.x: 8.6.38
+  8.11.x: 8.7.32
+
+mas_monitor_version:
+  9.2.x-feature: 9.2.0-pre.stable_21784
+  9.1.x: 9.1.11
+  9.0.x: 9.0.20
+  8.10.x: 8.10.30
+  8.11.x: 8.11.28
+
+mas_optimizer_version:
+  9.2.x-feature: 9.2.0-pre.stable_21493
+  9.1.x: 9.1.12
+  9.0.x: 9.0.23
+  8.10.x: 8.4.28
+  8.11.x: 8.5.28
+
+mas_predict_version:
+  9.2.x-feature: 9.2.0-pre.stable_22454
+  9.1.x: 9.1.8
+  9.0.x: 9.0.15
+  8.10.x: 8.8.15
+  8.11.x: 8.9.17
+
+mas_visualinspection_version:
+  9.2.x-feature: 9.2.0-pre.stable_12598
+  9.1.x: 9.1.17
+  9.0.x: 9.0.20
+  8.10.x: 8.8.4
+  8.11.x: 8.9.21
+
+# Maximo AI Service
+# ------------------------------------------------------------------------------
+aiservice_version:
+  9.2.x-feature: 9.2.0-pre.stable_21747
+  9.1.x: 9.1.15
+
+aiservice_tenant_version:
+  9.2.x-feature: 9.2.0-pre.stable_21714
+
+# Extra Images
+# -----------------------------------------------------------------------------
+uds_extras_version: 1.5.0
+mongo_extras_version_default: 8.0.20
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.23
+mongo_extras_version_8: 8.0.20
+db2u_extras_version: 1.0.6
+db2u_filter: db2
+ccs_extras_version: 11.0.0
+amlen_extras_version: 1.1.4
+redis_extras_version: 2.1.40
+cpd_product_version_default: 5.2.0
+minio_version: RELEASE.2025-06-13T11-33-47Z
+
+editorial:
+  whats_new:
+  - title: '**Custom Development Catalog for Facilities**'
+    details:
+    - Development builds for Facilities team testing
+  known_issues:
+    - title: This is a development catalog - not for production use
