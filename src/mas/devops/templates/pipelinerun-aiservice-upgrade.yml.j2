@@ -21,11 +21,6 @@ spec:
     - name: aiservice_channel
       value: "{{ aiservice_channel }}"
 
-    # IBM Entitlement Key
-    # -------------------------------------------------------------------------
-    - name: ibm_entitlement_key
-      value: "{{ ibm_entitlement_key }}"
-
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
     # Skip pre-check
     # -------------------------------------------------------------------------

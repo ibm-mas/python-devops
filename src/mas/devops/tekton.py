@@ -598,7 +598,7 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None, facilitiesProperties: dict | None = None) -> None:
+def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None, slack_token: str = None, slack_channel: str = None, aiserviceConfig: str = None, db2LicenseFile: dict | None = None, facilitiesProperties: dict | None = None, ibm_entitlement_key: str = None) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
@@ -618,6 +618,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
         aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
         facilitiesProperties (dict, optional): Facilities properties file content. Defaults to None (empty secret).
+        ibm_entitlement_key (str, optional): IBM entitlement key for authentication. Defaults to None.
 
     Returns:
         None
@@ -685,6 +686,19 @@ def prepareInstallSecrets(dynClient: DynamicClient, namespace: str, slsLicenseFi
                 "name": "pipeline-additional-configs"
             }
         }
+
+    additionalConfigs.setdefault("apiVersion", "v1")
+    additionalConfigs.setdefault("kind", "Secret")
+    additionalConfigs.setdefault("type", "Opaque")
+    additionalConfigs.setdefault("metadata", {})
+    additionalConfigs["metadata"]["name"] = "pipeline-additional-configs"
+
+    # Add IBM_ENTITLEMENT_KEY to the secret if provided
+    if ibm_entitlement_key:
+        if "data" not in additionalConfigs:
+            additionalConfigs["data"] = {}
+        additionalConfigs["data"]["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
+
     secretsAPI.create(body=additionalConfigs, namespace=namespace)
 
     # 2. Secret/pipeline-sls-entitlement

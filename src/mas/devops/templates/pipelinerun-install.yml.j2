@@ -18,10 +18,6 @@ spec:
     pipeline: "0"
 
   params:
-    # IBM Entitlement Key
-    # -------------------------------------------------------------------------
-    - name: ibm_entitlement_key
-      value: "{{ ibm_entitlement_key }}"
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
 
     # Pipeline config

@@ -98,10 +98,6 @@ spec:
     - name: dro_contact_lastname
       value: "{{ dro_contact_lastname }}"
     {% endif %}
-    {% if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
-    - name: ibm_entitlement_key
-      value: "{{ ibm_entitlement_key }}"
-    {% endif %}
     {% if dro_namespace is defined and dro_namespace != "" %}
     - name: dro_namespace
       value: "{{ dro_namespace }}"
