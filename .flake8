@@ -1,5 +1,5 @@
 [flake8]
 # These rules are ignored
 # - E501 line too long
-ignore = E501
+extend-ignore = E501 D
 max-line-length = 120

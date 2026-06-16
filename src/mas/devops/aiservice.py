@@ -10,7 +10,11 @@
 
 import logging
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
+from openshift.dynamic.exceptions import (
+    NotFoundError,
+    ResourceNotFoundError,
+    UnauthorizedError,
+)
 
 from .ocp import listInstances
 from .olm import getSubscription
@@ -53,7 +57,9 @@ def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
               or authorization fails.
     """
     try:
-        aiserviceAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceApp")
+        aiserviceAPI = dynClient.resources.get(
+            api_version="aiservice.ibm.com/v1", kind="AIServiceApp"
+        )
         aiserviceAPI.get(name=instanceId, namespace=f"aiservice-{instanceId}")
         return True
     except NotFoundError:
@@ -64,7 +70,9 @@ def verifyAiServiceInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         print("RESOURCE NOT FOUND")
         return False
     except UnauthorizedError as e:
-        logger.error(f"Error: Unable to verify AI Service instance due to failed authorization: {e}")
+        logger.error(
+            f"Error: Unable to verify AI Service instance due to failed authorization: {e}"
+        )
         return False
 
 
@@ -85,7 +93,9 @@ def listAiServiceTenantInstances(dynClient: DynamicClient) -> list:
     return listInstances(dynClient, "aiservice.ibm.com/v1", "AIServiceTenant")
 
 
-def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, tenantId: str) -> bool:
+def verifyAiServiceTenantInstance(
+    dynClient: DynamicClient, instanceId: str, tenantId: str
+) -> bool:
     """
     Verify that a specific AI Service Tenant exists in the cluster.
 
@@ -104,8 +114,13 @@ def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, ten
               or authorization fails.
     """
     try:
-        aiserviceTenantAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceTenant")
-        aiserviceTenantAPI.get(name=f"aiservice-{instanceId}-{tenantId}", namespace=f"aiservice-{instanceId}")
+        aiserviceTenantAPI = dynClient.resources.get(
+            api_version="aiservice.ibm.com/v1", kind="AIServiceTenant"
+        )
+        aiserviceTenantAPI.get(
+            name=f"aiservice-{instanceId}-{tenantId}",
+            namespace=f"aiservice-{instanceId}",
+        )
         return True
     except NotFoundError:
         print("NOT FOUND")
@@ -115,7 +130,9 @@ def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, ten
         print("RESOURCE NOT FOUND")
         return False
     except UnauthorizedError as e:
-        logger.error(f"Error: Unable to verify AI Service Tenant due to failed authorization: {e}")
+        logger.error(
+            f"Error: Unable to verify AI Service Tenant due to failed authorization: {e}"
+        )
         return False
 
 
@@ -134,7 +151,9 @@ def getAiserviceChannel(dynClient: DynamicClient, instanceId: str) -> str | None
         str: The channel name (e.g., "v1.0", "stable") if the subscription exists,
              None if the subscription is not found.
     """
-    aiserviceSubscription = getSubscription(dynClient, f"aiservice-{instanceId}", "ibm-aiservice")
+    aiserviceSubscription = getSubscription(
+        dynClient, f"aiservice-{instanceId}", "ibm-aiservice"
+    )
     if aiserviceSubscription is None:
         return None
     else:

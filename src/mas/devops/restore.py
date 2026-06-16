@@ -26,7 +26,7 @@ def loadYamlFile(file_path: str):
         dict: Parsed YAML content or None if error
     """
     try:
-        with open(file_path, 'r') as yaml_file:
+        with open(file_path, "r") as yaml_file:
             content = yaml.safe_load(yaml_file)
         return content
     except Exception as e:
@@ -34,7 +34,9 @@ def loadYamlFile(file_path: str):
         return None
 
 
-def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=None, replace_resource=True) -> tuple:
+def restoreResource(
+    dynClient: DynamicClient, resource_data: dict, namespace=None, replace_resource=True
+) -> tuple:
     """
     Restore a single Kubernetes resource from its YAML representation.
     If the resource exists and replace_resource is True, it will be updated (replaced).
@@ -55,29 +57,35 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
     """
     try:
         # Extract resource metadata
-        kind = resource_data.get('kind')
-        api_version = resource_data.get('apiVersion')
-        metadata = resource_data.get('metadata', {})
-        resource_name = metadata.get('name')
-        resource_namespace = namespace or metadata.get('namespace')
+        kind = resource_data.get("kind")
+        api_version = resource_data.get("apiVersion")
+        metadata = resource_data.get("metadata", {})
+        resource_name = metadata.get("name")
+        resource_namespace = namespace or metadata.get("namespace")
 
         if not kind or not api_version or not resource_name:
             error_msg = "Resource missing required fields (kind, apiVersion, or name)"
             logger.error(error_msg)
-            return (False, resource_name or 'unknown', error_msg)
+            return (False, resource_name or "unknown", error_msg)
 
         # Get the resource API
         resourceAPI = dynClient.resources.get(api_version=api_version, kind=kind)
 
         # Determine scope description for logging
-        scope_desc = f"namespace '{resource_namespace}'" if resource_namespace else "cluster-level"
+        scope_desc = (
+            f"namespace '{resource_namespace}'"
+            if resource_namespace
+            else "cluster-level"
+        )
 
         # Check if resource already exists
         resource_exists = False
         existing_resource = None
         try:
             if resource_namespace:
-                existing_resource = resourceAPI.get(name=resource_name, namespace=resource_namespace)
+                existing_resource = resourceAPI.get(
+                    name=resource_name, namespace=resource_namespace
+                )
             else:
                 existing_resource = resourceAPI.get(name=resource_name)
             resource_exists = existing_resource is not None
@@ -89,17 +97,32 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
             if resource_exists:
                 if replace_resource:
                     # Resource exists - update it using strategic merge patch
-                    logger.info(f"Patching existing {kind} '{resource_name}' in {scope_desc}")
+                    logger.info(
+                        f"Patching existing {kind} '{resource_name}' in {scope_desc}"
+                    )
 
                     if resource_namespace:
-                        resourceAPI.patch(body=resource_data, name=resource_name, namespace=resource_namespace, content_type='application/merge-patch+json')
+                        resourceAPI.patch(
+                            body=resource_data,
+                            name=resource_name,
+                            namespace=resource_namespace,
+                            content_type="application/merge-patch+json",
+                        )
                     else:
-                        resourceAPI.patch(body=resource_data, name=resource_name, content_type='application/merge-patch+json')
-                    logger.info(f"Successfully patched {kind} '{resource_name}' in {scope_desc}")
+                        resourceAPI.patch(
+                            body=resource_data,
+                            name=resource_name,
+                            content_type="application/merge-patch+json",
+                        )
+                    logger.info(
+                        f"Successfully patched {kind} '{resource_name}' in {scope_desc}"
+                    )
                     return (True, resource_name, "updated")
                 else:
                     # Resource exists but replace_resource is False - skip it
-                    logger.info(f"{kind} '{resource_name}' already exists in {scope_desc}, skipping (replace_resource=False)")
+                    logger.info(
+                        f"{kind} '{resource_name}' already exists in {scope_desc}, skipping (replace_resource=False)"
+                    )
                     return (True, resource_name, "skipped")
             else:
                 # Resource doesn't exist - create it
@@ -108,7 +131,9 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
                     resourceAPI.create(body=resource_data, namespace=resource_namespace)
                 else:
                     resourceAPI.create(body=resource_data)
-                logger.info(f"Successfully created {kind} '{resource_name}' in {scope_desc}")
+                logger.info(
+                    f"Successfully created {kind} '{resource_name}' in {scope_desc}"
+                )
                 return (True, resource_name, None)
         except Exception as e:
             action = "update" if resource_exists else "create"
@@ -119,4 +144,8 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
     except Exception as e:
         error_msg = f"Error restoring resource: {e}"
         logger.error(error_msg)
-        return (False, resource_data.get('metadata', {}).get('name', 'unknown'), error_msg)
+        return (
+            False,
+            resource_data.get("metadata", {}).get("name", "unknown"),
+            error_msg,
+        )

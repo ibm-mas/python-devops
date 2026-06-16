@@ -49,7 +49,9 @@ class SlackUtilMeta(type):
                 cls._client = WebClient(token=SLACK_TOKEN)
                 return cls._client
 
-    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+    def postMessageBlocks(
+        cls, channelList: str | list[str], messageBlocks: list, threadId: str = None
+    ) -> SlackResponse | list[SlackResponse]:
         """
         Post a message with block formatting to one or more Slack channels.
 
@@ -71,7 +73,9 @@ class SlackUtilMeta(type):
         for channel in channelList:
             try:
                 if threadId is None:
-                    logger.debug(f"Posting {len(messageBlocks)} block message to {channel} in Slack")
+                    logger.debug(
+                        f"Posting {len(messageBlocks)} block message to {channel} in Slack"
+                    )
                     response = cls.client.chat_postMessage(
                         channel=channel,
                         blocks=messageBlocks,
@@ -84,7 +88,9 @@ class SlackUtilMeta(type):
                         as_user=True,
                     )
                 else:
-                    logger.debug(f"Posting {len(messageBlocks)} block message to {channel} on thread {threadId} in Slack")
+                    logger.debug(
+                        f"Posting {len(messageBlocks)} block message to {channel} on thread {threadId} in Slack"
+                    )
                     response = cls.client.chat_postMessage(
                         channel=channel,
                         thread_ts=threadId,
@@ -108,7 +114,13 @@ class SlackUtilMeta(type):
 
         return responses if len(responses) > 1 else responses[0]
 
-    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+    def postMessageText(
+        cls,
+        channelList: str | list[str],
+        message: str,
+        attachments=None,
+        threadId: str = None,
+    ) -> SlackResponse | list[SlackResponse]:
         """
         Post a plain text message to one or more Slack channels.
 
@@ -144,7 +156,9 @@ class SlackUtilMeta(type):
                     as_user=True,
                 )
             else:
-                logger.debug(f"Posting message to {channel} on thread {threadId} in Slack")
+                logger.debug(
+                    f"Posting message to {channel} on thread {threadId} in Slack"
+                )
                 response = cls.client.chat_postMessage(
                     channel=channel,
                     thread_ts=threadId,
@@ -166,7 +180,11 @@ class SlackUtilMeta(type):
         return responses if len(responses) > 1 else responses[0]
 
     def createMessagePermalink(
-        cls, slackResponse: SlackResponse = None, channelId: str = None, messageTimestamp: str = None, domain: str = "ibm-mas"
+        cls,
+        slackResponse: SlackResponse = None,
+        channelId: str = None,
+        messageTimestamp: str = None,
+        domain: str = "ibm-mas",
     ) -> str:
         """
         Create a permanent link to a Slack message.
@@ -187,11 +205,15 @@ class SlackUtilMeta(type):
             channelId = slackResponse["channel"]
             messageTimestamp = slackResponse["ts"]
         elif channelId is None or messageTimestamp is None:
-            raise Exception("Either channelId and messageTimestamp, or slackReponse params must be provided")
+            raise Exception(
+                "Either channelId and messageTimestamp, or slackReponse params must be provided"
+            )
 
         return f"https://{domain}.slack.com/archives/{channelId}/p{messageTimestamp.replace('.', '')}"
 
-    def updateMessageBlocks(cls, channelName: str, threadId: str, messageBlocks: list) -> SlackResponse:
+    def updateMessageBlocks(
+        cls, channelName: str, threadId: str, messageBlocks: list
+    ) -> SlackResponse:
         """
         Update an existing Slack message with new block content.
 
@@ -206,7 +228,9 @@ class SlackUtilMeta(type):
         Raises:
             Exception: If message update fails
         """
-        logger.debug(f"Updating {len(messageBlocks)} block message in {channelName} on thread {threadId} in Slack")
+        logger.debug(
+            f"Updating {len(messageBlocks)} block message in {channelName} on thread {threadId} in Slack"
+        )
         response = cls.client.chat_update(
             channel=channelName,
             ts=threadId,
@@ -234,7 +258,10 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit header element
         """
-        return {"type": "header", "text": {"type": "plain_text", "text": title, "emoji": True}}
+        return {
+            "type": "header",
+            "text": {"type": "plain_text", "text": title, "emoji": True},
+        }
 
     def buildSection(cls, text: str) -> dict:
         """
@@ -271,7 +298,10 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit divider element
         """
-    def createThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> bool:
+
+    def createThreadConfigMap(
+        cls, namespace: str, instanceId: str, pipelineRunName: str
+    ) -> bool:
         """
         Create a ConfigMap to store Slack thread information for a pipeline run.
 
@@ -295,15 +325,12 @@ class SlackUtilMeta(type):
             instance_identifier = instanceId if instanceId else "update"
             configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
             configmap = client.V1ConfigMap(
-                metadata=client.V1ObjectMeta(
-                    name=configmap_name,
-                    namespace=namespace
-                ),
+                metadata=client.V1ObjectMeta(name=configmap_name, namespace=namespace),
                 data={
                     "pipelineName": pipelineRunName,
                     "instanceId": instanceId,
-                    "startTime": datetime.now(timezone.utc)
-                }
+                    "startTime": datetime.now(timezone.utc),
+                },
             )
             v1.create_namespaced_config_map(namespace=namespace, body=configmap)
             logger.info(f"Created ConfigMap {configmap_name} in namespace {namespace}")
@@ -312,7 +339,9 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to create ConfigMap: {e}")
             return False
 
-    def getThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> dict | None:
+    def getThreadConfigMap(
+        cls, namespace: str, instanceId: str, pipelineRunName: str
+    ) -> dict | None:
         """
         Retrieve Slack thread information from a ConfigMap.
 
@@ -333,12 +362,18 @@ class SlackUtilMeta(type):
             # For update pipeline (no instance ID), use "update" as identifier
             instance_identifier = instanceId if instanceId else "update"
             configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
-            configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
-            logger.debug(f"Retrieved ConfigMap {configmap_name} from namespace {namespace}")
+            configmap = v1.read_namespaced_config_map(
+                name=configmap_name, namespace=namespace
+            )
+            logger.debug(
+                f"Retrieved ConfigMap {configmap_name} from namespace {namespace}"
+            )
             return configmap.data
         except client.exceptions.ApiException as e:
             if e.status == 404:
-                logger.debug(f"ConfigMap slack-thread-{instanceId}-{pipelineRunName} not found in namespace {namespace}")
+                logger.debug(
+                    f"ConfigMap slack-thread-{instanceId}-{pipelineRunName} not found in namespace {namespace}"
+                )
             else:
                 logger.error(f"Failed to retrieve ConfigMap: {e}")
             return None
@@ -346,7 +381,9 @@ class SlackUtilMeta(type):
             logger.error(f"Failed to retrieve ConfigMap: {e}")
             return None
 
-    def updateThreadConfigMap(cls, namespace: str, instanceId: str, updates: dict, pipelineRunName: str) -> bool:
+    def updateThreadConfigMap(
+        cls, namespace: str, instanceId: str, updates: dict, pipelineRunName: str
+    ) -> bool:
         """
         Update the ConfigMap with additional data (e.g., task message timestamps).
 
@@ -370,7 +407,9 @@ class SlackUtilMeta(type):
             configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
 
             # Get existing ConfigMap
-            configmap = v1.read_namespaced_config_map(name=configmap_name, namespace=namespace)
+            configmap = v1.read_namespaced_config_map(
+                name=configmap_name, namespace=namespace
+            )
 
             # Update data
             if configmap.data is None:
@@ -378,14 +417,18 @@ class SlackUtilMeta(type):
             configmap.data.update(updates)
 
             # Patch the ConfigMap
-            v1.patch_namespaced_config_map(name=configmap_name, namespace=namespace, body=configmap)
+            v1.patch_namespaced_config_map(
+                name=configmap_name, namespace=namespace, body=configmap
+            )
             logger.debug(f"Updated ConfigMap {configmap_name} in namespace {namespace}")
             return True
         except Exception as e:
             logger.error(f"Failed to update ConfigMap: {e}")
             return False
 
-    def deleteThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> bool:
+    def deleteThreadConfigMap(
+        cls, namespace: str, instanceId: str, pipelineRunName: str
+    ) -> bool:
         """
         Delete the ConfigMap containing Slack thread information.
 
@@ -409,11 +452,15 @@ class SlackUtilMeta(type):
             instance_identifier = instanceId if instanceId else "update"
             configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
             v1.delete_namespaced_config_map(name=configmap_name, namespace=namespace)
-            logger.info(f"Deleted ConfigMap {configmap_name} from namespace {namespace}")
+            logger.info(
+                f"Deleted ConfigMap {configmap_name} from namespace {namespace}"
+            )
             return True
         except client.exceptions.ApiException as e:
             if e.status == 404:
-                logger.warning(f"ConfigMap slack-thread-{instanceId}-{pipelineRunName} not found in namespace {namespace}")
+                logger.warning(
+                    f"ConfigMap slack-thread-{instanceId}-{pipelineRunName} not found in namespace {namespace}"
+                )
             else:
                 logger.error(f"Failed to delete ConfigMap: {e}")
             return False

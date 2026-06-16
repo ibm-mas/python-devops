@@ -15,7 +15,11 @@ from os import path
 from types import SimpleNamespace
 from kubernetes.dynamic.resource import ResourceInstance
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
+from openshift.dynamic.exceptions import (
+    NotFoundError,
+    ResourceNotFoundError,
+    UnauthorizedError,
+)
 from jinja2 import Environment, FileSystemLoader
 
 from ..ocp import getStorageClasses, listInstances
@@ -42,13 +46,18 @@ def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
     """
     if checkICSP:
         try:
-            ICSPApi = dynClient.resources.get(api_version="operator.openshift.io/v1alpha1", kind="ImageContentSourcePolicy")
+            ICSPApi = dynClient.resources.get(
+                api_version="operator.openshift.io/v1alpha1",
+                kind="ImageContentSourcePolicy",
+            )
             ICSPApi.get(name="ibm-mas-and-dependencies")
             return True
         except NotFoundError:
             return False
     else:
-        IDMSApi = dynClient.resources.get(api_version="config.openshift.io/v1", kind="ImageDigestMirrorSet")
+        IDMSApi = dynClient.resources.get(
+            api_version="config.openshift.io/v1", kind="ImageDigestMirrorSet"
+        )
         masIDMS = IDMSApi.get(label_selector="mas.ibm.com/idmsContent=ibm")
         aiserviceIDMS = IDMSApi.get(label_selector="aiservice.ibm.com/idmsContent=ibm")
         return len(masIDMS.items) + len(aiserviceIDMS.items) > 0
@@ -73,12 +82,7 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
                         - rwx (str): Storage class name for RWX volumes
                         All attributes are None if no recognized provider is found.
     """
-    result = SimpleNamespace(
-        provider=None,
-        providerName=None,
-        rwo=None,
-        rwx=None
-    )
+    result = SimpleNamespace(provider=None, providerName=None, rwo=None, rwx=None)
 
     # Iterate through storage classes until we find one that we recognize
     # We make an assumption that if one of the paired classes if available, both will be
@@ -90,13 +94,19 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
             result.rwo = "ibmc-block-gold"
             result.rwx = "ibmc-file-gold-gid"
             break
-        elif storageClass.metadata.name in ["ocs-storagecluster-ceph-rbd", "ocs-storagecluster-cephfs"]:
+        elif storageClass.metadata.name in [
+            "ocs-storagecluster-ceph-rbd",
+            "ocs-storagecluster-cephfs",
+        ]:
             result.provider = "ocs"
             result.providerName = "OpenShift Container Storage"
             result.rwo = "ocs-storagecluster-ceph-rbd"
             result.rwx = "ocs-storagecluster-cephfs"
             break
-        elif storageClass.metadata.name in ["ocs-external-storagecluster-ceph-rbd", "ocs-external-storagecluster-cephfs"]:
+        elif storageClass.metadata.name in [
+            "ocs-external-storagecluster-ceph-rbd",
+            "ocs-external-storagecluster-cephfs",
+        ]:
             result.provider = "ocs-external"
             result.providerName = "OpenShift Container Storage (External)"
             result.rwo = "ocs-external-storagecluster-ceph-rbd"
@@ -147,13 +157,20 @@ def getCurrentCatalog(dynClient: DynamicClient) -> dict:
              - catalogId (str): Parsed catalog identifier (e.g., "v9-241205-amd64")
              Returns None if the catalog is not found.
     """
-    catalogsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="CatalogSource")
+    catalogsAPI = dynClient.resources.get(
+        api_version="operators.coreos.com/v1alpha1", kind="CatalogSource"
+    )
     try:
-        catalog = catalogsAPI.get(name="ibm-operator-catalog", namespace="openshift-marketplace")
+        catalog = catalogsAPI.get(
+            name="ibm-operator-catalog", namespace="openshift-marketplace"
+        )
         catalogDisplayName = catalog.spec.displayName
         catalogImage = catalog.spec.image
 
-        m = re.match(r".+(?P<catalogId>v[89]-(?P<catalogVersion>[0-9]+)-(amd64|s390x|ppc64le))", catalogDisplayName)
+        m = re.match(
+            r".+(?P<catalogId>v[89]-(?P<catalogVersion>[0-9]+)-(amd64|s390x|ppc64le))",
+            catalogDisplayName,
+        )
         if m:
             # catalogId = v9-yymmdd-amd64
             # catalogVersion = yymmdd
@@ -204,12 +221,18 @@ def getWorkspaceId(dynClient: DynamicClient, instanceId: str) -> str:
         str: The workspace ID if found, None if no workspaces exist for the instance.
     """
     workspaceId = None
-    workspacesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Workspace")
+    workspacesAPI = dynClient.resources.get(
+        api_version="core.mas.ibm.com/v1", kind="Workspace"
+    )
     workspaces = workspacesAPI.get(namespace=f"mas-{instanceId}-core")
     if len(workspaces["items"]) > 0:
-        workspaceId = workspaces["items"][0]["metadata"]["labels"]["mas.ibm.com/workspaceId"]
+        workspaceId = workspaces["items"][0]["metadata"]["labels"][
+            "mas.ibm.com/workspaceId"
+        ]
     else:
-        logger.info("There are no MAS workspaces for the provided instanceId on this cluster")
+        logger.info(
+            "There are no MAS workspaces for the provided instanceId on this cluster"
+        )
     return workspaceId
 
 
@@ -227,7 +250,9 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
               or authorization fails.
     """
     try:
-        suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
+        suitesAPI = dynClient.resources.get(
+            api_version="core.mas.ibm.com/v1", kind="Suite"
+        )
         suitesAPI.get(name=instanceId, namespace=f"mas-{instanceId}-core")
         return True
     except NotFoundError:
@@ -236,7 +261,9 @@ def verifyMasInstance(dynClient: DynamicClient, instanceId: str) -> bool:
         # The MAS Suite CRD has not even been installed in the cluster
         return False
     except UnauthorizedError as e:
-        logger.error(f"Error: Unable to verify MAS instance due to failed authorization: {e}")
+        logger.error(
+            f"Error: Unable to verify MAS instance due to failed authorization: {e}"
+        )
         return False
 
 
@@ -262,7 +289,15 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
         return masSubscription.spec.channel
 
 
-def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
+def updateIBMEntitlementKey(
+    dynClient: DynamicClient,
+    namespace: str,
+    icrUsername: str,
+    icrPassword: str,
+    artifactoryUsername: str = None,
+    artifactoryPassword: str = None,
+    secretName: str = "ibm-entitlement",
+) -> ResourceInstance:
     """
     Create or update the IBM Entitlement secret for accessing IBM container registries.
 
@@ -284,14 +319,18 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
     if secretName is None:
         secretName = "ibm-entitlement"
     if artifactoryUsername is not None:
-        logger.info(f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}' (with Artifactory access)")
+        logger.info(
+            f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}' (with Artifactory access)"
+        )
     else:
-        logger.info(f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}'")
+        logger.info(
+            f"Updating IBM Entitlement ({secretName}) in namespace '{namespace}'"
+        )
 
     templateDir = path.join(path.abspath(path.dirname(__file__)), "..", "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir),
-        extensions=["jinja2_base64_filters.Base64Filters"]
+        extensions=["jinja2_base64_filters.Base64Filters"],
     )
 
     contentTemplate = env.get_template("ibm-entitlement-dockerconfig.json.j2")
@@ -299,14 +338,12 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
         artifactory_username=artifactoryUsername,
         artifactory_token=artifactoryPassword,
         icr_username=icrUsername,
-        icr_password=icrPassword
+        icr_password=icrPassword,
     )
 
     template = env.get_template("ibm-entitlement-secret.yml.j2")
     renderedTemplate = template.render(
-        name=secretName,
-        namespace=namespace,
-        docker_config=dockerConfig
+        name=secretName, namespace=namespace, docker_config=dockerConfig
     )
     secret = yaml.safe_load(renderedTemplate)
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
@@ -333,18 +370,26 @@ def getMasPublicClusterIssuer(dynClient: DynamicClient, instanceId: str) -> str 
              doesn't specify a custom issuer, or None if the suite is not found.
     """
     try:
-        suitesAPI = dynClient.resources.get(api_version="core.mas.ibm.com/v1", kind="Suite")
+        suitesAPI = dynClient.resources.get(
+            api_version="core.mas.ibm.com/v1", kind="Suite"
+        )
         suite = suitesAPI.get(name=instanceId, namespace=f"mas-{instanceId}-core")
 
         # Check if spec.certificateIssuer.name exists
-        if hasattr(suite, 'spec') and hasattr(suite.spec, 'certificateIssuer') and hasattr(suite.spec.certificateIssuer, 'name'):
+        if (
+            hasattr(suite, "spec")
+            and hasattr(suite.spec, "certificateIssuer")
+            and hasattr(suite.spec.certificateIssuer, "name")
+        ):
             issuerName = suite.spec.certificateIssuer.name
             logger.debug(f"Found custom certificate issuer: {issuerName}")
             return issuerName
 
         # Keys don't exist, return default
         defaultIssuer = f"mas-{instanceId}-core-public-issuer"
-        logger.debug(f"No custom certificate issuer found, using default: {defaultIssuer}")
+        logger.debug(
+            f"No custom certificate issuer found, using default: {defaultIssuer}"
+        )
         return defaultIssuer
 
     except NotFoundError:
@@ -355,7 +400,9 @@ def getMasPublicClusterIssuer(dynClient: DynamicClient, instanceId: str) -> str 
         logger.warning("MAS Suite CRD not found in the cluster")
         return None
     except UnauthorizedError as e:
-        logger.error(f"Error: Unable to retrieve MAS instance due to failed authorization: {e}")
+        logger.error(
+            f"Error: Unable to retrieve MAS instance due to failed authorization: {e}"
+        )
         return None
 
 
@@ -387,19 +434,27 @@ def getPermissionMode(dynClient: DynamicClient, instanceId: str) -> str | None:
     """
     try:
         # Step 1: Check for ClusterRoles (indicates cluster mode)
-        clusterRoleAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRole")
+        clusterRoleAPI = dynClient.resources.get(
+            api_version="rbac.authorization.k8s.io/v1", kind="ClusterRole"
+        )
 
         # Look for MAS ClusterRoles with the instance ID pattern
         clusterRoleName = f"mas:{instanceId}:core:coreapi"
         try:
             clusterRoleAPI.get(name=clusterRoleName)
-            logger.info(f"Found ClusterRole '{clusterRoleName}' - permission mode is 'cluster'")
+            logger.info(
+                f"Found ClusterRole '{clusterRoleName}' - permission mode is 'cluster'"
+            )
             return "cluster"
         except NotFoundError:
-            logger.debug(f"ClusterRole '{clusterRoleName}' not found, checking for non-essential Roles")
+            logger.debug(
+                f"ClusterRole '{clusterRoleName}' not found, checking for non-essential Roles"
+            )
 
         # Step 2: Check for non-essential openshift-marketplace Role (only exists in namespaced mode)
-        roleAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="Role")
+        roleAPI = dynClient.resources.get(
+            api_version="rbac.authorization.k8s.io/v1", kind="Role"
+        )
 
         # This role only exists in namespaced mode (applied via role-non-essential-core-coreapi-openshift-marketplace.yaml)
         marketplaceRoleName = f"mas:{instanceId}:core:coreapi:openshift-marketplace"
@@ -407,10 +462,14 @@ def getPermissionMode(dynClient: DynamicClient, instanceId: str) -> str | None:
 
         try:
             roleAPI.get(name=marketplaceRoleName, namespace=marketplaceNamespace)
-            logger.info(f"Found non-essential Role '{marketplaceRoleName}' in namespace '{marketplaceNamespace}' - permission mode is 'namespaced'")
+            logger.info(
+                f"Found non-essential Role '{marketplaceRoleName}' in namespace '{marketplaceNamespace}' - permission mode is 'namespaced'"
+            )
             return "namespaced"
         except NotFoundError:
-            logger.debug("Non-essential openshift-marketplace Role not found, checking for essential roles")
+            logger.debug(
+                "Non-essential openshift-marketplace Role not found, checking for essential roles"
+            )
 
         # Step 3: Verify minimal mode by checking for essential roles in mas-{instanceId}-core namespace
         # Essential roles have pattern: mas:{instanceId}:core:suite:{app}:essential
@@ -426,24 +485,30 @@ def getPermissionMode(dynClient: DynamicClient, instanceId: str) -> str | None:
             f"mas:{instanceId}:core:suite:arcgis:essential",
             f"mas:{instanceId}:core:suite:facilities:essential",
             f"mas:{instanceId}:core:suite:optimizer:essential",
-            f"mas:{instanceId}:core:suite:visualinspection:essential"
+            f"mas:{instanceId}:core:suite:visualinspection:essential",
         ]
 
         for essentialRoleName in essentialRolePatterns:
             try:
                 roleAPI.get(name=essentialRoleName, namespace=coreNamespace)
-                logger.info(f"Found essential Role '{essentialRoleName}' in namespace '{coreNamespace}' with no non-essential roles - permission mode is 'minimal'")
+                logger.info(
+                    f"Found essential Role '{essentialRoleName}' in namespace '{coreNamespace}' with no non-essential roles - permission mode is 'minimal'"
+                )
                 return "minimal"
             except NotFoundError:
                 continue
 
         # If we couldn't find any RBAC resources, return None
-        logger.warning(f"Unable to determine permission mode for instance '{instanceId}' ")
+        logger.warning(
+            f"Unable to determine permission mode for instance '{instanceId}' "
+        )
         return None
 
     except ResourceNotFoundError:
         logger.warning("Required API resources not found in the cluster")
         return None
     except UnauthorizedError as e:
-        logger.error(f"Error: Unable to check permissions due to failed authorization: {e}")
+        logger.error(
+            f"Error: Unable to check permissions due to failed authorization: {e}"
+        )
         return None
