@@ -126,7 +126,7 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
             return (False, resource_name, error_msg)
 
     except ResourceNotFoundError:
-        return (True, resource_data.get('kind'), "skipped")
+        return (True, resource_data.get("kind"), "skipped")
 
     except Exception as e:
         error_msg = f"Error restoring resource: {e}"
