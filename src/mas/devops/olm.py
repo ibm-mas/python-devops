@@ -49,20 +49,14 @@ def getPackageManifest(
     Raises:
         NotFoundError: If the package manifest is not found (caught and returns None)
     """
-    packagemanifestAPI = dynClient.resources.get(
-        api_version="packages.operators.coreos.com/v1", kind="PackageManifest"
-    )
+    packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
     try:
-        manifestResource = packagemanifestAPI.get(
-            name=packageName, namespace=catalogSourceNamespace
-        )
+        manifestResource = packagemanifestAPI.get(name=packageName, namespace=catalogSourceNamespace)
         logger.info(
             f"Package Manifest Details: {catalogSourceNamespace}:{packageName} - Package is available from {manifestResource.status.catalogSource} (default channel is {manifestResource.status.defaultChannel})"
         )
     except NotFoundError:
-        logger.info(
-            f"Package Manifest Details: {catalogSourceNamespace}:{packageName} - Package is not available"
-        )
+        logger.info(f"Package Manifest Details: {catalogSourceNamespace}:{packageName} - Package is not available")
         manifestResource = None
     return manifestResource
 
@@ -90,16 +84,12 @@ def ensureOperatorGroupExists(
     Raises:
         NotFoundError: If resources cannot be accessed
     """
-    operatorGroupsAPI = dynClient.resources.get(
-        api_version="operators.coreos.com/v1", kind="OperatorGroup"
-    )
+    operatorGroupsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1", kind="OperatorGroup")
     operatorGroupList = operatorGroupsAPI.get(namespace=namespace)
     if len(operatorGroupList.items) == 0:
         logger.debug(f"Creating new OperatorGroup in namespace {namespace}")
         template = env.get_template("operatorgroup.yml.j2")
-        renderedTemplate = template.render(
-            name="operatorgroup", namespace=namespace, installMode=installMode
-        )
+        renderedTemplate = template.render(name="operatorgroup", namespace=namespace, installMode=installMode)
         operatorGroup = yaml.safe_load(renderedTemplate)
         operatorGroupsAPI.apply(body=operatorGroup, namespace=namespace)
     else:
@@ -125,19 +115,13 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
     """
     labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
     logger.debug(f"Get Subscription for {packageName} in {namespace}")
-    subscriptionsAPI = dynClient.resources.get(
-        api_version="operators.coreos.com/v1alpha1", kind="Subscription"
-    )
-    subscriptions = subscriptionsAPI.get(
-        label_selector=labelSelector, namespace=namespace
-    )
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    subscriptions = subscriptionsAPI.get(label_selector=labelSelector, namespace=namespace)
     if len(subscriptions.items) == 0:
         logger.info(f"No matching Subscription found for {packageName} in {namespace}")
         return None
     elif len(subscriptions.items) > 0:
-        logger.warning(
-            f"More than one ({len(subscriptions.items)}) Subscriptions found for {packageName} in {namespace}"
-        )
+        logger.warning(f"More than one ({len(subscriptions.items)}) Subscriptions found for {packageName} in {namespace}")
     return subscriptions.items[0]
 
 
@@ -185,9 +169,7 @@ def applySubscription(
     """
     # Validate that startingCSV is provided when installPlanApproval is Manual
     if installPlanApproval == "Manual" and startingCSV is None:
-        raise OLMException(
-            "When installPlanApproval is 'Manual', a startingCSV must be provided"
-        )
+        raise OLMException("When installPlanApproval is 'Manual', a startingCSV must be provided")
     if catalogSourceNamespace is None:
         catalogSourceNamespace = "openshift-marketplace"
 
@@ -197,24 +179,16 @@ def applySubscription(
 
     if packageChannel is None or catalogSource is None:
         logger.debug("Getting PackageManifest to determine defaults")
-        manifestResource = getPackageManifest(
-            dynClient, packageName, catalogSourceNamespace
-        )
+        manifestResource = getPackageManifest(dynClient, packageName, catalogSourceNamespace)
         if manifestResource is None:
-            raise OLMException(
-                f"Package {packageName} is not available from any catalog in {catalogSourceNamespace}"
-            )
+            raise OLMException(f"Package {packageName} is not available from any catalog in {catalogSourceNamespace}")
 
         # Set defaults for optional parameters
         if packageChannel is None:
-            logger.debug(
-                f"Setting subscription channel based on PackageManifest: {manifestResource.status.defaultChannel}"
-            )
+            logger.debug(f"Setting subscription channel based on PackageManifest: {manifestResource.status.defaultChannel}")
             packageChannel = manifestResource.status.defaultChannel
         if catalogSource is None:
-            logger.debug(
-                f"Setting subscription catalogSource based on PackageManifest: {manifestResource.status.catalogSource}"
-            )
+            logger.debug(f"Setting subscription catalogSource based on PackageManifest: {manifestResource.status.catalogSource}")
             catalogSource = manifestResource.status.catalogSource
 
     # Create the Namespace & OperatorGroup if necessary
@@ -223,9 +197,7 @@ def applySubscription(
     ensureOperatorGroupExists(dynClient, env, namespace, installMode)
 
     # Create (or update) the subscription
-    subscriptionsAPI = dynClient.resources.get(
-        api_version="operators.coreos.com/v1alpha1", kind="Subscription"
-    )
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
 
     resources = subscriptionsAPI.get(label_selector=labelSelector, namespace=namespace)
     if len(resources.items) == 0:
@@ -235,9 +207,7 @@ def applySubscription(
         name = resources.items[0].metadata.name
         logger.info(f"Updating existing subscription {name} in {namespace}")
     else:
-        raise OLMException(
-            f"More than one subscription found in {namespace} for {packageName} ({len(resources.items)} subscriptions found)"
-        )
+        raise OLMException(f"More than one subscription found in {namespace} for {packageName} ({len(resources.items)} subscriptions found)")
 
     template = env.get_template("subscription.yml.j2")
     renderedTemplate = template.render(
@@ -260,92 +230,63 @@ def applySubscription(
         subscriptionsAPI.apply(body=subscription, namespace=namespace)
     except Exception as e:
         if "409" in str(e) or "AlreadyExists" in str(e):
-            logger.warning(
-                f"Subscription {name} already exists and produced a conflict, retrying the apply"
-            )
+            logger.warning(f"Subscription {name} already exists and produced a conflict, retrying the apply")
             subscriptionsAPI.apply(body=subscription, namespace=namespace)
         else:
             raise
 
     # Wait for InstallPlan to be created
     logger.debug(f"Waiting for {packageName}.{namespace} InstallPlans")
-    installPlanAPI = dynClient.resources.get(
-        api_version="operators.coreos.com/v1alpha1", kind="InstallPlan"
-    )
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
 
     # Use label selector to get InstallPlans (standard approach)
-    installPlanResources = installPlanAPI.get(
-        label_selector=labelSelector, namespace=namespace
-    )
+    installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
     while len(installPlanResources.items) == 0:
-        installPlanResources = installPlanAPI.get(
-            label_selector=labelSelector, namespace=namespace
-        )
+        installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
         sleep(30)
 
     if len(installPlanResources.items) == 0:
         raise OLMException(f"Found 0 InstallPlans for {packageName}")
     elif len(installPlanResources.items) > 1:
-        logger.warning(
-            f"More than 1 InstallPlan found for {packageName} using label selector"
-        )
+        logger.warning(f"More than 1 InstallPlan found for {packageName} using label selector")
 
     # Select the InstallPlan to use
     installPlanResource = None
 
     # Special handling for Manual approval with startingCSV
     if installPlanApproval == "Manual" and startingCSV is not None:
-        logger.debug(
-            f"Manual approval with startingCSV {startingCSV} - checking if label selector returned correct InstallPlan"
-        )
+        logger.debug(f"Manual approval with startingCSV {startingCSV} - checking if label selector returned correct InstallPlan")
 
         # Check if any of the InstallPlans from label selector match the startingCSV
         for plan in installPlanResources.items:
             csvNames = getattr(plan.spec, "clusterServiceVersionNames", [])
-            logger.debug(
-                f"InstallPlan {plan.metadata.name} (from label selector) contains CSVs: {csvNames}"
-            )
+            logger.debug(f"InstallPlan {plan.metadata.name} (from label selector) contains CSVs: {csvNames}")
             if csvNames and startingCSV in csvNames:
                 installPlanResource = plan
-                logger.info(
-                    f"Found InstallPlan {plan.metadata.name} matching startingCSV {startingCSV} via label selector"
-                )
+                logger.info(f"Found InstallPlan {plan.metadata.name} matching startingCSV {startingCSV} via label selector")
                 break
 
         # If no match found via label selector, search all InstallPlans owned by this subscription
         if installPlanResource is None:
-            logger.warning(
-                f"Label selector did not return InstallPlan matching startingCSV {startingCSV}"
-            )
-            logger.debug(
-                f"Searching all InstallPlans in {namespace} owned by subscription {name}"
-            )
+            logger.warning(f"Label selector did not return InstallPlan matching startingCSV {startingCSV}")
+            logger.debug(f"Searching all InstallPlans in {namespace} owned by subscription {name}")
 
             allInstallPlans = installPlanAPI.get(namespace=namespace)
             for plan in allInstallPlans.items:
                 # Check if this InstallPlan is owned by our subscription
                 owner_refs = getattr(plan.metadata, "ownerReferences", [])
-                is_owned_by_subscription = any(
-                    ref.kind == "Subscription" and ref.name == name
-                    for ref in owner_refs
-                )
+                is_owned_by_subscription = any(ref.kind == "Subscription" and ref.name == name for ref in owner_refs)
 
                 if is_owned_by_subscription:
                     csvNames = getattr(plan.spec, "clusterServiceVersionNames", [])
-                    logger.debug(
-                        f"InstallPlan {plan.metadata.name} (owned by subscription) contains CSVs: {csvNames}"
-                    )
+                    logger.debug(f"InstallPlan {plan.metadata.name} (owned by subscription) contains CSVs: {csvNames}")
                     if csvNames and startingCSV in csvNames:
                         installPlanResource = plan
-                        logger.info(
-                            f"Found InstallPlan {plan.metadata.name} matching startingCSV {startingCSV} via subscription ownership"
-                        )
+                        logger.info(f"Found InstallPlan {plan.metadata.name} matching startingCSV {startingCSV} via subscription ownership")
                         break
 
             if installPlanResource is None:
-                logger.warning(
-                    f"No InstallPlan found matching startingCSV {startingCSV}, using first from label selector"
-                )
+                logger.warning(f"No InstallPlan found matching startingCSV {startingCSV}, using first from label selector")
                 installPlanResource = installPlanResources.items[0]
     else:
         # Standard case: use first InstallPlan from label selector
@@ -356,9 +297,7 @@ def applySubscription(
 
     # If the InstallPlan for our startingCSV is already Complete, we're done
     if installPlanPhase == "Complete":
-        logger.info(
-            f"InstallPlan {installPlanName} for {startingCSV} is already Complete"
-        )
+        logger.info(f"InstallPlan {installPlanName} for {startingCSV} is already Complete")
     else:
         # Wait for InstallPlan to complete
         logger.debug(f"Waiting for InstallPlan {installPlanName}")
@@ -367,22 +306,16 @@ def applySubscription(
         approved_manual_install = False
 
         while installPlanPhase != "Complete":
-            installPlanResource = installPlanAPI.get(
-                name=installPlanName, namespace=namespace
-            )
+            installPlanResource = installPlanAPI.get(name=installPlanName, namespace=namespace)
             installPlanPhase = installPlanResource.status.phase
 
             # If InstallPlan requires approval and this is the first installation to startingCSV
             if installPlanPhase == "RequiresApproval" and not approved_manual_install:
                 # Check if this is the first installation by verifying the CSV matches startingCSV
                 if startingCSV is not None:
-                    csvName = getattr(
-                        installPlanResource.spec, "clusterServiceVersionNames", []
-                    )
+                    csvName = getattr(installPlanResource.spec, "clusterServiceVersionNames", [])
                     if csvName and startingCSV in csvName:
-                        logger.info(
-                            f"Approving InstallPlan {installPlanName} for first-time installation to {startingCSV}"
-                        )
+                        logger.info(f"Approving InstallPlan {installPlanName} for first-time installation to {startingCSV}")
                         # Patch the InstallPlan to approve it
                         installPlanResource.spec.approved = True
                         installPlanAPI.patch(
@@ -392,17 +325,11 @@ def applySubscription(
                             content_type="application/merge-patch+json",
                         )
                         approved_manual_install = True
-                        logger.info(
-                            f"InstallPlan {installPlanName} approved successfully"
-                        )
+                        logger.info(f"InstallPlan {installPlanName} approved successfully")
                     else:
-                        logger.debug(
-                            f"InstallPlan CSV {csvName} does not match startingCSV {startingCSV}, waiting for manual approval"
-                        )
+                        logger.debug(f"InstallPlan CSV {csvName} does not match startingCSV {startingCSV}, waiting for manual approval")
                 else:
-                    logger.debug(
-                        f"No startingCSV specified, InstallPlan {installPlanName} requires manual approval"
-                    )
+                    logger.debug(f"No startingCSV specified, InstallPlan {installPlanName} requires manual approval")
 
             sleep(30)
 
@@ -418,46 +345,32 @@ def applySubscription(
         if state == "AtLatestKnown":
             logger.debug(f"Subscription {name} in {namespace} reached state: {state}")
             return subscriptionResource
-        elif (
-            state == "UpgradePending"
-            and installPlanApproval == "Manual"
-            and startingCSV is not None
-        ):
+        elif state == "UpgradePending" and installPlanApproval == "Manual" and startingCSV is not None:
             # Verify the installed CSV matches the startingCSV
             installedCSV = getattr(subscriptionResource.status, "installedCSV", None)
             if installedCSV == startingCSV:
-                logger.debug(
-                    f"Subscription {name} in {namespace} reached state: {state} with installedCSV: {installedCSV}"
-                )
+                logger.debug(f"Subscription {name} in {namespace} reached state: {state} with installedCSV: {installedCSV}")
                 return subscriptionResource
             else:
                 logger.debug(
                     f"Subscription {name} in {namespace} state is {state} but installedCSV ({installedCSV}) does not match startingCSV ({startingCSV}), retrying..."
                 )
 
-        logger.debug(
-            f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying..."
-        )
+        logger.debug(f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying...")
         sleep(30)
 
 
-def deleteSubscription(
-    dynClient: DynamicClient, namespace: str, packageName: str
-) -> None:
+def deleteSubscription(dynClient: DynamicClient, namespace: str, packageName: str) -> None:
     labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
 
     # Find and delete the Subscription
     logger.debug(f"Deleting Subscription for {packageName} in {namespace}")
-    subscriptionsAPI = dynClient.resources.get(
-        api_version="operators.coreos.com/v1alpha1", kind="Subscription"
-    )
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
     _findAndDeleteResources(subscriptionsAPI, "Subscription", labelSelector, namespace)
 
     # Find and delete the CSV
     logger.debug(f"Deleting CSV for {packageName}")
-    csvAPI = dynClient.resources.get(
-        api_version="operators.coreos.com/v1alpha1", kind="ClusterServiceVersion"
-    )
+    csvAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="ClusterServiceVersion")
     _findAndDeleteResources(csvAPI, "CSV", labelSelector, namespace)
 
 

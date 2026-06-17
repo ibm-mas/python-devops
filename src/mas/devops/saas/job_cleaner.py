@@ -68,9 +68,7 @@ class JobCleaner:
         _continue = None
         while True:
 
-            jobs_page = self.batch_v1_api.list_job_for_all_namespaces(
-                label_selector=label, limit=limit, _continue=_continue
-            )
+            jobs_page = self.batch_v1_api.list_job_for_all_namespaces(label_selector=label, limit=limit, _continue=_continue)
             _continue = jobs_page.metadata._continue
 
             for job in jobs_page.items:
@@ -146,9 +144,7 @@ class JobCleaner:
 
         cleanup_groups = self._get_all_cleanup_groups(label, limit)
 
-        self.logger.info(
-            f"Found {len(cleanup_groups)} unique (namespace, cleanup group ID) pairs, processing ..."
-        )
+        self.logger.info(f"Found {len(cleanup_groups)} unique (namespace, cleanup group ID) pairs, processing ...")
 
         # NOTE: it's possible for things to change in the cluster while this process is ongoing
         # e.g.:
@@ -176,9 +172,7 @@ class JobCleaner:
             )
 
             if len(jobs_sorted) == 0:
-                self.logger.warning(
-                    "No Jobs found in group, must have been deleted by some other process, skipping"
-                )
+                self.logger.warning("No Jobs found in group, must have been deleted by some other process, skipping")
                 continue
             else:
                 first = True
@@ -186,11 +180,7 @@ class JobCleaner:
                     name = job.metadata.name
                     creation_timestamp = str(job.metadata.creation_timestamp)
                     if first:
-                        self.logger.info(
-                            "{0:<6} {1:<65} {2:<65}".format(
-                                "SKIP", name, creation_timestamp
-                            )
-                        )
+                        self.logger.info("{0:<6} {1:<65} {2:<65}".format("SKIP", name, creation_timestamp))
                         first = False
                     else:
                         try:
@@ -204,10 +194,6 @@ class JobCleaner:
                         except client.rest.ApiException as e:
                             result = f"FAILED: {e}"
 
-                        self.logger.info(
-                            "{0:<6} {1:<65} {2:<65} {3}".format(
-                                "PURGE", name, creation_timestamp, result
-                            )
-                        )
+                        self.logger.info("{0:<6} {1:<65} {2:<65} {3}".format("PURGE", name, creation_timestamp, result))
 
             i = i + 1

@@ -81,14 +81,8 @@ def getAppResource(
                          Returns None if the resource doesn't exist, CRD is missing, or authorization fails.
     """
 
-    apiVersion = (
-        APP_API_VERSIONS[applicationId]
-        if applicationId in APP_API_VERSIONS
-        else "apps.mas.ibm.com/v1"
-    )
-    kind = (
-        APP_KINDS[applicationId] if workspaceId is None else APPWS_KINDS[applicationId]
-    )
+    apiVersion = APP_API_VERSIONS[applicationId] if applicationId in APP_API_VERSIONS else "apps.mas.ibm.com/v1"
+    kind = APP_KINDS[applicationId] if workspaceId is None else APPWS_KINDS[applicationId]
     name = instanceId if workspaceId is None else f"{instanceId}-{workspaceId}"
     namespace = f"mas-{instanceId}-{applicationId}"
 
@@ -104,15 +98,11 @@ def getAppResource(
         # The CRD has not even been installed in the cluster
         return None
     except UnauthorizedError as e:
-        logger.error(
-            f"Error: Unable to lookup {kind}.{apiVersion} due to authorization failure: {e}"
-        )
+        logger.error(f"Error: Unable to lookup {kind}.{apiVersion} due to authorization failure: {e}")
         return None
 
 
-def verifyAppInstance(
-    dynClient: DynamicClient, instanceId: str, applicationId: str
-) -> bool:
+def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: str) -> bool:
     """
     Verify that a MAS application instance exists in the cluster.
 
@@ -167,9 +157,7 @@ def waitForAppReady(
     appStatus = None
 
     attempt = 0
-    infoLogFunction(
-        f"Polling for {resourceName} to report ready state with {delay}s delay and {retries} retry limit"
-    )
+    infoLogFunction(f"Polling for {resourceName} to report ready state with {delay}s delay and {retries} retry limit")
 
     while attempt < retries:
         attempt += 1
@@ -183,37 +171,25 @@ def waitForAppReady(
                 infoLogFunction(f"[{attempt}/{retries}] {resourceName} has no status")
             else:
                 if appStatus.conditions is None:
-                    infoLogFunction(
-                        f"[{attempt}/{retries}] {resourceName} has no status conditions"
-                    )
+                    infoLogFunction(f"[{attempt}/{retries}] {resourceName} has no status conditions")
                 else:
                     foundReadyCondition: bool = False
                     for condition in appStatus.conditions:
                         if condition.type == "Ready":
                             foundReadyCondition = True
                             if condition.status == "True":
-                                infoLogFunction(
-                                    f"[{attempt}/{retries}] {resourceName} is in ready state: {condition.message}"
-                                )
-                                debugLogFunction(
-                                    f"{resourceName} status={json.dumps(appStatus.to_dict())}"
-                                )
+                                infoLogFunction(f"[{attempt}/{retries}] {resourceName} is in ready state: {condition.message}")
+                                debugLogFunction(f"{resourceName} status={json.dumps(appStatus.to_dict())}")
                                 return True
                             else:
-                                infoLogFunction(
-                                    f"[{attempt}/{retries}] {resourceName} is not in ready state: {condition.message}"
-                                )
+                                infoLogFunction(f"[{attempt}/{retries}] {resourceName} is not in ready state: {condition.message}")
                             continue
                     if not foundReadyCondition:
-                        infoLogFunction(
-                            f"[{attempt}/{retries}] {resourceName} has no ready status condition"
-                        )
+                        infoLogFunction(f"[{attempt}/{retries}] {resourceName} has no ready status condition")
         sleep(delay)
 
     # If we made it this far it means that the application was not ready in time
-    logger.warning(
-        f"Retry limit reached polling for {resourceName} to report ready state"
-    )
+    logger.warning(f"Retry limit reached polling for {resourceName} to report ready state")
     if appStatus is None:
         infoLogFunction(f"No {resourceName} status available")
     else:
@@ -239,22 +215,16 @@ def getAppsSubscriptionChannel(dynClient: DynamicClient, instanceId: str) -> lis
     try:
         installedApps = []
         for appId in APP_IDS:
-            appSubscription = getSubscription(
-                dynClient, f"mas-{instanceId}-{appId}", f"ibm-mas-{appId}"
-            )
+            appSubscription = getSubscription(dynClient, f"mas-{instanceId}-{appId}", f"ibm-mas-{appId}")
             if appSubscription is not None:
-                installedApps.append(
-                    {"appId": appId, "channel": appSubscription.spec.channel}
-                )
+                installedApps.append({"appId": appId, "channel": appSubscription.spec.channel})
         return installedApps
     except NotFoundError:
         return []
     except ResourceNotFoundError:
         return []
     except UnauthorizedError:
-        logger.error(
-            "Error: Unable to get MAS app subscriptions due to failed authorization: {e}"
-        )
+        logger.error("Error: Unable to get MAS app subscriptions due to failed authorization: {e}")
         return []
 
 
@@ -280,9 +250,7 @@ def getInstalledApps(dynClient: DynamicClient, instanceId: str) -> list:
 
     try:
         appsWithSubscriptions = getAppsSubscriptionChannel(dynClient, instanceId)
-        logger.info(
-            f"Apps with subscriptions detected for {instanceId}: {[app.get('appId') for app in appsWithSubscriptions]}"
-        )
+        logger.info(f"Apps with subscriptions detected for {instanceId}: {[app.get('appId') for app in appsWithSubscriptions]}")
 
         for app in appsWithSubscriptions:
             appId = app.get("appId")

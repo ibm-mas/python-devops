@@ -39,9 +39,7 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
         No exceptions are raised; all errors are caught and logged internally.
     """
     try:
-        slsAPI = dynClient.resources.get(
-            api_version="sls.ibm.com/v1", kind="LicenseService"
-        )
+        slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
         return slsAPI.get().to_dict()["items"]
     except NotFoundError:
         logger.info("There are no SLS instances installed on this cluster")
@@ -50,15 +48,11 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
         logger.info("LicenseService CRD not found on cluster")
         return []
     except UnauthorizedError:
-        logger.error(
-            "Error: Unable to verify SLS instances due to failed authorization: {e}"
-        )
+        logger.error("Error: Unable to verify SLS instances due to failed authorization: {e}")
         return []
 
 
-def findSLSByNamespace(
-    namespace: str, instances: list = None, dynClient: DynamicClient = None
-):
+def findSLSByNamespace(namespace: str, instances: list = None, dynClient: DynamicClient = None):
     """
     Check if an SLS instance exists in a specific namespace.
 
@@ -107,15 +101,9 @@ def getSLSRegistrationDetails(namespace: str, name: str, dynClient: DynamicClien
                 Empty if not found.
     """
     try:
-        slsAPI = dynClient.resources.get(
-            api_version="sls.ibm.com/v1", kind="LicenseService"
-        )
+        slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
         slsInstance = slsAPI.get(name=name, namespace=namespace)
-        if (
-            hasattr(slsInstance, "status")
-            and hasattr(slsInstance.status, "licenseId")
-            and hasattr(slsInstance.status, "registrationKey")
-        ):
+        if hasattr(slsInstance, "status") and hasattr(slsInstance.status, "licenseId") and hasattr(slsInstance.status, "registrationKey"):
             return dict(
                 registrationKey=slsInstance.status.registrationKey,
                 licenseId=slsInstance.status.licenseId,

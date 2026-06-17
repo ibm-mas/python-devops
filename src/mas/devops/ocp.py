@@ -55,9 +55,7 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     logger.debug(f"Starting KubeConfig context: {conf.current_context()}")
 
     conf.set_credentials(name="my-credentials", token=token)
-    conf.set_cluster(
-        name="my-cluster", server=server, insecure_skip_tls_verify=skipVerify
-    )
+    conf.set_cluster(name="my-cluster", server=server, insecure_skip_tls_verify=skipVerify)
     conf.set_context(name="my-context", cluster="my-cluster", user="my-credentials")
 
     conf.use_context("my-context")
@@ -78,9 +76,7 @@ def getClusterVersion(dynClient: DynamicClient) -> str:
     Returns:
         str: The cluster version string (e.g., "4.12.0"), or None if not found
     """
-    clusterVersionAPI = dynClient.resources.get(
-        api_version="config.openshift.io/v1", kind="ClusterVersion"
-    )
+    clusterVersionAPI = dynClient.resources.get(api_version="config.openshift.io/v1", kind="ClusterVersion")
 
     # Version jsonPath = .status.history[?(@.state=="Completed")].version
     try:
@@ -134,9 +130,7 @@ def getNamespace(dynClient: DynamicClient, namespace: str) -> dict:
     return {}
 
 
-def createNamespace(
-    dynClient: DynamicClient, namespace: str, kyvernoLabel: str = None
-) -> bool:
+def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabel: str = None) -> bool:
     """
     Create a Kubernetes namespace if it does not already exist.
 
@@ -156,14 +150,8 @@ def createNamespace(
         ns = namespaceAPI.get(name=namespace)
         logger.info(f"Namespace {namespace} already exists")
         if kyvernoLabel is not None:
-            if (
-                ns.metadata.labels is None
-                or "ibm.com/kyverno" not in ns.metadata.labels.keys()
-                or ns.metadata.labels["ibm.com/kyverno"] != kyvernoLabel
-            ):
-                logger.info(
-                    f"Patching namespace with Kyverno Labels ibm.com/kyverno: {kyvernoLabel}"
-                )
+            if ns.metadata.labels is None or "ibm.com/kyverno" not in ns.metadata.labels.keys() or ns.metadata.labels["ibm.com/kyverno"] != kyvernoLabel:
+                logger.info(f"Patching namespace with Kyverno Labels ibm.com/kyverno: {kyvernoLabel}")
                 body = {"metadata": {"labels": {"ibm.com/kyverno": kyvernoLabel}}}
                 namespaceAPI.patch(
                     name=namespace,
@@ -199,9 +187,7 @@ def deleteNamespace(dynClient: DynamicClient, namespace: str) -> bool:
         namespaceAPI.delete(name=namespace)
         logger.debug(f"Namespace {namespace} deleted")
     except NotFoundError:
-        logger.debug(
-            f"Namespace {namespace} can not be deleted because it does not exist"
-        )
+        logger.debug(f"Namespace {namespace} can not be deleted because it does not exist")
     return True
 
 
@@ -218,9 +204,7 @@ def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
     Returns:
         bool: True if the CRD becomes established, False if timeout is reached
     """
-    crdAPI = dynClient.resources.get(
-        api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition"
-    )
+    crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
     maxRetries = 100
     foundReadyCRD = False
     retries = 0
@@ -230,9 +214,7 @@ def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
             crd = crdAPI.get(name=crdName)
             conditions = crd.status.conditions
             if conditions is None:
-                logger.debug(
-                    f"Looking for status.conditions to be available to iterate for {crdName}"
-                )
+                logger.debug(f"Looking for status.conditions to be available to iterate for {crdName}")
                 sleep(5)
                 continue
             else:
@@ -241,22 +223,16 @@ def waitForCRD(dynClient: DynamicClient, crdName: str) -> bool:
                         if condition.status == "True":
                             foundReadyCRD = True
                         else:
-                            logger.debug(
-                                f"Waiting 5s for {crdName} CRD to be ready before checking again ..."
-                            )
+                            logger.debug(f"Waiting 5s for {crdName} CRD to be ready before checking again ...")
                             sleep(5)
                             continue
         except NotFoundError:
-            logger.debug(
-                f"Waiting 5s for {crdName} CRD to be installed before checking again ..."
-            )
+            logger.debug(f"Waiting 5s for {crdName} CRD to be installed before checking again ...")
             sleep(5)
     return foundReadyCRD
 
 
-def waitForDeployment(
-    dynClient: DynamicClient, namespace: str, deploymentName: str
-) -> bool:
+def waitForDeployment(dynClient: DynamicClient, namespace: str, deploymentName: str) -> bool:
     """
     Wait for a Kubernetes Deployment to have at least one ready replica.
 
@@ -278,23 +254,16 @@ def waitForDeployment(
         retries += 1
         try:
             deployment = deploymentAPI.get(name=deploymentName, namespace=namespace)
-            if (
-                deployment.status.readyReplicas is not None
-                and deployment.status.readyReplicas > 0
-            ):
+            if deployment.status.readyReplicas is not None and deployment.status.readyReplicas > 0:
                 # Depending on how early we are checking the deployment the status subresource may not
                 # have even been initialized yet, hence the check for "is not None" to avoid a
                 # NoneType and int comparison TypeError
                 foundReadyDeployment = True
             else:
-                logger.debug(
-                    f"Waiting 5s for deployment {deploymentName} to be ready before checking again ..."
-                )
+                logger.debug(f"Waiting 5s for deployment {deploymentName} to be ready before checking again ...")
                 sleep(5)
         except NotFoundError:
-            logger.debug(
-                f"Waiting 5s for deployment {deploymentName} to be created before checking again ..."
-            )
+            logger.debug(f"Waiting 5s for deployment {deploymentName} to be created before checking again ...")
             sleep(5)
     return foundReadyDeployment
 
@@ -309,9 +278,7 @@ def getConsoleURL(dynClient: DynamicClient) -> str:
     Returns:
         str: The HTTPS URL of the OpenShift console (e.g., "https://console-openshift-console.apps.cluster.example.com")
     """
-    routesAPI = dynClient.resources.get(
-        api_version="route.openshift.io/v1", kind="Route"
-    )
+    routesAPI = dynClient.resources.get(api_version="route.openshift.io/v1", kind="Route")
     consoleRoute = routesAPI.get(name="console", namespace="openshift-console")
     return f"https://{consoleRoute.spec.host}"
 
@@ -343,9 +310,7 @@ def getStorageClass(dynClient: DynamicClient, name: str) -> dict | None:
         StorageClass: The StorageClass resource, or None if not found
     """
     try:
-        storageClassAPI = dynClient.resources.get(
-            api_version="storage.k8s.io/v1", kind="StorageClass"
-        )
+        storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
         storageclass = storageClassAPI.get(name=name)
         return storageclass
     except NotFoundError:
@@ -362,9 +327,7 @@ def getStorageClasses(dynClient: DynamicClient) -> list:
     Returns:
         list: List of StorageClass resources
     """
-    storageClassAPI = dynClient.resources.get(
-        api_version="storage.k8s.io/v1", kind="StorageClass"
-    )
+    storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
     storageClasses = storageClassAPI.get().items
     return storageClasses
 
@@ -379,9 +342,7 @@ def getClusterIssuers(dynClient: DynamicClient) -> list:
     Returns:
         list: List of ClusterIssuers resources or an empty list if no cluster issuers
     """
-    clusterIssuerAPI = dynClient.resources.get(
-        api_version="cert-manager.io/v1", kind="ClusterIssuer"
-    )
+    clusterIssuerAPI = dynClient.resources.get(api_version="cert-manager.io/v1", kind="ClusterIssuer")
     clusterIssuers = clusterIssuerAPI.get().items
     return clusterIssuers
 
@@ -398,18 +359,14 @@ def getClusterIssuer(dynClient: DynamicClient, name: str) -> ResourceInstance | 
         ClusterIssuer: The ClusterIssuer resource, or None if not found
     """
     try:
-        clusterIssuerAPI = dynClient.resources.get(
-            api_version="cert-manager.io/v1", kind="ClusterIssuer"
-        )
+        clusterIssuerAPI = dynClient.resources.get(api_version="cert-manager.io/v1", kind="ClusterIssuer")
         clusterIssuer = clusterIssuerAPI.get(name=name)
         return clusterIssuer
     except NotFoundError:
         return None
 
 
-def getStorageClassVolumeBindingMode(
-    dynClient: DynamicClient, storageClassName: str
-) -> str:
+def getStorageClassVolumeBindingMode(dynClient: DynamicClient, storageClassName: str) -> str:
     """
     Get the volumeBindingMode for a storage class.
 
@@ -425,14 +382,10 @@ def getStorageClassVolumeBindingMode(
         if storageClass and hasattr(storageClass, "volumeBindingMode"):
             return storageClass.volumeBindingMode
         # Default to Immediate if not specified (Kubernetes default)
-        logger.debug(
-            f"Storage class {storageClassName} does not have volumeBindingMode set, defaulting to 'Immediate'"
-        )
+        logger.debug(f"Storage class {storageClassName} does not have volumeBindingMode set, defaulting to 'Immediate'")
         return "Immediate"
     except Exception as e:
-        logger.warning(
-            f"Unable to determine volumeBindingMode for storage class {storageClassName}: {e}"
-        )
+        logger.warning(f"Unable to determine volumeBindingMode for storage class {storageClassName}: {e}")
         # Default to Immediate to maintain backward compatibility
         return "Immediate"
 
@@ -464,9 +417,7 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
     Raises:
         NotFoundError: If the CRD does not exist (caught and returns False)
     """
-    crdAPI = dynClient.resources.get(
-        api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition"
-    )
+    crdAPI = dynClient.resources.get(api_version="apiextensions.k8s.io/v1", kind="CustomResourceDefinition")
     try:
         crdAPI.get(name=crdName)
         logger.debug(f"CRD does exist: {crdName}")
@@ -495,13 +446,9 @@ def getCR(
             cr = crAPI.get(name=cr_name)
         return cr
     except NotFoundError:
-        logger.debug(
-            f"CR {cr_name} of kind {cr_kind} does not exist in namespace {namespace}"
-        )
+        logger.debug(f"CR {cr_name} of kind {cr_kind} does not exist in namespace {namespace}")
     except Exception as e:
-        logger.debug(
-            f"Error retrieving CR {cr_name} of kind {cr_kind} in namespace {namespace}: {e}"
-        )
+        logger.debug(f"Error retrieving CR {cr_name} of kind {cr_kind} in namespace {namespace}: {e}")
 
     return {}
 
@@ -537,9 +484,7 @@ def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str)
         # Try to get the existing resource
         resource.get(name=name, namespace=namespace)
         # If found, skip creation
-        logger.debug(
-            f"{kind} '{name}' already exists in namespace '{namespace}', skipping creation."
-        )
+        logger.debug(f"{kind} '{name}' already exists in namespace '{namespace}', skipping creation.")
     except NotFoundError:
         # If not found, create it
         logger.debug(f"Creating new {kind} '{name}' in namespace '{namespace}'")
@@ -566,13 +511,9 @@ def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
     api = dynClient.resources.get(api_version=apiVersion, kind=kind)
     instances = api.get().to_dict()["items"]
     if len(instances) > 0:
-        logger.info(
-            f"There are {len(instances)} {kind} instances installed on this cluster:"
-        )
+        logger.info(f"There are {len(instances)} {kind} instances installed on this cluster:")
     for instance in instances:
-        logger.info(
-            f" * {instance['metadata']['name']} v{instance.get('status', {}).get('versions', {}).get('reconciled', 'N/A')}"
-        )
+        logger.info(f" * {instance['metadata']['name']} v{instance.get('status', {}).get('versions', {}).get('reconciled', 'N/A')}")
     else:
         logger.info(f"There are no {kind} instances installed on this cluster")
     return instances
@@ -618,14 +559,10 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
             if pvc.status.phase == "Bound":
                 foundReadyPVC = True
             else:
-                logger.debug(
-                    f"Waiting {retryDelaySeconds}s for PVC {pvcName} to be bound before checking again ..."
-                )
+                logger.debug(f"Waiting {retryDelaySeconds}s for PVC {pvcName} to be bound before checking again ...")
                 sleep(retryDelaySeconds)
         except NotFoundError:
-            logger.debug(
-                f"Waiting {retryDelaySeconds}s for PVC {pvcName} to be created before checking again ..."
-            )
+            logger.debug(f"Waiting {retryDelaySeconds}s for PVC {pvcName} to be created before checking again ...")
             sleep(retryDelaySeconds)
 
     return foundReadyPVC
@@ -685,9 +622,7 @@ def execInPod(
 
     err = yaml.load(req.read_channel(ERROR_CHANNEL), Loader=yaml.FullLoader)
     if err.get("status") == "Failure":
-        raise Exception(
-            f"Failed to execute {command} on {pod_name} in namespace {namespace}: {err.get('message')}. stdout: {stdout}, stderr: {stderr}"
-        )
+        raise Exception(f"Failed to execute {command} on {pod_name} in namespace {namespace}: {err.get('message')}. stdout: {stdout}, stderr: {stderr}")
 
     logger.debug(
         f"stdout: \n----------------------------------------------------------------\n{stdout}\n----------------------------------------------------------------\n"
@@ -696,9 +631,7 @@ def execInPod(
     return stdout
 
 
-def updateGlobalPullSecret(
-    dynClient: DynamicClient, registryUrl: str, username: str, password: str
-) -> dict:
+def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username: str, password: str) -> dict:
     """
     Update the global pull secret in openshift-config namespace with new registry credentials.
 
@@ -731,9 +664,7 @@ def updateGlobalPullSecret(
     dockerConfig = json.loads(base64.b64decode(dockerConfigJson).decode("utf-8"))
 
     # Create auth string (username:password base64 encoded)
-    authString = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
-        "utf-8"
-    )
+    authString = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("utf-8")
 
     # Add or update the registry credentials
     if "auths" not in dockerConfig:
@@ -747,9 +678,7 @@ def updateGlobalPullSecret(
     }
 
     # Encode back to base64
-    updatedDockerConfig = base64.b64encode(
-        json.dumps(dockerConfig).encode("utf-8")
-    ).decode("utf-8")
+    updatedDockerConfig = base64.b64encode(json.dumps(dockerConfig).encode("utf-8")).decode("utf-8")
 
     # Update the secret dict
     secretDict["data"][".dockerconfigjson"] = updatedDockerConfig
@@ -757,9 +686,7 @@ def updateGlobalPullSecret(
     # Apply the updated secret
     updatedSecret = secretsAPI.apply(body=secretDict, namespace="openshift-config")
 
-    logger.info(
-        f"Successfully updated global pull secret with credentials for {registryUrl}"
-    )
+    logger.info(f"Successfully updated global pull secret with credentials for {registryUrl}")
 
     return {
         "name": updatedSecret.metadata.name,
@@ -769,9 +696,7 @@ def updateGlobalPullSecret(
     }
 
 
-def configureIngressForPathBasedRouting(
-    dynClient: DynamicClient, ingressControllerName: str = "default"
-) -> bool:
+def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControllerName: str = "default") -> bool:
     """
     Configure OpenShift IngressController for path-based routing.
 
@@ -788,49 +713,31 @@ def configureIngressForPathBasedRouting(
     Raises:
         NotFoundError: If the IngressController resource cannot be found
     """
-    logger.info(
-        f"Configuring IngressController '{ingressControllerName}' for path-based routing"
-    )
+    logger.info(f"Configuring IngressController '{ingressControllerName}' for path-based routing")
 
     try:
-        ingressControllerAPI = dynClient.resources.get(
-            api_version="operator.openshift.io/v1", kind="IngressController"
-        )
+        ingressControllerAPI = dynClient.resources.get(api_version="operator.openshift.io/v1", kind="IngressController")
 
         try:
-            ingressController = ingressControllerAPI.get(
-                name=ingressControllerName, namespace="openshift-ingress-operator"
-            )
+            ingressController = ingressControllerAPI.get(name=ingressControllerName, namespace="openshift-ingress-operator")
         except NotFoundError:
-            logger.error(
-                f"IngressController '{ingressControllerName}' not found in namespace 'openshift-ingress-operator'"
-            )
+            logger.error(f"IngressController '{ingressControllerName}' not found in namespace 'openshift-ingress-operator'")
             return False
 
         currentPolicy = None
-        if hasattr(ingressController, "spec") and hasattr(
-            ingressController.spec, "routeAdmission"
-        ):
+        if hasattr(ingressController, "spec") and hasattr(ingressController.spec, "routeAdmission"):
             if hasattr(ingressController.spec.routeAdmission, "namespaceOwnership"):
                 currentPolicy = ingressController.spec.routeAdmission.namespaceOwnership
 
-        logger.debug(
-            f"Current namespaceOwnership policy: {currentPolicy if currentPolicy else 'Not set'}"
-        )
+        logger.debug(f"Current namespaceOwnership policy: {currentPolicy if currentPolicy else 'Not set'}")
 
         if currentPolicy == "InterNamespaceAllowed":
-            logger.info(
-                f"IngressController '{ingressControllerName}' is already configured with namespaceOwnership: InterNamespaceAllowed"
-            )
+            logger.info(f"IngressController '{ingressControllerName}' is already configured with namespaceOwnership: InterNamespaceAllowed")
             return True
 
-        logger.info(
-            f"Patching IngressController '{ingressControllerName}' to enable InterNamespaceAllowed"
-        )
+        logger.info(f"Patching IngressController '{ingressControllerName}' to enable InterNamespaceAllowed")
 
-        patch = {
-            "spec": {"routeAdmission": {"namespaceOwnership": "InterNamespaceAllowed"}}
-        }
+        patch = {"spec": {"routeAdmission": {"namespaceOwnership": "InterNamespaceAllowed"}}}
 
         ingressControllerAPI.patch(
             body=patch,
@@ -845,42 +752,27 @@ def configureIngressForPathBasedRouting(
         for attempt in range(maxRetries):
             sleep(retryDelay)
             try:
-                updatedController = ingressControllerAPI.get(
-                    name=ingressControllerName, namespace="openshift-ingress-operator"
-                )
+                updatedController = ingressControllerAPI.get(name=ingressControllerName, namespace="openshift-ingress-operator")
 
                 if (
                     hasattr(updatedController, "spec")
                     and hasattr(updatedController.spec, "routeAdmission")
-                    and hasattr(
-                        updatedController.spec.routeAdmission, "namespaceOwnership"
-                    )
-                    and updatedController.spec.routeAdmission.namespaceOwnership
-                    == "InterNamespaceAllowed"
+                    and hasattr(updatedController.spec.routeAdmission, "namespaceOwnership")
+                    and updatedController.spec.routeAdmission.namespaceOwnership == "InterNamespaceAllowed"
                 ):
 
-                    logger.info(
-                        f"Successfully configured IngressController '{ingressControllerName}' for path-based routing"
-                    )
+                    logger.info(f"Successfully configured IngressController '{ingressControllerName}' for path-based routing")
                     return True
 
             except NotFoundError:
-                logger.warning(
-                    f"IngressController '{ingressControllerName}' not found during verification (attempt {attempt + 1}/{maxRetries})"
-                )
+                logger.warning(f"IngressController '{ingressControllerName}' not found during verification (attempt {attempt + 1}/{maxRetries})")
 
             if attempt < maxRetries - 1:
-                logger.debug(
-                    f"Waiting for IngressController to reconcile (attempt {attempt + 1}/{maxRetries})"
-                )
+                logger.debug(f"Waiting for IngressController to reconcile (attempt {attempt + 1}/{maxRetries})")
 
-        logger.error(
-            f"Failed to verify IngressController configuration after {maxRetries} attempts"
-        )
+        logger.error(f"Failed to verify IngressController configuration after {maxRetries} attempts")
         return False
 
     except Exception as e:
-        logger.error(
-            f"Failed to configure IngressController '{ingressControllerName}': {str(e)}"
-        )
+        logger.error(f"Failed to configure IngressController '{ingressControllerName}': {str(e)}")
         return False

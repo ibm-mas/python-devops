@@ -49,9 +49,7 @@ def copyContentsToYamlFile(file_path: str, content: dict) -> bool:
         LiteralDumper.add_representer(str, str_representer)
 
         with open(file_path, "w") as yaml_file:
-            yaml.dump(
-                content, yaml_file, default_flow_style=False, Dumper=LiteralDumper
-            )
+            yaml.dump(content, yaml_file, default_flow_style=False, Dumper=LiteralDumper)
         return True
     except Exception as e:
         logger.error(f"Error writing to YAML file {file_path}: {e}")
@@ -109,11 +107,7 @@ def extract_secrets_from_dict(data, secret_names=None):
     if isinstance(data, dict):
         for key, value in data.items():
             # Check if this key is 'secretName' and has a string value
-            if (
-                (key == "secretName" or "secretname" in key.lower())
-                and isinstance(value, str)
-                and value
-            ):
+            if (key == "secretName" or "secretname" in key.lower()) and isinstance(value, str) and value:
                 secret_names.add(value)
             # Check if this key contains 'secretRef' and contains a 'name' field
             elif "SecretRef" in key and isinstance(value, dict):
@@ -178,9 +172,7 @@ def backupResources(
 
         if name:
             # Backup specific named resource
-            logger.info(
-                f"Backing up {kind} '{name}' from {scope_desc} (API version: {api_version}){label_desc}"
-            )
+            logger.info(f"Backing up {kind} '{name}' from {scope_desc} (API version: {api_version}){label_desc}")
             try:
                 if namespace:
                     resource = resourceAPI.get(name=name, namespace=namespace)
@@ -190,9 +182,7 @@ def backupResources(
                 if resource:
                     resources_to_process = [resource]
                 else:
-                    logger.info(
-                        f"{kind} '{name}' not found in {scope_desc}, skipping backup"
-                    )
+                    logger.info(f"{kind} '{name}' not found in {scope_desc}, skipping backup")
                     not_found_count = 1
                     return (
                         backed_up_count,
@@ -201,9 +191,7 @@ def backupResources(
                         discovered_secrets,
                     )
             except NotFoundError:
-                logger.error(
-                    f"{kind} '{name}' not found in {scope_desc}, skipping backup"
-                )
+                logger.error(f"{kind} '{name}' not found in {scope_desc}, skipping backup")
                 not_found_count = 1
                 return (
                     backed_up_count,
@@ -213,9 +201,7 @@ def backupResources(
                 )
         else:
             # Backup all resources of this kind
-            logger.info(
-                f"Backing up all {kind} resources from {scope_desc} (API version: {api_version}){label_desc}"
-            )
+            logger.info(f"Backing up all {kind} resources from {scope_desc} (API version: {api_version}){label_desc}")
 
             # Build get parameters
             get_params = {}
@@ -236,9 +222,7 @@ def backupResources(
             if kind != "Secret":
                 secrets = extract_secrets_from_dict(resource_dict.get("spec", {}))
                 if secrets:
-                    logger.info(
-                        f"Found {len(secrets)} secret reference(s) in {kind} '{resource_name}': {', '.join(sorted(secrets))}"
-                    )
+                    logger.info(f"Found {len(secrets)} secret reference(s) in {kind} '{resource_name}': {', '.join(sorted(secrets))}")
                     discovered_secrets.update(secrets)
 
             # Backup the resource
@@ -247,14 +231,10 @@ def backupResources(
             resource_file_path = f"{resource_backup_path}/{resource_name}.yaml"
             filtered_resource = filterResourceData(resource_dict)
             if copyContentsToYamlFile(resource_file_path, filtered_resource):
-                logger.info(
-                    f"Successfully backed up {kind} '{resource_name}' to '{resource_file_path}'"
-                )
+                logger.info(f"Successfully backed up {kind} '{resource_name}' to '{resource_file_path}'")
                 backed_up_count += 1
             else:
-                logger.error(
-                    f"Failed to back up {kind} '{resource_name}' to '{resource_file_path}'"
-                )
+                logger.error(f"Failed to back up {kind} '{resource_name}' to '{resource_file_path}'")
                 failed_count += 1
 
         if backed_up_count > 0:
@@ -337,18 +317,14 @@ def uploadToS3(
 
         s3_client.upload_file(file_path, bucket_name, object_name)
 
-        logger.info(
-            f"Successfully uploaded {file_path} to s3://{bucket_name}/{object_name}"
-        )
+        logger.info(f"Successfully uploaded {file_path} to s3://{bucket_name}/{object_name}")
         return True
 
     except FileNotFoundError:
         logger.error(f"File not found: {file_path}")
         return False
     except NoCredentialsError:
-        logger.error(
-            "AWS credentials not found. Please provide credentials or configure environment variables."
-        )
+        logger.error("AWS credentials not found. Please provide credentials or configure environment variables.")
         return False
     except ClientError as e:
         error_code = e.response.get("Error", {}).get("Code", "Unknown")
@@ -425,9 +401,7 @@ def downloadFromS3(
             logger.info(f"Object size: {file_size / (1024 * 1024):.2f} MB")
         except ClientError as e:
             if e.response.get("Error", {}).get("Code") == "404":
-                logger.error(
-                    f"Object not found in S3: s3://{bucket_name}/{object_name}"
-                )
+                logger.error(f"Object not found in S3: s3://{bucket_name}/{object_name}")
                 return False
             raise
 
@@ -438,18 +412,14 @@ def downloadFromS3(
         if os.path.exists(file_path):
             downloaded_size = os.path.getsize(file_path)
             logger.info(f"Successfully downloaded {object_name} to {file_path}")
-            logger.info(
-                f"Downloaded file size: {downloaded_size / (1024 * 1024):.2f} MB"
-            )
+            logger.info(f"Downloaded file size: {downloaded_size / (1024 * 1024):.2f} MB")
             return True
         else:
             logger.error(f"Download completed but file not found at {file_path}")
             return False
 
     except NoCredentialsError:
-        logger.error(
-            "AWS credentials not found. Please provide credentials or configure environment variables."
-        )
+        logger.error("AWS credentials not found. Please provide credentials or configure environment variables.")
         return False
     except ClientError as e:
         error_code = e.response.get("Error", {}).get("Code", "Unknown")

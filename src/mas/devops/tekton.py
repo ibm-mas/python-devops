@@ -41,9 +41,7 @@ from .ocp import (
 logger = logging.getLogger(__name__)
 
 
-def installOpenShiftPipelines(
-    dynClient: DynamicClient, customStorageClassName: str = None
-) -> bool:
+def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:
     """
     Install the OpenShift Pipelines Operator and wait for it to be ready to use.
 
@@ -61,12 +59,8 @@ def installOpenShiftPipelines(
         NotFoundError: If the package manifest is not found
         UnprocessibleEntityError: If the subscription cannot be created
     """
-    packagemanifestAPI = dynClient.resources.get(
-        api_version="packages.operators.coreos.com/v1", kind="PackageManifest"
-    )
-    subscriptionsAPI = dynClient.resources.get(
-        api_version="operators.coreos.com/v1alpha1", kind="Subscription"
-    )
+    packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
 
     # Create the Operator Subscription
     if not crdExists(dynClient, "pipelines.tekton.dev"):
@@ -76,9 +70,7 @@ def installOpenShiftPipelines(
         attempts = 0
         manifest = None
 
-        logger.info(
-            "Attempting to locate OpenShift Pipelines Operator package manifest..."
-        )
+        logger.info("Attempting to locate OpenShift Pipelines Operator package manifest...")
 
         while attempts < max_retries:
             try:
@@ -86,33 +78,23 @@ def installOpenShiftPipelines(
                     name="openshift-pipelines-operator-rh",
                     namespace="openshift-marketplace",
                 )
-                logger.info(
-                    "Successfully found OpenShift Pipelines Operator package manifest"
-                )
+                logger.info("Successfully found OpenShift Pipelines Operator package manifest")
                 break
             except NotFoundError as e:
                 attempts += 1
                 if attempts < max_retries:
-                    logger.warning(
-                        f"Package manifest not found (attempt {attempts}/{max_retries}). Retrying in {retry_delay} seconds..."
-                    )
+                    logger.warning(f"Package manifest not found (attempt {attempts}/{max_retries}). Retrying in {retry_delay} seconds...")
                     sleep(retry_delay)
                 else:
-                    logger.error(
-                        f"Failed to find package manifest for Red Hat OpenShift Pipelines Operator after {max_retries} attempts"
-                    )
-                    logger.error(
-                        f"The operator package manifest is not available in the openshift-marketplace namespace: {e}"
-                    )
+                    logger.error(f"Failed to find package manifest for Red Hat OpenShift Pipelines Operator after {max_retries} attempts")
+                    logger.error(f"The operator package manifest is not available in the openshift-marketplace namespace: {e}")
                     return False
             except Exception as e:
                 logger.error(f"Unexpected error while retrieving package manifest: {e}")
                 return False
 
         if manifest is None:
-            logger.error(
-                "Failed to retrieve package manifest - cannot proceed with operator installation"
-            )
+            logger.error("Failed to retrieve package manifest - cannot proceed with operator installation")
             return False
 
         # Extract operator details from manifest
@@ -121,9 +103,7 @@ def installOpenShiftPipelines(
             catalogSource = manifest.status.catalogSource
             catalogSourceNamespace = manifest.status.catalogSourceNamespace
 
-            logger.info(
-                f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}"
-            )
+            logger.info(f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}")
 
             # Create subscription
             templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
@@ -139,14 +119,10 @@ def installOpenShiftPipelines(
             )
             subscription = yaml.safe_load(renderedTemplate)
             subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")
-            logger.info(
-                "OpenShift Pipelines Operator subscription created successfully"
-            )
+            logger.info("OpenShift Pipelines Operator subscription created successfully")
 
         except UnprocessibleEntityError as e:
-            logger.error(
-                f"Error: Couldn't create/update OpenShift Pipelines Operator Subscription: {e}"
-            )
+            logger.error(f"Error: Couldn't create/update OpenShift Pipelines Operator Subscription: {e}")
             return False
         except Exception as e:
             logger.error(f"Unexpected error while creating operator subscription: {e}")
@@ -197,15 +173,11 @@ def installOpenShiftPipelines(
             break
         except NotFoundError:
             if retry < maxInitialRetries - 1:
-                logger.debug(
-                    f"Waiting 5s for PVC {pvcName} to be created (attempt {retry + 1}/{maxInitialRetries})..."
-                )
+                logger.debug(f"Waiting 5s for PVC {pvcName} to be created (attempt {retry + 1}/{maxInitialRetries})...")
                 sleep(5)
 
     if pvc is None:
-        logger.error(
-            f"PVC {pvcName} was not created after {maxInitialRetries * 5} seconds (5 minutes)"
-        )
+        logger.error(f"PVC {pvcName} was not created after {maxInitialRetries * 5} seconds (5 minutes)")
         return False
 
     # Check if PVC is already bound
@@ -215,9 +187,7 @@ def installOpenShiftPipelines(
 
     # Check if PVC is pending without a storage class - needs immediate patching
     if pvc.status.phase == "Pending" and pvc.spec.storageClassName is None:
-        logger.info(
-            "PVC is pending without storage class, attempting to patch immediately..."
-        )
+        logger.info("PVC is pending without storage class, attempting to patch immediately...")
         tektonPVCisReady = addMissingStorageClassToTektonPVC(
             dynClient=dynClient,
             namespace=pvcNamespace,
@@ -232,9 +202,7 @@ def installOpenShiftPipelines(
             return False
 
     # PVC exists with storage class but not bound yet - wait for it to bind
-    logger.debug(
-        f"PVC has storage class '{pvc.spec.storageClassName}', waiting for it to be bound..."
-    )
+    logger.debug(f"PVC has storage class '{pvc.spec.storageClassName}', waiting for it to be bound...")
     foundReadyPVC = waitForPVC(dynClient, namespace=pvcNamespace, pvcName=pvcName)
     if foundReadyPVC:
         logger.info("OpenShift Pipelines postgres is installed and ready")
@@ -264,9 +232,7 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         # Get cluster version
         clusterVersion = getClusterVersion(dynClient)
         if not clusterVersion:
-            logger.warning(
-                "Unable to determine cluster version, skipping plugin enablement"
-            )
+            logger.warning("Unable to determine cluster version, skipping plugin enablement")
             return True  # Non-fatal, return True to continue
 
         logger.debug(f"Detected OpenShift version: {clusterVersion}")
@@ -274,47 +240,31 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         # Parse version (e.g., "4.21.0" -> major=4, minor=21)
         versionParts = clusterVersion.split(".")
         if len(versionParts) < 2:
-            logger.warning(
-                f"Unable to parse cluster version '{clusterVersion}', skipping plugin enablement"
-            )
+            logger.warning(f"Unable to parse cluster version '{clusterVersion}', skipping plugin enablement")
             return True
 
         try:
             majorVersion = int(versionParts[0])
             minorVersion = int(versionParts[1])
         except ValueError:
-            logger.warning(
-                f"Unable to parse version numbers from '{clusterVersion}', skipping plugin enablement"
-            )
+            logger.warning(f"Unable to parse version numbers from '{clusterVersion}', skipping plugin enablement")
             return True
 
         # Check if version requires plugin enablement (4.21+)
-        requiresPlugin = (majorVersion == 4 and minorVersion >= 21) or (
-            majorVersion > 4
-        )
+        requiresPlugin = (majorVersion == 4 and minorVersion >= 21) or (majorVersion > 4)
 
         if not requiresPlugin:
-            logger.info(
-                f"OpenShift version {clusterVersion} does not require manual plugin enablement"
-            )
+            logger.info(f"OpenShift version {clusterVersion} does not require manual plugin enablement")
             return True
 
-        logger.info(
-            f"OpenShift version {clusterVersion} requires Pipelines console plugin to be enabled"
-        )
+        logger.info(f"OpenShift version {clusterVersion} requires Pipelines console plugin to be enabled")
 
         # Get Console Operator
-        consoleAPI = dynClient.resources.get(
-            api_version="operator.openshift.io/v1", kind="Console"
-        )
+        consoleAPI = dynClient.resources.get(api_version="operator.openshift.io/v1", kind="Console")
         console = consoleAPI.get(name="cluster")
 
         # Check if plugin is already enabled
-        currentPlugins = (
-            console.spec.plugins
-            if hasattr(console.spec, "plugins") and console.spec.plugins
-            else []
-        )
+        currentPlugins = console.spec.plugins if hasattr(console.spec, "plugins") and console.spec.plugins else []
         pluginName = "pipelines-console-plugin"
 
         if pluginName in currentPlugins:
@@ -328,9 +278,7 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         updatedPlugins = list(currentPlugins) + [pluginName]
         patch = {"spec": {"plugins": updatedPlugins}}
 
-        consoleAPI.patch(
-            name="cluster", body=patch, content_type="application/merge-patch+json"
-        )
+        consoleAPI.patch(name="cluster", body=patch, content_type="application/merge-patch+json")
 
         logger.info("Successfully enabled Pipelines console plugin")
         return True
@@ -343,9 +291,7 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         return False
 
 
-def addMissingStorageClassToTektonPVC(
-    dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None
-) -> bool:
+def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
     """
     OpenShift Pipelines has a problem when there is no default storage class defined in a cluster, this function
     patches the PVC used to store pipeline results to add a specific storage class into the PVC spec and waits for the
@@ -363,9 +309,7 @@ def addMissingStorageClassToTektonPVC(
     :rtype: bool
     """
     pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
-    storageClassAPI = dynClient.resources.get(
-        api_version="storage.k8s.io/v1", kind="StorageClass"
-    )
+    storageClassAPI = dynClient.resources.get(api_version="storage.k8s.io/v1", kind="StorageClass")
 
     try:
         pvc = pvcAPI.get(name=pvcName, namespace=namespace)
@@ -380,37 +324,25 @@ def addMissingStorageClassToTektonPVC(
                 try:
                     storageClassAPI.get(name=storageClassName)
                     targetStorageClass = storageClassName
-                    logger.info(
-                        f"Using provided storage class '{storageClassName}' for PVC {pvcName}"
-                    )
+                    logger.info(f"Using provided storage class '{storageClassName}' for PVC {pvcName}")
                 except NotFoundError:
-                    logger.warning(
-                        f"Provided storage class '{storageClassName}' not found, will try to detect available storage class"
-                    )
+                    logger.warning(f"Provided storage class '{storageClassName}' not found, will try to detect available storage class")
 
             # If no valid custom storage class, try to detect one
             if targetStorageClass is None:
-                logger.warning(
-                    "No storage class provided or provided storage class not found, attempting to use first available storage class"
-                )
+                logger.warning("No storage class provided or provided storage class not found, attempting to use first available storage class")
                 storageClasses = getStorageClasses(dynClient)
                 if len(storageClasses) > 0:
                     # Use the first available storage class
                     targetStorageClass = storageClasses[0].metadata.name
-                    logger.info(
-                        f"Using first available storage class '{targetStorageClass}' for PVC {pvcName}"
-                    )
+                    logger.info(f"Using first available storage class '{targetStorageClass}' for PVC {pvcName}")
                 else:
-                    logger.error(
-                        f"Unable to set storageClassName in PVC {pvcName}. No storage classes available in the cluster."
-                    )
+                    logger.error(f"Unable to set storageClassName in PVC {pvcName}. No storage classes available in the cluster.")
                     return False
 
             # Patch the PVC with the storage class
             pvc.spec.storageClassName = targetStorageClass
-            logger.info(
-                f"Patching PVC {pvcName} with storageClassName: {targetStorageClass}"
-            )
+            logger.info(f"Patching PVC {pvcName} with storageClassName: {targetStorageClass}")
             pvcAPI.patch(body=pvc, namespace=namespace)
 
             # Wait for the PVC to be bound
@@ -425,9 +357,7 @@ def addMissingStorageClassToTektonPVC(
                         foundReadyPVC = True
                         logger.info(f"PVC {pvcName} is now bound")
                     else:
-                        logger.debug(
-                            f"Waiting 5s for PVC {pvcName} to be bound before checking again ..."
-                        )
+                        logger.debug(f"Waiting 5s for PVC {pvcName} to be bound before checking again ...")
                         sleep(5)
                 except NotFoundError:
                     logger.error(f"The patched PVC {pvcName} does not exist.")
@@ -435,9 +365,7 @@ def addMissingStorageClassToTektonPVC(
 
             return foundReadyPVC
         else:
-            logger.warning(
-                f"PVC {pvcName} is not in Pending state or already has a storageClassName"
-            )
+            logger.warning(f"PVC {pvcName} is not in Pending state or already has a storageClassName")
             return pvc.status.phase == "Bound"
 
     except NotFoundError:
@@ -445,15 +373,16 @@ def addMissingStorageClassToTektonPVC(
         return False
 
 
-def updateTektonDefinitions(
-    dynClient: DynamicClient, namespace: str, yamlFile: str
-) -> None:
+def updateTektonDefinitions(dynClient: DynamicClient, namespace: str, yamlFile: str) -> None:
     """
     Install or update MAS Tekton pipeline and task definitions from a YAML file.
 
     Parses a YAML file containing multiple Tekton resources (pipelines, tasks, etc.)
     and applies each resource individually using the kubernetes python client.
     Includes retry logic to handle intermittent network failures common in OCP clusters.
+
+    This is an all-or-nothing operation - if any resource fails to apply after retries,
+    the function will raise an exception immediately without processing remaining resources.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -465,7 +394,7 @@ def updateTektonDefinitions(
 
     Raises:
         FileNotFoundError: If the YAML file does not exist
-        ApiException: If resource application fails after all retries
+        ApiException: If resource application fails after all retries or if API resource cannot be retrieved
     """
     if not path.isfile(yamlFile):
         logger.error(f"Tekton definitions file not found: {yamlFile}")
@@ -475,9 +404,7 @@ def updateTektonDefinitions(
     with open(yamlFile, "r") as file:
         resources = list(yaml.safe_load_all(file))
 
-    logger.info(
-        f"Applying {len(resources)} Tekton resources from {yamlFile} to namespace {namespace}"
-    )
+    logger.info(f"Applying {len(resources)} Tekton resources from {yamlFile} to namespace {namespace}")
 
     # Retry configuration optimized for poor network conditions
     maxRetries = 10
@@ -485,7 +412,7 @@ def updateTektonDefinitions(
     maxDelay = 15  # seconds
 
     appliedCount = 0
-    failedResources = []
+    apiCache = {}  # Cache API objects by (apiVersion, kind) to avoid repeated discovery
 
     for resourceIndex, resourceBody in enumerate(resources, start=1):
         if resourceBody is None:
@@ -496,18 +423,18 @@ def updateTektonDefinitions(
         metadata = resourceBody.get("metadata", {})
         name = metadata.get("name", "<unnamed>")
 
-        logger.debug(
-            f"Processing resource {resourceIndex}/{len(resources)}: {kind}/{name}"
-        )
+        logger.debug(f"Processing resource {resourceIndex}/{len(resources)}: {kind}/{name}")
 
-        try:
-            resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
-        except Exception as e:
-            logger.error(
-                f"Failed to get API resource for {kind} (apiVersion={apiVersion}): {e}"
-            )
-            failedResources.append(f"{kind}/{name}")
-            continue
+        # Get or create cached API object
+        apiKey = (apiVersion, kind)
+        if apiKey not in apiCache:
+            try:
+                apiCache[apiKey] = dynClient.resources.get(api_version=apiVersion, kind=kind)
+            except Exception as e:
+                logger.error(f"Failed to get API resource for {kind} (apiVersion={apiVersion}): {e}")
+                raise ApiException(f"Cannot proceed: Failed to get API resource for {kind} (apiVersion={apiVersion})")
+
+        resourceAPI = apiCache[apiKey]
 
         # Apply resource with retry logic for transient failures
         for attempt in range(maxRetries):
@@ -516,9 +443,7 @@ def updateTektonDefinitions(
 
                 # Log success only if there were previous failures
                 if attempt > 0:
-                    logger.info(
-                        f"Successfully applied {kind}/{name} after {attempt + 1} attempts"
-                    )
+                    logger.info(f"Successfully applied {kind}/{name} after {attempt + 1} attempts")
                 else:
                     logger.debug(f"Applied {kind}/{name}")
 
@@ -548,44 +473,24 @@ def updateTektonDefinitions(
                     totalWait = waitTime + jitter
 
                     logger.warning(
-                        f"Transient error applying {kind}/{name} "
-                        f"(attempt {attempt + 1}/{maxRetries}): {str(e)[:150]}. "
-                        f"Retrying in {totalWait:.1f}s..."
+                        f"Transient error applying {kind}/{name} " f"(attempt {attempt + 1}/{maxRetries}): {str(e)[:150]}. " f"Retrying in {totalWait:.1f}s..."
                     )
                     sleep(totalWait)
-                elif isRetryable:
-                    # Exhausted all retries
-                    logger.error(
-                        f"Failed to apply {kind}/{name} after {maxRetries} attempts. "
-                        f"Last error: {e.status} - {str(e)[:200]}"
-                    )
-                    failedResources.append(f"{kind}/{name}")
-                    break
                 else:
-                    # Non-retryable error
-                    logger.error(
-                        f"Failed to apply {kind}/{name}: {e.status} - {str(e)[:200]}"
-                    )
-                    failedResources.append(f"{kind}/{name}")
-                    break
+                    # Exhausted retries or non-retryable error - fail immediately
+                    if isRetryable:
+                        logger.error(f"Failed to apply {kind}/{name} after {maxRetries} attempts. " f"Last error: {e.status} - {str(e)[:200]}")
+                    else:
+                        logger.error(f"Failed to apply {kind}/{name}: {e.status} - {str(e)[:200]}")
+                    raise ApiException(f"Failed to apply Tekton resource {kind}/{name} after {appliedCount} successful applications")
 
             except Exception as e:
-                # Catch any other unexpected errors
-                logger.error(
-                    f"Unexpected error applying {kind}/{name}: {type(e).__name__} - {str(e)[:200]}"
-                )
-                failedResources.append(f"{kind}/{name}")
-                break
+                # Catch any other unexpected errors - fail immediately
+                logger.error(f"Unexpected error applying {kind}/{name}: {type(e).__name__} - {str(e)[:200]}")
+                raise
 
-    # Summary logging
-    logger.info(
-        f"Successfully applied {appliedCount}/{len(resources)} Tekton resources"
-    )
-    if failedResources:
-        logger.error(
-            f"Failed to apply {len(failedResources)} resources: {', '.join(failedResources)}"
-        )
-        raise ApiException(f"Failed to apply {len(failedResources)} Tekton resources")
+    # All resources applied successfully
+    logger.info(f"Successfully applied all {appliedCount} Tekton resources")
 
 
 def preparePipelinesNamespace(
@@ -636,9 +541,7 @@ def preparePipelinesNamespace(
         renderedTemplate = template.render(mas_instance_id=instanceId)
         logger.debug(renderedTemplate)
         crb = yaml.safe_load(renderedTemplate)
-        clusterRoleBindingAPI = dynClient.resources.get(
-            api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding"
-        )
+        clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
         clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
 
     # Create PVC (instanceId namespace only)
@@ -663,24 +566,18 @@ def preparePipelinesNamespace(
             pvcAPI.apply(body=pvc, namespace=namespace)
 
             if waitForBind:
-                logger.info(
-                    f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for config PVC to bind"
-                )
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for config PVC to bind")
                 pvcIsBound = False
                 while not pvcIsBound:
                     configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
                     if configPVC.status.phase == "Bound":
                         pvcIsBound = True
                     else:
-                        logger.debug(
-                            "Waiting 15s before checking status of config PVC again"
-                        )
+                        logger.debug("Waiting 15s before checking status of config PVC again")
                         logger.debug(configPVC)
                         sleep(15)
             else:
-                logger.info(
-                    f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping config PVC bind wait"
-                )
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping config PVC bind wait")
 
         # Create backup PVC if requested
         if createBackupPVC:
@@ -697,24 +594,18 @@ def preparePipelinesNamespace(
             pvcAPI.apply(body=backupPvc, namespace=namespace)
 
             if waitForBind:
-                logger.info(
-                    f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for backup PVC to bind"
-                )
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for backup PVC to bind")
                 backupPvcIsBound = False
                 while not backupPvcIsBound:
                     backupPVC = pvcAPI.get(name="backup-pvc", namespace=namespace)
                     if backupPVC.status.phase == "Bound":
                         backupPvcIsBound = True
                     else:
-                        logger.debug(
-                            "Waiting 15s before checking status of backup PVC again"
-                        )
+                        logger.debug("Waiting 15s before checking status of backup PVC again")
                         logger.debug(backupPVC)
                         sleep(15)
             else:
-                logger.info(
-                    f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping backup PVC bind wait"
-                )
+                logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping backup PVC bind wait")
 
 
 def prepareAiServicePipelinesNamespace(
@@ -755,9 +646,7 @@ def prepareAiServicePipelinesNamespace(
         renderedTemplate = template.render(aiservice_instance_id=instanceId)
         logger.debug(renderedTemplate)
         crb = yaml.safe_load(renderedTemplate)
-        clusterRoleBindingAPI = dynClient.resources.get(
-            api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding"
-        )
+        clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
         clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
 
     template = env.get_template("aiservice-pipelines-pvc.yml.j2")
@@ -776,9 +665,7 @@ def prepareAiServicePipelinesNamespace(
     waitForBind = volumeBindingMode == "Immediate"
 
     if waitForBind:
-        logger.info(
-            f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind"
-        )
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
         pvcIsBound = False
         while not pvcIsBound:
             configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
@@ -789,14 +676,10 @@ def prepareAiServicePipelinesNamespace(
                 logger.debug(configPVC)
                 sleep(15)
     else:
-        logger.info(
-            f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait"
-        )
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
-def prepareRestoreSecrets(
-    dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None
-):
+def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None):
     """
     Create or update secret required for MAS Restore pipeline.
 
@@ -892,9 +775,7 @@ def prepareInstallSecrets(
         except NotFoundError:
             pass
 
-        secret_data = {
-            "MAS_INSTANCE_ID": base64.b64encode(instance_id.encode()).decode()
-        }
+        secret_data = {"MAS_INSTANCE_ID": base64.b64encode(instance_id.encode()).decode()}
 
         # Add slack_token if provided
         if slack_token:
@@ -902,9 +783,7 @@ def prepareInstallSecrets(
 
         # Add slack_channel if provided
         if slack_channel:
-            secret_data["SLACK_CHANNEL"] = base64.b64encode(
-                slack_channel.encode()
-            ).decode()
+            secret_data["SLACK_CHANNEL"] = base64.b64encode(slack_channel.encode()).decode()
 
         mas_devops_secret = {
             "apiVersion": "v1",
@@ -914,9 +793,7 @@ def prepareInstallSecrets(
             "data": secret_data,
         }
         secretsAPI.create(body=mas_devops_secret, namespace=namespace)
-        logger.info(
-            f"Created mas-devops-slack secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}"
-        )
+        logger.info(f"Created mas-devops-slack secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}")
 
     # 1. Secret/pipeline-additional-configs
     # -------------------------------------------------------------------------
@@ -1022,9 +899,7 @@ def prepareInstallSecrets(
     # Only create secret if custom facilities properties are provided
     if facilitiesProperties is not None:
         try:
-            secretsAPI.delete(
-                name="pipeline-facilities-properties", namespace=namespace
-            )
+            secretsAPI.delete(name="pipeline-facilities-properties", namespace=namespace)
         except NotFoundError:
             pass
         secretsAPI.create(body=facilitiesProperties, namespace=namespace)
@@ -1060,16 +935,12 @@ def prepareUpdateSecrets(
         namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
         namespaceAPI.get(name=namespace)
     except NotFoundError:
-        logger.warning(
-            f"Namespace {namespace} does not exist, skipping slack secret creation"
-        )
+        logger.warning(f"Namespace {namespace} does not exist, skipping slack secret creation")
         return
 
     # Only create secret if both slack_token and slack_channel are provided
     if not slack_token or not slack_channel:
-        logger.debug(
-            "Slack token or channel not provided, skipping slack secret creation"
-        )
+        logger.debug("Slack token or channel not provided, skipping slack secret creation")
 
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
@@ -1158,9 +1029,7 @@ def launchUpgradePipeline(
     """
     Create a PipelineRun to upgrade the chosen MAS instance
     """
-    pipelineRunsAPI = dynClient.resources.get(
-        api_version="tekton.dev/v1beta1", kind="PipelineRun"
-    )
+    pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
@@ -1196,9 +1065,7 @@ def launchUninstallPipeline(
     """
     Create a PipelineRun to uninstall the chosen MAS instance (and selected dependencies)
     """
-    pipelineRunsAPI = dynClient.resources.get(
-        api_version="tekton.dev/v1beta1", kind="PipelineRun"
-    )
+    pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
@@ -1233,9 +1100,7 @@ def launchUninstallPipeline(
     return pipelineURL
 
 
-def launchPipelineRun(
-    dynClient: DynamicClient, namespace: str, templateName: str, params: dict
-) -> str:
+def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: str, params: dict) -> str:
     """
     Launch a Tekton PipelineRun from a template.
 
@@ -1253,9 +1118,7 @@ def launchPipelineRun(
     Raises:
         NotFoundError: If the template or namespace is not found
     """
-    pipelineRunsAPI = dynClient.resources.get(
-        api_version="tekton.dev/v1beta1", kind="PipelineRun"
-    )
+    pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
@@ -1360,7 +1223,9 @@ def launchRestorePipeline(dynClient: DynamicClient, params: dict) -> str:
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-restore", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-restore-{restoreVersion}-{timestamp}"
+    pipelineURL = (
+        f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-restore-{restoreVersion}-{timestamp}"
+    )
     return pipelineURL
 
 
@@ -1374,9 +1239,7 @@ def launchAiServiceUpgradePipeline(
     """
     Create a PipelineRun to upgrade the chosen AI Service instance
     """
-    pipelineRunsAPI = dynClient.resources.get(
-        api_version="tekton.dev/v1beta1", kind="PipelineRun"
-    )
+    pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
     namespace = f"aiservice-{aiserviceInstanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
@@ -1394,13 +1257,13 @@ def launchAiServiceUpgradePipeline(
     pipelineRun = yaml.safe_load(renderedTemplate)
     pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{aiserviceInstanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{aiserviceInstanceId}-upgrade-{timestamp}"
+    pipelineURL = (
+        f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{aiserviceInstanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{aiserviceInstanceId}-upgrade-{timestamp}"
+    )
     return pipelineURL
 
 
-def prepareInstallRBAC(
-    dynClient: DynamicClient, namespace: str, instanceId: str, installRBACDir: str
-) -> None:
+def prepareInstallRBAC(dynClient: DynamicClient, namespace: str, instanceId: str, installRBACDir: str) -> None:
     """
     Apply the minimal install RBAC bundle for a MAS instance.
 
@@ -1420,12 +1283,8 @@ def prepareInstallRBAC(
     """
     kustomizationFile = path.join(installRBACDir, "kustomization.yaml")
     if not path.isfile(kustomizationFile):
-        logger.error(
-            f"Cannot find kustomization file for install RBAC at {kustomizationFile}"
-        )
-        raise FileNotFoundError(
-            f"Cannot find kustomization file for install RBAC at {kustomizationFile}"
-        )
+        logger.error(f"Cannot find kustomization file for install RBAC at {kustomizationFile}")
+        raise FileNotFoundError(f"Cannot find kustomization file for install RBAC at {kustomizationFile}")
 
     with open(kustomizationFile, "r") as file:
         kustomization = yaml.safe_load(file)
@@ -1440,9 +1299,7 @@ def prepareInstallRBAC(
         with open(manifestFile, "r") as file:
             template = env.from_string(file.read())
             renderedManifest = template.render(mas_instance_id=instanceId)
-            logger.debug(
-                f"Applying RBAC manifest {manifestFile} for instance {instanceId}:\n{renderedManifest}"
-            )
+            logger.debug(f"Applying RBAC manifest {manifestFile} for instance {instanceId}:\n{renderedManifest}")
 
         for resourceBody in yaml.safe_load_all(renderedManifest):
             if resourceBody is None:
@@ -1454,9 +1311,7 @@ def prepareInstallRBAC(
             name = metadata.get("name", "<unnamed>")
             namespace = metadata.get("namespace")
 
-            logger.debug(
-                f"Applying RBAC resource {kind}/{name} in namespace {namespace} for instance {instanceId}"
-            )
+            logger.debug(f"Applying RBAC resource {kind}/{name} in namespace {namespace} for instance {instanceId}")
             resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
 
             # Optimized retry logic for transient API server errors
@@ -1473,9 +1328,7 @@ def prepareInstallRBAC(
 
                     # Log success only if there were previous failures
                     if attempt > 0:
-                        logger.info(
-                            f"Successfully applied {kind}/{name} after {attempt + 1} attempts"
-                        )
+                        logger.info(f"Successfully applied {kind}/{name} after {attempt + 1} attempts")
                     break  # Success, exit retry loop
 
                 except ApiException as e:
@@ -1492,9 +1345,7 @@ def prepareInstallRBAC(
                         import random
 
                         wait_time = min(base_delay * (2**attempt), max_delay)
-                        jitter = random.uniform(
-                            0, 0.1 * wait_time
-                        )  # Add up to 10% jitter
+                        jitter = random.uniform(0, 0.1 * wait_time)  # Add up to 10% jitter
                         total_wait = wait_time + jitter
 
                         logger.warning(
@@ -1512,14 +1363,10 @@ def prepareInstallRBAC(
                         raise
                     else:
                         # Non-retryable error (permissions, invalid resource, etc.)
-                        logger.error(
-                            f"Failed to apply RBAC resource {kind}/{name}: {e.status} - {str(e)[:200]}"
-                        )
+                        logger.error(f"Failed to apply RBAC resource {kind}/{name}: {e.status} - {str(e)[:200]}")
                         raise
 
                 except Exception as e:
                     # Catch any other unexpected errors
-                    logger.error(
-                        f"Unexpected error applying RBAC resource {kind}/{name}: {type(e).__name__} - {str(e)[:200]}"
-                    )
+                    logger.error(f"Unexpected error applying RBAC resource {kind}/{name}: {type(e).__name__} - {str(e)[:200]}")
                     raise

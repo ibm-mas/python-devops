@@ -34,9 +34,7 @@ def loadYamlFile(file_path: str):
         return None
 
 
-def restoreResource(
-    dynClient: DynamicClient, resource_data: dict, namespace=None, replace_resource=True
-) -> tuple:
+def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=None, replace_resource=True) -> tuple:
     """
     Restore a single Kubernetes resource from its YAML representation.
     If the resource exists and replace_resource is True, it will be updated (replaced).
@@ -72,20 +70,14 @@ def restoreResource(
         resourceAPI = dynClient.resources.get(api_version=api_version, kind=kind)
 
         # Determine scope description for logging
-        scope_desc = (
-            f"namespace '{resource_namespace}'"
-            if resource_namespace
-            else "cluster-level"
-        )
+        scope_desc = f"namespace '{resource_namespace}'" if resource_namespace else "cluster-level"
 
         # Check if resource already exists
         resource_exists = False
         existing_resource = None
         try:
             if resource_namespace:
-                existing_resource = resourceAPI.get(
-                    name=resource_name, namespace=resource_namespace
-                )
+                existing_resource = resourceAPI.get(name=resource_name, namespace=resource_namespace)
             else:
                 existing_resource = resourceAPI.get(name=resource_name)
             resource_exists = existing_resource is not None
@@ -97,9 +89,7 @@ def restoreResource(
             if resource_exists:
                 if replace_resource:
                     # Resource exists - update it using strategic merge patch
-                    logger.info(
-                        f"Patching existing {kind} '{resource_name}' in {scope_desc}"
-                    )
+                    logger.info(f"Patching existing {kind} '{resource_name}' in {scope_desc}")
 
                     if resource_namespace:
                         resourceAPI.patch(
@@ -114,15 +104,11 @@ def restoreResource(
                             name=resource_name,
                             content_type="application/merge-patch+json",
                         )
-                    logger.info(
-                        f"Successfully patched {kind} '{resource_name}' in {scope_desc}"
-                    )
+                    logger.info(f"Successfully patched {kind} '{resource_name}' in {scope_desc}")
                     return (True, resource_name, "updated")
                 else:
                     # Resource exists but replace_resource is False - skip it
-                    logger.info(
-                        f"{kind} '{resource_name}' already exists in {scope_desc}, skipping (replace_resource=False)"
-                    )
+                    logger.info(f"{kind} '{resource_name}' already exists in {scope_desc}, skipping (replace_resource=False)")
                     return (True, resource_name, "skipped")
             else:
                 # Resource doesn't exist - create it
@@ -131,9 +117,7 @@ def restoreResource(
                     resourceAPI.create(body=resource_data, namespace=resource_namespace)
                 else:
                     resourceAPI.create(body=resource_data)
-                logger.info(
-                    f"Successfully created {kind} '{resource_name}' in {scope_desc}"
-                )
+                logger.info(f"Successfully created {kind} '{resource_name}' in {scope_desc}")
                 return (True, resource_name, None)
         except Exception as e:
             action = "update" if resource_exists else "create"
