@@ -17,16 +17,12 @@ from mas.devops.slack import SlackUtil
 
 # Import functions from the notify-slack script
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../bin"))
-script_path = os.path.join(
-    os.path.dirname(__file__), "../../bin/mas-devops-notify-slack"
-)
+script_path = os.path.join(os.path.dirname(__file__), "../../bin/mas-devops-notify-slack")
 notify_slack = SourceFileLoader("notify_slack", script_path).load_module()
 
 
 def testSendMessage():
-    response = SlackUtil.postMessageText(
-        "#bot-test", "mas-devops postMessageTest() unittest"
-    )
+    response = SlackUtil.postMessageText("#bot-test", "mas-devops postMessageTest() unittest")
 
     assert "channel" in response.data
     assert response.data["channel"] == "C06453F9KFC"
@@ -38,9 +34,7 @@ def testSendMessage():
 
 
 def testBroadcast():
-    responses = SlackUtil.postMessageText(
-        ["#bot-test", "#bot-test"], "mas-devops postMessageText() broadcast unittest"
-    )
+    responses = SlackUtil.postMessageText(["#bot-test", "#bot-test"], "mas-devops postMessageText() broadcast unittest")
     assert len(responses) == 2
     for response in responses:
         assert "channel" in response.data
@@ -155,9 +149,7 @@ def test_notifyProvisionFyre_success_with_additional_msg(mock_post):
             "OCP_PASSWORD": "password123",  # pragma: allowlist secret
         },
     ):
-        result = notify_slack.notifyProvisionFyre(
-            ["#test-channel"], 0, "Additional info"
-        )
+        result = notify_slack.notifyProvisionFyre(["#test-channel"], 0, "Additional info")
         assert result is True
         call_args = mock_post.call_args
         assert len(call_args[0][1]) == 5  # 5 message blocks with additional message
@@ -280,14 +272,10 @@ def test_notifyPipelineStart_new_thread(mock_update, mock_create, mock_post, moc
     mock_get.side_effect = [None, thread_info]
     mock_response = Mock()
     mock_response.data = {"ok": True, "channel": "C123", "ts": "1234567890.123456"}
-    mock_response.__getitem__ = lambda self, key: (
-        mock_response.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_response.__getitem__ = lambda self, key: (mock_response.data[key] if key in ["ts", "channel"] else None)
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyPipelineStart(
-        ["#test-channel"], "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineStart(["#test-channel"], "test-instance", "Install")
 
     assert result is not None
     assert result == thread_info
@@ -307,9 +295,7 @@ def test_notifyPipelineStart_existing_thread(mock_get):
     }
     mock_get.return_value = existing_thread
 
-    result = notify_slack.notifyPipelineStart(
-        ["#test-channel"], "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineStart(["#test-channel"], "test-instance", "Install")
 
     assert result == existing_thread
 
@@ -323,9 +309,7 @@ def test_notifyPipelineStart_existing_thread(mock_get):
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "createThreadConfigMap")
 @patch.object(SlackUtil, "updateThreadConfigMap")
-def test_notifyPipelineStart_multiple_channels(
-    mock_update, mock_create, mock_post, mock_get
-):
+def test_notifyPipelineStart_multiple_channels(mock_update, mock_create, mock_post, mock_get):
     """Test notifyPipelineStart with multiple channels"""
     # First call returns None, second call returns the created thread info
     thread_info = {
@@ -339,19 +323,13 @@ def test_notifyPipelineStart_multiple_channels(
     mock_get.side_effect = [None, thread_info]
     mock_response1 = Mock()
     mock_response1.data = {"ok": True, "channel": "C123", "ts": "1234567890.123456"}
-    mock_response1.__getitem__ = lambda self, key: (
-        mock_response1.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_response1.__getitem__ = lambda self, key: (mock_response1.data[key] if key in ["ts", "channel"] else None)
     mock_response2 = Mock()
     mock_response2.data = {"ok": True, "channel": "C456", "ts": "1234567890.123457"}
-    mock_response2.__getitem__ = lambda self, key: (
-        mock_response2.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_response2.__getitem__ = lambda self, key: (mock_response2.data[key] if key in ["ts", "channel"] else None)
     mock_post.return_value = [mock_response1, mock_response2]
 
-    result = notify_slack.notifyPipelineStart(
-        ["#channel1", "#channel2"], "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineStart(["#channel1", "#channel2"], "test-instance", "Install")
 
     assert result is not None
     # Verify that channel_count is set to 2
@@ -375,9 +353,7 @@ def test_notifyAnsibleStart_success(mock_update, mock_post, mock_get):
     mock_response.data = {"ok": True, "ts": "1234567890.123457"}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyAnsibleStart(
-        ["#test-channel"], "install-mas", "test-instance", "Install"
-    )
+    result = notify_slack.notifyAnsibleStart(["#test-channel"], "install-mas", "test-instance", "Install")
 
     assert result is True
     mock_post.assert_called_once()
@@ -406,9 +382,7 @@ def test_notifyAnsibleStart_creates_thread_if_missing(mock_update, mock_post, mo
         "channel": "C123",
         "ts": "1234567890.123456",
     }
-    mock_pipeline_response.__getitem__ = lambda self, key: (
-        mock_pipeline_response.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_pipeline_response.__getitem__ = lambda self, key: (mock_pipeline_response.data[key] if key in ["ts", "channel"] else None)
 
     # Mock for notifyAnsibleStart's postMessageBlocks call
     mock_task_response = Mock()
@@ -417,9 +391,7 @@ def test_notifyAnsibleStart_creates_thread_if_missing(mock_update, mock_post, mo
     mock_post.side_effect = [mock_pipeline_response, mock_task_response]
 
     with patch.object(SlackUtil, "createThreadConfigMap"):
-        result = notify_slack.notifyAnsibleStart(
-            ["#test-channel"], "install-mas", "test-instance", "Install"
-        )
+        result = notify_slack.notifyAnsibleStart(["#test-channel"], "install-mas", "test-instance", "Install")
 
     assert result is True
     assert mock_post.call_count == 2  # Once for pipeline start, once for task start
@@ -434,9 +406,7 @@ def test_notifyAnsibleStart_no_channels(mock_get):
     """Test notifyAnsibleStart returns False when no channels found"""
     mock_get.return_value = {"instanceId": "test-instance", "channel_count": "0"}
 
-    result = notify_slack.notifyAnsibleStart(
-        ["#test-channel"], "task-name", "test-instance", "Install"
-    )
+    result = notify_slack.notifyAnsibleStart(["#test-channel"], "task-name", "test-instance", "Install")
 
     assert result is False
 
@@ -457,9 +427,7 @@ def test_notifyAnsibleComplete_success(mock_update, mock_get):
     mock_response.data = {"ok": True}
     mock_update.return_value = mock_response
 
-    result = notify_slack.notifyAnsibleComplete(
-        ["#test-channel"], 0, "install-mas", "test-instance", "Install"
-    )
+    result = notify_slack.notifyAnsibleComplete(["#test-channel"], 0, "install-mas", "test-instance", "Install")
 
     assert result is True
     mock_update.assert_called_once()
@@ -480,16 +448,12 @@ def test_notifyAnsibleComplete_failure(mock_update, mock_get):
     mock_response.data = {"ok": True}
     mock_update.return_value = mock_response
 
-    result = notify_slack.notifyAnsibleComplete(
-        ["#test-channel"], 1, "install-mas", "test-instance", "Install"
-    )
+    result = notify_slack.notifyAnsibleComplete(["#test-channel"], 1, "install-mas", "test-instance", "Install")
 
     assert result is True
     # Verify failure message includes return code
     call_args = mock_update.call_args[0][2]
-    assert (
-        len(call_args) == 2
-    )  # Should have 2 blocks for failure (status + error details)
+    assert len(call_args) == 2  # Should have 2 blocks for failure (status + error details)
 
 
 @patch.object(SlackUtil, "getThreadConfigMap")
@@ -506,9 +470,7 @@ def test_notifyAnsibleComplete_no_start_message(mock_post, mock_get):
     mock_response.data = {"ok": True}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyAnsibleComplete(
-        ["#test-channel"], 0, "install-mas", "test-instance", "Install"
-    )
+    result = notify_slack.notifyAnsibleComplete(["#test-channel"], 0, "install-mas", "test-instance", "Install")
 
     assert result is True
     mock_post.assert_called_once()
@@ -539,9 +501,7 @@ def test_notifyAnsibleComplete_creates_thread_if_missing(mock_post, mock_get):
         "channel": "C123",
         "ts": "1234567890.123456",
     }
-    mock_pipeline_response.__getitem__ = lambda self, key: (
-        mock_pipeline_response.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_pipeline_response.__getitem__ = lambda self, key: (mock_pipeline_response.data[key] if key in ["ts", "channel"] else None)
 
     # Mock for notifyAnsibleComplete's postMessageBlocks call
     mock_complete_response = Mock()
@@ -549,12 +509,8 @@ def test_notifyAnsibleComplete_creates_thread_if_missing(mock_post, mock_get):
 
     mock_post.side_effect = [mock_pipeline_response, mock_complete_response]
 
-    with patch.object(SlackUtil, "createThreadConfigMap"), patch.object(
-        SlackUtil, "updateThreadConfigMap"
-    ):
-        result = notify_slack.notifyAnsibleComplete(
-            ["#test-channel"], 0, "install-mas", "test-instance", "Install"
-        )
+    with patch.object(SlackUtil, "createThreadConfigMap"), patch.object(SlackUtil, "updateThreadConfigMap"):
+        result = notify_slack.notifyAnsibleComplete(["#test-channel"], 0, "install-mas", "test-instance", "Install")
 
     assert result is True
     assert mock_post.call_count == 2  # Once for pipeline start, once for task complete
@@ -576,9 +532,7 @@ def test_notifyPipelineComplete_success(mock_delete, mock_post, mock_get):
     mock_response.data = {"ok": True}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyPipelineComplete(
-        ["#test-channel"], 0, "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 0, "test-instance", "Install")
 
     assert result is True
     mock_post.assert_called_once()
@@ -600,9 +554,7 @@ def test_notifyPipelineComplete_failure(mock_delete, mock_post, mock_get):
     mock_response.data = {"ok": True}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyPipelineComplete(
-        ["#test-channel"], 1, "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install")
 
     assert result is True
     mock_delete.assert_called_once()
@@ -613,9 +565,7 @@ def test_notifyPipelineComplete_no_thread_info(mock_get):
     """Test notifyPipelineComplete returns False when no thread info found"""
     mock_get.return_value = None
 
-    result = notify_slack.notifyPipelineComplete(
-        ["#test-channel"], 0, "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 0, "test-instance", "Install")
 
     assert result is False
 
@@ -629,9 +579,7 @@ def test_notifyPipelineComplete_no_channels(mock_get):
     """Test notifyPipelineComplete returns False when no channels found"""
     mock_get.return_value = {"instanceId": "test-instance", "channel_count": "0"}
 
-    result = notify_slack.notifyPipelineComplete(
-        ["#test-channel"], 0, "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 0, "test-instance", "Install")
 
     assert result is False
 
@@ -653,9 +601,7 @@ def test_notifyPipelineComplete_multiple_channels(mock_delete, mock_post, mock_g
     mock_response.data = {"ok": True}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyPipelineComplete(
-        ["#channel1", "#channel2"], 0, "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineComplete(["#channel1", "#channel2"], 0, "test-instance", "Install")
 
     assert result is True
     assert mock_post.call_count == 2
@@ -678,9 +624,7 @@ def test_notifyPipelineComplete_with_duration(mock_delete, mock_post, mock_get):
     mock_response.data = {"ok": True}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyPipelineComplete(
-        ["#test-channel"], 0, "test-instance", "Install"
-    )
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 0, "test-instance", "Install")
 
     assert result is True
     # Verify that postMessageBlocks was called
@@ -693,9 +637,7 @@ def test_notifyPipelineComplete_with_duration(mock_delete, mock_post, mock_get):
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "createThreadConfigMap")
 @patch.object(SlackUtil, "updateThreadConfigMap")
-def test_notifyPipelineStart_update_pipeline_no_instance_id(
-    mock_update, mock_create, mock_post, mock_get
-):
+def test_notifyPipelineStart_update_pipeline_no_instance_id(mock_update, mock_create, mock_post, mock_get):
     """Test notifyPipelineStart for update pipeline with no instance ID"""
     # First call returns None, second call returns the created thread info
     thread_info = {
@@ -707,9 +649,7 @@ def test_notifyPipelineStart_update_pipeline_no_instance_id(
     mock_get.side_effect = [None, thread_info]
     mock_response = Mock()
     mock_response.data = {"ok": True, "channel": "C123", "ts": "1234567890.123456"}
-    mock_response.__getitem__ = lambda self, key: (
-        mock_response.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_response.__getitem__ = lambda self, key: (mock_response.data[key] if key in ["ts", "channel"] else None)
     mock_post.return_value = mock_response
 
     result = notify_slack.notifyPipelineStart(["#test-channel"], None, "Update")
@@ -726,9 +666,7 @@ def test_notifyPipelineStart_update_pipeline_no_instance_id(
 @patch.object(SlackUtil, "getThreadConfigMap")
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "updateThreadConfigMap")
-def test_notifyAnsibleStart_update_pipeline_no_instance_id(
-    mock_update, mock_post, mock_get
-):
+def test_notifyAnsibleStart_update_pipeline_no_instance_id(mock_update, mock_post, mock_get):
     """Test notifyAnsibleStart for update pipeline with no instance ID"""
     mock_get.return_value = {
         "instanceId": "",
@@ -740,9 +678,7 @@ def test_notifyAnsibleStart_update_pipeline_no_instance_id(
     mock_response.data = {"ok": True, "ts": "1234567890.123457"}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyAnsibleStart(
-        ["#test-channel"], "update-catalog", None, "Update"
-    )
+    result = notify_slack.notifyAnsibleStart(["#test-channel"], "update-catalog", None, "Update")
 
     assert result is True
     mock_post.assert_called_once()
@@ -766,9 +702,7 @@ def test_notifyAnsibleComplete_update_pipeline_no_instance_id(mock_update, mock_
     mock_response.data = {"ok": True}
     mock_update.return_value = mock_response
 
-    result = notify_slack.notifyAnsibleComplete(
-        ["#test-channel"], 0, "update-catalog", None, "Update"
-    )
+    result = notify_slack.notifyAnsibleComplete(["#test-channel"], 0, "update-catalog", None, "Update")
 
     assert result is True
     mock_update.assert_called_once()
@@ -777,9 +711,7 @@ def test_notifyAnsibleComplete_update_pipeline_no_instance_id(mock_update, mock_
 @patch.object(SlackUtil, "getThreadConfigMap")
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "deleteThreadConfigMap")
-def test_notifyPipelineComplete_update_pipeline_no_instance_id(
-    mock_delete, mock_post, mock_get
-):
+def test_notifyPipelineComplete_update_pipeline_no_instance_id(mock_delete, mock_post, mock_get):
     """Test notifyPipelineComplete for update pipeline with no instance ID"""
     mock_get.return_value = {
         "instanceId": "",
@@ -803,9 +735,7 @@ def test_notifyPipelineComplete_update_pipeline_no_instance_id(
 @patch.object(SlackUtil, "getThreadConfigMap")
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "deleteThreadConfigMap")
-def test_notifyPipelineComplete_update_pipeline_empty_instance_id(
-    mock_delete, mock_post, mock_get
-):
+def test_notifyPipelineComplete_update_pipeline_empty_instance_id(mock_delete, mock_post, mock_get):
     """Test notifyPipelineComplete for update pipeline with empty string instance ID"""
     mock_get.return_value = {
         "instanceId": "",
@@ -830,9 +760,7 @@ def test_notifyPipelineComplete_update_pipeline_empty_instance_id(
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "createThreadConfigMap")
 @patch.object(SlackUtil, "updateThreadConfigMap")
-def test_notifyPipelineStart_update_pipeline_multiple_channels(
-    mock_update, mock_create, mock_post, mock_get
-):
+def test_notifyPipelineStart_update_pipeline_multiple_channels(mock_update, mock_create, mock_post, mock_get):
     """Test notifyPipelineStart for update pipeline with multiple channels and no instance ID"""
     # First call returns None, second call returns the created thread info
     thread_info = {
@@ -846,19 +774,13 @@ def test_notifyPipelineStart_update_pipeline_multiple_channels(
     mock_get.side_effect = [None, thread_info]
     mock_response1 = Mock()
     mock_response1.data = {"ok": True, "channel": "C123", "ts": "1234567890.123456"}
-    mock_response1.__getitem__ = lambda self, key: (
-        mock_response1.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_response1.__getitem__ = lambda self, key: (mock_response1.data[key] if key in ["ts", "channel"] else None)
     mock_response2 = Mock()
     mock_response2.data = {"ok": True, "channel": "C456", "ts": "1234567890.123457"}
-    mock_response2.__getitem__ = lambda self, key: (
-        mock_response2.data[key] if key in ["ts", "channel"] else None
-    )
+    mock_response2.__getitem__ = lambda self, key: (mock_response2.data[key] if key in ["ts", "channel"] else None)
     mock_post.return_value = [mock_response1, mock_response2]
 
-    result = notify_slack.notifyPipelineStart(
-        ["#channel1", "#channel2"], None, "Update"
-    )
+    result = notify_slack.notifyPipelineStart(["#channel1", "#channel2"], None, "Update")
 
     assert result is not None
     # Verify that channel_count is set to 2

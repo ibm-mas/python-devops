@@ -41,10 +41,7 @@ def test_get_current_catalog_success(dynamic_client):
     # 2. Create a mock kubernetes resources API and attach the mock catalogsource API
     resources = MagicMock()
     resources.get.side_effect = lambda **kwargs: (
-        catalog_api
-        if kwargs["api_version"] == "operators.coreos.com/v1alpha1"
-        and kwargs["kind"] == "CatalogSource"
-        else None
+        catalog_api if kwargs["api_version"] == "operators.coreos.com/v1alpha1" and kwargs["kind"] == "CatalogSource" else None
     )
 
     # 3. Create a mock client using the mock resources API
@@ -59,10 +56,7 @@ def test_get_current_catalog_success(dynamic_client):
     catalog.spec = spec
 
     catalog_api.get.side_effect = lambda **kwargs: (
-        catalog
-        if kwargs["name"] == "ibm-operator-catalog"
-        and kwargs["namespace"] == "openshift-marketplace"
-        else None
+        catalog if kwargs["name"] == "ibm-operator-catalog" and kwargs["namespace"] == "openshift-marketplace" else None
     )
 
     # 5. Call the mock API
@@ -77,10 +71,7 @@ def test_get_current_catalog_not_found(dynamic_client):
     resources = MagicMock()
     catalog_api = MagicMock()
     resources.get.side_effect = lambda **kwargs: (
-        catalog_api
-        if kwargs["api_version"] == "operators.coreos.com/v1alpha1"
-        and kwargs["kind"] == "CatalogSource"
-        else None
+        catalog_api if kwargs["api_version"] == "operators.coreos.com/v1alpha1" and kwargs["kind"] == "CatalogSource" else None
     )
     client.resources = resources
     catalog_api.get.side_effect = NotFoundError(ApiException(status="404"))
@@ -92,18 +83,12 @@ def test_get_current_catalog_invalid_id(dynamic_client):
     resources = MagicMock()
     catalog_api = MagicMock()
     resources.get.side_effect = lambda **kwargs: (
-        catalog_api
-        if kwargs["api_version"] == "operators.coreos.com/v1alpha1"
-        and kwargs["kind"] == "CatalogSource"
-        else None
+        catalog_api if kwargs["api_version"] == "operators.coreos.com/v1alpha1" and kwargs["kind"] == "CatalogSource" else None
     )
     client.resources = resources
     catalog = MagicMock()
     catalog_api.get.side_effect = lambda **kwargs: (
-        catalog
-        if kwargs["name"] == "ibm-operator-catalog"
-        and kwargs["namespace"] == "openshift-marketplace"
-        else None
+        catalog if kwargs["name"] == "ibm-operator-catalog" and kwargs["namespace"] == "openshift-marketplace" else None
     )
     spec = MagicMock()
     catalog.spec = spec

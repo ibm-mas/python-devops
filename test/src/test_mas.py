@@ -22,9 +22,7 @@ pytestmark = pytest.mark.openshift
 @pytest.fixture(scope="module")
 def dynClient():
     """Create DynamicClient for OpenShift cluster access."""
-    return dynamic.DynamicClient(
-        api_client.ApiClient(configuration=config.load_kube_config())
-    )
+    return dynamic.DynamicClient(api_client.ApiClient(configuration=config.load_kube_config()))
 
 
 def test_entitlement(dynClient):
@@ -61,9 +59,7 @@ def test_entitlement_alt_name(dynClient):
     icrUsername = "testing-i"
     icrPassword = "not-a-real-password-i"
 
-    secret = mas.updateIBMEntitlementKey(
-        dynClient, "default", icrUsername, icrPassword, secretName="ibm-entitlement-key"
-    )
+    secret = mas.updateIBMEntitlementKey(dynClient, "default", icrUsername, icrPassword, secretName="ibm-entitlement-key")
     assert secret is not None
     assert isinstance(secret, ResourceInstance)
     assert secret.metadata.name == "ibm-entitlement-key"

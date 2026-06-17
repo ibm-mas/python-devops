@@ -70,9 +70,7 @@ class TestCreateBackupDirectories:
 
     def test_create_directory_permission_error(self, mocker):
         """Test handling of permission errors"""
-        mock_makedirs = mocker.patch(
-            "os.makedirs", side_effect=PermissionError("Permission denied")
-        )
+        mock_makedirs = mocker.patch("os.makedirs", side_effect=PermissionError("Permission denied"))
 
         result = createBackupDirectories(["/invalid/path"])
 
@@ -592,9 +590,7 @@ class TestBackupResources:
         assert failed == 0
 
         # Verify label selector was passed correctly
-        mock_api.get.assert_called_once_with(
-            namespace="test-ns", label_selector="app=myapp,env=prod"
-        )
+        mock_api.get.assert_called_once_with(namespace="test-ns", label_selector="app=myapp,env=prod")
 
     def test_backup_resource_not_found_by_name(self, mocker):
         """Test handling when a specific named resource is not found"""

@@ -97,9 +97,7 @@ class TestRestoreResource:
         assert success is True
         assert name == "test-config"
         assert status is None
-        self.mock_resource_api.create.assert_called_once_with(
-            body=resource_data, namespace="test-ns"
-        )
+        self.mock_resource_api.create.assert_called_once_with(body=resource_data, namespace="test-ns")
 
     def test_create_new_cluster_resource(self):
         """Test creating a new cluster-scoped resource"""
@@ -129,14 +127,10 @@ class TestRestoreResource:
         }
 
         # Resource exists
-        existing_resource = {
-            "metadata": {"name": "test-config", "resourceVersion": "12345"}
-        }
+        existing_resource = {"metadata": {"name": "test-config", "resourceVersion": "12345"}}
         self.mock_resource_api.get.return_value = existing_resource
 
-        success, name, status = restoreResource(
-            self.mock_client, resource_data, replace_resource=True
-        )
+        success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=True)
 
         assert success is True
         assert name == "test-config"
@@ -160,9 +154,7 @@ class TestRestoreResource:
         existing_resource = {"metadata": {"name": "test-config"}}
         self.mock_resource_api.get.return_value = existing_resource
 
-        success, name, status = restoreResource(
-            self.mock_client, resource_data, replace_resource=False
-        )
+        success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=False)
 
         assert success is True
         assert name == "test-config"
@@ -181,14 +173,10 @@ class TestRestoreResource:
         # Resource doesn't exist
         self.mock_resource_api.get.side_effect = NotFoundError(Mock())
 
-        success, name, status = restoreResource(
-            self.mock_client, resource_data, namespace="override-ns"
-        )
+        success, name, status = restoreResource(self.mock_client, resource_data, namespace="override-ns")
 
         assert success is True
-        self.mock_resource_api.create.assert_called_once_with(
-            body=resource_data, namespace="override-ns"
-        )
+        self.mock_resource_api.create.assert_called_once_with(body=resource_data, namespace="override-ns")
 
     def test_missing_kind_field(self):
         """Test handling resource missing kind field"""
@@ -254,9 +242,7 @@ class TestRestoreResource:
         # Patch fails
         self.mock_resource_api.patch.side_effect = Exception("Patch failed")
 
-        success, name, status = restoreResource(
-            self.mock_client, resource_data, replace_resource=True
-        )
+        success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=True)
 
         assert success is False
         assert name == "test-config"
@@ -292,9 +278,7 @@ class TestRestoreResource:
         existing_resource = {"metadata": {"name": "test-namespace"}}
         self.mock_resource_api.get.return_value = existing_resource
 
-        success, name, status = restoreResource(
-            self.mock_client, resource_data, replace_resource=True
-        )
+        success, name, status = restoreResource(self.mock_client, resource_data, replace_resource=True)
 
         assert success is True
         assert name == "test-namespace"

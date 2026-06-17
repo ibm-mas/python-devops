@@ -24,9 +24,7 @@ from mas.devops import olm
 class MockResource:
     """Mock Kubernetes resource object"""
 
-    def __init__(
-        self, name, labels=None, owner_refs=None, csv_names=None, phase="Complete"
-    ):
+    def __init__(self, name, labels=None, owner_refs=None, csv_names=None, phase="Complete"):
         self.metadata = Mock()
         self.metadata.name = name
         self.metadata.labels = labels or {}
@@ -101,9 +99,7 @@ def test_automatic_approval_uses_label_selector_only(
     Should NOT query all InstallPlans.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -175,9 +171,7 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
     Should NOT query all InstallPlans.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -264,9 +258,7 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
     Should use label selector result, NOT query all InstallPlans.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -332,9 +324,7 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
     # Check that we never queried without a label_selector or name
     for call_args in install_plan_calls:
         args, kwargs = call_args
-        assert (
-            "label_selector" in kwargs or "name" in kwargs
-        ), "Should only use label selector or get by name, not query all"
+        assert "label_selector" in kwargs or "name" in kwargs, "Should only use label selector or get by name, not query all"
 
 
 @patch("mas.devops.olm.createNamespace")
@@ -355,9 +345,7 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
     This is the key scenario the bug fix addresses.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -414,9 +402,7 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
             return correct_install_plan_complete
         else:
             # Query all InstallPlans - returns both
-            return MockResourceList(
-                [correct_install_plan_requires_approval, wrong_install_plan]
-            )
+            return MockResourceList([correct_install_plan_requires_approval, wrong_install_plan])
 
     install_plan_api.get.side_effect = get_side_effect
     install_plan_api.patch.return_value = Mock()
@@ -442,13 +428,8 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
     # Should have:
     # 1. Called with label_selector (initial query)
     # 2. Called without label_selector (fallback to query all)
-    has_label_selector_call = any(
-        "label_selector" in call_args[1] for call_args in install_plan_calls
-    )
-    has_all_query_call = any(
-        "label_selector" not in call_args[1] and "name" not in call_args[1]
-        for call_args in install_plan_calls
-    )
+    has_label_selector_call = any("label_selector" in call_args[1] for call_args in install_plan_calls)
+    has_all_query_call = any("label_selector" not in call_args[1] and "name" not in call_args[1] for call_args in install_plan_calls)
 
     assert has_label_selector_call, "Should have tried label selector first"
     assert has_all_query_call, "Should have fallen back to querying all InstallPlans"
@@ -471,9 +452,7 @@ def test_manual_approval_filters_by_subscription_ownership(
     This ensures we don't accidentally use InstallPlans from other subscriptions.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()

@@ -105,9 +105,7 @@ def mock_logininitial_endpoint(requests_mock):
     yield requests_mock.post(
         f"{MAS_ADMIN_URL}/logininitial",
         json=dict(token=TOKEN),
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"username": SUPERUSER_USERNAME, "password": SUPERUSER_PASSWORD}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"username": SUPERUSER_USERNAME, "password": SUPERUSER_PASSWORD}),
     )
 
 
@@ -119,9 +117,7 @@ def user_utils(
     mock_named_temporary_file,
     mock_atexit,
 ):
-    k8s_client = (
-        MagicMock()
-    )  # DynamicClient is mocked out, no methods will be called on the k8s_client
+    k8s_client = MagicMock()  # DynamicClient is mocked out, no methods will be called on the k8s_client
     mas_version = request.param
     user_utils = MASUserUtils(
         MAS_INSTANCE_ID,
@@ -156,18 +152,10 @@ def mock_manage_api_key(requests_mock):
     }  # pragma: allowlist secret
 
     def mxintadm_matcher(req):
-        return (
-            req.json().get("userid") == "MXINTADM"
-            and req.verify == PEM_PATH
-            and req.cert == PEM_PATH
-        )
+        return req.json().get("userid") == "MXINTADM" and req.verify == PEM_PATH and req.cert == PEM_PATH
 
     def user1_matcher(req):
-        return (
-            req.json().get("userid") == user_id
-            and req.verify == PEM_PATH
-            and req.cert == PEM_PATH
-        )
+        return req.json().get("userid") == user_id and req.verify == PEM_PATH and req.cert == PEM_PATH
 
     # Mock for MXINTADM API key creation (returns 400 - key already exists)
     requests_mock.post(
@@ -213,9 +201,7 @@ def mock_manage_api_key(requests_mock):
     yield mxintadm_apikey
 
 
-def test_admin_internal_ca_pem_file_path(
-    user_utils, mock_named_temporary_file, mock_atexit
-):
+def test_admin_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
     assert str(user_utils.admin_internal_ca_pem_file_path) == PEM_PATH
     assert mock_named_temporary_file.mock_calls == [
         call.write(ADMINDASHBOARD_CA_CRT.encode()),
@@ -234,9 +220,7 @@ def test_admin_internal_ca_pem_file_path(
     assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
-def mock_get_user(
-    requests_mock, user_id, json, status_code, mock_manage_api_key, json_manage=None
-):
+def mock_get_user(requests_mock, user_id, json, status_code, mock_manage_api_key, json_manage=None):
     # Mock Core API endpoint for version < 9.1
     core_mock = requests_mock.get(
         f"{MAS_API_URL}/v3/users/{user_id}",
@@ -300,15 +284,11 @@ def mock_get_user_200(requests_mock, user_id, mock_manage_api_key):
 
 
 def mock_get_user_404(requests_mock, user_id, mock_manage_api_key):
-    return mock_get_user(
-        requests_mock, user_id, {"error": "notfound"}, 404, mock_manage_api_key
-    )
+    return mock_get_user(requests_mock, user_id, {"error": "notfound"}, 404, mock_manage_api_key)
 
 
 def mock_get_user_500(requests_mock, user_id, mock_manage_api_key):
-    return mock_get_user(
-        requests_mock, user_id, {"error": "internal"}, 500, mock_manage_api_key
-    )
+    return mock_get_user(requests_mock, user_id, {"error": "internal"}, 500, mock_manage_api_key)
 
 
 def test_mas_superuser_credentials(user_utils, mock_v1_secrets):
@@ -328,31 +308,21 @@ def test_mas_superuser_credentials(user_utils, mock_v1_secrets):
 
 def test_admin_internal_tls_secret(user_utils, mock_v1_secrets):
     assert mock_v1_secrets.get.call_count == 0
-    assert user_utils.admin_internal_tls_secret.data["ca.crt"] == base64.b64encode(
-        ADMINDASHBOARD_CA_CRT.encode("utf-8")
-    )
+    assert user_utils.admin_internal_tls_secret.data["ca.crt"] == base64.b64encode(ADMINDASHBOARD_CA_CRT.encode("utf-8"))
     assert mock_v1_secrets.get.call_count == 1
-    assert user_utils.admin_internal_tls_secret.data["ca.crt"] == base64.b64encode(
-        ADMINDASHBOARD_CA_CRT.encode("utf-8")
-    )
+    assert user_utils.admin_internal_tls_secret.data["ca.crt"] == base64.b64encode(ADMINDASHBOARD_CA_CRT.encode("utf-8"))
     assert mock_v1_secrets.get.call_count == 1
 
 
 def test_core_internal_tls_secret(user_utils, mock_v1_secrets):
     assert mock_v1_secrets.get.call_count == 0
-    assert user_utils.core_internal_tls_secret.data["ca.crt"] == base64.b64encode(
-        COREAPI_CA_CRT.encode("utf-8")
-    )
+    assert user_utils.core_internal_tls_secret.data["ca.crt"] == base64.b64encode(COREAPI_CA_CRT.encode("utf-8"))
     assert mock_v1_secrets.get.call_count == 1
-    assert user_utils.core_internal_tls_secret.data["ca.crt"] == base64.b64encode(
-        COREAPI_CA_CRT.encode("utf-8")
-    )
+    assert user_utils.core_internal_tls_secret.data["ca.crt"] == base64.b64encode(COREAPI_CA_CRT.encode("utf-8"))
     assert mock_v1_secrets.get.call_count == 1
 
 
-def test_core_internal_ca_pem_file_path(
-    user_utils, mock_named_temporary_file, mock_atexit
-):
+def test_core_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
     """
     Check the correct content is written to core_internal_ca_pem_file_path tempfile, that an exit handler is registered to
     delete the temp file, and that the tempfile is only written once (with its path cached)
@@ -387,31 +357,17 @@ def test_superuser_auth_token(user_utils, mock_logininitial_endpoint):
 
 def test_manage_internal_tls_secret(user_utils, mock_v1_secrets):
     assert mock_v1_secrets.get.call_count == 0
-    assert user_utils.manage_internal_tls_secret.data["ca.crt"] == base64.b64encode(
-        MANAGE_CA_CRT.encode("utf-8")
-    )
-    assert user_utils.manage_internal_tls_secret.data["tls.crt"] == base64.b64encode(
-        MANAGE_TLS_CRT.encode("utf-8")
-    )
-    assert user_utils.manage_internal_tls_secret.data["tls.key"] == base64.b64encode(
-        MANAGE_TLS_KEY.encode("utf-8")
-    )
+    assert user_utils.manage_internal_tls_secret.data["ca.crt"] == base64.b64encode(MANAGE_CA_CRT.encode("utf-8"))
+    assert user_utils.manage_internal_tls_secret.data["tls.crt"] == base64.b64encode(MANAGE_TLS_CRT.encode("utf-8"))
+    assert user_utils.manage_internal_tls_secret.data["tls.key"] == base64.b64encode(MANAGE_TLS_KEY.encode("utf-8"))
     assert mock_v1_secrets.get.call_count == 1
-    assert user_utils.manage_internal_tls_secret.data["ca.crt"] == base64.b64encode(
-        MANAGE_CA_CRT.encode("utf-8")
-    )
-    assert user_utils.manage_internal_tls_secret.data["tls.crt"] == base64.b64encode(
-        MANAGE_TLS_CRT.encode("utf-8")
-    )
-    assert user_utils.manage_internal_tls_secret.data["tls.key"] == base64.b64encode(
-        MANAGE_TLS_KEY.encode("utf-8")
-    )
+    assert user_utils.manage_internal_tls_secret.data["ca.crt"] == base64.b64encode(MANAGE_CA_CRT.encode("utf-8"))
+    assert user_utils.manage_internal_tls_secret.data["tls.crt"] == base64.b64encode(MANAGE_TLS_CRT.encode("utf-8"))
+    assert user_utils.manage_internal_tls_secret.data["tls.key"] == base64.b64encode(MANAGE_TLS_KEY.encode("utf-8"))
     assert mock_v1_secrets.get.call_count == 1
 
 
-def test_manage_internal_client_pem_file_path(
-    user_utils, mock_named_temporary_file, mock_atexit
-):
+def test_manage_internal_client_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
     assert str(user_utils.manage_internal_client_pem_file_path) == PEM_PATH
     assert mock_named_temporary_file.mock_calls == [
         call.write(MANAGE_TLS_KEY.encode()),
@@ -432,9 +388,7 @@ def test_manage_internal_client_pem_file_path(
     assert mock_atexit.mock_calls == [call(os.remove, PEM_PATH)]
 
 
-def test_manage_internal_ca_pem_file_path(
-    user_utils, mock_named_temporary_file, mock_atexit
-):
+def test_manage_internal_ca_pem_file_path(user_utils, mock_named_temporary_file, mock_atexit):
     assert str(user_utils.manage_internal_ca_pem_file_path) == PEM_PATH
     assert mock_named_temporary_file.mock_calls == [
         call.write(MANAGE_CA_CRT.encode()),
@@ -482,9 +436,7 @@ def test_mas_workspace_application_ids_filters_health(user_utils, requests_mock)
 
 def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage, get_manage_personid = mock_get_user_200(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
     resource_id, user_data = user_utils.get_user(user_id)
     # For version >= 9.1, Manage API uses "personid" and "displayname"
     # For version < 9.1, Core API uses "id" and "displayName"
@@ -512,9 +464,7 @@ def test_get_user_exists(user_utils, requests_mock, mock_manage_api_key):
 
 def test_get_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage, get_manage_personid = mock_get_user_404(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
     resource_id, user_data = user_utils.get_user(user_id)
     assert resource_id is None
     assert user_data is None
@@ -530,9 +480,7 @@ def test_get_user_notfound(user_utils, requests_mock, mock_manage_api_key):
 
 def test_get_user_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage, get_manage_personid = mock_get_user_500(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_500(requests_mock, user_id, mock_manage_api_key)
     with pytest.raises(Exception):
         user_utils.get_user(user_id)
 
@@ -547,9 +495,7 @@ def test_get_user_error(user_utils, requests_mock, mock_manage_api_key):
 
 def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage, get_manage_personid = mock_get_user_200(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -566,9 +512,7 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"id": user_id},
         status_code=201,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"personid": user_id}, cert=PEM_PATH
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"personid": user_id}, cert=PEM_PATH),
     )
 
     # Use correct payload structure based on version
@@ -605,9 +549,7 @@ def test_get_or_create_user_exists(user_utils, requests_mock, mock_manage_api_ke
 
 def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage, get_manage_personid = mock_get_user_404(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -624,9 +566,7 @@ def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"id": user_id, "displayName": user_id},
         status_code=201,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"personid": user_id}, cert=PEM_PATH
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"personid": user_id}, cert=PEM_PATH),
     )
 
     # Use correct payload structure based on version
@@ -655,9 +595,7 @@ def test_get_or_create_user_notfound(user_utils, requests_mock, mock_manage_api_
 
 def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
-    get_core, get_manage, get_manage_personid = mock_get_user_404(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API endpoint for version < 9.1
     post_core = requests_mock.post(
@@ -674,9 +612,7 @@ def test_get_or_create_user_error(user_utils, requests_mock, mock_manage_api_key
         request_headers={"apikey": mock_manage_api_key["apikey"]},
         json={"error": "unknown"},
         status_code=500,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"personid": user_id}, cert=PEM_PATH
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"personid": user_id}, cert=PEM_PATH),
     )
 
     # Use correct payload structure based on version
@@ -734,9 +670,7 @@ def test_update_user_display_name(user_utils, requests_mock):
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id},
         status_code=200,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"displayName": "display_name"}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"displayName": "display_name"}),
     )
     user_utils.update_user_display_name(user_id, "display_name")
     assert patche.call_count == 1
@@ -749,9 +683,7 @@ def test_update_user_display_name_error(user_utils, requests_mock):
         request_headers={"x-access-token": TOKEN},
         json={"error": "notfound"},
         status_code=404,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"displayName": "display_name"}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"displayName": "display_name"}),
     )
     with pytest.raises(Exception):
         user_utils.update_user_display_name(user_id, "display_name")
@@ -762,9 +694,7 @@ def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
     resource_id = f"{user_id}_resource_id"
-    get_core, get_manage, get_manage_personid = mock_get_user_200(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
 
     # Mock Core API PUT request for version < 9.1
     put = requests_mock.put(
@@ -772,9 +702,7 @@ def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
         request_headers={"x-access-token": TOKEN},
         json={"id": user_id},
         status_code=200,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"idpUserId": user_id}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id}),
     )
 
     # Mock Manage API PATCH request for version >= 9.1
@@ -833,20 +761,14 @@ def test_link_user_to_local_idp(user_utils, requests_mock, mock_manage_api_key):
         assert patch.call_count == 0
 
 
-def test_link_user_to_local_idp_usernotfound(
-    user_utils, requests_mock, mock_manage_api_key
-):
+def test_link_user_to_local_idp_usernotfound(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     resource_id = f"{user_id}_resource_id"
-    get_core, get_manage, get_manage_personid = mock_get_user_404(
-        requests_mock, user_id, mock_manage_api_key
-    )
+    get_core, get_manage, get_manage_personid = mock_get_user_404(requests_mock, user_id, mock_manage_api_key)
 
     put = requests_mock.put(
         f"{MAS_API_URL}/v3/users/{user_id}/idps/local",
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"idpUserId": user_id}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id}),
     )
 
     patch = requests_mock.post(
@@ -856,9 +778,7 @@ def test_link_user_to_local_idp_usernotfound(
 
     with pytest.raises(Exception):
         if Version(user_utils.mas_version) >= Version("9.1"):
-            user_utils.link_user_to_local_idp(
-                user_id, manage_api_key=mock_manage_api_key, resource_id=resource_id
-            )
+            user_utils.link_user_to_local_idp(user_id, manage_api_key=mock_manage_api_key, resource_id=resource_id)
         else:
             user_utils.link_user_to_local_idp(user_id)
 
@@ -873,9 +793,7 @@ def test_link_user_to_local_idp_usernotfound(
     assert patch.call_count == 0
 
 
-def test_link_user_to_local_idp_already_linked(
-    user_utils, requests_mock, mock_manage_api_key
-):
+def test_link_user_to_local_idp_already_linked(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     email_password = True
     resource_id = f"{user_id}_resource_id"
@@ -902,9 +820,7 @@ def test_link_user_to_local_idp_already_linked(
         request_headers={"x-access-token": TOKEN},
         json={"identities": {}},
         status_code=200,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"idpUserId": user_id}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"idpUserId": user_id}),
     )
 
     patch = requests_mock.post(
@@ -990,9 +906,7 @@ def test_add_user_to_workspace_already_a_member(user_utils, requests_mock):
         request_headers={"x-access-token": TOKEN},
         json=[{"id": "masdev"}],
         status_code=200,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"permissions": {"workspaceAdmin": True}}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"permissions": {"workspaceAdmin": True}}),
     )
     user_utils.add_user_to_workspace(user_id, is_workspace_admin=True)
     assert get.call_count == 1
@@ -1012,9 +926,7 @@ def test_add_user_to_workspace(user_utils, requests_mock):
         request_headers={"x-access-token": TOKEN},
         json={},
         status_code=200,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"permissions": {"workspaceAdmin": True}}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"permissions": {"workspaceAdmin": True}}),
     )
     user_utils.add_user_to_workspace(user_id, is_workspace_admin=True)
     assert get.call_count == 1
@@ -1034,9 +946,7 @@ def test_add_user_to_workspace_error(user_utils, requests_mock):
         request_headers={"x-access-token": TOKEN},
         json={"error": "internal"},
         status_code=500,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"permissions": {"workspaceAdmin": True}}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"permissions": {"workspaceAdmin": True}}),
     )
     with pytest.raises(Exception):
         user_utils.add_user_to_workspace(user_id, is_workspace_admin=True)
@@ -1061,10 +971,7 @@ def test_get_user_application_permissions(user_utils, requests_mock):
         status_code=200,
         additional_matcher=lambda req: additional_matcher(req),
     )
-    assert (
-        user_utils.get_user_application_permissions(user_id, application_id)
-        == response_json
-    )
+    assert user_utils.get_user_application_permissions(user_id, application_id) == response_json
     assert get.call_count == 1
 
 
@@ -1155,9 +1062,7 @@ def test_resync_users(user_utils, requests_mock, mock_manage_api_key):
     gets_manage = []
     patches = []
     for user_id in user_ids:
-        get_core, get_manage, get_manage_personid = mock_get_user_200(
-            requests_mock, user_id, mock_manage_api_key
-        )
+        get_core, get_manage, get_manage_personid = mock_get_user_200(requests_mock, user_id, mock_manage_api_key)
         gets_core.append(get_core)
         gets_manage.append(get_manage)
 
@@ -1168,9 +1073,7 @@ def test_resync_users(user_utils, requests_mock, mock_manage_api_key):
                 json={"id": user_id},
                 status_code=200,
                 # uid=user_id captures the current value of user_id during each loop iteration, ensuring that the lambda uses the correct value when it is eventually called.
-                additional_matcher=lambda req, uid=user_id: additional_matcher(
-                    req, json={"displayName": uid}
-                ),
+                additional_matcher=lambda req, uid=user_id: additional_matcher(req, json={"displayName": uid}),
             )
         )
 
@@ -1195,9 +1098,7 @@ def test_resync_users(user_utils, requests_mock, mock_manage_api_key):
 def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
     # Skip for version >= 9.1 as Manage API doesn't return applications field
     if Version(user_utils.mas_version) >= Version("9.1"):
-        pytest.skip(
-            "check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)"
-        )
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
 
     user_id = "user1"
     application_id = "manage"
@@ -1246,9 +1147,7 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
         json_manage=json_callback_manage,
     )
 
-    user_utils.check_user_sync(
-        user_id, application_id, timeout_secs=8, retry_interval_secs=0
-    )
+    user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
 
     # Check that the correct endpoint was called based on version
     # Note: For version >= 9.1, get_user makes 2 requests (query + resource_id GET)
@@ -1265,9 +1164,7 @@ def test_check_user_sync(user_utils, requests_mock, mock_manage_api_key):
 def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key):
     # Skip for version >= 9.1 as Manage API doesn't return applications field
     if Version(user_utils.mas_version) >= Version("9.1"):
-        pytest.skip(
-            "check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)"
-        )
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
 
     user_id = "user1"
     application_id = "manage"
@@ -1296,13 +1193,8 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
         },
     )
     with pytest.raises(Exception) as excinfo:
-        user_utils.check_user_sync(
-            user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05
-        )
-    assert (
-        str(excinfo.value)
-        == f"User {user_id} sync failed to complete for app within {0.3} seconds"
-    )
+        user_utils.check_user_sync(user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05)
+    assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
 
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version("9.1"):
@@ -1313,14 +1205,10 @@ def test_check_user_sync_timeout(user_utils, requests_mock, mock_manage_api_key)
         assert get_manage.call_count == 0
 
 
-def test_check_user_sync_appstate_notfound(
-    user_utils, requests_mock, mock_manage_api_key
-):
+def test_check_user_sync_appstate_notfound(user_utils, requests_mock, mock_manage_api_key):
     # Skip for version >= 9.1 as Manage API doesn't return applications field
     if Version(user_utils.mas_version) >= Version("9.1"):
-        pytest.skip(
-            "check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)"
-        )
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
 
     user_id = "user1"
     application_id = "manage"
@@ -1384,9 +1272,7 @@ def test_check_user_sync_appstate_notfound(
         json_manage=json_callback_manage,
     )
 
-    user_utils.check_user_sync(
-        user_id, application_id, timeout_secs=8, retry_interval_secs=0
-    )
+    user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
 
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version("9.1"):
@@ -1402,14 +1288,10 @@ def test_check_user_sync_appstate_notfound(
     assert patche.call_count == 1
 
 
-def test_check_user_sync_appstate_transient_error(
-    user_utils, requests_mock, mock_manage_api_key
-):
+def test_check_user_sync_appstate_transient_error(user_utils, requests_mock, mock_manage_api_key):
     # Skip for version >= 9.1 as Manage API doesn't return applications field
     if Version(user_utils.mas_version) >= Version("9.1"):
-        pytest.skip(
-            "check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)"
-        )
+        pytest.skip("check_user_sync not applicable for version >= 9.1 (Manage API doesn't return applications field)")
 
     user_id = "user1"
     application_id = "manage"
@@ -1468,9 +1350,7 @@ def test_check_user_sync_appstate_transient_error(
         json_manage=json_callback_manage,
     )
 
-    user_utils.check_user_sync(
-        user_id, application_id, timeout_secs=8, retry_interval_secs=0
-    )
+    user_utils.check_user_sync(user_id, application_id, timeout_secs=8, retry_interval_secs=0)
 
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version("9.1"):
@@ -1486,9 +1366,7 @@ def test_check_user_sync_appstate_transient_error(
     assert patche.call_count == 1
 
 
-def test_check_user_sync_appstate_persistent_error(
-    user_utils, requests_mock, mock_manage_api_key
-):
+def test_check_user_sync_appstate_persistent_error(user_utils, requests_mock, mock_manage_api_key):
     user_id = "user1"
     application_id = "manage"
 
@@ -1522,13 +1400,8 @@ def test_check_user_sync_appstate_persistent_error(
     )
 
     with pytest.raises(Exception) as excinfo:
-        user_utils.check_user_sync(
-            user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05
-        )
-    assert (
-        str(excinfo.value)
-        == f"User {user_id} sync failed to complete for app within {0.3} seconds"
-    )
+        user_utils.check_user_sync(user_id, application_id, timeout_secs=0.3, retry_interval_secs=0.05)
+    assert str(excinfo.value) == f"User {user_id} sync failed to complete for app within {0.3} seconds"
 
     # Check that the correct endpoint was called based on version
     if Version(user_utils.mas_version) >= Version("9.1"):
@@ -1595,9 +1468,7 @@ def test_get_manage_api_key_for_user_error(user_utils, requests_mock):
 
 
 @pytest.mark.parametrize("temporary", [(True), (False)])
-def test_create_or_get_manage_api_key_for_user_new_api_key(
-    temporary, user_utils, requests_mock, mock_atexit
-):
+def test_create_or_get_manage_api_key_for_user_new_api_key(temporary, user_utils, requests_mock, mock_atexit):
     user_id = "user1"
     apikey = {
         "userid": user_id,
@@ -1609,9 +1480,7 @@ def test_create_or_get_manage_api_key_for_user_new_api_key(
         request_headers={"content-type": "application/json"},
         json={"id": user_id},
         status_code=201,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH),
     )
 
     get = requests_mock.get(
@@ -1622,10 +1491,7 @@ def test_create_or_get_manage_api_key_for_user_new_api_key(
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH),
     )
 
-    assert (
-        user_utils.create_or_get_manage_api_key_for_user(user_id, temporary=temporary)
-        == apikey
-    )
+    assert user_utils.create_or_get_manage_api_key_for_user(user_id, temporary=temporary) == apikey
     assert post.call_count == 1
     assert get.call_count == 1
 
@@ -1641,9 +1507,7 @@ def test_create_or_get_manage_api_key_for_user_new_api_key(
 
 
 @pytest.mark.parametrize("temporary", [(True), (False)])
-def test_create_or_get_manage_api_key_for_user_existing_api_key(
-    temporary, user_utils, requests_mock, mock_atexit
-):
+def test_create_or_get_manage_api_key_for_user_existing_api_key(temporary, user_utils, requests_mock, mock_atexit):
     user_id = "user1"
     apikey = {
         "userid": user_id,
@@ -1655,9 +1519,7 @@ def test_create_or_get_manage_api_key_for_user_existing_api_key(
         request_headers={"content-type": "application/json"},
         json={"Error": {"reasonCode": "BMXAA10051E"}},
         status_code=400,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH),
     )
 
     get = requests_mock.get(
@@ -1668,10 +1530,7 @@ def test_create_or_get_manage_api_key_for_user_existing_api_key(
         additional_matcher=lambda req: additional_matcher(req, cert=PEM_PATH),
     )
 
-    assert (
-        user_utils.create_or_get_manage_api_key_for_user(user_id, temporary=temporary)
-        == apikey
-    )
+    assert user_utils.create_or_get_manage_api_key_for_user(user_id, temporary=temporary) == apikey
     assert post.call_count == 1
     assert get.call_count == 1
 
@@ -1681,9 +1540,7 @@ def test_create_or_get_manage_api_key_for_user_existing_api_key(
     ), "delete_manage_api_key exit hook registered unexpectedly for existing API Key that we did not create"
 
 
-def test_create_or_get_manage_api_key_for_user_error(
-    user_utils, requests_mock, mock_atexit
-):
+def test_create_or_get_manage_api_key_for_user_error(user_utils, requests_mock, mock_atexit):
     user_id = "user1"
     apikey = {
         "userid": user_id,
@@ -1695,9 +1552,7 @@ def test_create_or_get_manage_api_key_for_user_error(
         request_headers={"content-type": "application/json"},
         text="boom",
         status_code=400,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"expiration": -1, "userid": user_id}, cert=PEM_PATH),
     )
 
     get = requests_mock.get(
@@ -1884,9 +1739,7 @@ def test_is_user_in_manage_group_yes(user_utils, requests_mock):
     get_group_user = requests_mock.get(
         f'{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1&oslc.where=userid="{user_id}"',
         request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
-        json={
-            "member": [{}]
-        },  # <--- member length non-empty indicates that the user is a member of the group
+        json={"member": [{}]},  # <--- member length non-empty indicates that the user is a member of the group
         status_code=200,
         additional_matcher=lambda req: additional_matcher(req),
     )
@@ -2030,9 +1883,7 @@ def test_add_user_to_manage_group(user_utils, requests_mock):
         },
         json={},
         status_code=204,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"groupuser": [{"userid": user_id}]}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"groupuser": [{"userid": user_id}]}),
     )
 
     assert user_utils.add_user_to_manage_group(user_id, group_name, apikey) is None
@@ -2062,9 +1913,7 @@ def test_add_user_to_manage_group_already_member(user_utils, requests_mock):
     get_group_user = requests_mock.get(
         f"{MANAGE_API_URL}/maximo/api/os/mxapigroup/{group_id}/groupuser?lean=1",
         request_headers={"accept": "application/json", "apikey": apikey["apikey"]},
-        json={
-            "member": [{}]
-        },  # <--- member length non-empty indicates that the user is a member of the group
+        json={"member": [{}]},  # <--- member length non-empty indicates that the user is a member of the group
         status_code=200,
         additional_matcher=lambda req: additional_matcher(req),
     )
@@ -2080,9 +1929,7 @@ def test_add_user_to_manage_group_already_member(user_utils, requests_mock):
         },
         json={},
         status_code=204,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"groupuser": [{"userid": user_id}]}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"groupuser": [{"userid": user_id}]}),
     )
 
     assert user_utils.add_user_to_manage_group(user_id, group_name, apikey) is None
@@ -2128,9 +1975,7 @@ def test_add_user_to_manage_group_error(user_utils, requests_mock):
         },
         text="boom",
         status_code=500,
-        additional_matcher=lambda req: additional_matcher(
-            req, json={"groupuser": [{"userid": user_id}]}
-        ),
+        additional_matcher=lambda req: additional_matcher(req, json={"groupuser": [{"userid": user_id}]}),
     )
     with pytest.raises(Exception) as excinfo:
         user_utils.add_user_to_manage_group(user_id, group_name, apikey)
@@ -2172,9 +2017,7 @@ def test_get_mas_application_availability(user_utils, requests_mock):
         json={"id": "manage"},
         status_code=200,
     )
-    assert user_utils.get_mas_application_availability(application_id) == {
-        "id": "manage"
-    }
+    assert user_utils.get_mas_application_availability(application_id) == {"id": "manage"}
     assert get.call_count == 1
 
 
@@ -2245,9 +2088,7 @@ def test_await_mas_application_availability(user_utils, requests_mock):
         status_code=200,
     )
 
-    user_utils.await_mas_application_availability(
-        application_id, timeout_secs=5, retry_interval_secs=0
-    )
+    user_utils.await_mas_application_availability(application_id, timeout_secs=5, retry_interval_secs=0)
     assert get.call_count == len(return_values)
 
 
@@ -2265,14 +2106,9 @@ def test_await_mas_application_availability_timeout(user_utils, requests_mock):
     )
 
     with pytest.raises(Exception) as excinfo:
-        user_utils.await_mas_application_availability(
-            application_id, timeout_secs=1, retry_interval_secs=0.1
-        )
+        user_utils.await_mas_application_availability(application_id, timeout_secs=1, retry_interval_secs=0.1)
     assert get.call_count > 1
-    assert (
-        str(excinfo.value)
-        == f"{application_id} did not become ready and available in time, aborting"
-    )
+    assert str(excinfo.value) == f"{application_id} did not become ready and available in time, aborting"
 
 
 def test_parse_initial_users_from_aws_secret_json(user_utils):
@@ -2322,47 +2158,30 @@ def test_parse_initial_users_from_aws_secret_json(user_utils):
     assert actual_initial_users == expected_initial_users
 
     with pytest.raises(Exception) as excinfo:
-        user_utils.parse_initial_users_from_aws_secret_json(
-            {"user1@example.com": "primary"}
-        )
-    assert (
-        "Wrong number of CSV values for user1@example.com (expected 3 or 4 but got 1)"
-        == str(excinfo.value)
-    )
+        user_utils.parse_initial_users_from_aws_secret_json({"user1@example.com": "primary"})
+    assert "Wrong number of CSV values for user1@example.com (expected 3 or 4 but got 1)" == str(excinfo.value)
 
     with pytest.raises(Exception) as excinfo:
-        user_utils.parse_initial_users_from_aws_secret_json(
-            {"user1@example.com": "unknown,x,y"}
-        )
+        user_utils.parse_initial_users_from_aws_secret_json({"user1@example.com": "unknown,x,y"})
     assert "Unknown user type for user1@example.com: unknown" == str(excinfo.value)
 
 
 def test_create_initial_user_for_saas_no_email(user_utils):
     with pytest.raises(Exception) as excinfo:
-        user_utils.create_initial_user_for_saas(
-            {"given_name": "asdasd", "family_name": "sdfzsd"}, None
-        )
+        user_utils.create_initial_user_for_saas({"given_name": "asdasd", "family_name": "sdfzsd"}, None)
     assert str(excinfo.value) == "'email' not found in at least one of the user defs"
 
 
 def test_create_initial_user_for_saas_no_given_name(user_utils):
     with pytest.raises(Exception) as excinfo:
-        user_utils.create_initial_user_for_saas(
-            {"email": "asda", "family_name": "sdfzsd"}, None
-        )
-    assert (
-        str(excinfo.value) == "'given_name' not found in at least one of the user defs"
-    )
+        user_utils.create_initial_user_for_saas({"email": "asda", "family_name": "sdfzsd"}, None)
+    assert str(excinfo.value) == "'given_name' not found in at least one of the user defs"
 
 
 def test_create_initial_user_for_saas_no_family_name(user_utils):
     with pytest.raises(Exception) as excinfo:
-        user_utils.create_initial_user_for_saas(
-            {"email": "asda", "given_name": "asdasd"}, None
-        )
-    assert (
-        str(excinfo.value) == "'family_name' not found in at least one of the user defs"
-    )
+        user_utils.create_initial_user_for_saas({"email": "asda", "given_name": "asdasd"}, None)
+    assert str(excinfo.value) == "'family_name' not found in at least one of the user defs"
 
 
 def test_create_initial_user_for_saas_unsupported_type(user_utils):
@@ -2474,9 +2293,7 @@ def test_create_initial_user_for_saas(
     actual_user_id = user_id if user_id is not None else user_email
     if Version(mas_version) >= Version("9.1"):
         # For 9.1, return tuple (resource_id, user_data) with member array containing href
-        resource_id = (
-            f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
-        )
+        resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
         user_utils.get_or_create_user = MagicMock(
             return_value=(
                 resource_id,
@@ -2488,22 +2305,16 @@ def test_create_initial_user_for_saas(
         )
     else:
         # For version < 9.1, return tuple (None, user_data)
-        user_utils.get_or_create_user = MagicMock(
-            return_value=(None, {"id": actual_user_id})
-        )
+        user_utils.get_or_create_user = MagicMock(return_value=(None, {"id": actual_user_id}))
     user_utils.link_user_to_local_idp = MagicMock()
     user_utils.add_user_to_workspace = MagicMock()
     mas_workspace_application_ids = ["manage", "iot", "facilities"]
-    user_utils.get_mas_applications_in_workspace = MagicMock(
-        return_value=list(map(lambda x: {"id": x}, mas_workspace_application_ids))
-    )
+    user_utils.get_mas_applications_in_workspace = MagicMock(return_value=list(map(lambda x: {"id": x}, mas_workspace_application_ids)))
     user_utils.await_mas_application_availability = MagicMock()
     user_utils.set_user_application_permission = MagicMock()
     user_utils.check_user_sync = MagicMock()
     manage_api_key = "manage_api_key"  # pragma: allowlist secret
-    user_utils.create_or_get_manage_api_key_for_user = MagicMock(
-        return_value=manage_api_key
-    )
+    user_utils.create_or_get_manage_api_key_for_user = MagicMock(return_value=manage_api_key)
     user_utils.add_user_to_manage_group = MagicMock()
     user_utils.set_user_group_reassignment_auth = MagicMock()
 
@@ -2589,9 +2400,7 @@ def test_create_initial_user_for_saas(
 
     # Check link_user_to_local_idp call based on version
     if Version(mas_version) >= Version("9.1"):
-        resource_id = (
-            f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
-        )
+        resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
         user_utils.link_user_to_local_idp.assert_called_once_with(
             user_id,
             email_password=True,
@@ -2599,19 +2408,13 @@ def test_create_initial_user_for_saas(
             resource_id=resource_id,
         )
     else:
-        user_utils.link_user_to_local_idp.assert_called_once_with(
-            user_id, email_password=True
-        )
-        user_utils.add_user_to_workspace.assert_called_once_with(
-            user_id, is_workspace_admin=is_workspace_admin
-        )
+        user_utils.link_user_to_local_idp.assert_called_once_with(user_id, email_password=True)
+        user_utils.add_user_to_workspace.assert_called_once_with(user_id, is_workspace_admin=is_workspace_admin)
 
     # For version < 9.1, await_mas_application_availability and set_user_application_permission are called
     # For version >= 9.1, they are NOT called
     if mas_version == "9.0":
-        user_utils.await_mas_application_availability.assert_has_calls(
-            [call("manage"), call("iot")]
-        )
+        user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
         user_utils.set_user_application_permission.assert_has_calls(
             [
                 call(user_id, "manage", manage_role),
@@ -2626,18 +2429,14 @@ def test_create_initial_user_for_saas(
     # check_user_sync is only called for version < 9.1
     # For version >= 9.1, Manage API doesn't return applications field, so sync check is not performed
     if mas_version == "9.0":
-        user_utils.check_user_sync.assert_has_calls(
-            [call(user_id, "manage"), call(user_id, "iot"), call(user_id, "facilities")]
-        )
+        user_utils.check_user_sync.assert_has_calls([call(user_id, "manage"), call(user_id, "iot"), call(user_id, "facilities")])
     else:  # 9.1
         user_utils.check_user_sync.assert_not_called()
 
     # For version >= 9.1, API key is always created (needed for link_user_to_local_idp)
     # For version < 9.1, API key is only created if there are manage_security_groups
     if Version(mas_version) >= Version("9.1") or len(manage_security_groups) > 0:
-        user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with(
-            "MXINTADM", temporary=True
-        )
+        user_utils.create_or_get_manage_api_key_for_user.assert_called_once_with("MXINTADM", temporary=True)
     else:
         user_utils.create_or_get_manage_api_key_for_user.assert_not_called()
 
@@ -2659,9 +2458,7 @@ def test_create_initial_user_for_saas(
             if user_type == "PRIMARY":
                 # For versions >= 9.1, both user_id and resource_id are passed
                 actual_user_id = user_id if user_id is not None else user_email
-                resource_id = (
-                    f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
-                )
+                resource_id = f"_{actual_user_id.replace('@', '_').replace('.', '_')}_resource_id"
                 user_utils.set_user_group_reassignment_auth.assert_called_once_with(
                     actual_user_id,
                     resource_id,
@@ -2690,24 +2487,18 @@ def test_create_initial_users_for_saas_invalid_inputs(user_utils):
     assert str(excinfo.value) == "expected key 'users.secondary' not found"
 
     with pytest.raises(Exception) as excinfo:
-        user_utils.create_initial_users_for_saas(
-            {"users": {"primary": [], "secondary": "nope"}}
-        )
+        user_utils.create_initial_users_for_saas({"users": {"primary": [], "secondary": "nope"}})
     assert str(excinfo.value) == "'users.secondary' is not a list"
 
 
 def test_create_initial_users_for_saas_no_users(user_utils):
-    assert user_utils.create_initial_users_for_saas(
-        {"users": {"primary": [], "secondary": []}}
-    ) == {"completed": [], "failed": []}
+    assert user_utils.create_initial_users_for_saas({"users": {"primary": [], "secondary": []}}) == {"completed": [], "failed": []}
 
 
 def test_create_initial_users_for_saas(user_utils):
 
     mas_workspace_application_ids = ["manage", "iot"]
-    user_utils.get_mas_applications_in_workspace = MagicMock(
-        return_value=map(lambda x: {"id": x}, mas_workspace_application_ids)
-    )
+    user_utils.get_mas_applications_in_workspace = MagicMock(return_value=map(lambda x: {"id": x}, mas_workspace_application_ids))
     user_utils.await_mas_application_availability = MagicMock()
     user_utils.get_all_manage_groups = MagicMock(return_value=["MAXADMIN", "MAXUSER"])
     user_utils.create_initial_user_for_saas = MagicMock()
@@ -2738,6 +2529,4 @@ def test_create_initial_users_for_saas(user_utils):
         ],
     }
 
-    user_utils.await_mas_application_availability.assert_has_calls(
-        [call("manage"), call("iot")]
-    )
+    user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])

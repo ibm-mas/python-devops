@@ -46,10 +46,7 @@ def list_jobs(namespace, label_selector, limit, _continue):
     def filter_func(job):
         if not label_selector_kv[0] in job.metadata.labels:
             return False
-        if (
-            len(label_selector_kv) == 2
-            and not job.metadata.labels[label_selector_kv[0]] == label_selector_kv[1]
-        ):
+        if len(label_selector_kv) == 2 and not job.metadata.labels[label_selector_kv[0]] == label_selector_kv[1]:
             return False
         if namespace is not None and job.metadata.namespace != namespace:
             return False
@@ -77,9 +74,7 @@ def list_namespaced_job(namespace, label_selector, limit, _continue):
 
 @patch("kubernetes.client.BatchV1Api")
 def test_get_all_cleanup_groups(mock_batch_v1_api):
-    mock_batch_v1_api.return_value.list_job_for_all_namespaces.side_effect = (
-        list_job_for_all_namespaces
-    )
+    mock_batch_v1_api.return_value.list_job_for_all_namespaces.side_effect = list_job_for_all_namespaces
     jc = JobCleaner(None)
     for limit in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
         assert jc._get_all_cleanup_groups("mas.ibm.com/job-cleanup-group", limit) == {
@@ -138,9 +133,7 @@ def test_get_all_jobs(mock_batch_v1_api):
 
 @patch("kubernetes.client.BatchV1Api")
 def test_cleanup_jobs(mock_batch_v1_api):
-    mock_batch_v1_api.return_value.list_job_for_all_namespaces.side_effect = (
-        list_job_for_all_namespaces
-    )
+    mock_batch_v1_api.return_value.list_job_for_all_namespaces.side_effect = list_job_for_all_namespaces
     mock_batch_v1_api.return_value.list_namespaced_job.side_effect = list_namespaced_job
 
     jc = JobCleaner(None)
@@ -150,29 +143,16 @@ def test_cleanup_jobs(mock_batch_v1_api):
             dry_run_param = "All"
 
         expected_calls = [
-            call(
-                "job-ya-1", "y", dry_run=dry_run_param, propagation_policy="Foreground"
-            ),
-            call(
-                "job-xa-2", "x", dry_run=dry_run_param, propagation_policy="Foreground"
-            ),
-            call(
-                "job-xa-1", "x", dry_run=dry_run_param, propagation_policy="Foreground"
-            ),
-            call(
-                "job-xb-1", "x", dry_run=dry_run_param, propagation_policy="Foreground"
-            ),
+            call("job-ya-1", "y", dry_run=dry_run_param, propagation_policy="Foreground"),
+            call("job-xa-2", "x", dry_run=dry_run_param, propagation_policy="Foreground"),
+            call("job-xa-1", "x", dry_run=dry_run_param, propagation_policy="Foreground"),
+            call("job-xb-1", "x", dry_run=dry_run_param, propagation_policy="Foreground"),
         ]
 
         for limit in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
             mock_batch_v1_api.return_value.delete_namespaced_job.reset_mock()
             jc.cleanup_jobs("mas.ibm.com/job-cleanup-group", 3, dry_run)
 
-            mock_batch_v1_api.return_value.delete_namespaced_job.assert_has_calls(
-                expected_calls, any_order=True
-            )
+            mock_batch_v1_api.return_value.delete_namespaced_job.assert_has_calls(expected_calls, any_order=True)
 
-            assert (
-                mock_batch_v1_api.return_value.delete_namespaced_job.call_count
-                == len(expected_calls)
-            )
+            assert mock_batch_v1_api.return_value.delete_namespaced_job.call_count == len(expected_calls)

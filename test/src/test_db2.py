@@ -54,23 +54,17 @@ def test_cr_pod_v_matches(cr_k, cr_v, pod_v, expected):
 
 
 def test_check_db_cfgs_no_spec():
-    with pytest.raises(
-        Exception, match="spec.environment.databases not found or empty"
-    ):
+    with pytest.raises(Exception, match="spec.environment.databases not found or empty"):
         db2.check_db_cfgs(dict(), None, None, None)
 
 
 def test_check_db_cfgs_no_environment():
-    with pytest.raises(
-        Exception, match="spec.environment.databases not found or empty"
-    ):
+    with pytest.raises(Exception, match="spec.environment.databases not found or empty"):
         db2.check_db_cfgs(dict(spec=dict()), None, None, None)
 
 
 def test_check_db_cfgs_no_databases():
-    with pytest.raises(
-        Exception, match="spec.environment.databases not found or empty"
-    ):
+    with pytest.raises(Exception, match="spec.environment.databases not found or empty"):
         db2.check_db_cfgs(dict(spec=dict(environment=dict())), None, None, None)
 
 
@@ -102,20 +96,14 @@ def test_check_db_cfgs(mocker):
     )
 
     assert mock_check_db_cfg.call_args_list == [
-        mocker.call(
-            dict(name="a"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"
-        ),
-        mocker.call(
-            dict(name="b"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"
-        ),
+        mocker.call(dict(name="a"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"),
+        mocker.call(dict(name="b"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"),
     ]
 
 
 def test_check_db_cfg(mocker):
 
-    mock_db2_pod_exec_db2_get_db_cfg = mocker.patch(
-        "mas.devops.db2.db2_pod_exec_db2_get_db_cfg"
-    )
+    mock_db2_pod_exec_db2_get_db_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
     mock_db2_pod_exec_db2_get_db_cfg.return_value = """
     Default application heap (4KB)             (APPLHEAPSZ) = AUTOMATIC(8192)
     Changed pages threshold                (CHNGPGS_THRESH) = 80
@@ -123,9 +111,7 @@ def test_check_db_cfg(mocker):
     db_name = "MYDB"
     db = dict(
         name=db_name,
-        dbConfig=dict(
-            APPLHEAPSZ="8192 AUTOMATIC", NOTFOUNDINOUTPUT="XXX", CHNGPGS_THRESH="40"
-        ),
+        dbConfig=dict(APPLHEAPSZ="8192 AUTOMATIC", NOTFOUNDINOUTPUT="XXX", CHNGPGS_THRESH="40"),
     )
 
     assert set(db2.check_db_cfg(db, None, None, None)) == set(
@@ -163,9 +149,7 @@ def test_check_dbm_cfg_empty_dbmConfig():
 
 def test_check_dbm_cfg(mocker):
 
-    mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch(
-        "mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg"
-    )
+    mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg")
     mock_db2_pod_exec_db2_get_dbm_cfg.return_value = """
     Agent stack size                       (AGENT_STACK_SZ) = 1024
   """
@@ -267,9 +251,7 @@ def test_check_reg_cfg_with_empty_value_in_cr(mocker):
     )
 
     assert set(db2.check_reg_cfg(db2_instance_cr, None, None, None)) == set(
-        [
-            "[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"
-        ]
+        ["[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"]
     )
 
 
@@ -339,35 +321,25 @@ def test_validate_db2_config(test_case_name, expected_failures, mocker):
 
     mock_get_db2u_instance_cr = mocker.patch("mas.devops.db2.get_db2u_instance_cr")
     with open(
-        os.path.join(
-            current_dir, "..", "test_cases", test_case_name, "db2uinstance.yaml"
-        ),
+        os.path.join(current_dir, "..", "test_cases", test_case_name, "db2uinstance.yaml"),
         "r",
     ) as f:
         mock_get_db2u_instance_cr.return_value = yaml.load(f, Loader=yaml.FullLoader)
 
-    mock_db2_pod_exec_db2_get_db_cfg = mocker.patch(
-        "mas.devops.db2.db2_pod_exec_db2_get_db_cfg"
-    )
+    mock_db2_pod_exec_db2_get_db_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
     try:
         with open(
-            os.path.join(
-                current_dir, "..", "test_cases", test_case_name, "db2getdbcfg.txt"
-            ),
+            os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbcfg.txt"),
             "r",
         ) as f:
             mock_db2_pod_exec_db2_get_db_cfg.return_value = f.read()
     except FileNotFoundError:
         mock_db2_pod_exec_db2_get_db_cfg.return_value = None
 
-    mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch(
-        "mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg"
-    )
+    mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg")
     try:
         with open(
-            os.path.join(
-                current_dir, "..", "test_cases", test_case_name, "db2getdbmcfg.txt"
-            ),
+            os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbmcfg.txt"),
             "r",
         ) as f:
             mock_db2_pod_exec_db2_get_dbm_cfg.return_value = f.read()
