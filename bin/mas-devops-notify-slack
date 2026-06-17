@@ -51,14 +51,14 @@ def notifyProvisionFyre(channels: list[str], rc: int, additionalMsg: str | None 
             SlackUtil.buildHeader(f":glyph-ok: Your IBM DevIT Fyre OCP cluster ({name}) is ready"),
             SlackUtil.buildSection(f"{url}"),
             SlackUtil.buildSection(f"- Username: `{username}`\n- Password: `{password}`"),
-            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
+            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}"),
         ]
         if additionalMsg is not None:
             message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
             SlackUtil.buildHeader(f":glyph-fail: Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy"),
-            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}")
+            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}"),
         ]
 
     response = SlackUtil.postMessageBlocks(channels, message)
@@ -81,14 +81,14 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None 
         message = [
             SlackUtil.buildHeader(f":glyph-ok: Your IBM Cloud ROKS cluster ({name}) is ready"),
             SlackUtil.buildSection(f"{url}"),
-            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}")
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}"),
         ]
         if additionalMsg is not None:
             message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
             SlackUtil.buildHeader(f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"),
-            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}")
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}"),
         ]
 
     response = SlackUtil.postMessageBlocks(channels, message)
@@ -97,7 +97,12 @@ def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None 
     return response.data.get("ok", False)
 
 
-def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipelineName: str | None = None, namespace: str | None = None) -> dict | None:
+def notifyPipelineStart(
+    channels: list[str],
+    instanceId: str | None = None,
+    pipelineName: str | None = None,
+    namespace: str | None = None,
+) -> dict | None:
     """Send Slack notification about pipeline start and create thread for all channels."""
     # Exit early if no channels provided
     if not channels or len(channels) == 0:
@@ -124,7 +129,7 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
     instanceInfo = f"Instance ID: `{instanceId}`" if instanceId else ""
     message = [
         SlackUtil.buildHeader(f"🚀 MAS {pipelineName} Pipeline Started"),
-        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}\n{toolchainLink}")
+        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}\n{toolchainLink}"),
     ]
     response = SlackUtil.postMessageBlocks(channels, message)
 
@@ -159,7 +164,13 @@ def notifyPipelineStart(channels: list[str], instanceId: str | None = None, pipe
     return SlackUtil.getThreadConfigMap(namespace, instanceId, pipelineName)
 
 
-def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | None = None, pipelineName: str | None = None, namespace: str | None = None) -> bool:
+def notifyAnsibleStart(
+    channels: list[str],
+    taskName: str,
+    instanceId: str | None = None,
+    pipelineName: str | None = None,
+    namespace: str | None = None,
+) -> bool:
     """Send Slack notification about Ansible task start to all channels."""
     # Exit early if no channels provided
     if not channels or len(channels) == 0:
@@ -188,9 +199,7 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
         return False
 
     # Send task start message as thread reply to all channels
-    taskMessage = [
-        SlackUtil.buildSection(f"⏳ *{taskName}* - Started")
-    ]
+    taskMessage = [SlackUtil.buildSection(f"⏳ *{taskName}* - Started")]
 
     allSuccess = True
     taskMessageData = {}
@@ -220,7 +229,14 @@ def notifyAnsibleStart(channels: list[str], taskName: str, instanceId: str | Non
     return allSuccess
 
 
-def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceId: str | None = None, pipelineName: str | None = None, namespace: str | None = None) -> bool:
+def notifyAnsibleComplete(
+    channels: list[str],
+    rc: int,
+    taskName: str,
+    instanceId: str | None = None,
+    pipelineName: str | None = None,
+    namespace: str | None = None,
+) -> bool:
     """Send Slack notification about Ansible task completion status to all channels."""
     # Exit early if no channels provided
     if not channels or len(channels) == 0:
@@ -272,6 +288,7 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
         durationText = ""
         if taskMessageTs:
             from datetime import datetime, timezone
+
             try:
                 # Message timestamp is in format "1234567890.123456"
                 startTime = float(taskMessageTs)
@@ -291,9 +308,7 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
                 print(f"Failed to calculate duration for channel {idx}: {e}")
 
         # Build the completion message
-        taskMessage = [
-            SlackUtil.buildSection(f"{emoji} *{taskName}* - {status}{durationText}")
-        ]
+        taskMessage = [SlackUtil.buildSection(f"{emoji} *{taskName}* - {status}{durationText}")]
         if rc != 0:
             taskMessage.append(SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details"))
 
@@ -317,7 +332,13 @@ def notifyAnsibleComplete(channels: list[str], rc: int, taskName: str, instanceI
     return allSuccess
 
 
-def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None = None, pipelineName: str | None = None, namespace: str | None = None) -> bool:
+def notifyPipelineComplete(
+    channels: list[str],
+    rc: int,
+    instanceId: str | None = None,
+    pipelineName: str | None = None,
+    namespace: str | None = None,
+) -> bool:
     """Send Slack notification about pipeline completion to all channels and cleanup ConfigMap."""
     # Exit early if no channels provided
     if not channels or len(channels) == 0:
@@ -351,6 +372,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
     durationText = ""
     if startTime:
         from datetime import datetime, timezone
+
         try:
             start = datetime.fromisoformat(startTime.replace("Z", "+00:00"))
             end = datetime.now(timezone.utc)
@@ -376,7 +398,7 @@ def notifyPipelineComplete(channels: list[str], rc: int, instanceId: str | None 
 
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
-        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}{durationText}{additionalInfo}")
+        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}{durationText}{additionalInfo}"),
     ]
 
     allSuccess = True
@@ -419,7 +441,12 @@ if __name__ == "__main__":
     parser.add_argument("--task-name", required=False, default="")
     parser.add_argument("--instance-id", required=False, default=None)
     parser.add_argument("--pipeline-name", required=False, default=None)
-    parser.add_argument("--namespace", required=False, default=None, help="Pipeline namespace (e.g., mas-{instanceId}-pipelines or aiservice-{instanceId}-pipelines)")
+    parser.add_argument(
+        "--namespace",
+        required=False,
+        default=None,
+        help="Pipeline namespace (e.g., mas-{instanceId}-pipelines or aiservice-{instanceId}-pipelines)",
+    )
 
     args, unknown = parser.parse_known_args()
 
@@ -435,6 +462,13 @@ if __name__ == "__main__":
     elif args.action == "ansible-start":
         notifyAnsibleStart(channelList, args.task_name, args.instance_id, args.pipeline_name, namespace)
     elif args.action == "ansible-complete":
-        notifyAnsibleComplete(channelList, args.rc, args.task_name, args.instance_id, args.pipeline_name, namespace)
+        notifyAnsibleComplete(
+            channelList,
+            args.rc,
+            args.task_name,
+            args.instance_id,
+            args.pipeline_name,
+            namespace,
+        )
     elif args.action == "pipeline-complete":
         notifyPipelineComplete(channelList, args.rc, args.instance_id, args.pipeline_name, namespace)

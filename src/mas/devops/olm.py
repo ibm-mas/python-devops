@@ -28,7 +28,11 @@ class OLMException(Exception):
     pass
 
 
-def getPackageManifest(dynClient: DynamicClient, packageName: str, catalogSourceNamespace: str = "openshift-marketplace"):
+def getPackageManifest(
+    dynClient: DynamicClient,
+    packageName: str,
+    catalogSourceNamespace: str = "openshift-marketplace",
+):
     """
     Get the PackageManifest for an operator package.
 
@@ -48,14 +52,21 @@ def getPackageManifest(dynClient: DynamicClient, packageName: str, catalogSource
     packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
     try:
         manifestResource = packagemanifestAPI.get(name=packageName, namespace=catalogSourceNamespace)
-        logger.info(f"Package Manifest Details: {catalogSourceNamespace}:{packageName} - Package is available from {manifestResource.status.catalogSource} (default channel is {manifestResource.status.defaultChannel})")
+        logger.info(
+            f"Package Manifest Details: {catalogSourceNamespace}:{packageName} - Package is available from {manifestResource.status.catalogSource} (default channel is {manifestResource.status.defaultChannel})"
+        )
     except NotFoundError:
         logger.info(f"Package Manifest Details: {catalogSourceNamespace}:{packageName} - Package is not available")
         manifestResource = None
     return manifestResource
 
 
-def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namespace: str, installMode: str = "OwnNamespace"):
+def ensureOperatorGroupExists(
+    dynClient: DynamicClient,
+    env: Environment,
+    namespace: str,
+    installMode: str = "OwnNamespace",
+):
     """
     Ensure an OperatorGroup exists in the specified namespace.
 
@@ -78,11 +89,7 @@ def ensureOperatorGroupExists(dynClient: DynamicClient, env: Environment, namesp
     if len(operatorGroupList.items) == 0:
         logger.debug(f"Creating new OperatorGroup in namespace {namespace}")
         template = env.get_template("operatorgroup.yml.j2")
-        renderedTemplate = template.render(
-            name="operatorgroup",
-            namespace=namespace,
-            installMode=installMode
-        )
+        renderedTemplate = template.render(name="operatorgroup", namespace=namespace, installMode=installMode)
         operatorGroup = yaml.safe_load(renderedTemplate)
         operatorGroupsAPI.apply(body=operatorGroup, namespace=namespace)
     else:
@@ -118,7 +125,18 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
     return subscriptions.items[0]
 
 
-def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str, packageChannel: Optional[str] = None, catalogSource: Optional[str] = None, catalogSourceNamespace: str = "openshift-marketplace", config: Optional[dict] = None, installMode: str = "OwnNamespace", installPlanApproval: Optional[str] = None, startingCSV: Optional[str] = None):
+def applySubscription(
+    dynClient: DynamicClient,
+    namespace: str,
+    packageName: str,
+    packageChannel: Optional[str] = None,
+    catalogSource: Optional[str] = None,
+    catalogSourceNamespace: str = "openshift-marketplace",
+    config: Optional[dict] = None,
+    installMode: str = "OwnNamespace",
+    installPlanApproval: Optional[str] = None,
+    startingCSV: Optional[str] = None,
+):
     """
     Create or update an operator subscription in a namespace.
 
@@ -157,9 +175,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
 
     labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(
-        loader=FileSystemLoader(searchpath=templateDir)
-    )
+    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
 
     if packageChannel is None or catalogSource is None:
         logger.debug("Getting PackageManifest to determine defaults")
@@ -203,7 +219,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
         catalog_name=catalogSource,
         catalog_namespace=catalogSourceNamespace,
         install_plan_approval=installPlanApproval,
-        starting_csv=startingCSV
+        starting_csv=startingCSV,
     )
     subscription = yaml.safe_load(renderedTemplate)
 
@@ -258,11 +274,8 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
             allInstallPlans = installPlanAPI.get(namespace=namespace)
             for plan in allInstallPlans.items:
                 # Check if this InstallPlan is owned by our subscription
-                owner_refs = getattr(plan.metadata, 'ownerReferences', [])
-                is_owned_by_subscription = any(
-                    ref.kind == "Subscription" and ref.name == name
-                    for ref in owner_refs
-                )
+                owner_refs = getattr(plan.metadata, "ownerReferences", [])
+                is_owned_by_subscription = any(ref.kind == "Subscription" and ref.name == name for ref in owner_refs)
 
                 if is_owned_by_subscription:
                     csvNames = getattr(plan.spec, "clusterServiceVersionNames", [])
@@ -309,7 +322,7 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
                             body=installPlanResource,
                             name=installPlanName,
                             namespace=namespace,
-                            content_type="application/merge-patch+json"
+                            content_type="application/merge-patch+json",
                         )
                         approved_manual_install = True
                         logger.info(f"InstallPlan {installPlanName} approved successfully")
@@ -339,7 +352,9 @@ def applySubscription(dynClient: DynamicClient, namespace: str, packageName: str
                 logger.debug(f"Subscription {name} in {namespace} reached state: {state} with installedCSV: {installedCSV}")
                 return subscriptionResource
             else:
-                logger.debug(f"Subscription {name} in {namespace} state is {state} but installedCSV ({installedCSV}) does not match startingCSV ({startingCSV}), retrying...")
+                logger.debug(
+                    f"Subscription {name} in {namespace} state is {state} but installedCSV ({installedCSV}) does not match startingCSV ({startingCSV}), retrying..."
+                )
 
         logger.debug(f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying...")
         sleep(30)
