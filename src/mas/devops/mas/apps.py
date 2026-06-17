@@ -12,7 +12,11 @@ import logging
 import json
 from time import sleep
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
+from openshift.dynamic.exceptions import (
+    NotFoundError,
+    ResourceNotFoundError,
+    UnauthorizedError,
+)
 
 from ..olm import getSubscription
 
@@ -29,7 +33,7 @@ APP_IDS = [
     "monitor",
     "optimizer",
     "predict",
-    "visualinspection"
+    "visualinspection",
 ]
 APP_KINDS = dict(
     predict="PredictApp",
@@ -53,7 +57,12 @@ APPWS_KINDS = dict(
 )
 
 
-def getAppResource(dynClient: DynamicClient, instanceId: str, applicationId: str, workspaceId: str = None) -> bool:
+def getAppResource(
+    dynClient: DynamicClient,
+    instanceId: str,
+    applicationId: str,
+    workspaceId: str = None,
+) -> bool:
     """
     Retrieve a MAS application or workspace custom resource.
 
@@ -109,14 +118,15 @@ def verifyAppInstance(dynClient: DynamicClient, instanceId: str, applicationId: 
 
 
 def waitForAppReady(
-        dynClient: DynamicClient,
-        instanceId: str,
-        applicationId: str,
-        workspaceId: str = None,
-        retries: int = 100,
-        delay: int = 600,
-        debugLogFunction=logger.debug,
-        infoLogFunction=logger.info) -> bool:
+    dynClient: DynamicClient,
+    instanceId: str,
+    applicationId: str,
+    workspaceId: str = None,
+    retries: int = 100,
+    delay: int = 600,
+    debugLogFunction=logger.debug,
+    infoLogFunction=logger.info,
+) -> bool:
     """
     Wait for a MAS application or workspace to reach ready state.
 

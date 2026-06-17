@@ -46,9 +46,7 @@ def getCatalog(name: str) -> dict:
 
     pathToCatalog = path.join(modulePath, "catalogs", catalogFileName)
     if not path.exists(pathToCatalog):
-        raise NoSuchCatalogError(
-            f"Catalog {name} is unknown: {pathToCatalog} does not exist"
-        )
+        raise NoSuchCatalogError(f"Catalog {name} is unknown: {pathToCatalog} does not exist")
 
     with open(pathToCatalog) as stream:
         return yaml.safe_load(stream)

@@ -56,7 +56,7 @@ print("OpenShift Pipelines installed successfully")
 pipelinesNamespace = "mas-myinstance-pipelines"
 tektonYamlPath = "/path/to/ibm-mas-tekton.yaml"
 
-updateTektonDefinitions(pipelinesNamespace, tektonYamlPath)
+updateTektonDefinitions(dynClient, pipelinesNamespace, tektonYamlPath)
 print("Tekton definitions updated successfully")
 ```
 
@@ -96,7 +96,7 @@ createNamespace(dynClient, pipelinesNamespace)
 
 # Update Tekton definitions
 print("Updating Tekton definitions...")
-updateTektonDefinitions(pipelinesNamespace, tektonYamlPath)
+updateTektonDefinitions(dynClient, pipelinesNamespace, tektonYamlPath)
 
 # Launch upgrade pipeline
 print("Launching upgrade pipeline...")

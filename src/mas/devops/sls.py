@@ -10,7 +10,11 @@
 
 import logging
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
+from openshift.dynamic.exceptions import (
+    NotFoundError,
+    ResourceNotFoundError,
+    UnauthorizedError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +40,7 @@ def listSLSInstances(dynClient: DynamicClient) -> list:
     """
     try:
         slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
-        return slsAPI.get().to_dict()['items']
+        return slsAPI.get().to_dict()["items"]
     except NotFoundError:
         logger.info("There are no SLS instances installed on this cluster")
         return []
@@ -74,7 +78,7 @@ def findSLSByNamespace(namespace: str, instances: list = None, dynClient: Dynami
         instances = listSLSInstances(dynClient)
 
     for instance in instances:
-        if namespace in instance['metadata']['namespace']:
+        if namespace in instance["metadata"]["namespace"]:
             return True
     return False
 
@@ -99,10 +103,10 @@ def getSLSRegistrationDetails(namespace: str, name: str, dynClient: DynamicClien
     try:
         slsAPI = dynClient.resources.get(api_version="sls.ibm.com/v1", kind="LicenseService")
         slsInstance = slsAPI.get(name=name, namespace=namespace)
-        if hasattr(slsInstance, 'status') and hasattr(slsInstance.status, 'licenseId') and hasattr(slsInstance.status, 'registrationKey'):
+        if hasattr(slsInstance, "status") and hasattr(slsInstance.status, "licenseId") and hasattr(slsInstance.status, "registrationKey"):
             return dict(
                 registrationKey=slsInstance.status.registrationKey,
-                licenseId=slsInstance.status.licenseId
+                licenseId=slsInstance.status.licenseId,
             )
     except NotFoundError:
         logger.info(f"No SLS '{name}' found in namespace {namespace}.'")
