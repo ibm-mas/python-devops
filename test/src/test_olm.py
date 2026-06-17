@@ -44,12 +44,16 @@ def test_get_manifest_none(dynClient):
 
 def test_crud(dynClient):
     namespace = "cli-fvt-1"
-    subscription = olm.applySubscription(dynClient, namespace, "ibm-sls", packageChannel="3.x")
+    subscription = olm.applySubscription(
+        dynClient, namespace, "ibm-sls", packageChannel="3.x"
+    )
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
 
     subscriptionLookup1 = olm.getSubscription(dynClient, namespace, "ibm-sls")
-    subscriptionLookup2 = olm.getSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    subscriptionLookup2 = olm.getSubscription(
+        dynClient, namespace, "ibm-truststore-mgr"
+    )
 
     assert subscriptionLookup1.metadata.name == "ibm-sls"
     assert subscriptionLookup1.metadata.namespace == namespace
@@ -64,7 +68,9 @@ def test_crud(dynClient):
     ocp.deleteNamespace(dynClient, namespace)
 
     failedSubscriptionLookup1 = olm.getSubscription(dynClient, namespace, "ibm-sls")
-    failedSubscriptionLookup2 = olm.getSubscription(dynClient, namespace, "ibm-truststore-mgr")
+    failedSubscriptionLookup2 = olm.getSubscription(
+        dynClient, namespace, "ibm-truststore-mgr"
+    )
     assert failedSubscriptionLookup1 is None
     assert failedSubscriptionLookup2 is None
 
@@ -72,12 +78,10 @@ def test_crud(dynClient):
 def test_crud_with_config(dynClient):
     namespace = "cli-fvt-2"
     # We don't need this, just want to test that it works
-    testConfig = {
-        "env": [
-            {"name": "DUMMY_ENV_VAR", "value": "testing"}
-        ]
-    }
-    subscription = olm.applySubscription(dynClient, namespace, "ibm-sls", packageChannel="3.x", config=testConfig)
+    testConfig = {"env": [{"name": "DUMMY_ENV_VAR", "value": "testing"}]}
+    subscription = olm.applySubscription(
+        dynClient, namespace, "ibm-sls", packageChannel="3.x", config=testConfig
+    )
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
 
@@ -102,13 +106,18 @@ def test_crud_with_manual_approval(dynClient):
             namespace,
             "ibm-sls",
             packageChannel="3.x",
-            installPlanApproval="Manual"
+            installPlanApproval="Manual",
         )
         # If we get here, the test should fail
-        assert False, "Expected OLMException to be raised when installPlanApproval is Manual without startingCSV"
+        assert (
+            False
+        ), "Expected OLMException to be raised when installPlanApproval is Manual without startingCSV"
     except olm.OLMException as e:
         # Verify the error message is correct
-        assert "When installPlanApproval is 'Manual', a startingCSV must be provided" in str(e)
+        assert (
+            "When installPlanApproval is 'Manual', a startingCSV must be provided"
+            in str(e)
+        )
         # Test passed - exception was raised as expected
 
 
@@ -121,7 +130,7 @@ def test_crud_with_starting_csv(dynClient):
         namespace,
         "ibm-sls",
         packageChannel="3.x",
-        startingCSV="ibm-sls.v3.8.0"
+        startingCSV="ibm-sls.v3.8.0",
     )
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
@@ -151,7 +160,7 @@ def test_crud_with_manual_approval_and_starting_csv(dynClient):
         "ibm-sls",
         packageChannel="3.x",
         installPlanApproval="Manual",
-        startingCSV="ibm-sls.v3.8.0"
+        startingCSV="ibm-sls.v3.8.0",
     )
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace

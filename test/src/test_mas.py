@@ -44,7 +44,14 @@ def test_entitlement_with_artifactory(dynClient):
     icrUsername = "testing-i"
     icrPassword = "not-a-real-password-i"
 
-    secret = mas.updateIBMEntitlementKey(dynClient, "default", icrUsername, icrPassword, artifactoryUsername, artifactoryPassword)
+    secret = mas.updateIBMEntitlementKey(
+        dynClient,
+        "default",
+        icrUsername,
+        icrPassword,
+        artifactoryUsername,
+        artifactoryPassword,
+    )
     assert secret is not None
     assert isinstance(secret, ResourceInstance)
     assert secret.metadata.name == "ibm-entitlement"
@@ -54,7 +61,9 @@ def test_entitlement_alt_name(dynClient):
     icrUsername = "testing-i"
     icrPassword = "not-a-real-password-i"
 
-    secret = mas.updateIBMEntitlementKey(dynClient, "default", icrUsername, icrPassword, secretName="ibm-entitlement-key")
+    secret = mas.updateIBMEntitlementKey(
+        dynClient, "default", icrUsername, icrPassword, secretName="ibm-entitlement-key"
+    )
     assert secret is not None
     assert isinstance(secret, ResourceInstance)
     assert secret.metadata.name == "ibm-entitlement-key"
