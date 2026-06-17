@@ -15,7 +15,11 @@ from os import path
 from types import SimpleNamespace
 from kubernetes.dynamic.resource import ResourceInstance
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
+from openshift.dynamic.exceptions import (
+    NotFoundError,
+    ResourceNotFoundError,
+    UnauthorizedError,
+)
 from jinja2 import Environment, FileSystemLoader
 
 from ..ocp import getStorageClasses, listInstances
@@ -42,7 +46,10 @@ def isAirgapInstall(dynClient: DynamicClient, checkICSP: bool = False) -> bool:
     """
     if checkICSP:
         try:
-            ICSPApi = dynClient.resources.get(api_version="operator.openshift.io/v1alpha1", kind="ImageContentSourcePolicy")
+            ICSPApi = dynClient.resources.get(
+                api_version="operator.openshift.io/v1alpha1",
+                kind="ImageContentSourcePolicy",
+            )
             ICSPApi.get(name="ibm-mas-and-dependencies")
             return True
         except NotFoundError:
@@ -73,12 +80,7 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
                         - rwx (str): Storage class name for RWX volumes
                         All attributes are None if no recognized provider is found.
     """
-    result = SimpleNamespace(
-        provider=None,
-        providerName=None,
-        rwo=None,
-        rwx=None
-    )
+    result = SimpleNamespace(provider=None, providerName=None, rwo=None, rwx=None)
 
     # Iterate through storage classes until we find one that we recognize
     # We make an assumption that if one of the paired classes if available, both will be
@@ -90,13 +92,19 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
             result.rwo = "ibmc-block-gold"
             result.rwx = "ibmc-file-gold-gid"
             break
-        elif storageClass.metadata.name in ["ocs-storagecluster-ceph-rbd", "ocs-storagecluster-cephfs"]:
+        elif storageClass.metadata.name in [
+            "ocs-storagecluster-ceph-rbd",
+            "ocs-storagecluster-cephfs",
+        ]:
             result.provider = "ocs"
             result.providerName = "OpenShift Container Storage"
             result.rwo = "ocs-storagecluster-ceph-rbd"
             result.rwx = "ocs-storagecluster-cephfs"
             break
-        elif storageClass.metadata.name in ["ocs-external-storagecluster-ceph-rbd", "ocs-external-storagecluster-cephfs"]:
+        elif storageClass.metadata.name in [
+            "ocs-external-storagecluster-ceph-rbd",
+            "ocs-external-storagecluster-cephfs",
+        ]:
             result.provider = "ocs-external"
             result.providerName = "OpenShift Container Storage (External)"
             result.rwo = "ocs-external-storagecluster-ceph-rbd"
@@ -153,7 +161,10 @@ def getCurrentCatalog(dynClient: DynamicClient) -> dict:
         catalogDisplayName = catalog.spec.displayName
         catalogImage = catalog.spec.image
 
-        m = re.match(r".+(?P<catalogId>v[89]-(?P<catalogVersion>[0-9]+)-(amd64|s390x|ppc64le))", catalogDisplayName)
+        m = re.match(
+            r".+(?P<catalogId>v[89]-(?P<catalogVersion>[0-9]+)-(amd64|s390x|ppc64le))",
+            catalogDisplayName,
+        )
         if m:
             # catalogId = v9-yymmdd-amd64
             # catalogVersion = yymmdd
@@ -262,7 +273,15 @@ def getMasChannel(dynClient: DynamicClient, instanceId: str) -> str:
         return masSubscription.spec.channel
 
 
-def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsername: str, icrPassword: str, artifactoryUsername: str = None, artifactoryPassword: str = None, secretName: str = "ibm-entitlement") -> ResourceInstance:
+def updateIBMEntitlementKey(
+    dynClient: DynamicClient,
+    namespace: str,
+    icrUsername: str,
+    icrPassword: str,
+    artifactoryUsername: str = None,
+    artifactoryPassword: str = None,
+    secretName: str = "ibm-entitlement",
+) -> ResourceInstance:
     """
     Create or update the IBM Entitlement secret for accessing IBM container registries.
 
@@ -291,7 +310,7 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
     templateDir = path.join(path.abspath(path.dirname(__file__)), "..", "templates")
     env = Environment(
         loader=FileSystemLoader(searchpath=templateDir),
-        extensions=["jinja2_base64_filters.Base64Filters"]
+        extensions=["jinja2_base64_filters.Base64Filters"],
     )
 
     contentTemplate = env.get_template("ibm-entitlement-dockerconfig.json.j2")
@@ -299,15 +318,11 @@ def updateIBMEntitlementKey(dynClient: DynamicClient, namespace: str, icrUsernam
         artifactory_username=artifactoryUsername,
         artifactory_token=artifactoryPassword,
         icr_username=icrUsername,
-        icr_password=icrPassword
+        icr_password=icrPassword,
     )
 
     template = env.get_template("ibm-entitlement-secret.yml.j2")
-    renderedTemplate = template.render(
-        name=secretName,
-        namespace=namespace,
-        docker_config=dockerConfig
-    )
+    renderedTemplate = template.render(name=secretName, namespace=namespace, docker_config=dockerConfig)
     secret = yaml.safe_load(renderedTemplate)
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
@@ -337,7 +352,7 @@ def getMasPublicClusterIssuer(dynClient: DynamicClient, instanceId: str) -> str 
         suite = suitesAPI.get(name=instanceId, namespace=f"mas-{instanceId}-core")
 
         # Check if spec.certificateIssuer.name exists
-        if hasattr(suite, 'spec') and hasattr(suite.spec, 'certificateIssuer') and hasattr(suite.spec.certificateIssuer, 'name'):
+        if hasattr(suite, "spec") and hasattr(suite.spec, "certificateIssuer") and hasattr(suite.spec.certificateIssuer, "name"):
             issuerName = suite.spec.certificateIssuer.name
             logger.debug(f"Found custom certificate issuer: {issuerName}")
             return issuerName
@@ -426,13 +441,15 @@ def getPermissionMode(dynClient: DynamicClient, instanceId: str) -> str | None:
             f"mas:{instanceId}:core:suite:arcgis:essential",
             f"mas:{instanceId}:core:suite:facilities:essential",
             f"mas:{instanceId}:core:suite:optimizer:essential",
-            f"mas:{instanceId}:core:suite:visualinspection:essential"
+            f"mas:{instanceId}:core:suite:visualinspection:essential",
         ]
 
         for essentialRoleName in essentialRolePatterns:
             try:
                 roleAPI.get(name=essentialRoleName, namespace=coreNamespace)
-                logger.info(f"Found essential Role '{essentialRoleName}' in namespace '{coreNamespace}' with no non-essential roles - permission mode is 'minimal'")
+                logger.info(
+                    f"Found essential Role '{essentialRoleName}' in namespace '{coreNamespace}' with no non-essential roles - permission mode is 'minimal'"
+                )
                 return "minimal"
             except NotFoundError:
                 continue
