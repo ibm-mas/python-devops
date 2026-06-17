@@ -36,7 +36,10 @@ def test_get_newest_catalog_tag():
 
 
 def test_get_newest_catalog_tag_fail():
-    with pytest.raises(NoSuchCatalogError, match="There are no known catalogs for the doesntexist platform"):
+    with pytest.raises(
+        NoSuchCatalogError,
+        match="There are no known catalogs for the doesntexist platform",
+    ):
         getNewestCatalogTag("doesntexist")
 
 

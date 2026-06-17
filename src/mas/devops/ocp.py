@@ -54,22 +54,11 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     conf.view()
     logger.debug(f"Starting KubeConfig context: {conf.current_context()}")
 
-    conf.set_credentials(
-        name='my-credentials',
-        token=token
-    )
-    conf.set_cluster(
-        name='my-cluster',
-        server=server,
-        insecure_skip_tls_verify=skipVerify
-    )
-    conf.set_context(
-        name='my-context',
-        cluster='my-cluster',
-        user='my-credentials'
-    )
+    conf.set_credentials(name="my-credentials", token=token)
+    conf.set_cluster(name="my-cluster", server=server, insecure_skip_tls_verify=skipVerify)
+    conf.set_context(name="my-context", cluster="my-cluster", user="my-credentials")
 
-    conf.use_context('my-context')
+    conf.use_context("my-context")
     conf.view()
     logger.info(f"KubeConfig context changed to {conf.current_context()}")
     return True
@@ -167,20 +156,16 @@ def createNamespace(dynClient: DynamicClient, namespace: str, kyvernoLabel: str 
                 namespaceAPI.patch(
                     name=namespace,
                     body=body,
-                    content_type="application/merge-patch+json"
+                    content_type="application/merge-patch+json",
                 )
     except NotFoundError:
         nsObj = {
             "apiVersion": "v1",
             "kind": "Namespace",
-            "metadata": {
-                "name": namespace
-            }
+            "metadata": {"name": namespace},
         }
         if kyvernoLabel is not None:
-            nsObj["metadata"]["labels"] = {
-                "ibm.com/kyverno": kyvernoLabel
-            }
+            nsObj["metadata"]["labels"] = {"ibm.com/kyverno": kyvernoLabel}
         namespaceAPI.create(body=nsObj)
         logger.debug(f"Created namespace {namespace}")
     return True
@@ -309,7 +294,7 @@ def getNodes(dynClient: DynamicClient) -> dict:
         list: List of node resources as dictionaries
     """
     nodesAPI = dynClient.resources.get(api_version="v1", kind="Node")
-    nodes = nodesAPI.get().to_dict()['items']
+    nodes = nodesAPI.get().to_dict()["items"]
     return nodes
 
 
@@ -394,7 +379,7 @@ def getStorageClassVolumeBindingMode(dynClient: DynamicClient, storageClassName:
     """
     try:
         storageClass = getStorageClass(dynClient, storageClassName)
-        if storageClass and hasattr(storageClass, 'volumeBindingMode'):
+        if storageClass and hasattr(storageClass, "volumeBindingMode"):
             return storageClass.volumeBindingMode
         # Default to Immediate if not specified (Kubernetes default)
         logger.debug(f"Storage class {storageClassName} does not have volumeBindingMode set, defaulting to 'Immediate'")
@@ -442,7 +427,13 @@ def crdExists(dynClient: DynamicClient, crdName: str) -> bool:
         return False
 
 
-def getCR(dynClient: DynamicClient, cr_api_version: str, cr_kind: str, cr_name: str, namespace: str = None) -> dict:
+def getCR(
+    dynClient: DynamicClient,
+    cr_api_version: str,
+    cr_kind: str,
+    cr_name: str,
+    namespace: str = None,
+) -> dict:
     """
     Get a Custom Resource
     """
@@ -483,10 +474,10 @@ def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str)
     If it does not exist, it will be created.
     """
     resource_dict = yaml.safe_load(resource_yaml)
-    kind = resource_dict['kind']
-    api_version = resource_dict['apiVersion']
-    metadata = resource_dict['metadata']
-    name = metadata['name']
+    kind = resource_dict["kind"]
+    api_version = resource_dict["apiVersion"]
+    metadata = resource_dict["metadata"]
+    name = metadata["name"]
 
     try:
         resource = dynClient.resources.get(api_version=api_version, kind=kind)
@@ -518,7 +509,7 @@ def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
         NotFoundError: If the custom resource type is not found
     """
     api = dynClient.resources.get(api_version=apiVersion, kind=kind)
-    instances = api.get().to_dict()['items']
+    instances = api.get().to_dict()["items"]
     if len(instances) > 0:
         logger.info(f"There are {len(instances)} {kind} instances installed on this cluster:")
     for instance in instances:
@@ -579,7 +570,13 @@ def waitForPVC(dynClient: DynamicClient, namespace: str, pvcName: str) -> bool:
 
 # Assisted by WCA@IBM
 # Latest GenAI contribution: ibm/granite-8b-code-instruct
-def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: list, timeout: int = 60) -> str:
+def execInPod(
+    core_v1_api: client.CoreV1Api,
+    pod_name: str,
+    namespace,
+    command: list,
+    timeout: int = 60,
+) -> str:
     """
     Executes a command in a Kubernetes pod and returns the standard output.
     If running this function from inside a pod (i.e. config.load_incluster_config()),
@@ -627,7 +624,9 @@ def execInPod(core_v1_api: client.CoreV1Api, pod_name: str, namespace, command: 
     if err.get("status") == "Failure":
         raise Exception(f"Failed to execute {command} on {pod_name} in namespace {namespace}: {err.get('message')}. stdout: {stdout}, stderr: {stderr}")
 
-    logger.debug(f"stdout: \n----------------------------------------------------------------\n{stdout}\n----------------------------------------------------------------\n")
+    logger.debug(
+        f"stdout: \n----------------------------------------------------------------\n{stdout}\n----------------------------------------------------------------\n"
+    )
 
     return stdout
 
@@ -661,11 +660,11 @@ def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username:
     secretDict = pullSecret.to_dict()
 
     # Decode the existing dockerconfigjson
-    dockerConfigJson = secretDict['data'].get(".dockerconfigjson", "")
-    dockerConfig = json.loads(base64.b64decode(dockerConfigJson).decode('utf-8'))
+    dockerConfigJson = secretDict["data"].get(".dockerconfigjson", "")
+    dockerConfig = json.loads(base64.b64decode(dockerConfigJson).decode("utf-8"))
 
     # Create auth string (username:password base64 encoded)
-    authString = base64.b64encode(f"{username}:{password}".encode('utf-8')).decode('utf-8')
+    authString = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("utf-8")
 
     # Add or update the registry credentials
     if "auths" not in dockerConfig:
@@ -675,14 +674,14 @@ def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username:
         "username": username,
         "password": password,
         "email": username,
-        "auth": authString
+        "auth": authString,
     }
 
     # Encode back to base64
-    updatedDockerConfig = base64.b64encode(json.dumps(dockerConfig).encode('utf-8')).decode('utf-8')
+    updatedDockerConfig = base64.b64encode(json.dumps(dockerConfig).encode("utf-8")).decode("utf-8")
 
     # Update the secret dict
-    secretDict['data'][".dockerconfigjson"] = updatedDockerConfig
+    secretDict["data"][".dockerconfigjson"] = updatedDockerConfig
 
     # Apply the updated secret
     updatedSecret = secretsAPI.apply(body=secretDict, namespace="openshift-config")
@@ -693,7 +692,7 @@ def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username:
         "name": updatedSecret.metadata.name,
         "namespace": updatedSecret.metadata.namespace,
         "registry": registryUrl,
-        "changed": True
+        "changed": True,
     }
 
 
@@ -717,23 +716,17 @@ def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControl
     logger.info(f"Configuring IngressController '{ingressControllerName}' for path-based routing")
 
     try:
-        ingressControllerAPI = dynClient.resources.get(
-            api_version="operator.openshift.io/v1",
-            kind="IngressController"
-        )
+        ingressControllerAPI = dynClient.resources.get(api_version="operator.openshift.io/v1", kind="IngressController")
 
         try:
-            ingressController = ingressControllerAPI.get(
-                name=ingressControllerName,
-                namespace="openshift-ingress-operator"
-            )
+            ingressController = ingressControllerAPI.get(name=ingressControllerName, namespace="openshift-ingress-operator")
         except NotFoundError:
             logger.error(f"IngressController '{ingressControllerName}' not found in namespace 'openshift-ingress-operator'")
             return False
 
         currentPolicy = None
-        if hasattr(ingressController, 'spec') and hasattr(ingressController.spec, 'routeAdmission'):
-            if hasattr(ingressController.spec.routeAdmission, 'namespaceOwnership'):
+        if hasattr(ingressController, "spec") and hasattr(ingressController.spec, "routeAdmission"):
+            if hasattr(ingressController.spec.routeAdmission, "namespaceOwnership"):
                 currentPolicy = ingressController.spec.routeAdmission.namespaceOwnership
 
         logger.debug(f"Current namespaceOwnership policy: {currentPolicy if currentPolicy else 'Not set'}")
@@ -744,19 +737,13 @@ def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControl
 
         logger.info(f"Patching IngressController '{ingressControllerName}' to enable InterNamespaceAllowed")
 
-        patch = {
-            "spec": {
-                "routeAdmission": {
-                    "namespaceOwnership": "InterNamespaceAllowed"
-                }
-            }
-        }
+        patch = {"spec": {"routeAdmission": {"namespaceOwnership": "InterNamespaceAllowed"}}}
 
         ingressControllerAPI.patch(
             body=patch,
             name=ingressControllerName,
             namespace="openshift-ingress-operator",
-            content_type="application/merge-patch+json"
+            content_type="application/merge-patch+json",
         )
 
         maxRetries = 5
@@ -765,12 +752,14 @@ def configureIngressForPathBasedRouting(dynClient: DynamicClient, ingressControl
         for attempt in range(maxRetries):
             sleep(retryDelay)
             try:
-                updatedController = ingressControllerAPI.get(
-                    name=ingressControllerName,
-                    namespace="openshift-ingress-operator"
-                )
+                updatedController = ingressControllerAPI.get(name=ingressControllerName, namespace="openshift-ingress-operator")
 
-                if (hasattr(updatedController, 'spec') and hasattr(updatedController.spec, 'routeAdmission') and hasattr(updatedController.spec.routeAdmission, 'namespaceOwnership') and updatedController.spec.routeAdmission.namespaceOwnership == "InterNamespaceAllowed"):
+                if (
+                    hasattr(updatedController, "spec")
+                    and hasattr(updatedController.spec, "routeAdmission")
+                    and hasattr(updatedController.spec.routeAdmission, "namespaceOwnership")
+                    and updatedController.spec.routeAdmission.namespaceOwnership == "InterNamespaceAllowed"
+                ):
 
                     logger.info(f"Successfully configured IngressController '{ingressControllerName}' for path-based routing")
                     return True

@@ -18,32 +18,48 @@ import sys
 import argparse
 import logging
 import urllib3
+
 urllib3.disable_warnings()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Apply Pre-Install MAS RBAC')
-    
+    parser = argparse.ArgumentParser(description="Apply Pre-Install MAS RBAC")
+
     parser.add_argument("--mas-instance-id", required=True, help="MAS Instance ID")
     parser.add_argument("--mas-version", required=True, help="MAS Version (e.g., 9.2)")
-    parser.add_argument("--admin-mode", required=False, default="namespaced",
-                       choices=["cluster", "namespaced", "minimal"],
-                       help="Admin mode: cluster, namespaced, or minimal")
-    parser.add_argument("--selected-apps", required=False, default="core",
-                       help="Comma-separated list of apps (e.g., core,manage,iot)")
-    parser.add_argument("--rbac-root-dir", required=False, default="/opt/app-root/rbac",
-                       help="Root directory containing RBAC manifests")
-    parser.add_argument("--log-level", required=False,
-                       choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                       default="INFO")
-    
+    parser.add_argument(
+        "--admin-mode",
+        required=False,
+        default="namespaced",
+        choices=["cluster", "namespaced", "minimal"],
+        help="Admin mode: cluster, namespaced, or minimal",
+    )
+    parser.add_argument(
+        "--selected-apps",
+        required=False,
+        default="core",
+        help="Comma-separated list of apps (e.g., core,manage,iot)",
+    )
+    parser.add_argument(
+        "--rbac-root-dir",
+        required=False,
+        default="/opt/app-root/rbac",
+        help="Root directory containing RBAC manifests",
+    )
+    parser.add_argument(
+        "--log-level",
+        required=False,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+    )
+
     args = parser.parse_args()
-    
+
     # Setup logging
     log_level = getattr(logging, args.log_level)
     logger = logging.getLogger()
     logger.setLevel(log_level)
-    
+
     ch = logging.StreamHandler()
     ch.setLevel(log_level)
     chFormatter = logging.Formatter(
@@ -51,18 +67,20 @@ if __name__ == "__main__":
     )
     ch.setFormatter(chFormatter)
     logger.addHandler(ch)
-    
+
     mas_instance_id = args.mas_instance_id
     mas_version = ".".join(args.mas_version.split(".")[:2])
     admin_mode = args.admin_mode
     selected_apps_str = args.selected_apps
     rbac_root_dir = args.rbac_root_dir
-    
+
     # Parse selected apps
     selected_apps = None
     if selected_apps_str:
-        selected_apps = [app.strip() for app in selected_apps_str.split(',') if app.strip()]
-    
+        selected_apps = [
+            app.strip() for app in selected_apps_str.split(",") if app.strip()
+        ]
+
     logger.info("Configuration:")
     logger.info("--------------")
     logger.info(f"mas_instance_id: {mas_instance_id}")
@@ -72,7 +90,7 @@ if __name__ == "__main__":
     logger.info(f"rbac_root_dir:   {rbac_root_dir}")
     logger.info(f"log_level:       {log_level}")
     logger.info("")
-    
+
     try:
         # Try to load in-cluster configuration
         config.load_incluster_config()
@@ -81,7 +99,7 @@ if __name__ == "__main__":
         # If that fails, fall back to kubeconfig file
         config.load_kube_config()
         logger.debug("Loaded kubeconfig file")
-    
+
     try:
         dynClient = DynamicClient(client.api_client.ApiClient())
         applyPreInstallMASRBAC(
@@ -90,12 +108,13 @@ if __name__ == "__main__":
             masInstanceId=mas_instance_id,
             adminMode=admin_mode,
             selectedApps=selected_apps,
-            rbacRootDir=rbac_root_dir
+            rbacRootDir=rbac_root_dir,
         )
         logger.info("Pre-Install MAS RBAC applied successfully")
         sys.exit(0)
     except Exception as e:
         logger.error(f"Error applying Pre-Install MAS RBAC: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -35,8 +35,8 @@ def isVersionBefore(_compare_to_version, _current_version):
         return False
 
     strippedVersion = _current_version.split("-")[0]
-    if '.x' in strippedVersion:
-        strippedVersion = strippedVersion.replace('.x', '.0')
+    if ".x" in strippedVersion:
+        strippedVersion = strippedVersion.replace(".x", ".0")
     current_version = semver.VersionInfo.parse(strippedVersion)
     compareToVersion = semver.VersionInfo.parse(_compare_to_version)
     return current_version.compare(compareToVersion) < 0
@@ -69,8 +69,8 @@ def isVersionEqualOrAfter(_compare_to_version, _current_version):
         return False
 
     strippedVersion = _current_version.split("-")[0]
-    if '.x' in strippedVersion:
-        strippedVersion = strippedVersion.replace('.x', '.0')
+    if ".x" in strippedVersion:
+        strippedVersion = strippedVersion.replace(".x", ".0")
     current_version = semver.VersionInfo.parse(strippedVersion)
     compareToVersion = semver.VersionInfo.parse(_compare_to_version)
     return current_version.compare(compareToVersion) >= 0
