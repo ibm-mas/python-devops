@@ -33,9 +33,7 @@ def _getToolchainLink() -> str:
     return ""
 
 
-def notifyProvisionFyre(
-    channels: list[str], rc: int, additionalMsg: str | None = None
-) -> bool:
+def notifyProvisionFyre(channels: list[str], rc: int, additionalMsg: str | None = None) -> bool:
     """Send Slack notification about Fyre OCP cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -46,33 +44,21 @@ def notifyProvisionFyre(
         password = os.getenv("OCP_PASSWORD", None)
 
         if url is None or username is None or password is None:
-            print(
-                "OCP_CONSOLE_URL, OCP_USERNAME, and OCP_PASSWORD env vars must all be set"
-            )
+            print("OCP_CONSOLE_URL, OCP_USERNAME, and OCP_PASSWORD env vars must all be set")
             sys.exit(1)
 
         message = [
-            SlackUtil.buildHeader(
-                f":glyph-ok: Your IBM DevIT Fyre OCP cluster ({name}) is ready"
-            ),
+            SlackUtil.buildHeader(f":glyph-ok: Your IBM DevIT Fyre OCP cluster ({name}) is ready"),
             SlackUtil.buildSection(f"{url}"),
-            SlackUtil.buildSection(
-                f"- Username: `{username}`\n- Password: `{password}`"
-            ),
-            SlackUtil.buildSection(
-                f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}"
-            ),
+            SlackUtil.buildSection(f"- Username: `{username}`\n- Password: `{password}`"),
+            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}"),
         ]
         if additionalMsg is not None:
             message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
-            SlackUtil.buildHeader(
-                f":glyph-fail: Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy"
-            ),
-            SlackUtil.buildSection(
-                f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}"
-            ),
+            SlackUtil.buildHeader(f":glyph-fail: Your IBM DevIT Fyre OCP cluster ({name}) failed to deploy"),
+            SlackUtil.buildSection(f"<https://beta.fyre.ibm.com/development/vms|Fyre Dashboard>{toolchainLink}"),
         ]
 
     response = SlackUtil.postMessageBlocks(channels, message)
@@ -81,9 +67,7 @@ def notifyProvisionFyre(
     return response.data.get("ok", False)
 
 
-def notifyProvisionRoks(
-    channels: list[str], rc: int, additionalMsg: str | None = None
-) -> bool:
+def notifyProvisionRoks(channels: list[str], rc: int, additionalMsg: str | None = None) -> bool:
     """Send Slack notification about ROKS cluster provisioning status."""
     name = _getClusterName()
     toolchainLink = _getToolchainLink()
@@ -95,24 +79,16 @@ def notifyProvisionRoks(
             sys.exit(1)
 
         message = [
-            SlackUtil.buildHeader(
-                f":glyph-ok: Your IBM Cloud ROKS cluster ({name}) is ready"
-            ),
+            SlackUtil.buildHeader(f":glyph-ok: Your IBM Cloud ROKS cluster ({name}) is ready"),
             SlackUtil.buildSection(f"{url}"),
-            SlackUtil.buildSection(
-                f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}"
-            ),
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}"),
         ]
         if additionalMsg is not None:
             message.append(SlackUtil.buildSection(additionalMsg))
     else:
         message = [
-            SlackUtil.buildHeader(
-                f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"
-            ),
-            SlackUtil.buildSection(
-                f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}"
-            ),
+            SlackUtil.buildHeader(f":glyph-fail: Your IBM Cloud ROKS cluster ({name}) failed to deploy"),
+            SlackUtil.buildSection(f"<https://cloud.ibm.com/kubernetes/clusters|IBM Cloud Dashboard> | {toolchainLink}"),
         ]
 
     response = SlackUtil.postMessageBlocks(channels, message)
@@ -153,9 +129,7 @@ def notifyPipelineStart(
     instanceInfo = f"Instance ID: `{instanceId}`" if instanceId else ""
     message = [
         SlackUtil.buildHeader(f"🚀 MAS {pipelineName} Pipeline Started"),
-        SlackUtil.buildSection(
-            f"Pipeline Run: {pipelineName}\n{instanceInfo}\n{toolchainLink}"
-        ),
+        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}\n{toolchainLink}"),
     ]
     response = SlackUtil.postMessageBlocks(channels, message)
 
@@ -250,9 +224,7 @@ def notifyAnsibleStart(
 
     # Update ConfigMap with all task message timestamps
     if taskMessageData:
-        SlackUtil.updateThreadConfigMap(
-            namespace, instanceId, taskMessageData, pipelineName
-        )
+        SlackUtil.updateThreadConfigMap(namespace, instanceId, taskMessageData, pipelineName)
 
     return allSuccess
 
@@ -268,9 +240,7 @@ def notifyAnsibleComplete(
     """Send Slack notification about Ansible task completion status to all channels."""
     # Exit early if no channels provided
     if not channels or len(channels) == 0:
-        print(
-            "No Slack channels provided - skipping Ansible task completion notification"
-        )
+        print("No Slack channels provided - skipping Ansible task completion notification")
         return False
 
     # Use provided namespace, or fall back to legacy logic for backward compatibility
@@ -338,38 +308,26 @@ def notifyAnsibleComplete(
                 print(f"Failed to calculate duration for channel {idx}: {e}")
 
         # Build the completion message
-        taskMessage = [
-            SlackUtil.buildSection(f"{emoji} *{taskName}* - {status}{durationText}")
-        ]
+        taskMessage = [SlackUtil.buildSection(f"{emoji} *{taskName}* - {status}{durationText}")]
         if rc != 0:
-            taskMessage.append(
-                SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details")
-            )
+            taskMessage.append(SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details"))
 
         # If we have the original message timestamp, update it; otherwise post new message
         if taskMessageTs:
-            response = SlackUtil.updateMessageBlocks(
-                channelId, taskMessageTs, taskMessage
-            )
+            response = SlackUtil.updateMessageBlocks(channelId, taskMessageTs, taskMessage)
             if not response.data.get("ok", False):
                 allSuccess = False
         else:
             # Fallback: post new message if task start message wasn't tracked
-            print(
-                f"No start message found for task {taskName} in channel {idx}, posting new completion message"
-            )
+            print(f"No start message found for task {taskName} in channel {idx}, posting new completion message")
             response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
             if not response.data.get("ok", False):
                 allSuccess = False
 
     # Special case, mas-update pipeline
     if namespace == "mas-pipelines" and taskName == "post-deps-update-verify-ingress":
-        print(
-            f"mas-update pipeline completed with status: {rc}, sending pipeline complete message"
-        )
-        allSuccess: bool = notifyPipelineComplete(
-            channels, rc, instanceId, pipelineName, namespace
-        )
+        print(f"mas-update pipeline completed with status: {rc}, sending pipeline complete message")
+        allSuccess: bool = notifyPipelineComplete(channels, rc, instanceId, pipelineName, namespace)
 
     return allSuccess
 
@@ -440,9 +398,7 @@ def notifyPipelineComplete(
 
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
-        SlackUtil.buildSection(
-            f"Pipeline Run: {pipelineName}\n{instanceInfo}{durationText}{additionalInfo}"
-        ),
+        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}{durationText}{additionalInfo}"),
     ]
 
     allSuccess = True
@@ -495,22 +451,16 @@ if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
     # Use namespace from command line arg, or fall back to PIPELINE_NAMESPACE env var
-    namespace = (
-        args.namespace if args.namespace else os.getenv("PIPELINE_NAMESPACE", None)
-    )
+    namespace = args.namespace if args.namespace else os.getenv("PIPELINE_NAMESPACE", None)
 
     if args.action == "ocp-provision-fyre":
         notifyProvisionFyre(channelList, args.rc, args.msg)
     elif args.action == "ocp-provision-roks":
         notifyProvisionRoks(channelList, args.rc, args.msg)
     elif args.action == "pipeline-start":
-        notifyPipelineStart(
-            channelList, args.instance_id, args.pipeline_name, namespace
-        )
+        notifyPipelineStart(channelList, args.instance_id, args.pipeline_name, namespace)
     elif args.action == "ansible-start":
-        notifyAnsibleStart(
-            channelList, args.task_name, args.instance_id, args.pipeline_name, namespace
-        )
+        notifyAnsibleStart(channelList, args.task_name, args.instance_id, args.pipeline_name, namespace)
     elif args.action == "ansible-complete":
         notifyAnsibleComplete(
             channelList,
@@ -521,6 +471,4 @@ if __name__ == "__main__":
             namespace,
         )
     elif args.action == "pipeline-complete":
-        notifyPipelineComplete(
-            channelList, args.rc, args.instance_id, args.pipeline_name, namespace
-        )
+        notifyPipelineComplete(channelList, args.rc, args.instance_id, args.pipeline_name, namespace)
