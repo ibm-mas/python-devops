@@ -26,15 +26,15 @@ db2_channel_default: v120104.0                  # Default Channel version for db
 mas_core_version:
   9.2.x: 9.2.0                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.18                           # Updated
-  9.0.x: 9.0.26                           # Updated
+  9.1.x: 9.1.19                           # Updated
+  9.0.x: 9.0.27                           # Updated
   8.10.x: ""                              # Not Supported
   8.11.x: ""                              # Not Supported
 mas_manage_version:
   9.2.x: 9.2.0                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.18                           # Updated
-  9.0.x: 9.0.26                           # Updated
+  9.1.x: 9.1.19                           # Updated
+  9.0.x: 9.0.27                           # Updated
   8.10.x: ""                              # Not Supported
   8.11.x: ""                              # Not Supported
 
