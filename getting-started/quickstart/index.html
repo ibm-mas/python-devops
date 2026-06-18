@@ -2024,7 +2024,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">pipelinesNamespace</span> <span class="o">=</span> <span class="s2">&quot;mas-myinstance-pipelines&quot;</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">tektonYamlPath</span> <span class="o">=</span> <span class="s2">&quot;/path/to/ibm-mas-tekton.yaml&quot;</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">updateTektonDefinitions</span><span class="p">(</span><span class="n">pipelinesNamespace</span><span class="p">,</span> <span class="n">tektonYamlPath</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">updateTektonDefinitions</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">pipelinesNamespace</span><span class="p">,</span> <span class="n">tektonYamlPath</span><span class="p">)</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Tekton definitions updated successfully&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="complete-example-mas-upgrade-pipeline">Complete Example: MAS Upgrade Pipeline</h2>
@@ -2060,7 +2060,7 @@
 <a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>
 <a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="c1"># Update Tekton definitions</span>
 <a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Updating Tekton definitions...&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="n">updateTektonDefinitions</span><span class="p">(</span><span class="n">pipelinesNamespace</span><span class="p">,</span> <span class="n">tektonYamlPath</span><span class="p">)</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="n">updateTektonDefinitions</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">pipelinesNamespace</span><span class="p">,</span> <span class="n">tektonYamlPath</span><span class="p">)</span>
 <a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>
 <a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a><span class="c1"># Launch upgrade pipeline</span>
 <a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Launching upgrade pipeline...&quot;</span><span class="p">)</span>
