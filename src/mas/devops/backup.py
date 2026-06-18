@@ -11,7 +11,7 @@ import logging
 import os
 import yaml
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError
+from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 
@@ -244,7 +244,7 @@ def backupResources(
 
         return (backed_up_count, not_found_count, failed_count, discovered_secrets)
 
-    except NotFoundError:
+    except (NotFoundError, ResourceNotFoundError):
         if name:
             logger.info(f"{kind} '{name}' not found in {scope_desc}")
             not_found_count = 1
