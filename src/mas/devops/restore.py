@@ -10,7 +10,7 @@
 import logging
 import yaml
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError
+from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError
 
 logger = logging.getLogger(name=__name__)
 
@@ -124,6 +124,9 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
             error_msg = f"Failed to {action} {kind} '{resource_name}': {e}"
             logger.error(error_msg)
             return (False, resource_name, error_msg)
+
+    except ResourceNotFoundError:
+        return (True, resource_data.get("kind"), "skipped")
 
     except Exception as e:
         error_msg = f"Error restoring resource: {e}"
