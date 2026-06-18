@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -9,14 +9,14 @@
 # *****************************************************************************
 
 import logging
+import os
+import tempfile
 from time import sleep
 
-from kubeconfig import KubeConfig
-from kubeconfig.exceptions import KubectlNotFoundError
+from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
 from openshift.dynamic import DynamicClient
 from openshift.dynamic.exceptions import NotFoundError
-
-from kubernetes import client
 from kubernetes.stream import stream
 from kubernetes.stream.ws_client import ERROR_CHANNEL
 from kubernetes.dynamic.resource import ResourceInstance
@@ -30,7 +30,7 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     """
     Connect to a target OpenShift Container Platform (OCP) cluster.
 
-    Configures kubectl/oc context with the provided server URL and authentication token.
+    Configures Kubernetes client with the provided server URL and authentication token.
 
     Parameters:
         server (str): The OpenShift cluster API server URL (e.g., "https://api.cluster.example.com:6443")
@@ -38,30 +38,68 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
         skipVerify (bool, optional): Whether to skip TLS certificate verification. Defaults to False.
 
     Returns:
-        bool: True if connection was successful, False if kubectl is not found on the path
+        bool: True if connection was successful, False if configuration fails
 
     Raises:
-        KubectlNotFoundError: If kubectl/oc is not available in the system PATH
+        ConfigException: If the Kubernetes configuration cannot be loaded
     """
     logger.info(f"Connect(server={server}, token=***)")
 
     try:
-        conf = KubeConfig()
-    except KubectlNotFoundError:
-        logger.warning("Unable to locate kubectl on the path")
+        # Create kubeconfig structure
+        kubeconfigDict = {
+            "apiVersion": "v1",
+            "kind": "Config",
+            "clusters": [
+                {
+                    "name": "my-cluster",
+                    "cluster": {
+                        "server": server,
+                        "insecure-skip-tls-verify": skipVerify,
+                    },
+                }
+            ],
+            "users": [
+                {
+                    "name": "my-credentials",
+                    "user": {"token": token},
+                }
+            ],
+            "contexts": [
+                {
+                    "name": "my-context",
+                    "context": {
+                        "cluster": "my-cluster",
+                        "user": "my-credentials",
+                    },
+                }
+            ],
+            "current-context": "my-context",
+        }
+
+        # Write to temporary file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".kubeconfig", delete=False) as tmpFile:
+            tmpKubeconfigPath = tmpFile.name
+            yaml.dump(kubeconfigDict, tmpFile)
+
+        logger.debug(f"Created temporary kubeconfig at {tmpKubeconfigPath}")
+
+        # Load the configuration
+        config.load_kube_config(config_file=tmpKubeconfigPath)
+        logger.info("KubeConfig context changed to my-context")
+
+        # Clean up temporary file
+        os.unlink(tmpKubeconfigPath)
+        logger.debug(f"Removed temporary kubeconfig {tmpKubeconfigPath}")
+
+        return True
+
+    except ConfigException as e:
+        logger.warning(f"Unable to configure Kubernetes client: {e}")
         return False
-
-    conf.view()
-    logger.debug(f"Starting KubeConfig context: {conf.current_context()}")
-
-    conf.set_credentials(name="my-credentials", token=token)
-    conf.set_cluster(name="my-cluster", server=server, insecure_skip_tls_verify=skipVerify)
-    conf.set_context(name="my-context", cluster="my-cluster", user="my-credentials")
-
-    conf.use_context("my-context")
-    conf.view()
-    logger.info(f"KubeConfig context changed to {conf.current_context()}")
-    return True
+    except Exception as e:
+        logger.error(f"Unexpected error during connection: {e}")
+        return False
 
 
 def getClusterVersion(dynClient: DynamicClient) -> str:

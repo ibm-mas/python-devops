@@ -90,7 +90,6 @@ This project uses several third-party libraries, each with their own licenses:
 - **pyyaml** - MIT License
 - **openshift** - Apache Software License
 - **kubernetes** - Apache Software License
-- **kubeconfig** - BSD License
 - **jinja2** - BSD License
 - **jinja2-base64-filters** - MIT License
 - **semver** - BSD License

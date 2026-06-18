@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -378,7 +378,7 @@ def updateTektonDefinitions(dynClient: DynamicClient, namespace: str, yamlFile: 
     Install or update MAS Tekton pipeline and task definitions from a YAML file.
 
     Parses a YAML file containing multiple Tekton resources (pipelines, tasks, etc.)
-    and applies each resource individually using the kubernetes python client.
+    and applies each resource individually using the Kubernetes Python client.
     Includes retry logic to handle intermittent network failures common in OCP clusters.
 
     This is an all-or-nothing operation - if any resource fails to apply after retries,
@@ -394,6 +394,7 @@ def updateTektonDefinitions(dynClient: DynamicClient, namespace: str, yamlFile: 
 
     Raises:
         FileNotFoundError: If the YAML file does not exist
+        yaml.YAMLError: If the YAML file cannot be parsed
         ApiException: If resource application fails after all retries or if API resource cannot be retrieved
     """
     if not path.isfile(yamlFile):
@@ -401,8 +402,12 @@ def updateTektonDefinitions(dynClient: DynamicClient, namespace: str, yamlFile: 
         raise FileNotFoundError(f"Tekton definitions file not found: {yamlFile}")
 
     # Load all resources from the YAML file
-    with open(yamlFile, "r") as file:
-        resources = list(yaml.safe_load_all(file))
+    try:
+        with open(yamlFile, "r") as file:
+            resources = list(yaml.safe_load_all(file))
+    except yaml.YAMLError as e:
+        logger.error(f"Failed to parse YAML file {yamlFile}: {e}")
+        raise
 
     logger.info(f"Applying {len(resources)} Tekton resources from {yamlFile} to namespace {namespace}")
 
@@ -424,6 +429,11 @@ def updateTektonDefinitions(dynClient: DynamicClient, namespace: str, yamlFile: 
         name = metadata.get("name", "<unnamed>")
 
         logger.debug(f"Processing resource {resourceIndex}/{len(resources)}: {kind}/{name}")
+
+        # Ensure namespace is set in metadata
+        if "namespace" not in metadata:
+            metadata["namespace"] = namespace
+            resourceBody["metadata"] = metadata
 
         # Get or create cached API object
         apiKey = (apiVersion, kind)
