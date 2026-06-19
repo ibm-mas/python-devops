@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:6a1df8137da9fdb37811f6cc28c68677160ea09317cb392e838cb2c9d5836051
+catalog_digest: sha256:6d418b202251ba3d3eab62910009283664e8ab5d3a465ed3cccb5379bdc52ed6
 
 ocp_compatibility:
 - "4.16"
@@ -102,8 +102,8 @@ mas_optimizer_version:
   9.2.x-feature: 9.2.0                  # Updated
   9.1.x: 9.1.13                         # Updated
   9.0.x: 9.0.24                         # Updated
-  8.10.x: 8.4.29                        # Updated
-  8.11.x: 8.5.29                        # Updated
+  8.10.x: 8.4.28                        # Updated
+  8.11.x: 8.5.28                        # Updated
 mas_predict_version:
   9.2.x: 9.2.0                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
