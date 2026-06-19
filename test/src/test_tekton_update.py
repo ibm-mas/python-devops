@@ -11,7 +11,7 @@
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
 import yaml
-from openshift.dynamic.exceptions import ApiException
+from kubernetes.dynamic.exceptions import ApiException
 
 from mas.devops.tekton import updateTektonDefinitions
 

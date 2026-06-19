@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024, 2025 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2025, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -53,7 +53,6 @@ setup(
     long_description_content_type="text/markdown",
     install_requires=[
         "pyyaml",  # MIT License
-        "openshift",  # Apache Software License
         "kubernetes<36",  # Apache Software License
         "jinja2",  # BSD License
         "jinja2-base64-filters",  # MIT License

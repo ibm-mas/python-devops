@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -13,9 +13,11 @@ import yaml
 
 from os import path, listdir
 
-from kubernetes import client as k8s_client
-from openshift.dynamic import DynamicClient
 from jinja2 import Environment
+from kubernetes import client as k8s_client
+from kubernetes.dynamic import DynamicClient
+
+from .ocp import applyResource
 
 logger = logging.getLogger(__name__)
 
@@ -282,17 +284,19 @@ def applyPreInstallMASRBAC(
         logger.info("No pre-install MAS RBAC manifests selected for apply")
         return
 
-    namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
     requiredNamespaces = _get_preinstall_mas_rbac_namespaces(masInstanceId=masInstanceId, adminMode=adminMode, selectedApps=validatedApps)
 
     for namespace in sorted(requiredNamespaces):
         logger.info(f"Ensuring namespace exists for pre-install MAS RBAC: {namespace}")
-        namespaceAPI.apply(
+        applyResource(
+            dynClient=dynClient,
+            apiVersion="v1",
+            kind="Namespace",
             body={
                 "apiVersion": "v1",
                 "kind": "Namespace",
                 "metadata": {"name": namespace},
-            }
+            },
         )
 
     env = Environment()
@@ -319,11 +323,13 @@ def applyPreInstallMASRBAC(
 
             logger.debug(f"Applying {kind} {resourceName} " f"(apiVersion={apiVersion}, namespace={resourceNamespace})")
 
-            resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
-            if resourceNamespace:
-                resourceAPI.apply(body=resourceBody, namespace=resourceNamespace)
-            else:
-                resourceAPI.apply(body=resourceBody)
+            applyResource(
+                dynClient=dynClient,
+                apiVersion=apiVersion,
+                kind=kind,
+                body=resourceBody,
+                namespace=resourceNamespace,
+            )
 
             appliedResourceCount += 1
 

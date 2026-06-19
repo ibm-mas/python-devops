@@ -11,8 +11,8 @@
 import logging
 import json
 from time import sleep
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import (
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import (
     NotFoundError,
     ResourceNotFoundError,
     UnauthorizedError,
