@@ -68,11 +68,7 @@ class JobCleaner:
         _continue = None
         while True:
 
-            jobs_page = self.batch_v1_api.list_job_for_all_namespaces(
-                label_selector=label,
-                limit=limit,
-                _continue=_continue
-            )
+            jobs_page = self.batch_v1_api.list_job_for_all_namespaces(label_selector=label, limit=limit, _continue=_continue)
             _continue = jobs_page.metadata._continue
 
             for job in jobs_page.items:
@@ -108,7 +104,7 @@ class JobCleaner:
                 namespace,
                 label_selector=f"{label}={group_id}",
                 limit=limit,
-                _continue=_continue
+                _continue=_continue,
             )
             job_items_iters.append(jobs_page.items)
             _continue = jobs_page.metadata._continue
@@ -161,7 +157,7 @@ class JobCleaner:
         # we can deal with each one separately; we only have to load the job resources for that particular group into memory at once
         # (we have to load into memory in order to guarantee the jobs are sorted by creation_date)
         i = 0
-        for (namespace, group_id) in cleanup_groups:
+        for namespace, group_id in cleanup_groups:
 
             self.logger.info("")
             self.logger.info(f"{i}) {group_id} {namespace}")
@@ -172,7 +168,7 @@ class JobCleaner:
             jobs_sorted = sorted(
                 jobs,
                 key=lambda group_job: group_job.metadata.creation_timestamp,
-                reverse=True
+                reverse=True,
             )
 
             if len(jobs_sorted) == 0:
@@ -188,7 +184,12 @@ class JobCleaner:
                         first = False
                     else:
                         try:
-                            self.batch_v1_api.delete_namespaced_job(name, namespace, dry_run=dry_run_param, propagation_policy="Foreground")
+                            self.batch_v1_api.delete_namespaced_job(
+                                name,
+                                namespace,
+                                dry_run=dry_run_param,
+                                propagation_policy="Foreground",
+                            )
                             result = "SUCCESS"
                         except client.rest.ApiException as e:
                             result = f"FAILED: {e}"

@@ -17,6 +17,7 @@ import argparse
 import logging
 
 import urllib3
+
 urllib3.disable_warnings()
 
 
@@ -27,14 +28,19 @@ if __name__ == "__main__":
     # Primary Options
     parser.add_argument("--mas-instance-id", required=True)
     parser.add_argument("--mas-app-id", required=True)
-    parser.add_argument("--database-role", default='primary', required=False)
-    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
+    parser.add_argument("--database-role", default="primary", required=False)
+    parser.add_argument(
+        "--log-level",
+        required=False,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="WARNING",
+    )
 
     args, unknown = parser.parse_known_args()
 
     log_level = getattr(logging, args.log_level)
     logging.basicConfig()
-    logging.getLogger('mas.devops.db2').setLevel(level=log_level)
+    logging.getLogger("mas.devops.db2").setLevel(level=log_level)
 
     try:
         # Try to load in-cluster configuration
@@ -49,5 +55,5 @@ if __name__ == "__main__":
         client.api_client.ApiClient(),
         args.mas_instance_id,
         args.mas_app_id,
-        args.database_role
+        args.database_role,
     )

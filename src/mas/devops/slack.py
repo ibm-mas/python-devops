@@ -108,7 +108,13 @@ class SlackUtilMeta(type):
 
         return responses if len(responses) > 1 else responses[0]
 
-    def postMessageText(cls, channelList: str | list[str], message: str, attachments=None, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+    def postMessageText(
+        cls,
+        channelList: str | list[str],
+        message: str,
+        attachments=None,
+        threadId: str = None,
+    ) -> SlackResponse | list[SlackResponse]:
         """
         Post a plain text message to one or more Slack channels.
 
@@ -166,7 +172,11 @@ class SlackUtilMeta(type):
         return responses if len(responses) > 1 else responses[0]
 
     def createMessagePermalink(
-        cls, slackResponse: SlackResponse = None, channelId: str = None, messageTimestamp: str = None, domain: str = "ibm-mas"
+        cls,
+        slackResponse: SlackResponse = None,
+        channelId: str = None,
+        messageTimestamp: str = None,
+        domain: str = "ibm-mas",
     ) -> str:
         """
         Create a permanent link to a Slack message.
@@ -234,7 +244,10 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit header element
         """
-        return {"type": "header", "text": {"type": "plain_text", "text": title, "emoji": True}}
+        return {
+            "type": "header",
+            "text": {"type": "plain_text", "text": title, "emoji": True},
+        }
 
     def buildSection(cls, text: str) -> dict:
         """
@@ -271,6 +284,7 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit divider element
         """
+
     def createThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> bool:
         """
         Create a ConfigMap to store Slack thread information for a pipeline run.
@@ -295,15 +309,12 @@ class SlackUtilMeta(type):
             instance_identifier = instanceId if instanceId else "update"
             configmap_name = f"slack-thread-{instance_identifier}-{pipelineRunName}"
             configmap = client.V1ConfigMap(
-                metadata=client.V1ObjectMeta(
-                    name=configmap_name,
-                    namespace=namespace
-                ),
+                metadata=client.V1ObjectMeta(name=configmap_name, namespace=namespace),
                 data={
                     "pipelineName": pipelineRunName,
                     "instanceId": instanceId,
-                    "startTime": datetime.now(timezone.utc)
-                }
+                    "startTime": datetime.now(timezone.utc),
+                },
             )
             v1.create_namespaced_config_map(namespace=namespace, body=configmap)
             logger.info(f"Created ConfigMap {configmap_name} in namespace {namespace}")

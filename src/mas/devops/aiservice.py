@@ -10,7 +10,11 @@
 
 import logging
 from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
+from openshift.dynamic.exceptions import (
+    NotFoundError,
+    ResourceNotFoundError,
+    UnauthorizedError,
+)
 
 from .ocp import listInstances
 from .olm import getSubscription
@@ -105,7 +109,10 @@ def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, ten
     """
     try:
         aiserviceTenantAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceTenant")
-        aiserviceTenantAPI.get(name=f"aiservice-{instanceId}-{tenantId}", namespace=f"aiservice-{instanceId}")
+        aiserviceTenantAPI.get(
+            name=f"aiservice-{instanceId}-{tenantId}",
+            namespace=f"aiservice-{instanceId}",
+        )
         return True
     except NotFoundError:
         print("NOT FOUND")
