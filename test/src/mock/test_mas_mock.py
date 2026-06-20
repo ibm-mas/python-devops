@@ -29,7 +29,7 @@ IMAGE = "testImage"
 
 
 @pytest.fixture(autouse=True)
-@mock.patch("openshift.dynamic.DynamicClient")
+@mock.patch("kubernetes.dynamic.DynamicClient")
 def dynamic_client(client):
     return client
 
