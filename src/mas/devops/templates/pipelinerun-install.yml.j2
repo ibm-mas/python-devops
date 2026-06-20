@@ -1004,7 +1004,7 @@ spec:
 
     # AI Service - Database Configuration
     # -------------------------------------------------------------------------
-{%- if install_db2 is defined and install_db2 != "" %}
+{%- if install_db2 is defined %}
     - name: install_db2
       value: "{{ install_db2 }}"
 {%- endif %}
