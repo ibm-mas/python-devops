@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -13,13 +13,13 @@ from time import sleep
 from os import path
 from typing import Optional
 
-from kubernetes.dynamic.exceptions import NotFoundError
-from openshift.dynamic import DynamicClient
 from jinja2 import Environment, FileSystemLoader
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import NotFoundError
 
 import yaml
 
-from .ocp import createNamespace
+from .ocp import applyResource, createNamespace
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,13 @@ def ensureOperatorGroupExists(
         template = env.get_template("operatorgroup.yml.j2")
         renderedTemplate = template.render(name="operatorgroup", namespace=namespace, installMode=installMode)
         operatorGroup = yaml.safe_load(renderedTemplate)
-        operatorGroupsAPI.apply(body=operatorGroup, namespace=namespace)
+        applyResource(
+            dynClient=dynClient,
+            apiVersion="operators.coreos.com/v1",
+            kind="OperatorGroup",
+            body=operatorGroup,
+            namespace=namespace,
+        )
     else:
         logger.debug(f"An OperatorGroup already exists in namespace {namespace}")
 
@@ -227,11 +233,23 @@ def applySubscription(
     # however if two parallel processes call it at the same time it can result
     # in a 409 error in that case trying again will resolve the issue
     try:
-        subscriptionsAPI.apply(body=subscription, namespace=namespace)
+        applyResource(
+            dynClient=dynClient,
+            apiVersion="operators.coreos.com/v1alpha1",
+            kind="Subscription",
+            body=subscription,
+            namespace=namespace,
+        )
     except Exception as e:
         if "409" in str(e) or "AlreadyExists" in str(e):
             logger.warning(f"Subscription {name} already exists and produced a conflict, retrying the apply")
-            subscriptionsAPI.apply(body=subscription, namespace=namespace)
+            applyResource(
+                dynClient=dynClient,
+                apiVersion="operators.coreos.com/v1alpha1",
+                kind="Subscription",
+                body=subscription,
+                namespace=namespace,
+            )
         else:
             raise
 
