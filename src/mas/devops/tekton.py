@@ -679,7 +679,9 @@ def prepareAiServicePipelinesNamespace(
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
-def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None, additionalConfigs: dict = None, ibm_entitlement_key: str = None):
+def prepareRestoreSecrets(
+    dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None, additionalConfigs: dict = None, ibm_entitlement_key: str = None
+):
     """
     Create or update secrets required for MAS Restore pipeline.
 
@@ -728,14 +730,7 @@ def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfi
         pass
 
     if additionalConfigs is None:
-        additionalConfigs = {
-            "apiVersion": "v1",
-            "kind": "Secret",
-            "type": "Opaque",
-            "metadata": {
-                "name": "pipeline-additional-configs"
-            }
-        }
+        additionalConfigs = {"apiVersion": "v1", "kind": "Secret", "type": "Opaque", "metadata": {"name": "pipeline-additional-configs"}}
 
     additionalConfigs.setdefault("apiVersion", "v1")
     additionalConfigs.setdefault("kind", "Secret")
