@@ -18,6 +18,9 @@ spec:
     - name: restore-configurations
       secret:
         secretName: pipeline-restore-configs
+    - name: shared-additional-configs
+      secret:
+        secretName: pipeline-additional-configs
   params:
     # Common Parameters
     - name: image_pull_policy
