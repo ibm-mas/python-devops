@@ -11,7 +11,7 @@
 import pytest
 from unittest import mock
 from unittest.mock import MagicMock
-from openshift.dynamic.exceptions import NotFoundError
+from kubernetes.dynamic.exceptions import NotFoundError
 from kubernetes.client.rest import ApiException
 
 from mas.devops import mas
@@ -29,7 +29,7 @@ IMAGE = "testImage"
 
 
 @pytest.fixture(autouse=True)
-@mock.patch("openshift.dynamic.DynamicClient")
+@mock.patch("kubernetes.dynamic.DynamicClient")
 def dynamic_client(client):
     return client
 

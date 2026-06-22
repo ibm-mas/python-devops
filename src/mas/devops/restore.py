@@ -9,8 +9,8 @@
 # *****************************************************************************
 import logging
 import yaml
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import NotFoundError, ResourceNotFoundError
 
 logger = logging.getLogger(name=__name__)
 
