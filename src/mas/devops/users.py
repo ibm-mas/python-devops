@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2025 IBM Corporation and other Contributors.
+# Copyright (c) 2025, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -11,7 +11,7 @@
 import requests
 import logging
 from kubernetes import client
-from openshift.dynamic import DynamicClient
+from kubernetes.dynamic import DynamicClient
 import base64
 import atexit
 import tempfile
