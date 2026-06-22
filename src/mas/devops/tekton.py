@@ -1184,23 +1184,23 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
 def launchDb2MigrationPipeline(dynClient: DynamicClient, params: dict) -> str:
     """
     Create a PipelineRun to migrate Db2uCluster to Db2uInstance.
-    
+
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
         params (dict): Migration parameters including:
             - db2_migration_namespace: Target namespace
             - db2_migration_cluster_name: Cluster to migrate
             - db2_migration_backup_enabled: Whether to backup
-            
+
     Returns:
         str: URL to the PipelineRun in the OpenShift console
-        
+
     Raises:
         NotFoundError: If resources cannot be created
     """
     namespace = "mas-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-db2-migration", params)
-    
+
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/db2-migration-{timestamp}"
     return pipelineURL
 
