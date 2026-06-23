@@ -25,15 +25,16 @@ jobs:
 
       # 2. Python Package Build
       # -------------------------------------------------------------------------------------------
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: 3.12
 
       - name: Build the Python package
         env:
           OCP_TOKEN: ${{ secrets.OCP_TOKEN }}
           OCP_SERVER: ${{ secrets.OCP_SERVER }}
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
         run: |
           kubectl config set-cluster my-cluster --server=$OCP_SERVER
           kubectl config set-credentials my-user --token=$OCP_TOKEN

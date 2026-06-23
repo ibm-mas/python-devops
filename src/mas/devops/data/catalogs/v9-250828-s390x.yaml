@@ -1,0 +1,58 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog 250828 (Z)
+# -----------------------------------------------------------------------------
+# In the future this won't be necessary as we'll be able to mirror from the
+# catalog itself, but not everything in the catalog supports this yet (including MAS)
+# so we need to use the CASE bundle mirror process still.
+
+catalog_digest: sha256:8d6f205e59ac55155db6cf348029d52c035236bd60c8d212dcf2634e0a716cb1
+
+ocp_compatibility:
+  - 4.14
+  - 4.15
+  - 4.16
+  - 4.17
+  - 4.18
+
+uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+sls_version: 3.12.2  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.0   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
+db2u_version: 7.2.0+20250522.212407.15144    # Operator version 110509.0.2 to find the version 7.2.0, search CASE_VERSION in db2u, catalog.yaml into ibm-maximo-operator-catalog (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.1.x-feature: 9.1.0                  # tbc
+  9.1.x: 9.1.2                          # Updated
+  9.0.x: 9.0.14                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+mas_manage_version:
+  9.1.x-feature: 9.1.0                  # tbc
+  9.1.x: 9.1.2                          # Updated
+  9.0.x: 9.0.16                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+
+# Extra Images for UDS
+# ------------------------------------------------------------------------------
+uds_extras_version: 1.5.0
+
+# Extra Images for Mongo
+# ------------------------------------------------------------------------------
+mongo_extras_version_default: 7.0.12
+
+# Variables used to mirror additional mongo image versions
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.12
+
+editorial:
+  whats_new:
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.0 and v9.1
+    - IBM Maximo Manage v9.0 and 9.1
+    - IBM Suite License Service v3.12
+  known_issues: []

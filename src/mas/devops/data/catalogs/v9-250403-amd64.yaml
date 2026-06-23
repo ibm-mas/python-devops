@@ -7,6 +7,11 @@
 
 catalog_digest: sha256:e225b03ff1054e2b1bcef0fcc883cc8f53c7b29f472ca7d3c08cb6a6084b2ab4
 
+ocp_compatibility:
+  - 4.14
+  - 4.15
+  - 4.16
+
 # Dependencies
 # -----------------------------------------------------------------------------
 ibm_licensing_version: 4.2.12                 # Operator version 4.2.11 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
@@ -77,7 +82,7 @@ mas_visualinspection_version:
   9.0.x: 9.0.8    # updated
   8.10.x: 8.8.4   # No Update
   8.11.x: 8.9.11  # updated
- 
+
 # Extra Images for UDS
 # ------------------------------------------------------------------------------
 uds_extras_version: 1.5.0
@@ -108,3 +113,20 @@ amlen_extras_version: 1.1.2
 # Default Cloud Pak for Data version
 # ------------------------------------------------------------------------------
 cpd_product_version_default: 5.0.0
+
+editorial:
+  whats_new:
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v8.10, v8.11, v9.0
+    - IBM Maximo IoT v8.7, v8.8 and v9.0
+    - IBM Maximo Manage v8.7, v8.6, v9.0
+    - IBM Maximo Monitor v8.11, v8.10 and v9.0
+    - IBM Maximo Optimizer v8.5, v8.4, v9.0
+    - IBM Maximo Predict v9.0, v8.9, v8.8
+    - IBM Maximo Visual Inspection v8.9, v9.0
+    - IBM Data Dictionary v1.1
+  known_issues:
+  - title: Customers using Maximo Assist v8.7 or v8.8 should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
+  - title: If your Maximo usage is significantly reliant on Maximo Mobile / Maximo's Role Based Applications, it is advised to bypass this Patch 9.0.11 release and await the subsequent patch release for 9.0.12 . Due to the recently encountered issue, this particular patch may not function as intended for Maximo Mobile/Role Based Applications' work order Change Status feature if you have industry solutions layered on top of the core Manage. However, if you still need to apply this patch, we can offer a Limited Availability Fix (LA Fix) in the event you encounter this issue. Please note that you will need to submit a LA Fix request for this
+  - title: You can click the link below for further details. <a href="https://www.ibm.com/support/pages/bmxaa9238e-when-changing-status-wo-after-applying-managemobile-9011"> www.ibm.com/support/pages/bmxaa9238e-when-changing-status-wo-after-applying-managemobile-9011 </a>

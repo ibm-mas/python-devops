@@ -14,6 +14,14 @@ spec:
     pipeline: "0"
 
   params:
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+
     # Catalog version
     # -------------------------------------------------------------------------
     - name: mas_catalog_version
@@ -44,6 +52,16 @@ spec:
     # -------------------------------------------------------------------------
     - name: db2_namespace
       value: "{{ db2_namespace }}"
+{%- if db2_v12_upgrade is defined and db2_v12_upgrade != "" %}
+    - name: db2_v12_upgrade
+      value: "{{ db2_v12_upgrade }}"
+{%- endif %}
+{%- if db2_license_file is defined and db2_license_file != "" %}
+    - name: db2_license_file
+      value: "{{ db2_license_file }}"
+{%- endif %}
+    - name: db2_channel
+      value: "{{ db2_channel }}"
 {%- endif %}
 {%- if mongodb_namespace is defined and mongodb_namespace != "" %}
 
@@ -69,6 +87,10 @@ spec:
     - name: mongodb_v7_upgrade
       value: "{{ mongodb_v7_upgrade }}"
 {%- endif %}
+{%- if mongodb_v8_upgrade is defined and mongodb_v8_upgrade != "" %}
+    - name: mongodb_v8_upgrade
+      value: "{{ mongodb_v8_upgrade }}"
+{%- endif %}
 {%- endif %}
 {%- if kafka_namespace is defined and kafka_namespace != "" %}
 
@@ -87,19 +109,6 @@ spec:
       value: "{{ cert_manager_provider }}"
     - name: cert_manager_action
       value: "{{ cert_manager_action }}"
-{%- endif %}
-{%- if dro_migration is defined and dro_migration != "" %}
-
-    # UDS to DRO migration
-    # -------------------------------------------------------------------------
-    - name: dro_migration
-      value: "{{ dro_migration }}"
-    - name: uds_storage_class
-      value: "{{ dro_storage_class }}"
-    - name: uds_action
-      value: "{{ uds_action }}"
-    - name: dro_namespace
-      value: "{{ dro_namespace }}"
 {%- endif %}
 {%- if grafana_v5_upgrade is defined and grafana_v5_upgrade != "" %}
 
@@ -123,12 +132,8 @@ spec:
       value: "{{ cp4d_update_ws }}"
     - name: cp4d_update_wml
       value: "{{ cp4d_update_wml }}"
-    - name: cp4d_update_wos
-      value: "{{ cp4d_update_wos }}"
     - name: cp4d_update_spark
       value: "{{ cp4d_update_spark }}"
-    - name: cp4d_update_spss
-      value: "{{ cp4d_update_spss }}"
     - name: cp4d_update_cognos
       value: "{{ cp4d_update_cognos }}"
 
@@ -148,3 +153,23 @@ spec:
     - name: skip_entitlement_key_flag
       value: "{{ skip_entitlement_key_flag }}"
 {%- endif %}
+{%- if odh_to_rhoai_migration is defined and odh_to_rhoai_migration != "" %}
+
+    # AI Service Migration (ODH to RHOAI)
+    # -------------------------------------------------------------------------
+    - name: odh_to_rhoai_migration
+      value: "{{ odh_to_rhoai_migration }}"
+{%- endif %}
+
+{%- if aiservice_instance_ids is defined and aiservice_instance_ids != "" %}
+    - name: aiservice_instance_ids
+      value: "{{ aiservice_instance_ids }}"
+{%- endif %}
+  workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+
+    # The Db2 license file
+    - name: shared-db2
+      secret:
+        secretName: pipeline-db2-license

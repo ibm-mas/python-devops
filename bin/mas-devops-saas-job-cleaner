@@ -18,6 +18,7 @@ import argparse
 from mas.devops.saas.job_cleaner import JobCleaner
 
 import urllib3
+
 urllib3.disable_warnings()
 
 
@@ -26,10 +27,29 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Primary Options
-    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="WARNING")
-    parser.add_argument("--label", required=True, help="Kubernetes resource label used to identify Job groups to cleanup")
-    parser.add_argument("--limit", required=False, help="Limit page sizes fetched from K8S API. Larger values will use more memory but less cpu time / network IO.", default=100)
-    parser.add_argument("--dry-run", required=False, help="When specified, nothing will actually be deleted from the cluster", action="store_true")
+    parser.add_argument(
+        "--log-level",
+        required=False,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="WARNING",
+    )
+    parser.add_argument(
+        "--label",
+        required=True,
+        help="Kubernetes resource label used to identify Job groups to cleanup",
+    )
+    parser.add_argument(
+        "--limit",
+        required=False,
+        help="Limit page sizes fetched from K8S API. Larger values will use more memory but less cpu time / network IO.",
+        default=100,
+    )
+    parser.add_argument(
+        "--dry-run",
+        required=False,
+        help="When specified, nothing will actually be deleted from the cluster",
+        action="store_true",
+    )
 
     args, unknown = parser.parse_known_args()
 
@@ -45,7 +65,6 @@ if __name__ == "__main__":
     )
     ch.setFormatter(chFormatter)
     logger.addHandler(ch)
-
 
     limit = args.limit
     label = args.label

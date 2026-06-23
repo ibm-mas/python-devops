@@ -6,10 +6,6 @@ __pycache__/
 # Distribution / packaging
 dist
 *.egg-info
-pandoc-*-amd64.deb
-pandoc-*-windows-x86_64.msi
-pandoc-*-x86_64-macOS.pkg
-README.rst
 
 # Environments
 .venv/
@@ -19,3 +15,7 @@ venv/
 # Other
 kubectl.exe
 /build
+/.vscode
+/site
+/.bob/.bob-errors
+/.bob/notes

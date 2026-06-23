@@ -10,21 +10,19 @@
 #
 # *****************************************************************************
 
+from mas.devops.users import MASUserUtils
+from botocore.exceptions import ClientError
+import boto3
+import sys
+import json
+import yaml
 from kubernetes import client, config
 from kubernetes.config.config_exception import ConfigException
 import argparse
 import logging
 import urllib3
+
 urllib3.disable_warnings()
-import yaml
-import json
-import sys
-
-import boto3
-from botocore.exceptions import ClientError
-
-from mas.devops.users import MASUserUtils
-
 
 
 if __name__ == "__main__":
@@ -33,11 +31,16 @@ if __name__ == "__main__":
     # Primary Options
     parser.add_argument("--mas-instance-id", required=True)
     parser.add_argument("--mas-workspace-id", required=True)
-    parser.add_argument("--log-level", required=False, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
+    parser.add_argument(
+        "--log-level",
+        required=False,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+    )
     parser.add_argument("--coreapi-port", required=False, default=443)
     parser.add_argument("--admin-dashboard-port", required=False, default=443)
     parser.add_argument("--manage-api-port", required=False, default=443)
-
+    parser.add_argument("--mas-version", required=False, default="9.0")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--initial-users-yaml-file")
@@ -60,17 +63,18 @@ if __name__ == "__main__":
 
     mas_instance_id = args.mas_instance_id
     mas_workspace_id = args.mas_workspace_id
+    mas_version = args.mas_version
     initial_users_yaml_file = args.initial_users_yaml_file
     initial_users_secret_name = args.initial_users_secret_name
     coreapi_port = args.coreapi_port
     admin_dashboard_port = args.admin_dashboard_port
     manage_api_port = args.manage_api_port
 
-
     logger.info("Configuration:")
     logger.info("--------------")
     logger.info(f"mas_instance_id:           {mas_instance_id}")
     logger.info(f"mas_workspace_id:          {mas_workspace_id}")
+    logger.info(f"mas_version:               {mas_version}")
     logger.info(f"initial_users_yaml_file:   {initial_users_yaml_file}")
     logger.info(f"initial_users_secret_name: {initial_users_secret_name}")
     logger.info(f"log_level:                 {log_level}")
@@ -88,37 +92,51 @@ if __name__ == "__main__":
         config.load_kube_config()
         logger.debug("Loaded kubeconfig file")
 
-
-    user_utils = MASUserUtils(mas_instance_id, mas_workspace_id, client.api_client.ApiClient(), coreapi_port=coreapi_port, admin_dashboard_port=admin_dashboard_port, manage_api_port=manage_api_port)
+    user_utils = MASUserUtils(
+        mas_instance_id,
+        mas_workspace_id,
+        client.api_client.ApiClient(),
+        mas_version,
+        coreapi_port=coreapi_port,
+        admin_dashboard_port=admin_dashboard_port,
+        manage_api_port=manage_api_port,
+    )
 
     if initial_users_secret_name is not None:
 
-        logger.info(f"Loading initial_users configuration from secret {initial_users_secret_name}")
+        logger.info(
+            f"Loading initial_users configuration from secret {initial_users_secret_name}"
+        )
 
         session = boto3.session.Session()
         aws_sm_client = session.client(
-            service_name='secretsmanager',
+            service_name="secretsmanager",
         )
         try:
-            initial_users_secret = aws_sm_client.get_secret_value( # pragma: allowlist secret
-                SecretId=initial_users_secret_name
+            initial_users_secret = (
+                aws_sm_client.get_secret_value(  # pragma: allowlist secret
+                    SecretId=initial_users_secret_name
+                )
             )
         except ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                logger.info(f"Secret {initial_users_secret_name} was not found, nothing to do, exiting now.")
+            if e.response["Error"]["Code"] == "ResourceNotFoundException":
+                logger.info(
+                    f"Secret {initial_users_secret_name} was not found, nothing to do, exiting now."
+                )
                 sys.exit(0)
 
-            raise Exception(f"Failed to fetch secret {initial_users_secret_name}: {str(e)}")
-        
-        secret_json = json.loads(initial_users_secret['SecretString'])
+            raise Exception(
+                f"Failed to fetch secret {initial_users_secret_name}: {str(e)}"
+            )
+
+        secret_json = json.loads(initial_users_secret["SecretString"])
         initial_users = user_utils.parse_initial_users_from_aws_secret_json(secret_json)
     elif initial_users_yaml_file is not None:
-        with open(initial_users_yaml_file, 'r') as file:
+        with open(initial_users_yaml_file, "r") as file:
             initial_users = yaml.safe_load(file)
     else:
         raise Exception("Something unexpected happened")
-    
-    
+
     result = user_utils.create_initial_users_for_saas(initial_users)
 
     # if user details were sourced from an AWS SM secret, remove the completed entries from the secret
@@ -126,21 +144,24 @@ if __name__ == "__main__":
     if initial_users_secret_name is not None:
         has_updates = False
         for completed_user in result["completed"]:
-            logger.info(f"Removing synced user {completed_user['email']} from {initial_users_secret_name} secret")
+            logger.info(
+                f"Removing synced user {completed_user['email']} from {initial_users_secret_name} secret"
+            )
             secret_json.pop(completed_user["email"])
             has_updates = True
 
         if has_updates:
             logger.info(f"Updating secret {initial_users_secret_name}")
             try:
-                aws_sm_client.update_secret( # pragma: allowlist secret
+                aws_sm_client.update_secret(  # pragma: allowlist secret
                     SecretId=initial_users_secret_name,
-                    SecretString=json.dumps(secret_json)
+                    SecretString=json.dumps(secret_json),
                 )
             except ClientError as e:
-                raise Exception(f"Failed to update secret {initial_users_secret_name}: {str(e)}")
-            
+                raise Exception(
+                    f"Failed to update secret {initial_users_secret_name}: {str(e)}"
+                )
 
     if len(result["failed"]) > 0:
-        failed_user_ids = list(map(lambda u : u["email"], result["failed"]))
+        failed_user_ids = list(map(lambda u: u["email"], result["failed"]))
         raise Exception(f"Sync failed for the following user IDs {failed_user_ids}")

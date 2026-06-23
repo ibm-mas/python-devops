@@ -7,10 +7,16 @@
 
 catalog_digest: sha256:5748e21db7f688c8d80c5ab14e394e5575997cfc2e544d77b2173159dc237aba
 
+ocp_compatibility:
+  - 4.14
+  - 4.15
+  - 4.16
+  - 4.17
+  - 4.18
+
 uds_version: 2.0.12  # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.0  # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.0   # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -40,3 +46,19 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
+
+editorial:
+  whats_new:
+  - title: '**New feature release**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.1
+    - IBM Maximo Manage v9.1
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.0
+    - IBM Maximo Manage v9.0
+    - IBM Suite License Service v3
+    - IBM Truststore Manager v1.7
+  - title: '**Openshift 4.18 support** Openshift Container Platform 4.18 support has been added. Refer OCP 4.18 release notes [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/release_notes/index)'
+    details: []
+  known_issues: []

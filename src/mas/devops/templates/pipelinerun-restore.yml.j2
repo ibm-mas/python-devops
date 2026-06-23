@@ -1,0 +1,288 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: "{{ mas_instance_id }}-restore-{{ restore_version }}-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: mas-restore
+spec:
+  pipelineRef:
+    name: mas-restore
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
+  workspaces:
+    - name: shared-backups
+      persistentVolumeClaim:
+        claimName: backup-pvc
+    - name: restore-configurations
+      secret:
+        secretName: pipeline-restore-configs
+  params:
+    # Common Parameters
+    - name: image_pull_policy
+      value: IfNotPresent
+    - name: mas_instance_id
+      value: "{{ mas_instance_id }}"
+
+    {% if skip_pre_check is defined and skip_pre_check != "" %}
+    # Pipeline config
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+    {% endif %}
+
+    # Restore Configuration
+    - name: restore_version
+      value: "{{ restore_version }}"
+    {% if clean_backup is defined and clean_backup != "" %}
+    - name: clean_backup
+      value: "{{ clean_backup }}"
+    {% endif %}
+
+    # Component Flags
+    {% if include_mongo is defined and include_mongo != "" %}
+    - name: include_mongo
+      value: "{{ include_mongo }}"
+    {% endif %}
+    {% if include_sls is defined and include_sls != "" %}
+    - name: include_sls
+      value: "{{ include_sls }}"
+    {% endif %}
+    {% if include_dro is defined and include_dro != "" %}
+    - name: include_dro
+      value: "{{ include_dro }}"
+    {% endif %}
+    {% if include_grafana is defined and include_grafana != "" %}
+    - name: include_grafana
+      value: "{{ include_grafana }}"
+    {% endif %}
+
+    # MongoDB Configuration
+    {% if mongodb_namespace is defined and mongodb_namespace != "" %}
+    - name: mongodb_namespace
+      value: "{{ mongodb_namespace }}"
+    {% endif %}
+    {% if mongodb_instance_name is defined and mongodb_instance_name != "" %}
+    - name: mongodb_instance_name
+      value: "{{ mongodb_instance_name }}"
+    {% endif %}
+    {% if mongodb_provider is defined and mongodb_provider != "" %}
+    - name: mongodb_provider
+      value: "{{ mongodb_provider }}"
+    {% endif %}
+    {% if override_mongodb_storageclass is defined and override_mongodb_storageclass != "" %}
+    - name: override_mongodb_storageclass
+      value: "{{ override_mongodb_storageclass }}"
+    {% endif %}
+
+    # SLS Configuration
+    {% if sls_namespace is defined and sls_namespace != "" %}
+    - name: sls_namespace
+      value: "{{ sls_namespace }}"
+    {% endif %}
+    {% if sls_domain is defined and sls_domain != "" %}
+    - name: sls_domain
+      value: "{{ sls_domain }}"
+    {% endif %}
+
+    # DRO Configuration
+    {% if dro_contact_email is defined and dro_contact_email != "" %}
+    - name: dro_contact_email
+      value: "{{ dro_contact_email }}"
+    {% endif %}
+    {% if dro_contact_firstname is defined and dro_contact_firstname != "" %}
+    - name: dro_contact_firstname
+      value: "{{ dro_contact_firstname }}"
+    {% endif %}
+    {% if dro_contact_lastname is defined and dro_contact_lastname != "" %}
+    - name: dro_contact_lastname
+      value: "{{ dro_contact_lastname }}"
+    {% endif %}
+    {% if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+    {% endif %}
+    {% if dro_namespace is defined and dro_namespace != "" %}
+    - name: dro_namespace
+      value: "{{ dro_namespace }}"
+    {% endif %}
+    {% if dro_storage_class is defined and dro_storage_class != "" %}
+    - name: dro_storage_class
+      value: "{{ dro_storage_class }}"
+    {% endif %}
+
+    # Suite Restore Configuration
+    {% if include_slscfg_from_backup is defined and include_slscfg_from_backup != "" %}
+    - name: include_slscfg_from_backup
+      value: "{{ include_slscfg_from_backup }}"
+    {% endif %}
+    {% if sls_url_on_restore is defined and sls_url_on_restore != "" %}
+    - name: sls_url_on_restore
+      value: "{{ sls_url_on_restore }}"
+    {% endif %}
+    {% if sls_cfg_file is defined and sls_cfg_file != "" %}
+    - name: sls_cfg_file
+      value: "{{ sls_cfg_file }}"
+    {% endif %}
+    {% if include_drocfg_from_backup is defined and include_drocfg_from_backup != "" %}
+    - name: include_drocfg_from_backup
+      value: "{{ include_drocfg_from_backup }}"
+    {% endif %}
+    {% if dro_url_on_restore is defined and dro_url_on_restore != "" %}
+    - name: dro_url_on_restore
+      value: "{{ dro_url_on_restore }}"
+    {% endif %}
+    {% if dro_cfg_file is defined and dro_cfg_file != "" %}
+    - name: dro_cfg_file
+      value: "{{ dro_cfg_file }}"
+    {% endif %}
+    {% if mas_domain_on_restore is defined and mas_domain_on_restore != "" %}
+    - name: mas_domain_on_restore
+      value: "{{ mas_domain_on_restore }}"
+    {% endif %}
+
+    # Certificate Manager Configuration
+    {% if cert_manager_provider is defined and cert_manager_provider != "" %}
+    - name: cert_manager_provider
+      value: "{{ cert_manager_provider }}"
+    {% endif %}
+
+    # Development Build Support
+    {% if artifactory_username is defined and artifactory_username != "" %}
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    {% endif %}
+    {% if artifactory_token is defined and artifactory_token != "" %}
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+    {% endif %}
+
+    # Download Configuration
+    {% if backup_archive_name is defined and backup_archive_name != "" %}
+    - name: backup_archive_name
+      value: "{{ backup_archive_name }}"
+    {% endif %}
+    {% if download_backup is defined and download_backup != "" %}
+    - name: download_backup
+      value: "{{ download_backup }}"
+    {% endif %}
+    {% if aws_access_key_id is defined and aws_access_key_id != "" %}
+    - name: aws_access_key_id
+      value: "{{ aws_access_key_id }}"
+    {% endif %}
+    {% if aws_secret_access_key is defined and aws_secret_access_key != "" %}
+    - name: aws_secret_access_key
+      value: "{{ aws_secret_access_key }}"
+    {% endif %}
+    {% if s3_bucket_name is defined and s3_bucket_name != "" %}
+    - name: s3_bucket_name
+      value: "{{ s3_bucket_name }}"
+    {% endif %}
+    {% if s3_region is defined and s3_region != "" %}
+    - name: s3_region
+      value: "{{ s3_region }}"
+    {% endif %}
+    {% if s3_endpoint_url is defined and s3_endpoint_url != "" %}
+    - name: s3_endpoint_url
+      value: "{{ s3_endpoint_url }}"
+    {% endif %}
+    {% if artifactory_url is defined and artifactory_url != "" %}
+    - name: artifactory_url
+      value: "{{ artifactory_url }}"
+    {% endif %}
+    {% if artifactory_repository is defined and artifactory_repository != "" %}
+    - name: artifactory_repository
+      value: "{{ artifactory_repository }}"
+    {% endif %}
+
+    # Manage Application Restore Configuration
+    {% if restore_manage_app is defined and restore_manage_app != "" %}
+    - name: restore_manage_app
+      value: "{{ restore_manage_app }}"
+    {% endif %}
+    {% if restore_manage_db is defined and restore_manage_db != "" %}
+    - name: restore_manage_db
+      value: "{{ restore_manage_db }}"
+    {% endif %}
+    {% if restore_manage_include_pvc is defined and restore_manage_include_pvc != "" %}
+    - name: restore_manage_include_pvc
+      value: "{{ restore_manage_include_pvc }}"
+    {% endif %}
+    # Manage App Storage class
+    {% if manage_app_override_storageclass is defined and manage_app_override_storageclass != "" %}
+    - name: manage_app_override_storageclass
+      value: "{{ manage_app_override_storageclass }}"
+    {% endif %}
+    {% if manage_app_storage_class_rwx is defined and manage_app_storage_class_rwx != "" %}
+    - name: manage_app_storage_class_rwx
+      value: "{{ manage_app_storage_class_rwx }}"
+    {% endif %}
+    {% if manage_app_storage_class_rwo is defined and manage_app_storage_class_rwo != "" %}
+    - name: manage_app_storage_class_rwo
+      value: "{{ manage_app_storage_class_rwo }}"
+    {% endif %}
+
+    # Manage Db2 Restore Configuration
+    {% if manage_db2_restore_vendor is defined and manage_db2_restore_vendor != "" %}
+    - name: manage_db2_restore_vendor
+      value: "{{ manage_db2_restore_vendor }}"
+    {% endif %}
+
+    {% if manage_db_override_storageclass is defined and manage_db_override_storageclass != "" %}
+    - name: manage_db_override_storageclass
+      value: "{{ manage_db_override_storageclass }}"
+    {% endif %}
+    {% if manage_db_storage_class_rwo is defined and manage_db_storage_class_rwo != "" %}
+    - name: manage_db_storage_class_rwo
+      value: "{{ manage_db_storage_class_rwo }}"
+    {% endif %}
+    {% if manage_db_storage_class_rwx is defined and manage_db_storage_class_rwx != "" %}
+    - name: manage_db_storage_class_rwx
+      value: "{{ manage_db_storage_class_rwx }}"
+    {% endif %}
+
+    # Facilities Application Restore Configuration
+    {% if restore_facilities_app is defined and restore_facilities_app != "" %}
+    - name: restore_facilities_app
+      value: "{{ restore_facilities_app }}"
+    {% endif %}
+    {% if restore_facilities_db is defined and restore_facilities_db != "" %}
+    - name: restore_facilities_db
+      value: "{{ restore_facilities_db }}"
+    {% endif %}
+    {% if restore_facilities_include_pvc is defined and restore_facilities_include_pvc != "" %}
+    - name: restore_facilities_include_pvc
+      value: "{{ restore_facilities_include_pvc }}"
+    {% endif %}
+    # Facilities App Storage class
+    {% if facilities_app_override_storageclass is defined and facilities_app_override_storageclass != "" %}
+    - name: facilities_app_override_storageclass
+      value: "{{ facilities_app_override_storageclass }}"
+    {% endif %}
+    {% if facilities_app_storage_class_rwx is defined and facilities_app_storage_class_rwx != "" %}
+    - name: facilities_app_storage_class_rwx
+      value: "{{ facilities_app_storage_class_rwx }}"
+    {% endif %}
+    {% if facilities_app_storage_class_rwo is defined and facilities_app_storage_class_rwo != "" %}
+    - name: facilities_app_storage_class_rwo
+      value: "{{ facilities_app_storage_class_rwo }}"
+    {% endif %}
+
+    # Facilities Db2 Restore Configuration
+    {% if facilities_db2_restore_vendor is defined and facilities_db2_restore_vendor != "" %}
+    - name: facilities_db2_restore_vendor
+      value: "{{ facilities_db2_restore_vendor }}"
+    {% endif %}
+
+    {% if facilities_db_override_storageclass is defined and facilities_db_override_storageclass != "" %}
+    - name: facilities_db_override_storageclass
+      value: "{{ facilities_db_override_storageclass }}"
+    {% endif %}
+    {% if facilities_db_storage_class_rwo is defined and facilities_db_storage_class_rwo != "" %}
+    - name: facilities_db_storage_class_rwo
+      value: "{{ facilities_db_storage_class_rwo }}"
+    {% endif %}
+    {% if facilities_db_storage_class_rwx is defined and facilities_db_storage_class_rwx != "" %}
+    - name: facilities_db_storage_class_rwx
+      value: "{{ facilities_db_storage_class_rwx }}"
+    {% endif %}

@@ -7,6 +7,11 @@
 
 catalog_digest: sha256:028f32213d3f14405eda7e78aaec28411688272f3358c5a34f6ebed6cf46c4c3
 
+ocp_compatibility:
+  - 4.14
+  - 4.15
+  - 4.16
+
 # Dependencies
 # -----------------------------------------------------------------------------
 ibm_licensing_version: 4.2.10                 # Operator version 4.2.7 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
@@ -107,3 +112,18 @@ amlen_extras_version: 1.1.2
 # Default Cloud Pak for Data version
 # ------------------------------------------------------------------------------
 cpd_product_version_default: 5.0.0
+
+editorial:
+  whats_new:
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v8.10, v8.11, v9.0, v9.1
+    - IBM Maximo Manage v8.7, v8.6, v9.0 and v9.1
+    - IBM Maximo Monitor v8.11, v8.10 and v9.0
+    - IBM Maximo Optimizer v8.5, v8.4, v9.0 and v9.1
+    - IBM Maximo Predict v9.0
+    - IBM Data Dictionary v1.1
+    - IBM SLS v3.0
+  known_issues:
+  - title: Customers using Maximo Assist v8.7 or v8.8 should not update and must instead contact IBM Support for guidance regarding the removal of IBM Watson Discovery and upgrading to Maximo Assist v9.0
+  - title: Disconnected environments with Manage Civil, Aviation and ICD should not be updated at this time due to a known bug.

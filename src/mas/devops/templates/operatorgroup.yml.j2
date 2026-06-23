@@ -5,6 +5,8 @@ metadata:
   name: {{ name }}
   namespace: {{ namespace }}
 spec:
+{%- if installMode != "AllNamespaces" %}
   targetNamespaces:
     - {{ namespace }}
+{%- endif %}
   upgradeStrategy: Default

@@ -7,6 +7,11 @@
 
 catalog_digest: sha256:82a017b04ac8f15b14719e77435e1000046e8d90c24fa7fce45421f4e289d0fd
 
+ocp_compatibility:
+  - 4.14
+  - 4.15
+  - 4.16
+
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.10.3 # Updated                    # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.6.1  # No Update              # Operator version 1.5.4 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
@@ -38,3 +43,12 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
+
+editorial:
+  whats_new:
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.0 & v9.1
+    - IBM Maximo Manage v9.0 & v9.1
+    - IBM SLS v3.0
+  known_issues: []

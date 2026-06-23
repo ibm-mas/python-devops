@@ -19,22 +19,56 @@ import itertools
 
 
 class JobCleaner:
+    """
+    Kubernetes Job cleanup utility for managing ArgoCD-style job retention.
+
+    This class provides functionality to clean up old Kubernetes Job resources while
+    retaining the most recent job in each cleanup group. Jobs are grouped by a label
+    and only the newest job (by creation timestamp) in each group is preserved.
+
+    This is useful for ArgoCD applications where auto_delete is not enabled but you
+    still want to prevent job accumulation.
+
+    Attributes:
+        k8s_client (client.api_client.ApiClient): Kubernetes API client.
+        batch_v1_api (client.BatchV1Api): Kubernetes Batch V1 API interface.
+        logger (logging.Logger): Logger instance for this class.
+    """
+
     def __init__(self, k8s_client: client.api_client.ApiClient):
+        """
+        Initialize the JobCleaner with a Kubernetes API client.
+
+        Args:
+            k8s_client (client.api_client.ApiClient): Kubernetes API client for cluster operations.
+        """
         self.k8s_client = k8s_client
         self.batch_v1_api = client.BatchV1Api(self.k8s_client)
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def _get_all_cleanup_groups(self, label: str, limit: int):
+        """
+        Retrieve all unique cleanup groups across all namespaces.
+
+        This internal method queries all jobs with the specified label and extracts
+        unique (namespace, group_id) pairs for processing.
+
+        Args:
+            label (str): The label key used to identify and group jobs.
+            limit (int): Maximum number of jobs to retrieve per API call (pagination).
+
+        Returns:
+            set: Set of tuples containing (namespace, cleanup_group_id) pairs.
+
+        Note:
+            This method pages through all jobs to avoid loading everything into memory at once.
+        """
         # set of tuples (namespace, cleanup_group_id)
         cleanup_groups = set()
         _continue = None
         while True:
 
-            jobs_page = self.batch_v1_api.list_job_for_all_namespaces(
-                label_selector=label,
-                limit=limit,
-                _continue=_continue
-            )
+            jobs_page = self.batch_v1_api.list_job_for_all_namespaces(label_selector=label, limit=limit, _continue=_continue)
             _continue = jobs_page.metadata._continue
 
             for job in jobs_page.items:
@@ -44,6 +78,24 @@ class JobCleaner:
                 return cleanup_groups
 
     def _get_all_jobs(self, namespace: str, group_id: str, label: str, limit: int):
+        """
+        Retrieve all jobs for a specific cleanup group in a namespace.
+
+        This internal method pages through all jobs matching the group ID and chains
+        the results together for efficient iteration.
+
+        Args:
+            namespace (str): The Kubernetes namespace to query.
+            group_id (str): The cleanup group identifier from the label value.
+            label (str): The label key used to filter jobs.
+            limit (int): Maximum number of jobs to retrieve per API call (pagination).
+
+        Returns:
+            itertools.chain: Chained iterator of job items across all pages.
+
+        Note:
+            Jobs are not loaded entirely into memory; iterators are chained for efficiency.
+        """
         # page through all jobs in this namespace and group, and chain together all the resulting iterators
         job_items_iters = []
         _continue = None
@@ -52,7 +104,7 @@ class JobCleaner:
                 namespace,
                 label_selector=f"{label}={group_id}",
                 limit=limit,
-                _continue=_continue
+                _continue=_continue,
             )
             job_items_iters.append(jobs_page.items)
             _continue = jobs_page.metadata._continue
@@ -60,6 +112,27 @@ class JobCleaner:
                 return itertools.chain(*job_items_iters)
 
     def cleanup_jobs(self, label: str, limit: int, dry_run: bool):
+        """
+        Clean up old Kubernetes Jobs, retaining only the newest in each group.
+
+        This method identifies all cleanup groups (by label), then for each group,
+        sorts jobs by creation timestamp and deletes all except the most recent one.
+        The cleanup process is eventually consistent and handles race conditions gracefully.
+
+        Args:
+            label (str): The label key used to identify and group jobs (e.g., "argocd.argoproj.io/instance").
+            limit (int): Maximum number of jobs to retrieve per API call for pagination.
+            dry_run (bool): If True, simulate the cleanup without actually deleting jobs.
+
+        Returns:
+            None
+
+        Note:
+            - Only the newest job in each group is retained
+            - Deletion uses "Foreground" propagation policy
+            - The process is eventually consistent; race conditions are handled gracefully
+            - Progress is logged for each cleanup group
+        """
         dry_run_param = None
         if dry_run:
             dry_run_param = "All"
@@ -84,7 +157,7 @@ class JobCleaner:
         # we can deal with each one separately; we only have to load the job resources for that particular group into memory at once
         # (we have to load into memory in order to guarantee the jobs are sorted by creation_date)
         i = 0
-        for (namespace, group_id) in cleanup_groups:
+        for namespace, group_id in cleanup_groups:
 
             self.logger.info("")
             self.logger.info(f"{i}) {group_id} {namespace}")
@@ -95,7 +168,7 @@ class JobCleaner:
             jobs_sorted = sorted(
                 jobs,
                 key=lambda group_job: group_job.metadata.creation_timestamp,
-                reverse=True
+                reverse=True,
             )
 
             if len(jobs_sorted) == 0:
@@ -111,7 +184,12 @@ class JobCleaner:
                         first = False
                     else:
                         try:
-                            self.batch_v1_api.delete_namespaced_job(name, namespace, dry_run=dry_run_param, propagation_policy="Foreground")
+                            self.batch_v1_api.delete_namespaced_job(
+                                name,
+                                namespace,
+                                dry_run=dry_run_param,
+                                propagation_policy="Foreground",
+                            )
                             result = "SUCCESS"
                         except client.rest.ApiException as e:
                             result = f"FAILED: {e}"
