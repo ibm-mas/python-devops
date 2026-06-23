@@ -30,27 +30,36 @@ logger = logging.getLogger(__name__)
 
 # customStorageClassName is used when no default Storageclass is available on cluster,
 # openshift-pipelines creates PVC which looks for default. customStorageClassName is patched into PVC when default is unavailable.
-def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: str = None) -> bool:
+def installOpenShiftPipelines(
+    dynClient: DynamicClient, customStorageClassName: str = None
+) -> bool:
     """
     Install the OpenShift Pipelines Operator and wait for it to be ready to use
     """
-    packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
-    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    packagemanifestAPI = dynClient.resources.get(
+        api_version="packages.operators.coreos.com/v1", kind="PackageManifest"
+    )
+    subscriptionsAPI = dynClient.resources.get(
+        api_version="operators.coreos.com/v1alpha1", kind="Subscription"
+    )
 
     # Create the Operator Subscription
     try:
         if not crdExists(dynClient, "pipelines.tekton.dev"):
-            manifest = packagemanifestAPI.get(name="openshift-pipelines-operator-rh", namespace="openshift-marketplace")
+            manifest = packagemanifestAPI.get(
+                name="openshift-pipelines-operator-rh",
+                namespace="openshift-marketplace",
+            )
             defaultChannel = manifest.status.defaultChannel
             catalogSource = manifest.status.catalogSource
             catalogSourceNamespace = manifest.status.catalogSourceNamespace
 
-            logger.info(f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}")
+            logger.info(
+                f"OpenShift Pipelines Operator Details: {catalogSourceNamespace}/{catalogSource}@{defaultChannel}"
+            )
 
             templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-            env = Environment(
-                loader=FileSystemLoader(searchpath=templateDir)
-            )
+            env = Environment(loader=FileSystemLoader(searchpath=templateDir))
             template = env.get_template("subscription.yml.j2")
             renderedTemplate = template.render(
                 subscription_name="openshift-pipelines-operator",
@@ -58,15 +67,19 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
                 package_name="openshift-pipelines-operator-rh",
                 package_channel=defaultChannel,
                 catalog_name=catalogSource,
-                catalog_namespace=catalogSourceNamespace
+                catalog_namespace=catalogSourceNamespace,
             )
             subscription = yaml.safe_load(renderedTemplate)
             subscriptionsAPI.apply(body=subscription, namespace="openshift-operators")
 
     except NotFoundError:
-        logger.warning("Error: Couldn't find package manifest for Red Hat Openshift Pipelines Operator")
+        logger.warning(
+            "Error: Couldn't find package manifest for Red Hat Openshift Pipelines Operator"
+        )
     except UnprocessibleEntityError:
-        logger.warning("Error: Couldn't create/update OpenShift Pipelines Operator Subscription")
+        logger.warning(
+            "Error: Couldn't create/update OpenShift Pipelines Operator Subscription"
+        )
 
     # Wait for the CRD to be available
     logger.debug("Waiting for tasks.tekton.dev CRD to be available")
@@ -79,7 +92,11 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
 
     # Wait for the webhook to be ready
     logger.debug("Waiting for tekton-pipelines-webhook Deployment to be ready")
-    foundReadyWebhook = waitForDeployment(dynClient, namespace="openshift-pipelines", deploymentName="tekton-pipelines-webhook")
+    foundReadyWebhook = waitForDeployment(
+        dynClient,
+        namespace="openshift-pipelines",
+        deploymentName="tekton-pipelines-webhook",
+    )
     if foundReadyWebhook:
         logger.info("OpenShift Pipelines Webhook is installed and ready")
     else:
@@ -93,12 +110,21 @@ def installOpenShiftPipelines(dynClient: DynamicClient, customStorageClassName: 
     # causing failure in pipeline.
     # Refer https://github.com/ibm-mas/cli/issues/1511
     logger.debug("Waiting for postgredb-tekton-results-postgres-0 PVC to be ready")
-    foundReadyPVC = waitForPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0")
+    foundReadyPVC = waitForPVC(
+        dynClient,
+        namespace="openshift-pipelines",
+        pvcName="postgredb-tekton-results-postgres-0",
+    )
     if foundReadyPVC:
         logger.info("OpenShift Pipelines postgres is installed and ready")
         return True
     else:
-        patchedPVC = patchPendingPVC(dynClient, namespace="openshift-pipelines", pvcName="postgredb-tekton-results-postgres-0", storageClassName=customStorageClassName)
+        patchedPVC = patchPendingPVC(
+            dynClient,
+            namespace="openshift-pipelines",
+            pvcName="postgredb-tekton-results-postgres-0",
+            storageClassName=customStorageClassName,
+        )
         if patchedPVC:
             logger.info("OpenShift Pipelines postgres is installed and ready")
             return True
@@ -119,16 +145,21 @@ def updateTektonDefinitions(namespace: str, yamlFile: str) -> None:
     Throws:
     - kubeconfig.exceptions.KubectlCommandError
     """
-    result = kubectl.run(subcmd_args=['apply', '-n', namespace, '-f', yamlFile])
+    result = kubectl.run(subcmd_args=["apply", "-n", namespace, "-f", yamlFile])
     for line in result.split("\n"):
         logger.debug(line)
 
 
-def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, storageClass: str = None, accessMode: str = None, waitForBind: bool = True, configureRBAC: bool = True):
+def preparePipelinesNamespace(
+    dynClient: DynamicClient,
+    instanceId: str = None,
+    storageClass: str = None,
+    accessMode: str = None,
+    waitForBind: bool = True,
+    configureRBAC: bool = True,
+):
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(
-        loader=FileSystemLoader(searchpath=templateDir)
-    )
+    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
     if instanceId is None:
         namespace = "mas-pipelines"
         template = env.get_template("pipelines-rbac-cluster.yml.j2")
@@ -141,7 +172,9 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         renderedTemplate = template.render(mas_instance_id=instanceId)
         logger.debug(renderedTemplate)
         crb = yaml.safe_load(renderedTemplate)
-        clusterRoleBindingAPI = dynClient.resources.get(api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding")
+        clusterRoleBindingAPI = dynClient.resources.get(
+            api_version="rbac.authorization.k8s.io/v1", kind="ClusterRoleBinding"
+        )
         clusterRoleBindingAPI.apply(body=crb, namespace=namespace)
 
     # Create PVC (instanceId namespace only)
@@ -150,7 +183,7 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
         renderedTemplate = template.render(
             mas_instance_id=instanceId,
             pipeline_storage_class=storageClass,
-            pipeline_storage_accessmode=accessMode
+            pipeline_storage_accessmode=accessMode,
         )
         logger.debug(renderedTemplate)
         pvc = yaml.safe_load(renderedTemplate)
@@ -170,7 +203,14 @@ def preparePipelinesNamespace(dynClient: DynamicClient, instanceId: str = None, 
                 sleep(15)
 
 
-def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseFile: str = None, additionalConfigs: dict = None, certs: str = None, podTemplates: str = None) -> None:
+def prepareInstallSecrets(
+    dynClient: DynamicClient,
+    instanceId: str,
+    slsLicenseFile: str = None,
+    additionalConfigs: dict = None,
+    certs: str = None,
+    podTemplates: str = None,
+) -> None:
     namespace = f"mas-{instanceId}-pipelines"
     secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
@@ -187,9 +227,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
-            "metadata": {
-                "name": "pipeline-additional-configs"
-            }
+            "metadata": {"name": "pipeline-additional-configs"},
         }
     secretsAPI.create(body=additionalConfigs, namespace=namespace)
 
@@ -205,9 +243,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
-            "metadata": {
-                "name": "pipeline-sls-entitlement"
-            }
+            "metadata": {"name": "pipeline-sls-entitlement"},
         }
     secretsAPI.create(body=slsLicenseFile, namespace=namespace)
 
@@ -224,9 +260,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
-            "metadata": {
-                "name": "pipeline-certificates"
-            }
+            "metadata": {"name": "pipeline-certificates"},
         }
     secretsAPI.create(body=certs, namespace=namespace)
 
@@ -243,9 +277,7 @@ def prepareInstallSecrets(dynClient: DynamicClient, instanceId: str, slsLicenseF
             "apiVersion": "v1",
             "kind": "Secret",
             "type": "Opaque",
-            "metadata": {
-                "name": "pipeline-pod-templates"
-            }
+            "metadata": {"name": "pipeline-pod-templates"},
         }
     secretsAPI.create(body=podTemplates, namespace=namespace)
 
@@ -283,29 +315,31 @@ def testCLI() -> None:
     # fi
 
 
-def launchUpgradePipeline(dynClient: DynamicClient,
-                          instanceId: str,
-                          skipPreCheck: bool = False,
-                          masChannel: str = "",
-                          params: dict = {}) -> str:
+def launchUpgradePipeline(
+    dynClient: DynamicClient,
+    instanceId: str,
+    skipPreCheck: bool = False,
+    masChannel: str = "",
+    params: dict = {},
+) -> str:
     """
     Create a PipelineRun to upgrade the chosen MAS instance
     """
-    pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
+    pipelineRunsAPI = dynClient.resources.get(
+        api_version="tekton.dev/v1beta1", kind="PipelineRun"
+    )
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(
-        loader=FileSystemLoader(searchpath=templateDir)
-    )
+    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
     template = env.get_template("pipelinerun-upgrade.yml.j2")
     renderedTemplate = template.render(
         timestamp=timestamp,
         mas_instance_id=instanceId,
         skip_pre_check=skipPreCheck,
         mas_channel=masChannel,
-        **params
+        **params,
     )
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
@@ -315,28 +349,30 @@ def launchUpgradePipeline(dynClient: DynamicClient,
     return pipelineURL
 
 
-def launchUninstallPipeline(dynClient: DynamicClient,
-                            instanceId: str,
-                            droNamespace: str,
-                            certManagerProvider: str = "redhat",
-                            uninstallCertManager: bool = False,
-                            uninstallGrafana: bool = False,
-                            uninstallCatalog: bool = False,
-                            uninstallCommonServices: bool = False,
-                            uninstallUDS: bool = False,
-                            uninstallMongoDb: bool = False,
-                            uninstallSLS: bool = False) -> str:
+def launchUninstallPipeline(
+    dynClient: DynamicClient,
+    instanceId: str,
+    droNamespace: str,
+    certManagerProvider: str = "redhat",
+    uninstallCertManager: bool = False,
+    uninstallGrafana: bool = False,
+    uninstallCatalog: bool = False,
+    uninstallCommonServices: bool = False,
+    uninstallUDS: bool = False,
+    uninstallMongoDb: bool = False,
+    uninstallSLS: bool = False,
+) -> str:
     """
     Create a PipelineRun to uninstall the chosen MAS instance (and selected dependencies)
     """
-    pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
+    pipelineRunsAPI = dynClient.resources.get(
+        api_version="tekton.dev/v1beta1", kind="PipelineRun"
+    )
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(
-        loader=FileSystemLoader(searchpath=templateDir)
-    )
+    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
     template = env.get_template("pipelinerun-uninstall.yml.j2")
 
     grafanaAction = "uninstall" if uninstallGrafana else "none"
@@ -359,7 +395,7 @@ def launchUninstallPipeline(dynClient: DynamicClient,
         mongodb_action=mongoDbAction,
         sls_action=slsAction,
         uds_action=udsAction,
-        dro_namespace=droNamespace
+        dro_namespace=droNamespace,
     )
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
@@ -369,21 +405,20 @@ def launchUninstallPipeline(dynClient: DynamicClient,
     return pipelineURL
 
 
-def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: str, params: dict) -> str:
-    pipelineRunsAPI = dynClient.resources.get(api_version="tekton.dev/v1beta1", kind="PipelineRun")
+def launchPipelineRun(
+    dynClient: DynamicClient, namespace: str, templateName: str, params: dict
+) -> str:
+    pipelineRunsAPI = dynClient.resources.get(
+        api_version="tekton.dev/v1beta1", kind="PipelineRun"
+    )
     timestamp = datetime.now().strftime("%y%m%d-%H%M")
     # Create the PipelineRun
     templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(
-        loader=FileSystemLoader(searchpath=templateDir)
-    )
+    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
     template = env.get_template(f"{templateName}.yml.j2")
 
     # Render the pipelineRun
-    renderedTemplate = template.render(
-        timestamp=timestamp,
-        **params
-    )
+    renderedTemplate = template.render(timestamp=timestamp, **params)
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
     pipelineRunsAPI.apply(body=pipelineRun, namespace=namespace)
@@ -408,7 +443,9 @@ def launchInstallPipelineForAiservice(dynClient: DynamicClient, params: dict) ->
     """
     instanceId = params["aibroker_instance_id"]
     namespace = f"mas-{instanceId}-pipelines"
-    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-install", params)
+    timestamp = launchPipelineRun(
+        dynClient, namespace, "pipelinerun-aiservice-install", params
+    )
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
     return pipelineURL
@@ -423,6 +460,7 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-update-{timestamp}"
     return pipelineURL
+
 
 def launchRollbackPipeline(dynClient: DynamicClient, params: dict) -> str:
     """
