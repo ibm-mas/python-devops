@@ -16,23 +16,23 @@ ocp_compatibility:
 - "4.21"
 
 uds_version: 2.0.12                       # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.13.0       # Updated         # Operator version 3.13.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.7                          # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-db2u_version: 7.6.0+20260224.123157.19264       # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
-db2_channel_default: v120104.0                  # Default Channel version for db2u-operator
+sls_version: 3.13.0       # Updated       # Operator version 3.13.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
+tsm_version: 1.7.7        # Updated       # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
+db2u_version: 7.6.0+20260224.123157.19264 # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2_channel_default: v120104.0            # Default Channel version for db2u-operator
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
+  9.2.x: 9.2.0                            # Updated
+  9.2.x-feature: 9.2.0                    # Updated
   9.1.x: 9.1.19                           # Updated
   9.0.x: 9.0.27                           # Updated
   8.10.x: ""                              # Not Supported
   8.11.x: ""                              # Not Supported
 mas_manage_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
+  9.2.x: 9.2.0                            # Updated
+  9.2.x-feature: 9.2.0                    # Updated
   9.1.x: 9.1.19                           # Updated
   9.0.x: 9.0.27                           # Updated
   8.10.x: ""                              # Not Supported
