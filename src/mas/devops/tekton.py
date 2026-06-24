@@ -1246,13 +1246,23 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
 
 def launchRollbackPipeline(dynClient: DynamicClient, params: dict) -> str:
     """
-    Create a PipelineRun to update the Maximo Operator Catalog
+    Create a PipelineRun to rollback the chosen MAS instance.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Rollback parameters including instance ID and target catalog/channel versions
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
     """
     instanceId = params["mas_instance_id"]
     namespace = f"mas-{instanceId}-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-rollback", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-rollback-{timestamp}"
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-rollback-{timestamp}"
     return pipelineURL
 
 
