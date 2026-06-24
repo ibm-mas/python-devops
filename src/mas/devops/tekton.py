@@ -1440,3 +1440,15 @@ def prepareInstallRBAC(dynClient: DynamicClient, namespace: str, instanceId: str
                     # Catch any other unexpected errors
                     logger.error(f"Unexpected error applying RBAC resource {kind}/{name}: {type(e).__name__} - {str(e)[:200]}")
                     raise
+
+
+def launchRollbackPipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to update the Maximo Operator Catalog
+    """
+    instanceId = params["mas_instance_id"]
+    namespace = f"mas-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-rollback", params)
+
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-rollback-{timestamp}"
+    return pipelineURL

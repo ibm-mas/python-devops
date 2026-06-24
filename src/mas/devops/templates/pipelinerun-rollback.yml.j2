@@ -1,0 +1,34 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: "{{mas_instance_id}}-rollback-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: mas-rollback
+spec:
+  pipelineRef:
+    name: mas-rollback
+
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
+
+  params:
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+
+    - name: mas_instance_id
+      value: {{ mas_instance_id }}
+    - name: mas_catalog_version
+      value: {{ mas_catalog_version }}
+    - name: mas_core_version
+      value: {{ mas_core_version }}
+    - name: mas_app_manage_version
+      value: {{ mas_app_manage_version }}
+    - name: mas_app_iot_version
+      value: {{ mas_app_iot_version }}
