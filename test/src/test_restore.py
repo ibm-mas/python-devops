@@ -10,7 +10,7 @@
 
 import yaml
 from unittest.mock import MagicMock, Mock
-from openshift.dynamic.exceptions import NotFoundError
+from kubernetes.dynamic.exceptions import NotFoundError
 
 from mas.devops.restore import loadYamlFile, restoreResource
 

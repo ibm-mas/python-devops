@@ -88,9 +88,7 @@ If any provision of this Agreement is invalid or unenforceable under applicable 
 This project uses several third-party libraries, each with their own licenses:
 
 - **pyyaml** - MIT License
-- **openshift** - Apache Software License
 - **kubernetes** - Apache Software License
-- **kubeconfig** - BSD License
 - **jinja2** - BSD License
 - **jinja2-base64-filters** - MIT License
 - **semver** - BSD License
@@ -104,7 +102,6 @@ Development dependencies:
 - **pytest** - MIT License
 - **pytest-mock** - MIT License
 - **requests-mock** - Apache Software License
-- **setuptools** - MIT License
 
 Documentation dependencies:
 
