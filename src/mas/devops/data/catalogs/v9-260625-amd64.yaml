@@ -60,7 +60,7 @@ couchdb_version: 1.0.13  # Operator version 2.2.1 (1.0.13) sticking with 1.0.13
 # Dependencies - Minio
 # -----------------------------------------------------------------------------
 minio_version: RELEASE.2025-06-13T11-33-47Z
-
+minio_extras_version: 1.0.0
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
@@ -110,9 +110,6 @@ dd_version: 1.1.23              # No Update
 # https://github.com/opendatahub-io/opendatahub-operator/releases
 odh_version: 2.32.0
 
-# Dependencies - Minio
-# -----------------------------------------------------------------------------
-minio_extras_version: 1.0.0
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
