@@ -110,6 +110,10 @@ dd_version: 1.1.23              # No Update
 # https://github.com/opendatahub-io/opendatahub-operator/releases
 odh_version: 2.32.0
 
+# Extra Images for Redis (Collaborate)
+# ------------------------------------------------------------------------------
+redis_extras_version: 2.1.40             # No Update
+
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
