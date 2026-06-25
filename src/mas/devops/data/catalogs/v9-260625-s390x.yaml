@@ -15,11 +15,39 @@ ocp_compatibility:
 - "4.20"
 - "4.21"
 
-uds_version: 2.0.12                       # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.13.0         # Updated     # Operator version 3.13.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.7          # Updated     # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-db2u_version: 7.6.0+20260224.123157.19264 # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
-db2_channel_default: v120104.0  # Updated # Default Channel version for db2u-operator
+# Dependencies - Db2u
+# -----------------------------------------------------------------------------
+db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+
+db2_channel_default: v120104.0                   # Default Channel version for db2u-operator
+
+
+# Dependencies - UDS
+# -----------------------------------------------------------------------------
+uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+uds_extras_version: 1.5.0                    # No Update
+
+
+# Dependencies - Suite License Service
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-sls/releases
+sls_version: 3.13.0             # Updated
+
+
+# Dependencies - Truststore Manager
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
+tsm_version: 1.7.7              # Updated
+
+
+# Dependencies - MongoDB
+# -----------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.20
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.12
+mongo_extras_version_8: 8.0.20
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -38,21 +66,9 @@ mas_manage_version:
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
-# Extra Images for UDS
+
+# Editorial
 # ------------------------------------------------------------------------------
-uds_extras_version: 1.5.0               # No Update
-
-# Extra Images for Mongo
-# ------------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.20    # No Update
-
-# Variables used to mirror additional mongo image versions
-mongo_extras_version_4: 4.4.21
-mongo_extras_version_5: 5.0.23
-mongo_extras_version_6: 6.0.12
-mongo_extras_version_7: 7.0.12
-mongo_extras_version_8: 8.0.20
-
 editorial:
   whats_new:
   - title: New feature release
@@ -68,4 +84,3 @@ editorial:
   known_issues:
     - title: A known issue exists in the June 25, 2026 release affecting IBM Maximo Visual Inspection. Customers with MVI installed and using custom cluster issuer should avoid upgrading to the June release. Installation of MVI 9.2.x should be deferred until the July 2026 patch.
     - title: A know issue exists in the June 25 2026 release when a customer has environment setup with mas core+manage+Optimizer with out AIP as a addon. Then under manage work space two pods will appear aipoptimization-uninstall and it will be in error status. Even though these pods are in error status it does not have any functional impact on manage or optimizer. The fix has been identified and will be delivered in upcoming July 9.2 patch.
-
