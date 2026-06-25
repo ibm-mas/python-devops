@@ -18,8 +18,8 @@ ocp_compatibility:
 uds_version: 2.0.12                       # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.13.0         # Updated     # Operator version 3.13.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.7          # Updated     # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-db2u_version: 7.6.0+20260224.123157.19264       # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
-db2_channel_default: v120104.0                  # Default Channel version for db2u-operator
+db2u_version: 7.6.0+20260224.123157.19264 # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2_channel_default: v120104.0  # Updated # Default Channel version for db2u-operator
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -55,10 +55,14 @@ mongo_extras_version_8: 8.0.20
 
 editorial:
   whats_new:
+  - title: New feature release
+    details:
+    - IBM Maximo Application Suite Core Platform [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
+    - IBM Maximo Manage [v9.2.0](https://supportcontent.ibm.com/support/pages/node/7276377)
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.27](https://www.ibm.com/support/pages/node/7277381), [v9.1.19](https://www.ibm.com/support/pages/node/7277382) and [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
-    - IBM Maximo Manage [v9.0.27](https://www.ibm.com/support/pages/node/7276396), [v9.1.19](https://www.ibm.com/support/pages/node/7276393) and [v9.2.0](https://supportcontent.ibm.com/support/pages/node/7276377)
+    - IBM Maximo Application Suite Core Platform [v9.0.27](https://www.ibm.com/support/pages/node/7277381) and [v9.1.19](https://www.ibm.com/support/pages/node/7277382)
+    - IBM Maximo Manage [v9.0.27](https://www.ibm.com/support/pages/node/7276396) and [v9.1.19](https://www.ibm.com/support/pages/node/7276393)
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.13
   known_issues:

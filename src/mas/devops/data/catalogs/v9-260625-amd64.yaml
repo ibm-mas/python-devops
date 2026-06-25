@@ -25,7 +25,7 @@ cp4d_platform_version: 5.2.0+20250709.170324    # Operator version 5.2.0 (https:
 ibm_zen_version: 6.2.0+20250530.152516.232      # For CPD5 ibm-zen has to be explicitily mirrored
 
 db2u_version: 7.6.0+20260224.123157.19264       # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
-db2_channel_default: v120104.0                  # Default Channel version for db2u-operator
+db2_channel_default: v120104.0    # Updated     # Default Channel version for db2u-operator
 uds_version: 2.0.12                             # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.13.0             # Updated       # Operator version 3.13.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
 tsm_version: 1.7.7              # Updated       # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
@@ -185,18 +185,31 @@ minio_version: RELEASE.2025-06-13T11-33-47Z
 
 editorial:
   whats_new:
+  - title: New feature release
+    details:
+    - IBM Maximo Application Suite Core Platform [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
+    - IBM Maximo Manage [v9.2.0](https://supportcontent.ibm.com/support/pages/node/7276377)
+    - IBM Maximo IoT [v9.2.0](https://www.ibm.com/support/pages/node/7277132)
+    - IBM Maximo Monitor [v9.2.0](https://www.ibm.com/support/pages/node/7277101)
+    - IBM Maximo Optimizer [v9.2.0](https://www.ibm.com/support/pages/node/7276586)
+    - IBM Maximo Predict [v9.2.0](https://www.ibm.com/support/pages/node/7275237)
+    - IBM Maximo Visual Inspection [v9.2.0](https://www.ibm.com/support/pages/node/7277289)
+    - IBM Maximo Real Estate and Facilities [v9.2.0](https://www.ibm.com/support/pages/node/7275247)
+    - IBM Maximo AI Service [v9.2.0](https://www.ibm.com/support/pages/node/7276603)
+    - IBM Maximo AI Service Tenant v9.2
+    - IBM Maximo Location Service for Esri v9.2
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.27](https://www.ibm.com/support/pages/node/7277381), [v9.1.19](https://www.ibm.com/support/pages/node/7277382) and [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
-    - IBM Maximo Manage [v9.0.27](https://www.ibm.com/support/pages/node/7276396), [v9.1.19](https://www.ibm.com/support/pages/node/7276393) and [v9.2.0](https://supportcontent.ibm.com/support/pages/node/7276377)
+    - IBM Maximo Application Suite Core Platform [v9.0.27](https://www.ibm.com/support/pages/node/7277381) and [v9.1.19](https://www.ibm.com/support/pages/node/7277382)
+    - IBM Maximo Manage [v9.0.27](https://www.ibm.com/support/pages/node/7276396) and [v9.1.19](https://www.ibm.com/support/pages/node/7276393)
     - IBM Maximo IoT [v9.0.21](https://www.ibm.com/support/pages/node/7277130) and [v9.1.12](https://www.ibm.com/support/pages/node/7277131)
-    - IBM Maximo Monitor [v9.0.22](https://www.ibm.com/support/pages/node/7277099), [v9.1.12](https://www.ibm.com/support/pages/node/7277100) and [v9.2.0](https://www.ibm.com/support/pages/node/7277101)
-    - IBM Maximo Optimizer [v9.0.24](https://www.ibm.com/support/pages/node/7276568), [v9.1.13](https://www.ibm.com/support/pages/node/7276570) and [v9.2.0](https://www.ibm.com/support/pages/node/7276586)
+    - IBM Maximo Monitor [v9.0.22](https://www.ibm.com/support/pages/node/7277099) and [v9.1.12](https://www.ibm.com/support/pages/node/7277100)
+    - IBM Maximo Optimizer [v9.0.24](https://www.ibm.com/support/pages/node/7276568) and [v9.1.13](https://www.ibm.com/support/pages/node/7276570)
     - IBM Maximo Assist/Collaborate [v9.0.18](https://www.ibm.com/support/pages/node/7273929), [v9.1.12](https://www.ibm.com/support/pages/node/7273930)
-    - IBM Maximo Predict [v9.0.16](https://www.ibm.com/support/pages/node/7276914), [v9.1.9](https://www.ibm.com/support/pages/node/7276913) and [v9.2.0](https://www.ibm.com/support/pages/node/7275237)
-    - IBM Maximo Visual Inspection [v9.0.21](https://www.ibm.com/support/pages/node/7277291), [v9.1.18:] (https://www.ibm.com/support/pages/node/7277891), [v9.2.0](https://www.ibm.com/support/pages/node/7277289)
-    - IBM Maximo Real Estate and Facilities [v9.1.12](https://www.ibm.com/support/pages/node/7276768) and [v9.2.0](https://www.ibm.com/support/pages/node/7275247)
-    - IBM Maximo AI Service [v9.1.16](https://www.ibm.com/support/pages/node/7276604) and [v9.2.0](https://www.ibm.com/support/pages/node/7276603)
+    - IBM Maximo Predict [v9.0.16](https://www.ibm.com/support/pages/node/7276914) and [v9.1.9](https://www.ibm.com/support/pages/node/7276913)
+    - IBM Maximo Visual Inspection [v9.0.21](https://www.ibm.com/support/pages/node/7277291) and [v9.1.18:] (https://www.ibm.com/support/pages/node/7277891)
+    - IBM Maximo Real Estate and Facilities [v9.1.12](https://www.ibm.com/support/pages/node/7276768)
+    - IBM Maximo AI Service [v9.1.16](https://www.ibm.com/support/pages/node/7276604)
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.13
     - Amlen v1.1
