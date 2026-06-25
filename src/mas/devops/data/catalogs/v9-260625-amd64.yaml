@@ -67,11 +67,13 @@ mas_core_version:
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
+  9.2.x: 9.2.0                          # Not Supported
   9.1.x: 9.1.12                         # Updated
   9.0.x: 9.0.18                         # Updated
   8.10.x: 8.7.8                         # No Update
   8.11.x: 8.8.7                         # No Update
 mas_hputilities_version:
+  9.2.x: 9.2.0                          # Not Supported
   9.1.x: ""                             # Not Supported
   9.0.x: ""                             # Not Supported
   8.10.x: 8.6.7                         # No Update
@@ -195,6 +197,9 @@ editorial:
     - IBM Maximo Visual Inspection [v9.0.21](https://www.ibm.com/support/pages/node/7277291), [v9.2.0](https://www.ibm.com/support/pages/node/7277289)
     - IBM Maximo Real Estate and Facilities [v9.1.12](https://www.ibm.com/support/pages/node/7276768) and [v9.2.0](https://www.ibm.com/support/pages/node/7275247)
     - IBM Maximo AI Service [v9.1.16](https://www.ibm.com/support/pages/node/7276604) and [v9.2.0](https://www.ibm.com/support/pages/node/7276603)
+    - IBM Truststore Manager v1.7
+    - IBM Suite License Service v3.13
+    - Amlen v1.1
   known_issues:
     - title: A known issue exists in the June 25, 2026 release affecting IBM Maximo Visual Inspection. Customers with MVI installed and using custom cluster issuer should avoid upgrading to the June release. Installation of MVI 9.2.x should be deferred until the July 2026 patch.
     - title: A know issue exists in the June 25 2026 release when a customer has environment setup with mas core+manage+Optimizer with out AIP as a addon. Then under manage work space two pods will appear aipoptimization-uninstall and it will be in error status. Even though these pods are in error status it does not have any functional impact on manage or optimizer. The fix has been identified and will be delivered in upcoming July 9.2 patch.
