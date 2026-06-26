@@ -17,3 +17,5 @@ kubectl.exe
 /build
 /.vscode
 /site
+/.bob/.bob-errors
+/.bob/notes

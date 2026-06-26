@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2025 IBM Corporation and other Contributors.
+# Copyright (c) 2025, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -9,8 +9,13 @@
 # *****************************************************************************
 
 import logging
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError, UnauthorizedError
+
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import (
+    NotFoundError,
+    ResourceNotFoundError,
+    UnauthorizedError,
+)
 
 from .ocp import listInstances
 from .olm import getSubscription
@@ -105,7 +110,10 @@ def verifyAiServiceTenantInstance(dynClient: DynamicClient, instanceId: str, ten
     """
     try:
         aiserviceTenantAPI = dynClient.resources.get(api_version="aiservice.ibm.com/v1", kind="AIServiceTenant")
-        aiserviceTenantAPI.get(name=f"aiservice-{instanceId}-{tenantId}", namespace=f"aiservice-{instanceId}")
+        aiserviceTenantAPI.get(
+            name=f"aiservice-{instanceId}-{tenantId}",
+            namespace=f"aiservice-{instanceId}",
+        )
         return True
     except NotFoundError:
         print("NOT FOUND")

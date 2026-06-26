@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2025 IBM Corporation and other Contributors.
+# Copyright (c) 2025, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -11,7 +11,7 @@
 import requests
 import logging
 from kubernetes import client
-from openshift.dynamic import DynamicClient
+from kubernetes.dynamic import DynamicClient
 import base64
 import atexit
 import tempfile
@@ -21,7 +21,7 @@ import re
 from packaging.version import Version
 
 
-class MASUserUtils():
+class MASUserUtils:
     """
     Utility class for managing IBM Maximo Application Suite (MAS) users and permissions.
 
@@ -35,16 +35,25 @@ class MASUserUtils():
     - Manage API (API keys, security groups)
 
     Attributes:
-        MAXADMIN (str): Constant for the MAXADMIN user identifier.
+        MXINTADM (str): Constant for the MXINTADM user identifier.
         mas_instance_id (str): The MAS instance identifier.
         mas_workspace_id (str): The workspace identifier within the MAS instance.
         mas_core_namespace (str): Kubernetes namespace for MAS core components.
         manage_namespace (str): Kubernetes namespace for Manage application.
     """
 
-    MAXADMIN = "MAXADMIN"
+    MXINTADM = "MXINTADM"
 
-    def __init__(self, mas_instance_id: str, mas_workspace_id: str, k8s_client: client.api_client.ApiClient, mas_version: str = '9.0', coreapi_port: int = 443, admin_dashboard_port: int = 443, manage_api_port: int = 443):
+    def __init__(
+        self,
+        mas_instance_id: str,
+        mas_workspace_id: str,
+        k8s_client: client.api_client.ApiClient,
+        mas_version: str = "9.0",
+        coreapi_port: int = 443,
+        admin_dashboard_port: int = 443,
+        manage_api_port: int = 443,
+    ):
         """
         Initialize MASUserUtils for a specific MAS instance and workspace.
 
@@ -70,15 +79,15 @@ class MASUserUtils():
         self._mas_superuser_credentials = None
         self._superuser_auth_token = None
 
-        self.mas_admin_url_internal = f'https://admin-dashboard.{self.mas_core_namespace}.svc.cluster.local:{admin_dashboard_port}'
+        self.mas_admin_url_internal = f"https://admin-dashboard.{self.mas_core_namespace}.svc.cluster.local:{admin_dashboard_port}"
         self._admin_internal_tls_secret = None
         self._admin_internal_ca_pem_file_path = None
 
-        self.mas_api_url_internal = f'https://coreapi.{self.mas_core_namespace}.svc.cluster.local:{coreapi_port}'
+        self.mas_api_url_internal = f"https://coreapi.{self.mas_core_namespace}.svc.cluster.local:{coreapi_port}"
         self._core_internal_tls_secret = None
         self._core_internal_ca_pem_file_path = None
 
-        self.manage_api_url_internal = f'https://{self.mas_instance_id}-{self.mas_workspace_id}.{self.manage_namespace}.svc.cluster.local:{manage_api_port}'
+        self.manage_api_url_internal = f"https://{self.mas_instance_id}-{self.mas_workspace_id}.{self.manage_namespace}.svc.cluster.local:{manage_api_port}"
         self._manage_internal_tls_secret = None
         self._manage_internal_ca_pem_file_path = None
         self._manage_internal_client_pem_file_path = None
@@ -88,7 +97,10 @@ class MASUserUtils():
     @property
     def mas_superuser_credentials(self):
         if self._mas_superuser_credentials is None:
-            k8s_secret = self.v1_secrets.get(name=f"{self.mas_instance_id}-credentials-superuser", namespace=self.mas_core_namespace)
+            k8s_secret = self.v1_secrets.get(
+                name=f"{self.mas_instance_id}-credentials-superuser",
+                namespace=self.mas_core_namespace,
+            )
             self._mas_superuser_credentials = dict(
                 username=base64.b64decode(k8s_secret.data["username"]).decode("utf-8"),
                 password=base64.b64decode(k8s_secret.data["password"]).decode("utf-8"),
@@ -98,13 +110,16 @@ class MASUserUtils():
     @property
     def admin_internal_tls_secret(self):
         if self._admin_internal_tls_secret is None:
-            self._admin_internal_tls_secret = self.v1_secrets.get(name=f"{self.mas_instance_id}-admindashboard-cert-internal", namespace=self.mas_core_namespace)
+            self._admin_internal_tls_secret = self.v1_secrets.get(
+                name=f"{self.mas_instance_id}-admindashboard-cert-internal",
+                namespace=self.mas_core_namespace,
+            )
         return self._admin_internal_tls_secret
 
     @property
     def admin_internal_ca_pem_file_path(self):
         if self._admin_internal_ca_pem_file_path is None:
-            ca = base64.b64decode(self.admin_internal_tls_secret.data["ca.crt"]).decode('utf-8')
+            ca = base64.b64decode(self.admin_internal_tls_secret.data["ca.crt"]).decode("utf-8")
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as pem_file:
                 pem_file.write(ca.encode())
                 pem_file.flush()
@@ -116,13 +131,16 @@ class MASUserUtils():
     @property
     def core_internal_tls_secret(self):
         if self._core_internal_tls_secret is None:
-            self._core_internal_tls_secret = self.v1_secrets.get(name=f"{self.mas_instance_id}-coreapi-cert-internal", namespace=self.mas_core_namespace)
+            self._core_internal_tls_secret = self.v1_secrets.get(
+                name=f"{self.mas_instance_id}-coreapi-cert-internal",
+                namespace=self.mas_core_namespace,
+            )
         return self._core_internal_tls_secret
 
     @property
     def core_internal_ca_pem_file_path(self):
         if self._core_internal_ca_pem_file_path is None:
-            ca = base64.b64decode(self.core_internal_tls_secret.data["ca.crt"]).decode('utf-8')
+            ca = base64.b64decode(self.core_internal_tls_secret.data["ca.crt"]).decode("utf-8")
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as pem_file:
                 pem_file.write(ca.encode())
                 pem_file.flush()
@@ -136,19 +154,15 @@ class MASUserUtils():
         if self._superuser_auth_token is None:
             self.logger.debug("Getting superuser auth token")
             url = f"{self.mas_admin_url_internal}/logininitial"
-            headers = {
-                "Content-Type": "application/json"
-            }
-            querystring = {
-                "verify": False
-            }
+            headers = {"Content-Type": "application/json"}
+            querystring = {"verify": False}
             payload = self.mas_superuser_credentials
             response = requests.post(
                 url,
                 json=payload,
                 headers=headers,
                 params=querystring,
-                verify=self.admin_internal_ca_pem_file_path
+                verify=self.admin_internal_ca_pem_file_path,
             )
             self._superuser_auth_token = response.json()["token"]
         return self._superuser_auth_token
@@ -156,14 +170,17 @@ class MASUserUtils():
     @property
     def manage_internal_tls_secret(self):
         if self._manage_internal_tls_secret is None:
-            self._manage_internal_tls_secret = self.v1_secrets.get(name=f"{self.mas_instance_id}-internal-manage-tls", namespace=self.manage_namespace)
+            self._manage_internal_tls_secret = self.v1_secrets.get(
+                name=f"{self.mas_instance_id}-internal-manage-tls",
+                namespace=self.manage_namespace,
+            )
         return self._manage_internal_tls_secret
 
     @property
     def manage_internal_client_pem_file_path(self):
         if self._manage_internal_client_pem_file_path is None:
-            cert = base64.b64decode(self.manage_internal_tls_secret.data["tls.crt"]).decode('utf-8')
-            key = base64.b64decode(self.manage_internal_tls_secret.data["tls.key"]).decode('utf-8')
+            cert = base64.b64decode(self.manage_internal_tls_secret.data["tls.crt"]).decode("utf-8")
+            key = base64.b64decode(self.manage_internal_tls_secret.data["tls.key"]).decode("utf-8")
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as pem_file:
                 pem_file.write(key.encode())
                 pem_file.write(cert.encode())
@@ -176,7 +193,7 @@ class MASUserUtils():
     @property
     def manage_internal_ca_pem_file_path(self):
         if self._manage_internal_ca_pem_file_path is None:
-            ca = base64.b64decode(self.manage_internal_tls_secret.data["ca.crt"]).decode('utf-8')
+            ca = base64.b64decode(self.manage_internal_tls_secret.data["ca.crt"]).decode("utf-8")
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as pem_file:
                 pem_file.write(ca.encode())
                 pem_file.flush()
@@ -215,26 +232,23 @@ class MASUserUtils():
         resource_id = None
 
         # For MAS version >= 9.1, use the Manage API masperuser endpoint
-        if Version(self.mas_version) >= Version('9.1'):
-            # Get MAXADMIN API key for authentication
-            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+        if Version(self.mas_version) >= Version("9.1"):
+            # Get MXINTADM API key for authentication
+            mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
 
             # First request: Query to find user and get resource_id from href
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
-            querystring = {
-                "lean": 1,
-                "oslc.where": f"user.userid=\"{user_id}\""
-            }
+            querystring = {"lean": 1, "oslc.where": f'user.userid="{user_id}"'}
             headers = {
                 "Accept": "application/json",
-                "apikey": maxadmin_manage_api_key["apikey"]
+                "apikey": mxintadm_manage_api_key["apikey"],
             }
             response = requests.get(
                 url,
                 headers=headers,
                 params=querystring,
                 cert=self.manage_internal_client_pem_file_path,
-                verify=self.manage_internal_ca_pem_file_path
+                verify=self.manage_internal_ca_pem_file_path,
             )
 
             user_info = response.json()
@@ -245,38 +259,34 @@ class MASUserUtils():
                 # Extract resource_id from href (e.g., "api/os/masperuser/<resource_id>")
                 if href and "/" in href:
                     resource_id = href.split("/")[-1]
-                    self.logger.info(f"Extracted resource_id: {resource_id} from user_info")
+                    self.logger.debug(f"Extracted resource_id: {resource_id} from user_info")
 
             # Second request: Get full user details
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/"
             querystring = {
                 "lean": 1,
-                "oslc.where": f"personid=\"{user_id}\"",
-                "oslc.select": "personid,displayname"
+                "oslc.where": f'personid="{user_id}"',
+                "oslc.select": "personid,displayname",
             }
             headers = {
                 "Accept": "application/json",
-                "apikey": maxadmin_manage_api_key["apikey"]
+                "apikey": mxintadm_manage_api_key["apikey"],
             }
             response = requests.get(
                 url,
                 headers=headers,
                 params=querystring,
                 cert=self.manage_internal_client_pem_file_path,
-                verify=self.manage_internal_ca_pem_file_path
+                verify=self.manage_internal_ca_pem_file_path,
             )
         else:
             # For earlier versions, use the Core API v3/users endpoint
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
             headers = {
                 "Accept": "application/json",
-                "x-access-token": self.superuser_auth_token
+                "x-access-token": self.superuser_auth_token,
             }
-            response = requests.get(
-                url,
-                headers=headers,
-                verify=self.core_internal_ca_pem_file_path
-            )
+            response = requests.get(url, headers=headers, verify=self.core_internal_ca_pem_file_path)
 
         if response.status_code == 404:
             return resource_id, None
@@ -285,7 +295,7 @@ class MASUserUtils():
             raise Exception(f"{response.status_code} {response.text}")
 
         # Handle response based on version
-        if Version(self.mas_version) >= Version('9.1'):
+        if Version(self.mas_version) >= Version("9.1"):
             # Manage API returns member array
             user_data = response.json()
             if "member" in user_data and len(user_data["member"]) > 0:
@@ -323,31 +333,29 @@ class MASUserUtils():
             Exception: If user creation fails with an unexpected status code.
         """
         # Determine the user ID field based on version
-        user_id_field = "personid" if Version(self.mas_version) >= Version('9.1') else "id"
+        user_id_field = "personid" if Version(self.mas_version) >= Version("9.1") else "id"
         user_id = payload[user_id_field]
 
         resource_id, existing_user = self.get_user(user_id)
 
         if existing_user is not None:
             # Log using the appropriate field based on version
-            user_identifier = existing_user.get('personid') or existing_user.get('id')
+            user_identifier = existing_user.get("personid") or existing_user.get("id")
             self.logger.info(f"Existing user {user_identifier} found")
             return resource_id, existing_user
 
         self.logger.info(f"Creating new user {user_id}")
 
         # For MAS version >= 9.1, use the Manage API masapiuser endpoint
-        if Version(self.mas_version) >= Version('9.1'):
-            # Get MAXADMIN API key for authentication
-            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
+        if Version(self.mas_version) >= Version("9.1"):
+            # Get MXINTADM API key for authentication
+            mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
 
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser"
-            querystring = {
-                "lean": 1
-            }
+            querystring = {"lean": 1}
             headers = {
                 "Content-Type": "application/json",
-                "apikey": maxadmin_manage_api_key["apikey"]
+                "apikey": mxintadm_manage_api_key["apikey"],
             }
             self.logger.debug(f"Creating new user {user_id} with Manage API with payload {payload}")
             response = requests.post(
@@ -356,7 +364,7 @@ class MASUserUtils():
                 headers=headers,
                 params=querystring,
                 cert=self.manage_internal_client_pem_file_path,
-                verify=self.manage_internal_ca_pem_file_path
+                verify=self.manage_internal_ca_pem_file_path,
             )
             if response.status_code == 201:
                 # Manage API returns empty response body on success, fetch the user
@@ -379,14 +387,14 @@ class MASUserUtils():
             querystring = {}
             headers = {
                 "Content-Type": "application/json",
-                "x-access-token": self.superuser_auth_token
+                "x-access-token": self.superuser_auth_token,
             }
             response = requests.post(
                 url,
                 json=payload,
                 headers=headers,
                 params=querystring,
-                verify=self.core_internal_ca_pem_file_path
+                verify=self.core_internal_ca_pem_file_path,
             )
             if response.status_code == 201:
                 # For version < 9.1, resource_id is None
@@ -425,23 +433,15 @@ class MASUserUtils():
 
         # Use Manage API to update the user's grpreassignauth
         url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{resource_id}"
-        querystring = {
-            "lean": 1,
-            "ccm": 1
-        }
+        querystring = {"lean": 1, "ccm": 1}
         headers = {
             "Content-Type": "application/json",
             "apikey": manage_api_key["apikey"],
             "x-method-override": "PATCH",
-            "patchtype": "MERGE"
+            "patchtype": "MERGE",
         }
 
-        payload = {
-            "maxuser": {
-                "userid": user_id,
-                "grpreassignauth": groupreassign
-            }
-        }
+        payload = {"maxuser": {"userid": user_id, "grpreassignauth": groupreassign}}
         self.logger.debug(f"Sending PATCH request to {url} with payload: {payload}")
 
         response = requests.post(
@@ -450,7 +450,7 @@ class MASUserUtils():
             headers=headers,
             params=querystring,
             cert=self.manage_internal_client_pem_file_path,
-            verify=self.manage_internal_ca_pem_file_path
+            verify=self.manage_internal_ca_pem_file_path,
         )
 
         if response.status_code in [200, 204]:
@@ -481,13 +481,13 @@ class MASUserUtils():
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
         headers = {
             "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
         response = requests.put(
             url,
             headers=headers,
             json=payload,
-            verify=self.core_internal_ca_pem_file_path
+            verify=self.core_internal_ca_pem_file_path,
         )
 
         if response.status_code == 200:
@@ -516,15 +516,13 @@ class MASUserUtils():
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}"
         headers = {
             "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
         response = requests.patch(
             url,
             headers=headers,
-            json={
-                "displayName": display_name
-            },
-            verify=self.core_internal_ca_pem_file_path
+            json={"displayName": display_name},
+            verify=self.core_internal_ca_pem_file_path,
         )
 
         if response.status_code == 200:
@@ -586,15 +584,12 @@ class MASUserUtils():
             self.logger.info(f"Linking user {user_id} to local IDP using Manage API (version {self.mas_version})")
 
             url = f"{self.manage_api_url_internal}/maximo/api/os/masperuser/{resource_id}"
-            querystring = {
-                "lean": 1,
-                "ccm": 1
-            }
+            querystring = {"lean": 1, "ccm": 1}
             headers = {
                 "Content-Type": "application/json",
                 "apikey": manage_api_key["apikey"],
                 "x-method-override": "PATCH",
-                "patchtype": "MERGE"
+                "patchtype": "MERGE",
             }
 
             payload = {
@@ -607,9 +602,9 @@ class MASUserUtils():
                             "logintype": "0",
                             "idploginid": user_id,
                             "idptype": "local",
-                            "enabled": True
+                            "enabled": True,
                         }
-                    ]
+                    ],
                 }
             }
             self.logger.debug(f"Sending PATCH request to {url} with payload: {payload}")
@@ -620,7 +615,7 @@ class MASUserUtils():
                 headers=headers,
                 params=querystring,
                 cert=self.manage_internal_client_pem_file_path,
-                verify=self.manage_internal_ca_pem_file_path
+                verify=self.manage_internal_ca_pem_file_path,
             )
 
             if response.status_code in [200, 204]:
@@ -642,22 +637,20 @@ class MASUserUtils():
 
             self.logger.info(f"Linking user {user_id} to local IDP using Core API (version {self.mas_version}, email_password: {email_password})")
             url = f"{self.mas_api_url_internal}/v3/users/{user_id}/idps/local"
-            querystring = {
-                "emailPassword": email_password
-            }
+            querystring = {"emailPassword": email_password}
             payload = {
                 "idpUserId": user_id,
             }
             headers = {
                 "Content-Type": "application/json",
-                "x-access-token": self.superuser_auth_token
+                "x-access-token": self.superuser_auth_token,
             }
             response = requests.put(
                 url,
                 json=payload,
                 headers=headers,
                 params=querystring,
-                verify=self.core_internal_ca_pem_file_path
+                verify=self.core_internal_ca_pem_file_path,
             )
             if response.status_code != 200:
                 raise Exception(response.text)
@@ -683,13 +676,9 @@ class MASUserUtils():
         url = f"{self.mas_api_url_internal}/v3/users/{user_id}/workspaces"
         headers = {
             "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
+        response = requests.get(url, headers=headers, verify=self.core_internal_ca_pem_file_path)
 
         if response.status_code == 404:
             raise Exception(f"User {user_id} does not exist")
@@ -726,21 +715,17 @@ class MASUserUtils():
         self.logger.info(f"Adding user {user_id} to {self.mas_workspace_id} (is_workspace_admin: {is_workspace_admin})")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/users/{user_id}"
         querystring = {}
-        payload = {
-            "permissions": {
-                "workspaceAdmin": is_workspace_admin
-            }
-        }
+        payload = {"permissions": {"workspaceAdmin": is_workspace_admin}}
         headers = {
             "Content-Type": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
         response = requests.put(
             url,
             json=payload,
             headers=headers,
             params=querystring,
-            verify=self.core_internal_ca_pem_file_path
+            verify=self.core_internal_ca_pem_file_path,
         )
 
         if response.status_code == 200:
@@ -766,13 +751,9 @@ class MASUserUtils():
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
         headers = {
             "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
+        response = requests.get(url, headers=headers, verify=self.core_internal_ca_pem_file_path)
 
         if response.status_code == 200:
             return response.json()
@@ -810,19 +791,17 @@ class MASUserUtils():
         self.logger.info(f"Setting user {user_id} role for {application_id} to {role}")
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{application_id}/users/{user_id}"
         querystring = {}
-        payload = {
-            "role": role
-        }
+        payload = {"role": role}
         headers = {
             "Content-Type": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
         response = requests.put(
             url,
             json=payload,
             headers=headers,
             params=querystring,
-            verify=self.core_internal_ca_pem_file_path
+            verify=self.core_internal_ca_pem_file_path,
         )
 
         if response.status_code == 200:
@@ -851,11 +830,16 @@ class MASUserUtils():
             Exception: If sync doesn't complete within the timeout period.
         """
         t_end = time.time() + timeout_secs
-        self.logger.info(f"Awaiting user {user_id} sync status \"SUCCESS\" for app {application_id}: {t_end - time.time():.2f} seconds remaining")
+        self.logger.info(f'Awaiting user {user_id} sync status "SUCCESS" for app {application_id}: {t_end - time.time():.2f} seconds remaining')
         while time.time() < t_end:
             resource_id, user = self.get_user(user_id)
 
-            if "applications" not in user or application_id not in user["applications"] or "sync" not in user["applications"][application_id] or "state" not in user["applications"][application_id]["sync"]:
+            if (
+                "applications" not in user
+                or application_id not in user["applications"]
+                or "sync" not in user["applications"][application_id]
+                or "state" not in user["applications"][application_id]["sync"]
+            ):
                 self.logger.warning(f"User {user_id} does not have any sync state for application {application_id}, triggering resync")
                 self.resync_users([user_id])
                 time.sleep(retry_interval_secs)
@@ -868,7 +852,9 @@ class MASUserUtils():
                     self.resync_users([user_id])
                     time.sleep(retry_interval_secs)
                 else:
-                    self.logger.info(f"User {user_id} sync has not been completed yet for app {application_id} (currrently {sync_state}): {t_end - time.time():.2f} seconds remaining")
+                    self.logger.info(
+                        f"User {user_id} sync has not been completed yet for app {application_id} (currrently {sync_state}): {t_end - time.time():.2f} seconds remaining"
+                    )
                 time.sleep(retry_interval_secs)
         raise Exception(f"User {user_id} sync failed to complete for app within {timeout_secs} seconds")
 
@@ -902,7 +888,7 @@ class MASUserUtils():
             resource_id, user = self.get_user(user_id)
             # For version >= 9.1, Manage API uses "displayname" (lowercase)
             # For version < 9.1, Core API uses "displayName" (camelCase)
-            display_name = user.get("displayname") if Version(self.mas_version) >= Version('9.1') else user.get("displayName")
+            display_name = user.get("displayname") if Version(self.mas_version) >= Version("9.1") else user.get("displayName")
             if display_name:
                 self.update_user_display_name(user_id, display_name)
 
@@ -932,10 +918,7 @@ class MASUserUtils():
             "lean": 1,
         }
 
-        payload = {
-            "expiration": -1,
-            "userid": user_id
-        }
+        payload = {"expiration": -1, "userid": user_id}
         headers = {
             "Content-Type": "application/json",
         }
@@ -957,7 +940,7 @@ class MASUserUtils():
 
             if "Error" in error_json and "reasonCode" in error_json["Error"] and error_json["Error"]["reasonCode"] == "BMXAA10051E":
                 # BMXAA10051E - Only one API key allowed per user.
-                self.logger.info(f"Reusing existing Manage API Key for user {user_id}")
+                self.logger.debug(f"Reusing existing Manage API Key for user {user_id}")
                 pass
             else:
                 # any other 400 error is unexpected
@@ -1000,7 +983,7 @@ class MASUserUtils():
             "ccm": 1,
             "lean": 1,
             "oslc.select": "*",
-            "oslc.where": f"userid=\"{user_id}\"",
+            "oslc.where": f'userid="{user_id}"',
         }
         headers = {
             "Accept": "application/json",
@@ -1011,7 +994,7 @@ class MASUserUtils():
             headers=headers,
             params=querystring,
             verify=self.manage_internal_ca_pem_file_path,
-            cert=self.manage_internal_client_pem_file_path
+            cert=self.manage_internal_client_pem_file_path,
         )
 
         if response.status_code == 200:
@@ -1040,7 +1023,7 @@ class MASUserUtils():
         self.logger.info(f"Deleting Manage API Key for user {manage_api_key['userid']}")
 
         # extract the apikey's identifier from the href
-        match = re.search(r'\/maximo\/api\/os\/mxapiapikey\/(.*)', manage_api_key['href'])
+        match = re.search(r"\/maximo\/api\/os\/mxapiapikey\/(.*)", manage_api_key["href"])
         if match is None:
             raise Exception(f"Could not parse API Key href: {manage_api_key['href']}")
 
@@ -1085,7 +1068,7 @@ class MASUserUtils():
             "ccm": 1,
             "lean": 1,
             "oslc.select": "maxgroupid",
-            "oslc.where": f"groupname=\"{group_name}\"",
+            "oslc.where": f'groupname="{group_name}"',
         }
         headers = {
             "Accept": "application/json",
@@ -1103,7 +1086,7 @@ class MASUserUtils():
         json = response.json()
 
         if "member" in json and len(json["member"]) > 0 and "maxgroupid" in json["member"][0]:
-            return json["member"][0]['maxgroupid']
+            return json["member"][0]["maxgroupid"]
 
         return None
 
@@ -1132,7 +1115,7 @@ class MASUserUtils():
         url = f"{self.manage_api_url_internal}/maximo/api/os/mxapigroup/{group_id}/groupuser"
         querystring = {
             "lean": 1,
-            "oslc.where": f"userid=\"{user_id}\"",
+            "oslc.where": f'userid="{user_id}"',
         }
         headers = {
             "Accept": "application/json",
@@ -1190,13 +1173,7 @@ class MASUserUtils():
             "patchtype": "MERGE",
             "apikey": manage_api_key["apikey"],  # <--- careful, don't log headers as-is (apikey is sensitive)
         }
-        payload = {
-            "groupuser": [
-                {
-                    "userid": f"{user_id}"
-                }
-            ]
-        }
+        payload = {"groupuser": [{"userid": f"{user_id}"}]}
         response = requests.post(
             url,
             headers=headers,
@@ -1239,7 +1216,7 @@ class MASUserUtils():
             params=querystring,
             # verify=self.manage_internal_ca_pem_file_path,
             cert=self.manage_internal_client_pem_file_path,
-            verify=self.manage_internal_ca_pem_file_path
+            verify=self.manage_internal_ca_pem_file_path,
         )
 
         if response.status_code != 200:
@@ -1269,13 +1246,9 @@ class MASUserUtils():
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications"
         headers = {
             "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
+        response = requests.get(url, headers=headers, verify=self.core_internal_ca_pem_file_path)
         if response.status_code == 200:
             return response.json()
         raise Exception(f"{response.status_code} {response.text}")
@@ -1297,13 +1270,9 @@ class MASUserUtils():
         url = f"{self.mas_api_url_internal}/workspaces/{self.mas_workspace_id}/applications/{mas_application_id}"
         headers = {
             "Accept": "application/json",
-            "x-access-token": self.superuser_auth_token
+            "x-access-token": self.superuser_auth_token,
         }
-        response = requests.get(
-            url,
-            headers=headers,
-            verify=self.core_internal_ca_pem_file_path
-        )
+        response = requests.get(url, headers=headers, verify=self.core_internal_ca_pem_file_path)
         if response.status_code == 200:
             return response.json()
         raise Exception(f"{response.status_code} {response.text}")
@@ -1332,7 +1301,9 @@ class MASUserUtils():
             if "available" in app and "ready" in app and app["ready"] and app["available"]:
                 return
             else:
-                self.logger.info(f"{mas_application_id} is not ready or available, retry in {retry_interval_secs} seconds: {t_end - time.time():.2f} seconds remaining")
+                self.logger.info(
+                    f"{mas_application_id} is not ready or available, retry in {retry_interval_secs} seconds: {t_end - time.time():.2f} seconds remaining"
+                )
                 time.sleep(retry_interval_secs)
         raise Exception(f"{mas_application_id} did not become ready and available in time, aborting")
 
@@ -1356,7 +1327,7 @@ class MASUserUtils():
         """
         primary = []
         secondary = []
-        for (email, csv) in secret_json.items():
+        for email, csv in secret_json.items():
             values = csv.split(",")
 
             if len(values) != 3 and len(values) != 4:
@@ -1375,7 +1346,7 @@ class MASUserUtils():
                 "email": email,
                 "given_name": given_name,
                 "family_name": family_name,
-                "id": id
+                "id": id,
             }
             if user_type == "primary":
                 primary.append(user)
@@ -1384,12 +1355,7 @@ class MASUserUtils():
             else:
                 raise Exception(f"Unknown user type for {email}: {user_type}")
 
-        initial_users = {
-            "users": {
-                "primary": primary,
-                "secondary": secondary
-            }
-        }
+        initial_users = {"users": {"primary": primary, "secondary": secondary}}
         return initial_users
 
     def create_initial_users_for_saas(self, initial_users):
@@ -1472,29 +1438,18 @@ class MASUserUtils():
                 failed.append(secondary_user)
             self.logger.info("")
 
-        return {
-            "completed": completed,
-            "failed": failed
-        }
+        return {"completed": completed, "failed": failed}
 
     def create_initial_user_for_saas(self, user, user_type, groupreassign=None):
         """
-        Create and fully configure a single initial user for SaaS.
-
-        This method performs the complete user setup workflow:
-        1. Creates the user in MAS Core with appropriate permissions and entitlements
-        2. Links the user to the local identity provider
-        3. Adds the user to the workspace
-        4. Sets application-specific roles
-        5. Waits for user sync to complete across all applications
-        6. Adds user to Manage security groups (if applicable)
+        Create and fully configure a single initial user for MAS SaaS.
 
         Args:
             user (dict): User definition containing:
-                        - email (str, required): User's email address
-                        - given_name (str, required): User's first name
-                        - family_name (str, required): User's last name
-                        - id (str, optional): User ID (defaults to email)
+                - email (str, required): User's email address
+                - given_name (str, required): User's first name
+                - family_name (str, required): User's last name
+                - id (str, optional): User ID (defaults to email)
             user_type (str): Either "PRIMARY" or "SECONDARY" to determine permissions level.
 
         Returns:
@@ -1504,29 +1459,10 @@ class MASUserUtils():
             Exception: If required fields are missing or user creation fails.
 
         Note:
-            For version < 9.1,
-            PRIMARY users get:
-            - userAdmin permission
-            - PREMIUM application entitlement
-            - Workspace admin access
-            - ADMIN role for most apps, MANAGEUSER for Manage
-            - MAXADMIN security group membership
+            Appropriate user creation procedure is chosen based on MAS version.
 
-            For version >= 9.1,
-            PRIMARY users get:
-            - apikeyAdmin permission (API Key Management)
-            - idpAdmin permission (IDP Management)
-            - Regular workspace access (not workspace admin)
-            - USERMANAGEMENT security group membership
-            - Group reassignment authorization for ALL security groups
-
-            SECONDARY users get:
-            - No admin permissions
-            - BASE application entitlement
-            - Regular workspace access
-            - USER role for most apps, MANAGEUSER for Manage
-            - No security group memberships
         """
+
         if "email" not in user:
             raise Exception("'email' not found in at least one of the user defs")
         if "given_name" not in user:
@@ -1544,159 +1480,241 @@ class MASUserUtils():
             # default to email if no id provided
             user_id = user_email
 
+        if Version(self.mas_version) < Version("9.1"):
+            self.create_initial_user_for_saas_pre_9_1(user_email, user_given_name, user_family_name, user_id, user_type)
+        else:
+            self.create_initial_user_for_saas_post_9_1(
+                user_email,
+                user_given_name,
+                user_family_name,
+                user_id,
+                user_type,
+                groupreassign,
+            )
+
+    def create_initial_user_for_saas_pre_9_1(self, user_email, user_given_name, user_family_name, user_id, user_type):
+        """
+        Create and fully configure a single initial user for MAS SaaS pre 9.1 using the Core APIs
+
+        This method performs the complete user setup workflow:
+        1. Creates the user in MAS Core with appropriate permissions and entitlements
+        2. Links the user to the local identity provider
+        3. Adds the user to the workspace
+        4. Sets application-specific roles
+        5. Waits for user sync to complete across all applications
+        6. Adds user to Manage security groups (if applicable)
+
+        Args:
+            user_email (str, required): User's email address
+            user_given_name (str, required): User's first name
+            user_family_name (str, required): User's last name
+            user_id (str, required): User ID
+            user_type (str): Either "PRIMARY" or "SECONDARY" to determine permissions level.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If required fields are missing or user creation fails.
+
+        Note:
+            For MAS < 9.1,
+            PRIMARY users get:
+            - userAdmin permission
+            - PREMIUM application entitlement
+            - Workspace admin access
+            - ADMIN role for most apps, MANAGEUSER for Manage
+            - MAXADMIN security group membership
+
+        """
+
         username = user_id
         # display_name = re.search('^([^@]+)@', user_email).group(1) # local part of the email
         display_name = f"{user_given_name} {user_family_name}"
 
         # Set user permissions and entitlements based on requested user_type
-        if Version(self.mas_version) < Version('9.1'):
-            if user_type == "PRIMARY":
-                permissions = {
-                    "systemAdmin": False,
-                    "userAdmin": True,
-                    "apikeyAdmin": False
-                }
-                entitlement = {
-                    "application": "PREMIUM",
-                    "admin": "ADMIN_BASE",
-                    "alwaysReserveLicense": True
-                }
-                is_workspace_admin = True
-                application_role = "ADMIN"
-                facilities_role = "PREMIUM"
-                manage_role = "MANAGEUSER"
-                manage_security_groups = ["MAXADMIN"]
-            elif user_type == "SECONDARY":
-                permissions = {
-                    "systemAdmin": False,
-                    "userAdmin": False,
-                    "apikeyAdmin": False
-                }
-                entitlement = {
-                    "application": "BASE",
-                    "admin": "NONE",
-                    "alwaysReserveLicense": True
-                }
-                is_workspace_admin = False
-                application_role = "USER"
-                facilities_role = "BASE"
-                manage_role = "MANAGEUSER"
-                # TODO: check which security groups secondary users should be members of
-                manage_security_groups = []
-            else:
-                raise Exception(f"Unsupported user_type: {user_type}")
-
-            user_def = {
-                "id": user_id,
-                "status": {"active": True},
-                "username": username,
-                "owner": "local",
-                "emails": [
-                    {
-                        "value": user_email,
-                        "type": "Work",
-                        "primary": True
-                    }
-                ],
-                "phoneNumbers": [],
-                "addresses": [],
-                "displayName": display_name,
-                "issuer": "local",
-                "permissions": permissions,
-                "entitlement": entitlement,
-                "givenName": user_given_name,
-                "familyName": user_family_name,
-
+        if user_type == "PRIMARY":
+            permissions = {
+                "systemAdmin": False,
+                "userAdmin": True,
+                "apikeyAdmin": False,
             }
+            entitlement = {
+                "application": "PREMIUM",
+                "admin": "ADMIN_BASE",
+                "alwaysReserveLicense": True,
+            }
+            is_workspace_admin = True
+            application_role = "ADMIN"
+            facilities_role = "PREMIUM"
+            manage_role = "MANAGEUSER"
+            manage_security_groups = ["MAXADMIN"]
+        elif user_type == "SECONDARY":
+            permissions = {
+                "systemAdmin": False,
+                "userAdmin": False,
+                "apikeyAdmin": False,
+            }
+            entitlement = {
+                "application": "BASE",
+                "admin": "NONE",
+                "alwaysReserveLicense": True,
+            }
+            is_workspace_admin = False
+            application_role = "USER"
+            facilities_role = "BASE"
+            manage_role = "MANAGEUSER"
+            # TODO: check which security groups secondary users should be members of
+            manage_security_groups = []
         else:
-            if user_type == "PRIMARY":
-                maxuser_def = {
-                    "userid": user_id,
-                    "personid": user_id,
-                    "loginid": user_id,
-                    "owner": "local",
-                    "systemadmin": False,
-                    "apikeyadmin": True,
-                    "isauthorized": 1,
-                    "idpadmin": True,
-                    "status": "ACTIVE",
-                    "groupuser": [
-                        {
-                            "groupname": "USERMANAGEMENT"
-                        }
-                    ]
-                }
-                is_workspace_admin = True
-                application_role = "ADMIN"
-                facilities_role = "PREMIUM"
-                manage_role = "MANAGEUSER"
-                manage_security_groups = ["USERMANAGEMENT"]
-            elif user_type == "SECONDARY":
-                maxuser_def = {
-                    "userid": user_id,
-                    "personid": user_id,
-                    "loginid": user_id,
-                    "owner": "local",
-                    "systemadmin": False,
-                    "apikeyadmin": False,
-                    "isauthorized": 0,
-                    "idpadmin": False,
-                    "status": "ACTIVE"
-                }
-                is_workspace_admin = False
-                application_role = "USER"
-                facilities_role = "BASE"
-                manage_role = "MANAGEUSER"
-                manage_security_groups = []
-            else:
-                raise Exception(f"Unsupported user_type: {user_type}")
+            raise Exception(f"Unsupported user_type: {user_type}")
 
-            user_def = {
+        user_def = {
+            "id": user_id,
+            "status": {"active": True},
+            "username": username,
+            "owner": "local",
+            "emails": [{"value": user_email, "type": "Work", "primary": True}],
+            "phoneNumbers": [],
+            "addresses": [],
+            "displayName": display_name,
+            "issuer": "local",
+            "permissions": permissions,
+            "entitlement": entitlement,
+            "givenName": user_given_name,
+            "familyName": user_family_name,
+        }
+
+        self.get_or_create_user(user_def)
+
+        # For version < 9.1, link user to local IDP first, then create API key only if needed for manage_security_groups
+
+        # For version < 9.1, link user to local IDP without manage_api_key and resource_id
+        self.link_user_to_local_idp(user_id, email_password=True)
+
+        # For version < 9.1, add user to workspace and grant necessary permissions
+        self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
+
+        for mas_application_id in self.mas_workspace_application_ids:
+            self.await_mas_application_availability(mas_application_id)
+            if mas_application_id == "manage":
+                role = manage_role
+            elif mas_application_id == "facilities":
+                role = facilities_role
+            else:
+                # otherwise grant the user the appropriate role for their user_type
+                role = application_role
+            self.set_user_application_permission(user_id, mas_application_id, role)
+
+        for mas_application_id in self.mas_workspace_application_ids:
+            self.check_user_sync(user_id, mas_application_id)
+
+        if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
+            mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
+            for manage_security_group in manage_security_groups:
+                self.add_user_to_manage_group(user_id, manage_security_group, mxintadm_manage_api_key)
+
+    def create_initial_user_for_saas_post_9_1(
+        self,
+        user_email,
+        user_given_name,
+        user_family_name,
+        user_id,
+        user_type,
+        groupreassign=None,
+    ):
+        """
+        Create and fully configure a single initial user for MAS SaaS post 9.1 using the Manage APIs
+
+        Args:
+            user_email (str, required): User's email address
+            user_given_name (str, required): User's first name
+            user_family_name (str, required): User's last name
+            user_id (str, required): User ID
+            user_type (str): Either "PRIMARY" or "SECONDARY" to determine permissions level.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If required fields are missing or user creation fails.
+
+
+        Notes:
+            For MAS >= 9.1,
+
+            PRIMARY users get:
+            - apikeyAdmin permission (API Key Management)
+            - idpAdmin permission (IDP Management)
+            - Regular workspace access (not workspace admin)
+            - USERMANAGEMENT security group membership
+            - Group reassignment authorization for ALL security groups
+
+            SECONDARY users get:
+            - No admin permissions
+            - BASE application entitlement
+            - Regular workspace access
+            - USER role for most apps, MANAGEUSER for Manage
+            - No security group memberships
+        """
+
+        # display_name = re.search('^([^@]+)@', user_email).group(1) # local part of the email
+        display_name = f"{user_given_name} {user_family_name}"
+
+        if user_type == "PRIMARY":
+            maxuser_def = {
+                "userid": user_id,
                 "personid": user_id,
-                "primaryemailtype": "Work",
-                "primaryemail": user_email,
-                "primaryphone": "",
-                "addressline1": "",
-                "displayName": display_name,
-                "maxuser": maxuser_def,
+                "loginid": user_id,
+                "owner": "local",
+                "systemadmin": False,
+                "apikeyadmin": True,
+                "isauthorized": 1,
+                "idpadmin": True,
+                "status": "ACTIVE",
+                "groupuser": [{"groupname": "USERMANAGEMENT"}],
             }
+            manage_security_groups = ["USERMANAGEMENT"]
+        elif user_type == "SECONDARY":
+            maxuser_def = {
+                "userid": user_id,
+                "personid": user_id,
+                "loginid": user_id,
+                "owner": "local",
+                "systemadmin": False,
+                "apikeyadmin": False,
+                "isauthorized": 0,
+                "idpadmin": False,
+                "status": "ACTIVE",
+            }
+            manage_security_groups = []
+        else:
+            raise Exception(f"Unsupported user_type: {user_type}")
+
+        user_def = {
+            "personid": user_id,
+            "primaryemailtype": "Work",
+            "primaryemail": user_email,
+            "primaryphone": "",
+            "addressline1": "",
+            "displayName": display_name,
+            "maxuser": maxuser_def,
+        }
 
         resource_id, _ = self.get_or_create_user(user_def)
 
         # For version >= 9.1, we always need a Manage API key and resource_id to link user to local IDP
-        # For version < 9.1, link user to local IDP first, then create API key only if needed for manage_security_groups
-        maxadmin_manage_api_key = None
-        if Version(self.mas_version) >= Version('9.1'):
-            maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
-            self.link_user_to_local_idp(user_id, email_password=True, manage_api_key=maxadmin_manage_api_key, resource_id=resource_id)
-        else:
-            # For version < 9.1, link user to local IDP without manage_api_key and resource_id
-            self.link_user_to_local_idp(user_id, email_password=True)
-
-        self.add_user_to_workspace(user_id, is_workspace_admin=is_workspace_admin)
-
-        if Version(self.mas_version) < Version('9.1'):
-            for mas_application_id in self.mas_workspace_application_ids:
-                self.await_mas_application_availability(mas_application_id)
-                if mas_application_id == "manage":
-                    role = manage_role
-                elif mas_application_id == "facilities":
-                    role = facilities_role
-                else:
-                    # otherwise grant the user the appropriate role for their user_type
-                    role = application_role
-                self.set_user_application_permission(user_id, mas_application_id, role)
-
-            for mas_application_id in self.mas_workspace_application_ids:
-                self.check_user_sync(user_id, mas_application_id)
+        mxintadm_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MXINTADM, temporary=True)
+        self.link_user_to_local_idp(
+            user_id,
+            email_password=True,
+            manage_api_key=mxintadm_manage_api_key,
+            resource_id=resource_id,
+        )
 
         if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
-            if Version(self.mas_version) < Version('9.1'):
-                maxadmin_manage_api_key = self.create_or_get_manage_api_key_for_user(MASUserUtils.MAXADMIN, temporary=True)
-                for manage_security_group in manage_security_groups:
-                    self.add_user_to_manage_group(user_id, manage_security_group, maxadmin_manage_api_key)
-            elif Version(self.mas_version) >= Version('9.1') and user_type == "PRIMARY" and groupreassign is not None:
-                if resource_id and maxadmin_manage_api_key:
-                    self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, maxadmin_manage_api_key)
+            if user_type == "PRIMARY" and groupreassign is not None:
+                if resource_id and mxintadm_manage_api_key:
+                    self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, mxintadm_manage_api_key)
                 else:
                     self.logger.warning(f"Cannot set group reassignment auth: resource_id not found for user {user_id}")

@@ -32,11 +32,14 @@ def test_list_catalogs():
 def test_get_newest_catalog_tag():
     catalogTag = getNewestCatalogTag("amd64")
     # Reminder: update this test when adding a new catalog each month!
-    assert catalogTag == "v9-260625-amd64"
+    assert catalogTag == "v9-260730-amd64"
 
 
 def test_get_newest_catalog_tag_fail():
-    with pytest.raises(NoSuchCatalogError, match="There are no known catalogs for the doesntexist platform"):
+    with pytest.raises(
+        NoSuchCatalogError,
+        match="There are no known catalogs for the doesntexist platform",
+    ):
         getNewestCatalogTag("doesntexist")
 
 
