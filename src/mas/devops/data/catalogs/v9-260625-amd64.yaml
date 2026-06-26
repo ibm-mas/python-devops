@@ -110,6 +110,10 @@ dd_version: 1.1.23              # No Update
 # https://github.com/opendatahub-io/opendatahub-operator/releases
 odh_version: 2.32.0
 
+# Extra Images for Redis (Collaborate)
+# ------------------------------------------------------------------------------
+redis_extras_version: 2.1.40             # No Update
+
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -202,9 +206,8 @@ editorial:
   - title: New feature release
     details:
     - IBM Maximo Application Suite Core Platform [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
-    - IBM Maximo Manage [v9.2.0](https://supportcontent.ibm.com/support/pages/node/7276377)
-    - IBM Maximo IoT [v9.2.0](https://www.ibm.com/support/pages/node/7277132)
-    - IBM Maximo Monitor [v9.2.0](https://www.ibm.com/support/pages/node/7277101)
+    - IBM Maximo Manage [v9.2.0](https://www.ibm.com/support/pages/node/7276377)
+    - IBM Maximo Monitor/IoT [v9.2.0](https://www.ibm.com/support/pages/node/7277101)
     - IBM Maximo Optimizer [v9.2.0](https://www.ibm.com/support/pages/node/7276586)
     - IBM Maximo Predict [v9.2.0](https://www.ibm.com/support/pages/node/7275237)
     - IBM Maximo Visual Inspection [v9.2.0](https://www.ibm.com/support/pages/node/7277289)
@@ -221,7 +224,7 @@ editorial:
     - IBM Maximo Optimizer [v9.0.24](https://www.ibm.com/support/pages/node/7276568) and [v9.1.13](https://www.ibm.com/support/pages/node/7276570)
     - IBM Maximo Assist/Collaborate [v9.0.18](https://www.ibm.com/support/pages/node/7273929), [v9.1.12](https://www.ibm.com/support/pages/node/7273930)
     - IBM Maximo Predict [v9.0.16](https://www.ibm.com/support/pages/node/7276914) and [v9.1.9](https://www.ibm.com/support/pages/node/7276913)
-    - IBM Maximo Visual Inspection [v9.0.21](https://www.ibm.com/support/pages/node/7277291) and [v9.1.18:] (https://www.ibm.com/support/pages/node/7277891)
+    - IBM Maximo Visual Inspection [v9.0.21](https://www.ibm.com/support/pages/node/7277291) and [v9.1.18](https://www.ibm.com/support/pages/node/7277891)
     - IBM Maximo Real Estate and Facilities [v9.1.12](https://www.ibm.com/support/pages/node/7276768)
     - IBM Maximo AI Service [v9.1.16](https://www.ibm.com/support/pages/node/7276604)
     - IBM Truststore Manager v1.7
