@@ -9,9 +9,11 @@
 # *****************************************************************************
 
 import os
+from unittest.mock import call
+from unittest.mock import patch
+
 import pytest
 import yaml
-
 
 from mas.devops import db2
 
@@ -68,58 +70,55 @@ def test_check_db_cfgs_no_databases():
         db2.check_db_cfgs(dict(spec=dict(environment=dict())), None, None, None)
 
 
-def test_check_db_cfg_no_dbConfig(mocker):
-    mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
-    assert db2.check_db_cfg(dict(name="a"), None, None, None) == []
+def test_check_db_cfg_no_dbConfig():
+    with patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg"):
+        assert db2.check_db_cfg(dict(name="a"), None, None, None) == []
 
 
-def test_check_db_cfg_empty_dbConfig(mocker):
-    mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
-    assert db2.check_db_cfg(dict(name="a", dbConfig=[]), None, None, None) == []
+def test_check_db_cfg_empty_dbConfig():
+    with patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg"):
+        assert db2.check_db_cfg(dict(name="a", dbConfig=[]), None, None, None) == []
 
 
-def test_check_db_cfgs(mocker):
+def test_check_db_cfgs():
     """
     Verifies that check_db_cfg function is called for each db in list
     """
 
-    mock_CoreV1Api = mocker.patch("kubernetes.client.CoreV1Api")
-    mock_core_v1_api = mock_CoreV1Api.return_value
+    with patch("kubernetes.client.CoreV1Api") as mock_CoreV1Api, patch("mas.devops.db2.check_db_cfg") as mock_check_db_cfg:
+        mock_core_v1_api = mock_CoreV1Api.return_value
 
-    mock_check_db_cfg = mocker.patch("mas.devops.db2.check_db_cfg")
-
-    db2.check_db_cfgs(
-        dict(spec=dict(environment=dict(databases=[dict(name="a"), dict(name="b")]))),
-        mock_core_v1_api,
-        "mas_instance_id",
-        "mas_app_id",
-    )
+        db2.check_db_cfgs(
+            dict(spec=dict(environment=dict(databases=[dict(name="a"), dict(name="b")]))),
+            mock_core_v1_api,
+            "mas_instance_id",
+            "mas_app_id",
+        )
 
     assert mock_check_db_cfg.call_args_list == [
-        mocker.call(dict(name="a"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"),
-        mocker.call(dict(name="b"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"),
+        call(dict(name="a"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"),
+        call(dict(name="b"), mock_core_v1_api, "mas_instance_id", "mas_app_id", "primary"),
     ]
 
 
-def test_check_db_cfg(mocker):
-
-    mock_db2_pod_exec_db2_get_db_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
-    mock_db2_pod_exec_db2_get_db_cfg.return_value = """
+def test_check_db_cfg():
+    with patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg") as mock_db2_pod_exec_db2_get_db_cfg:
+        mock_db2_pod_exec_db2_get_db_cfg.return_value = """
     Default application heap (4KB)             (APPLHEAPSZ) = AUTOMATIC(8192)
     Changed pages threshold                (CHNGPGS_THRESH) = 80
   """
-    db_name = "MYDB"
-    db = dict(
-        name=db_name,
-        dbConfig=dict(APPLHEAPSZ="8192 AUTOMATIC", NOTFOUNDINOUTPUT="XXX", CHNGPGS_THRESH="40"),
-    )
+        db_name = "MYDB"
+        db = dict(
+            name=db_name,
+            dbConfig=dict(APPLHEAPSZ="8192 AUTOMATIC", NOTFOUNDINOUTPUT="XXX", CHNGPGS_THRESH="40"),
+        )
 
-    assert set(db2.check_db_cfg(db, None, None, None)) == set(
-        [
-            f"[db cfg for {db_name}] NOTFOUNDINOUTPUT not found in output of db2 get db cfg command",
-            f"[db cfg for {db_name}] CHNGPGS_THRESH: 40 != 80",
-        ]
-    )
+        assert set(db2.check_db_cfg(db, None, None, None)) == set(
+            [
+                f"[db cfg for {db_name}] NOTFOUNDINOUTPUT not found in output of db2 get db cfg command",
+                f"[db cfg for {db_name}] CHNGPGS_THRESH: 40 != 80",
+            ]
+        )
 
 
 def test_check_dbm_cfg_no_spec():
@@ -147,32 +146,31 @@ def test_check_dbm_cfg_empty_dbmConfig():
     assert db2.check_dbm_cfg(db2_instance_cr, None, None, None) == []
 
 
-def test_check_dbm_cfg(mocker):
-
-    mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg")
-    mock_db2_pod_exec_db2_get_dbm_cfg.return_value = """
+def test_check_dbm_cfg():
+    with patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg") as mock_db2_pod_exec_db2_get_dbm_cfg:
+        mock_db2_pod_exec_db2_get_dbm_cfg.return_value = """
     Agent stack size                       (AGENT_STACK_SZ) = 1024
   """
 
-    db2_instance_cr = dict(
-        spec=dict(
-            environment=dict(
-                instance=dict(
-                    dbmConfig=dict(
-                        AGENT_STACK_SZ="2048",
-                        NOTFOUNDINOUTPUT="XXX",
+        db2_instance_cr = dict(
+            spec=dict(
+                environment=dict(
+                    instance=dict(
+                        dbmConfig=dict(
+                            AGENT_STACK_SZ="2048",
+                            NOTFOUNDINOUTPUT="XXX",
+                        )
                     )
                 )
             )
         )
-    )
 
-    assert set(db2.check_dbm_cfg(db2_instance_cr, None, None, None)) == set(
-        [
-            "[dbm cfg] NOTFOUNDINOUTPUT not found in output of db2 get dbm cfg command",
-            "[dbm cfg] AGENT_STACK_SZ: 2048 != 1024",
-        ]
-    )
+        assert set(db2.check_dbm_cfg(db2_instance_cr, None, None, None)) == set(
+            [
+                "[dbm cfg] NOTFOUNDINOUTPUT not found in output of db2 get dbm cfg command",
+                "[dbm cfg] AGENT_STACK_SZ: 2048 != 1024",
+            ]
+        )
 
 
 def test_check_reg_cfg_no_spec():
@@ -200,59 +198,57 @@ def test_check_reg_cfg_empty_registry():
     assert db2.check_reg_cfg(db2_instance_cr, None, None, None) == []
 
 
-def test_check_reg_cfg(mocker):
-
-    mock_db2_pod_exec_db2set = mocker.patch("mas.devops.db2.db2_pod_exec_db2set")
-    mock_db2_pod_exec_db2set.return_value = """
+def test_check_reg_cfg():
+    with patch("mas.devops.db2.db2_pod_exec_db2set") as mock_db2_pod_exec_db2set:
+        mock_db2_pod_exec_db2set.return_value = """
     DB2AUTH=OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD
     DB2_FMP_COMM_HEAPSZ=65536 [O]
   """
 
-    db2_instance_cr = dict(
-        spec=dict(
-            environment=dict(
-                instance=dict(
-                    registry=dict(
-                        DB2AUTH="WRONG",
-                        NOTFOUNDINOUTPUT="XXX",
+        db2_instance_cr = dict(
+            spec=dict(
+                environment=dict(
+                    instance=dict(
+                        registry=dict(
+                            DB2AUTH="WRONG",
+                            NOTFOUNDINOUTPUT="XXX",
+                        )
                     )
                 )
             )
         )
-    )
 
-    assert set(db2.check_reg_cfg(db2_instance_cr, None, None, None)) == set(
-        [
-            "[registry cfg] NOTFOUNDINOUTPUT not found in output of db2set command",
-            "[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD",
-        ]
-    )
+        assert set(db2.check_reg_cfg(db2_instance_cr, None, None, None)) == set(
+            [
+                "[registry cfg] NOTFOUNDINOUTPUT not found in output of db2set command",
+                "[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD",
+            ]
+        )
 
 
-def test_check_reg_cfg_with_empty_value_in_cr(mocker):
-
-    mock_db2_pod_exec_db2set = mocker.patch("mas.devops.db2.db2_pod_exec_db2set")
-    mock_db2_pod_exec_db2set.return_value = """
+def test_check_reg_cfg_with_empty_value_in_cr():
+    with patch("mas.devops.db2.db2_pod_exec_db2set") as mock_db2_pod_exec_db2set:
+        mock_db2_pod_exec_db2set.return_value = """
     DB2AUTH=OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD
     DB2_FMP_COMM_HEAPSZ=65536 [O]
   """
 
-    db2_instance_cr = dict(
-        spec=dict(
-            environment=dict(
-                instance=dict(
-                    registry=dict(
-                        DB2AUTH="WRONG",
-                        NOTFOUNDINOUTPUT="",
+        db2_instance_cr = dict(
+            spec=dict(
+                environment=dict(
+                    instance=dict(
+                        registry=dict(
+                            DB2AUTH="WRONG",
+                            NOTFOUNDINOUTPUT="",
+                        )
                     )
                 )
             )
         )
-    )
 
-    assert set(db2.check_reg_cfg(db2_instance_cr, None, None, None)) == set(
-        ["[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"]
-    )
+        assert set(db2.check_reg_cfg(db2_instance_cr, None, None, None)) == set(
+            ["[registry cfg] DB2AUTH: WRONG != OSAUTHDB,ALLOW_LOCAL_FALLBACK,PLUGIN_AUTO_RELOAD"]
+        )
 
 
 @pytest.mark.parametrize(
@@ -311,7 +307,7 @@ def test_check_reg_cfg_with_empty_value_in_cr(mocker):
         ),
     ],
 )
-def test_validate_db2_config(test_case_name, expected_failures, mocker):
+def test_validate_db2_config(test_case_name, expected_failures):
     """
     Each test case corresponds to a folder under test/test_cases.
     Each folder must contain a file db2uinstance.yaml and optionally db2getdbcfg.txt, db2getdbmcfg.txt and db2set.txt.
@@ -319,54 +315,56 @@ def test_validate_db2_config(test_case_name, expected_failures, mocker):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    mock_get_db2u_instance_cr = mocker.patch("mas.devops.db2.get_db2u_instance_cr")
-    with open(
-        os.path.join(current_dir, "..", "test_cases", test_case_name, "db2uinstance.yaml"),
-        "r",
-    ) as f:
-        mock_get_db2u_instance_cr.return_value = yaml.load(f, Loader=yaml.FullLoader)
-
-    mock_db2_pod_exec_db2_get_db_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg")
-    try:
+    with (
+        patch("mas.devops.db2.get_db2u_instance_cr") as mock_get_db2u_instance_cr,
+        patch("mas.devops.db2.db2_pod_exec_db2_get_db_cfg") as mock_db2_pod_exec_db2_get_db_cfg,
+        patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg") as mock_db2_pod_exec_db2_get_dbm_cfg,
+        patch("mas.devops.db2.db2_pod_exec_db2set") as mock_db2_pod_exec_db2set,
+        patch("kubernetes.client.api_client.ApiClient") as mock_ApiClient,
+    ):
         with open(
-            os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbcfg.txt"),
+            os.path.join(current_dir, "..", "test_cases", test_case_name, "db2uinstance.yaml"),
             "r",
         ) as f:
-            mock_db2_pod_exec_db2_get_db_cfg.return_value = f.read()
-    except FileNotFoundError:
-        mock_db2_pod_exec_db2_get_db_cfg.return_value = None
+            mock_get_db2u_instance_cr.return_value = yaml.load(f, Loader=yaml.FullLoader)
 
-    mock_db2_pod_exec_db2_get_dbm_cfg = mocker.patch("mas.devops.db2.db2_pod_exec_db2_get_dbm_cfg")
-    try:
-        with open(
-            os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbmcfg.txt"),
-            "r",
-        ) as f:
-            mock_db2_pod_exec_db2_get_dbm_cfg.return_value = f.read()
-    except FileNotFoundError:
-        mock_db2_pod_exec_db2_get_dbm_cfg.return_value = None
+        try:
+            with open(
+                os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbcfg.txt"),
+                "r",
+            ) as f:
+                mock_db2_pod_exec_db2_get_db_cfg.return_value = f.read()
+        except FileNotFoundError:
+            mock_db2_pod_exec_db2_get_db_cfg.return_value = None
 
-    mock_db2_pod_exec_db2set = mocker.patch("mas.devops.db2.db2_pod_exec_db2set")
-    try:
-        with open(
-            os.path.join(current_dir, "..", "test_cases", test_case_name, "db2set.txt"),
-            "r",
-        ) as f:
-            mock_db2_pod_exec_db2set.return_value = f.read()
-    except FileNotFoundError:
-        mock_db2_pod_exec_db2set.return_value = None
+        try:
+            with open(
+                os.path.join(current_dir, "..", "test_cases", test_case_name, "db2getdbmcfg.txt"),
+                "r",
+            ) as f:
+                mock_db2_pod_exec_db2_get_dbm_cfg.return_value = f.read()
+        except FileNotFoundError:
+            mock_db2_pod_exec_db2_get_dbm_cfg.return_value = None
 
-    mock_ApiClient = mocker.patch("kubernetes.client.api_client.ApiClient")
-    mock_k8s_client = mock_ApiClient.return_value
+        try:
+            with open(
+                os.path.join(current_dir, "..", "test_cases", test_case_name, "db2set.txt"),
+                "r",
+            ) as f:
+                mock_db2_pod_exec_db2set.return_value = f.read()
+        except FileNotFoundError:
+            mock_db2_pod_exec_db2set.return_value = None
 
-    mas_instance_id = "unittest"
-    mas_app_id = test_case_name
+        mock_k8s_client = mock_ApiClient.return_value
 
-    if len(expected_failures) == 0:
-        db2.validate_db2_config(mock_k8s_client, mas_instance_id, mas_app_id)
-    else:
-        with pytest.raises(Exception) as ex:
+        mas_instance_id = "unittest"
+        mas_app_id = test_case_name
+
+        if len(expected_failures) == 0:
             db2.validate_db2_config(mock_k8s_client, mas_instance_id, mas_app_id)
+        else:
+            with pytest.raises(Exception) as ex:
+                db2.validate_db2_config(mock_k8s_client, mas_instance_id, mas_app_id)
 
-        assert ex.value.args[0]["message"] == f"{len(expected_failures)} checks failed"
-        assert set(ex.value.args[0]["details"]) == set(expected_failures)
+            assert ex.value.args[0]["message"] == f"{len(expected_failures)} checks failed"
+            assert set(ex.value.args[0]["details"]) == set(expected_failures)

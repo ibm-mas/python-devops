@@ -618,9 +618,11 @@ spec:
     - name: manage_bind_aiservice_tenant_id
       value: "{{ manage_bind_aiservice_tenant_id }}"
   {%- endif %}
+  {%- if cpd_product_version is defined and cpd_product_version != "" %}
   {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
     - name: mas_appws_bindings_health_wsl_flag
       value: "{{ mas_appws_bindings_health_wsl_flag }}"
+  {%- endif %}
   {%- endif %}
   {%- if mas_app_settings_aio_flag is defined and mas_app_settings_aio_flag != "" %}
     - name: mas_app_settings_aio_flag
