@@ -125,13 +125,11 @@ mas_core_version:
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
-  9.2.x: 9.2.0                          # Not Supported
   9.1.x: 9.1.12                         # Updated
   9.0.x: 9.0.18                         # Updated
   8.10.x: 8.7.8                         # No Update
   8.11.x: 8.8.7                         # No Update
 mas_hputilities_version:
-  9.2.x: 9.2.0                          # Not Supported
   9.1.x: ""                             # Not Supported
   9.0.x: ""                             # Not Supported
   8.10.x: 8.6.7                         # No Update
