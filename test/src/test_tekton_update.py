@@ -29,13 +29,13 @@ class TestUpdateTektonDefinitions:
         mock_isfile.return_value = True
         mock_yaml_load.return_value = [
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "Task",
                 "metadata": {"name": "test-task"},
                 "spec": {},
             },
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "Pipeline",
                 "metadata": {"name": "test-pipeline"},
                 "spec": {},
@@ -101,19 +101,19 @@ class TestUpdateTektonDefinitions:
         mock_isfile.return_value = True
         mock_yaml_load.return_value = [
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "Task",
                 "metadata": {"name": "task-1"},
                 "spec": {},
             },
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "Task",
                 "metadata": {"name": "task-2"},
                 "spec": {},
             },
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "Pipeline",
                 "metadata": {"name": "pipeline-1"},
                 "spec": {},
@@ -145,7 +145,7 @@ class TestUpdateTektonDefinitions:
         mock_isfile.return_value = True
         mock_yaml_load.return_value = [
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "Task",
                 "metadata": {"name": "test-task"},
                 "spec": {},
@@ -183,7 +183,7 @@ class TestUpdateTektonDefinitions:
         mock_isfile.return_value = True
         mock_yaml_load.return_value = [
             {
-                "apiVersion": "tekton.dev/v1beta1",
+                "apiVersion": "tekton.dev/v1",
                 "kind": "Task",
                 "metadata": {"name": "test-task"},
                 "spec": {},
