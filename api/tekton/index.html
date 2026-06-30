@@ -5436,7 +5436,7 @@ pipeline-db2-license, and pipeline-facilities-properties.</p>
 <a id="__codelineno-0-1094" name="__codelineno-0-1094"></a>    <span class="n">pipelineRun</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">renderedTemplate</span><span class="p">)</span>
 <a id="__codelineno-0-1095" name="__codelineno-0-1095"></a>    <span class="n">applyResource</span><span class="p">(</span>
 <a id="__codelineno-0-1096" name="__codelineno-0-1096"></a>        <span class="n">dynClient</span><span class="o">=</span><span class="n">dynClient</span><span class="p">,</span>
-<a id="__codelineno-0-1097" name="__codelineno-0-1097"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1beta1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-1097" name="__codelineno-0-1097"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1098" name="__codelineno-0-1098"></a>        <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;PipelineRun&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1099" name="__codelineno-0-1099"></a>        <span class="n">body</span><span class="o">=</span><span class="n">pipelineRun</span><span class="p">,</span>
 <a id="__codelineno-0-1100" name="__codelineno-0-1100"></a>        <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
@@ -5561,7 +5561,7 @@ pipeline-db2-license, and pipeline-facilities-properties.</p>
 <a id="__codelineno-0-1148" name="__codelineno-0-1148"></a>    <span class="n">pipelineRun</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">renderedTemplate</span><span class="p">)</span>
 <a id="__codelineno-0-1149" name="__codelineno-0-1149"></a>    <span class="n">applyResource</span><span class="p">(</span>
 <a id="__codelineno-0-1150" name="__codelineno-0-1150"></a>        <span class="n">dynClient</span><span class="o">=</span><span class="n">dynClient</span><span class="p">,</span>
-<a id="__codelineno-0-1151" name="__codelineno-0-1151"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1beta1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-1151" name="__codelineno-0-1151"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1152" name="__codelineno-0-1152"></a>        <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;PipelineRun&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1153" name="__codelineno-0-1153"></a>        <span class="n">body</span><span class="o">=</span><span class="n">pipelineRun</span><span class="p">,</span>
 <a id="__codelineno-0-1154" name="__codelineno-0-1154"></a>        <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
@@ -5782,7 +5782,7 @@ pipeline-db2-license, and pipeline-facilities-properties.</p>
 <a id="__codelineno-0-1188" name="__codelineno-0-1188"></a>    <span class="n">pipelineRun</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">renderedTemplate</span><span class="p">)</span>
 <a id="__codelineno-0-1189" name="__codelineno-0-1189"></a>    <span class="n">applyResource</span><span class="p">(</span>
 <a id="__codelineno-0-1190" name="__codelineno-0-1190"></a>        <span class="n">dynClient</span><span class="o">=</span><span class="n">dynClient</span><span class="p">,</span>
-<a id="__codelineno-0-1191" name="__codelineno-0-1191"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1beta1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-1191" name="__codelineno-0-1191"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1192" name="__codelineno-0-1192"></a>        <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;PipelineRun&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1193" name="__codelineno-0-1193"></a>        <span class="n">body</span><span class="o">=</span><span class="n">pipelineRun</span><span class="p">,</span>
 <a id="__codelineno-0-1194" name="__codelineno-0-1194"></a>        <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
@@ -6507,7 +6507,7 @@ of mas_instance_id in params.</p>
 <a id="__codelineno-0-1319" name="__codelineno-0-1319"></a>    <span class="n">pipelineRun</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">renderedTemplate</span><span class="p">)</span>
 <a id="__codelineno-0-1320" name="__codelineno-0-1320"></a>    <span class="n">applyResource</span><span class="p">(</span>
 <a id="__codelineno-0-1321" name="__codelineno-0-1321"></a>        <span class="n">dynClient</span><span class="o">=</span><span class="n">dynClient</span><span class="p">,</span>
-<a id="__codelineno-0-1322" name="__codelineno-0-1322"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1beta1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-1322" name="__codelineno-0-1322"></a>        <span class="n">apiVersion</span><span class="o">=</span><span class="s2">&quot;tekton.dev/v1&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1323" name="__codelineno-0-1323"></a>        <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;PipelineRun&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-1324" name="__codelineno-0-1324"></a>        <span class="n">body</span><span class="o">=</span><span class="n">pipelineRun</span><span class="p">,</span>
 <a id="__codelineno-0-1325" name="__codelineno-0-1325"></a>        <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
