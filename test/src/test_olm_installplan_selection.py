@@ -82,21 +82,24 @@ def create_owner_ref(kind, name):
     return ref
 
 
-@patch('mas.devops.olm.createNamespace')
-@patch('mas.devops.olm.ensureOperatorGroupExists')
-@patch('mas.devops.olm.getPackageManifest')
-@patch('mas.devops.olm.sleep')
+@patch("mas.devops.olm.createNamespace")
+@patch("mas.devops.olm.ensureOperatorGroupExists")
+@patch("mas.devops.olm.getPackageManifest")
+@patch("mas.devops.olm.sleep")
 def test_automatic_approval_uses_label_selector_only(
-    mock_sleep, mock_get_manifest, mock_ensure_og, mock_create_ns, mock_dyn_client, mock_env
+    mock_sleep,
+    mock_get_manifest,
+    mock_ensure_og,
+    mock_create_ns,
+    mock_dyn_client,
+    mock_env,
 ):
     """
     Test that automatic approval uses only the label selector (standard behavior).
     Should NOT query all InstallPlans.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -108,11 +111,21 @@ def test_automatic_approval_uses_label_selector_only(
     mock_subscription.status.state = "AtLatestKnown"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription      # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            # First call with label_selector returns empty list
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            # Subsequent calls return the subscription
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            # Direct get by name returns the subscription
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API - label selector returns one InstallPlan
@@ -121,7 +134,7 @@ def test_automatic_approval_uses_label_selector_only(
         name="install-plan-1",
         labels={"operators.coreos.com/test-operator.test-namespace": ""},
         csv_names=["test-operator.v1.0.0"],
-        phase="Complete"
+        phase="Complete",
     )
     install_plan_api.get.return_value = MockResourceList([install_plan])
 
@@ -131,14 +144,14 @@ def test_automatic_approval_uses_label_selector_only(
         ("operators.coreos.com/v1alpha1", "InstallPlan"): install_plan_api,
     }.get((kwargs.get("api_version"), kwargs.get("kind")))
 
-    with patch('mas.devops.olm.Environment', return_value=mock_env):
+    with patch("mas.devops.olm.Environment", return_value=mock_env):
         # Call applySubscription with Automatic approval (default)
         olm.applySubscription(
             mock_dyn_client,
             "test-namespace",
             "test-operator",
             packageChannel="stable",
-            installPlanApproval="Automatic"
+            installPlanApproval="Automatic",
         )
 
     # Verify InstallPlan API was called with label selector only
@@ -147,25 +160,28 @@ def test_automatic_approval_uses_label_selector_only(
     # Should only use label selector, never query all InstallPlans
     for call_args in install_plan_calls:
         args, kwargs = call_args
-        assert 'label_selector' in kwargs, "Should use label selector"
-        assert kwargs.get('namespace') == "test-namespace"
+        assert "label_selector" in kwargs, "Should use label selector"
+        assert kwargs.get("namespace") == "test-namespace"
 
 
-@patch('mas.devops.olm.createNamespace')
-@patch('mas.devops.olm.ensureOperatorGroupExists')
-@patch('mas.devops.olm.getPackageManifest')
-@patch('mas.devops.olm.sleep')
+@patch("mas.devops.olm.createNamespace")
+@patch("mas.devops.olm.ensureOperatorGroupExists")
+@patch("mas.devops.olm.getPackageManifest")
+@patch("mas.devops.olm.sleep")
 def test_manual_approval_without_starting_csv_uses_label_selector_only(
-    mock_sleep, mock_get_manifest, mock_ensure_og, mock_create_ns, mock_dyn_client, mock_env
+    mock_sleep,
+    mock_get_manifest,
+    mock_ensure_og,
+    mock_create_ns,
+    mock_dyn_client,
+    mock_env,
 ):
     """
     Test that Manual approval with startingCSV uses only label selector when it finds a match.
     Should NOT query all InstallPlans.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -177,11 +193,18 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription      # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API
@@ -190,18 +213,18 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
         name="install-plan-1",
         labels={"operators.coreos.com/test-operator.test-namespace": ""},
         csv_names=["test-operator.v1.0.0"],
-        phase="RequiresApproval"
+        phase="RequiresApproval",
     )
     install_plan_complete = MockResource(
         name="install-plan-1",
         labels={"operators.coreos.com/test-operator.test-namespace": ""},
         csv_names=["test-operator.v1.0.0"],
-        phase="Complete"
+        phase="Complete",
     )
 
     # Simulate phase transition: first returns RequiresApproval, then Complete after patch
     def get_install_plan_side_effect(*args, **kwargs):
-        if 'name' in kwargs:
+        if "name" in kwargs:
             # After patch is called, return Complete phase
             return install_plan_complete
         else:
@@ -216,7 +239,7 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
         ("operators.coreos.com/v1alpha1", "InstallPlan"): install_plan_api,
     }.get((kwargs.get("api_version"), kwargs.get("kind")))
 
-    with patch('mas.devops.olm.Environment', return_value=mock_env):
+    with patch("mas.devops.olm.Environment", return_value=mock_env):
         # Call with Manual approval with startingCSV
         olm.applySubscription(
             mock_dyn_client,
@@ -224,7 +247,7 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
             "test-operator",
             packageChannel="stable",
             installPlanApproval="Manual",
-            startingCSV="test-operator.v1.0.0"
+            startingCSV="test-operator.v1.0.0",
         )
 
     # Verify only label selector was used
@@ -232,24 +255,27 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
     for call_args in install_plan_calls:
         args, kwargs = call_args
         # Should only use label selector or get by name, never query all
-        assert 'label_selector' in kwargs or 'name' in kwargs
+        assert "label_selector" in kwargs or "name" in kwargs
 
 
-@patch('mas.devops.olm.createNamespace')
-@patch('mas.devops.olm.ensureOperatorGroupExists')
-@patch('mas.devops.olm.getPackageManifest')
-@patch('mas.devops.olm.sleep')
+@patch("mas.devops.olm.createNamespace")
+@patch("mas.devops.olm.ensureOperatorGroupExists")
+@patch("mas.devops.olm.getPackageManifest")
+@patch("mas.devops.olm.sleep")
 def test_manual_approval_with_starting_csv_label_selector_finds_match(
-    mock_sleep, mock_get_manifest, mock_ensure_og, mock_create_ns, mock_dyn_client, mock_env
+    mock_sleep,
+    mock_get_manifest,
+    mock_ensure_og,
+    mock_create_ns,
+    mock_dyn_client,
+    mock_env,
 ):
     """
     Test Manual approval with startingCSV when label selector returns the correct InstallPlan.
     Should use label selector result, NOT query all InstallPlans.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -261,11 +287,18 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription      # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API - label selector returns matching InstallPlan
@@ -274,18 +307,18 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
         name="install-plan-1",
         labels={"operators.coreos.com/test-operator.test-namespace": ""},
         csv_names=["test-operator.v1.0.0"],  # Matches startingCSV
-        phase="RequiresApproval"
+        phase="RequiresApproval",
     )
     install_plan_complete = MockResource(
         name="install-plan-1",
         labels={"operators.coreos.com/test-operator.test-namespace": ""},
         csv_names=["test-operator.v1.0.0"],
-        phase="Complete"
+        phase="Complete",
     )
 
     # Simulate phase transition
     def get_install_plan_side_effect(*args, **kwargs):
-        if 'name' in kwargs:
+        if "name" in kwargs:
             return install_plan_complete
         else:
             return MockResourceList([install_plan_requires_approval])
@@ -298,14 +331,14 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
         ("operators.coreos.com/v1alpha1", "InstallPlan"): install_plan_api,
     }.get((kwargs.get("api_version"), kwargs.get("kind")))
 
-    with patch('mas.devops.olm.Environment', return_value=mock_env):
+    with patch("mas.devops.olm.Environment", return_value=mock_env):
         olm.applySubscription(
             mock_dyn_client,
             "test-namespace",
             "test-operator",
             packageChannel="stable",
             installPlanApproval="Manual",
-            startingCSV="test-operator.v1.0.0"
+            startingCSV="test-operator.v1.0.0",
         )
 
     # Verify we found the InstallPlan via label selector
@@ -315,16 +348,20 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
     # Check that we never queried without a label_selector or name
     for call_args in install_plan_calls:
         args, kwargs = call_args
-        assert 'label_selector' in kwargs or 'name' in kwargs, \
-            "Should only use label selector or get by name, not query all"
+        assert "label_selector" in kwargs or "name" in kwargs, "Should only use label selector or get by name, not query all"
 
 
-@patch('mas.devops.olm.createNamespace')
-@patch('mas.devops.olm.ensureOperatorGroupExists')
-@patch('mas.devops.olm.getPackageManifest')
-@patch('mas.devops.olm.sleep')
+@patch("mas.devops.olm.createNamespace")
+@patch("mas.devops.olm.ensureOperatorGroupExists")
+@patch("mas.devops.olm.getPackageManifest")
+@patch("mas.devops.olm.sleep")
 def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
-    mock_sleep, mock_get_manifest, mock_ensure_og, mock_create_ns, mock_dyn_client, mock_env
+    mock_sleep,
+    mock_get_manifest,
+    mock_ensure_og,
+    mock_create_ns,
+    mock_dyn_client,
+    mock_env,
 ):
     """
     Test Manual approval with startingCSV when label selector misses the completed InstallPlan.
@@ -332,9 +369,7 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
     This is the key scenario the bug fix addresses.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -346,11 +381,18 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription      # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API
@@ -361,7 +403,7 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
         name="install-plan-2",
         labels={"operators.coreos.com/test-operator.test-namespace": ""},
         csv_names=["test-operator.v2.0.0"],  # Does NOT match startingCSV
-        phase="Installing"
+        phase="Installing",
     )
 
     # All InstallPlans query returns both (including the completed one)
@@ -370,7 +412,7 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
         labels={},  # Label might be removed from completed plan
         owner_refs=[create_owner_ref("Subscription", "test-operator")],
         csv_names=["test-operator.v1.0.0"],  # Matches startingCSV
-        phase="RequiresApproval"
+        phase="RequiresApproval",
     )
 
     correct_install_plan_complete = MockResource(
@@ -378,15 +420,15 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
         labels={},
         owner_refs=[create_owner_ref("Subscription", "test-operator")],
         csv_names=["test-operator.v1.0.0"],
-        phase="Complete"
+        phase="Complete",
     )
 
     # Setup the mock to return different results based on parameters
     def get_side_effect(*args, **kwargs):
-        if 'label_selector' in kwargs:
+        if "label_selector" in kwargs:
             # Label selector query - returns only wrong InstallPlan
             return MockResourceList([wrong_install_plan])
-        elif 'name' in kwargs:
+        elif "name" in kwargs:
             # Get by name - return the correct one (Complete after patch)
             return correct_install_plan_complete
         else:
@@ -401,14 +443,14 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
         ("operators.coreos.com/v1alpha1", "InstallPlan"): install_plan_api,
     }.get((kwargs.get("api_version"), kwargs.get("kind")))
 
-    with patch('mas.devops.olm.Environment', return_value=mock_env):
+    with patch("mas.devops.olm.Environment", return_value=mock_env):
         olm.applySubscription(
             mock_dyn_client,
             "test-namespace",
             "test-operator",
             packageChannel="stable",
             installPlanApproval="Manual",
-            startingCSV="test-operator.v1.0.0"
+            startingCSV="test-operator.v1.0.0",
         )
 
     # Verify the fallback behavior occurred
@@ -417,34 +459,31 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
     # Should have:
     # 1. Called with label_selector (initial query)
     # 2. Called without label_selector (fallback to query all)
-    has_label_selector_call = any(
-        'label_selector' in call_args[1]
-        for call_args in install_plan_calls
-    )
-    has_all_query_call = any(
-        'label_selector' not in call_args[1] and 'name' not in call_args[1]
-        for call_args in install_plan_calls
-    )
+    has_label_selector_call = any("label_selector" in call_args[1] for call_args in install_plan_calls)
+    has_all_query_call = any("label_selector" not in call_args[1] and "name" not in call_args[1] for call_args in install_plan_calls)
 
     assert has_label_selector_call, "Should have tried label selector first"
     assert has_all_query_call, "Should have fallen back to querying all InstallPlans"
 
 
-@patch('mas.devops.olm.createNamespace')
-@patch('mas.devops.olm.ensureOperatorGroupExists')
-@patch('mas.devops.olm.getPackageManifest')
-@patch('mas.devops.olm.sleep')
+@patch("mas.devops.olm.createNamespace")
+@patch("mas.devops.olm.ensureOperatorGroupExists")
+@patch("mas.devops.olm.getPackageManifest")
+@patch("mas.devops.olm.sleep")
 def test_manual_approval_filters_by_subscription_ownership(
-    mock_sleep, mock_get_manifest, mock_ensure_og, mock_create_ns, mock_dyn_client, mock_env
+    mock_sleep,
+    mock_get_manifest,
+    mock_ensure_og,
+    mock_create_ns,
+    mock_dyn_client,
+    mock_env,
 ):
     """
     Test that when querying all InstallPlans, we correctly filter by subscription ownership.
     This ensures we don't accidentally use InstallPlans from other subscriptions.
     """
     # Setup mocks
-    mock_get_manifest.return_value = Mock(
-        status=Mock(defaultChannel="stable", catalogSource="test-catalog")
-    )
+    mock_get_manifest.return_value = Mock(status=Mock(defaultChannel="stable", catalogSource="test-catalog"))
 
     # Mock subscription API
     sub_api = Mock()
@@ -456,11 +495,18 @@ def test_manual_approval_filters_by_subscription_ownership(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription      # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API
@@ -471,7 +517,7 @@ def test_manual_approval_filters_by_subscription_ownership(
         name="install-plan-wrong",
         labels={"operators.coreos.com/test-operator.test-namespace": ""},
         csv_names=["test-operator.v2.0.0"],
-        phase="Installing"
+        phase="Installing",
     )
 
     # All InstallPlans includes:
@@ -481,7 +527,7 @@ def test_manual_approval_filters_by_subscription_ownership(
         labels={},
         owner_refs=[create_owner_ref("Subscription", "test-operator")],
         csv_names=["test-operator.v1.0.0"],
-        phase="RequiresApproval"
+        phase="RequiresApproval",
     )
 
     correct_install_plan_complete = MockResource(
@@ -489,7 +535,7 @@ def test_manual_approval_filters_by_subscription_ownership(
         labels={},
         owner_refs=[create_owner_ref("Subscription", "test-operator")],
         csv_names=["test-operator.v1.0.0"],
-        phase="Complete"
+        phase="Complete",
     )
 
     # 2. One owned by a different subscription (should be ignored)
@@ -498,17 +544,23 @@ def test_manual_approval_filters_by_subscription_ownership(
         labels={},
         owner_refs=[create_owner_ref("Subscription", "other-operator")],
         csv_names=["test-operator.v1.0.0"],  # Same CSV but wrong subscription
-        phase="Complete"
+        phase="Complete",
     )
 
     def get_side_effect(*args, **kwargs):
-        if 'label_selector' in kwargs:
+        if "label_selector" in kwargs:
             return MockResourceList([wrong_install_plan])
-        elif 'name' in kwargs:
+        elif "name" in kwargs:
             return correct_install_plan_complete
         else:
             # Return all three InstallPlans
-            return MockResourceList([correct_install_plan_requires_approval, other_subscription_plan, wrong_install_plan])
+            return MockResourceList(
+                [
+                    correct_install_plan_requires_approval,
+                    other_subscription_plan,
+                    wrong_install_plan,
+                ]
+            )
 
     install_plan_api.get.side_effect = get_side_effect
     install_plan_api.patch.return_value = Mock()
@@ -518,18 +570,19 @@ def test_manual_approval_filters_by_subscription_ownership(
         ("operators.coreos.com/v1alpha1", "InstallPlan"): install_plan_api,
     }.get((kwargs.get("api_version"), kwargs.get("kind")))
 
-    with patch('mas.devops.olm.Environment', return_value=mock_env):
+    with patch("mas.devops.olm.Environment", return_value=mock_env):
         olm.applySubscription(
             mock_dyn_client,
             "test-namespace",
             "test-operator",
             packageChannel="stable",
             installPlanApproval="Manual",
-            startingCSV="test-operator.v1.0.0"
+            startingCSV="test-operator.v1.0.0",
         )
 
     # The test passes if it completes without error
     # The code should have found the correct InstallPlan by checking ownership
     # and ignored the one from the other subscription
+
 
 # Made with Bob

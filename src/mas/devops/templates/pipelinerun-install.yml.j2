@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
 {%- if mas_instance_id is defined and mas_instance_id != "" %}
@@ -13,7 +13,8 @@ spec:
   pipelineRef:
     name: mas-install
 
-  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  taskRunTemplate:
+    serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   timeouts:
     pipeline: "0"
 
@@ -93,7 +94,7 @@ spec:
       value: "{{ eck_remote_es_password }}"
   {%- endif %}
 {%- endif %}
-{%- if db2_action_system == "install" or db2_action_manage == "install" or db2_action_aiservice == "install" %}
+{%- if db2_action_system == "install" or db2_action_manage == "install" or db2_action_aiservice == "install" or db2_action_facilities == "install" %}
 
     # Dependencies - Db2 - Actions
     # -------------------------------------------------------------------------
@@ -116,6 +117,10 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
+  {%- if db2_action_facilities == "install" %}
+    - name: db2_facilities_timezone
+      value: "{{ db2_facilities_timezone }}"
+  {%- endif %}
     - name: db2u_kind
       value: "{{ db2u_kind }}"
   {%- if db2_license_file is defined and db2_license_file != "" %}
@@ -614,9 +619,11 @@ spec:
     - name: manage_bind_aiservice_tenant_id
       value: "{{ manage_bind_aiservice_tenant_id }}"
   {%- endif %}
+  {%- if cpd_product_version is defined and cpd_product_version != "" %}
   {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
     - name: mas_appws_bindings_health_wsl_flag
       value: "{{ mas_appws_bindings_health_wsl_flag }}"
+  {%- endif %}
   {%- endif %}
   {%- if mas_app_settings_aio_flag is defined and mas_app_settings_aio_flag != "" %}
     - name: mas_app_settings_aio_flag
@@ -788,6 +795,10 @@ spec:
     - name: mas_ws_facilities_app_om_upgrade_mode
       value: "{{ mas_ws_facilities_app_om_upgrade_mode }}"
 {%- endif %}
+{%- if mas_ws_facilities_server_timezone is defined and mas_ws_facilities_server_timezone != "" %}
+    - name: mas_ws_facilities_server_timezone
+      value: "{{ mas_ws_facilities_server_timezone }}"
+{%- endif %}
 {%- if mas_ws_facilities_routes_timeout is defined and mas_ws_facilities_routes_timeout != "" %}
     - name: mas_ws_facilities_routes_timeout
       value: "{{ mas_ws_facilities_routes_timeout }}"
@@ -819,6 +830,70 @@ spec:
 {%- if mas_ws_facilities_config_map_name is defined and mas_ws_facilities_config_map_name != "" %}
     - name: mas_ws_facilities_config_map_name
       value: "{{ mas_ws_facilities_config_map_name }}"
+{%- endif %}
+{%- if mas_ws_facilities_custom_properties is defined and mas_ws_facilities_custom_properties != "" %}
+    - name: mas_ws_facilities_custom_properties
+      value: "{{ mas_ws_facilities_custom_properties }}"
+{%- endif %}
+{%- if mas_ws_facilities_properties_file_local is defined and mas_ws_facilities_properties_file_local != "" %}
+    - name: mas_ws_facilities_properties_file_local
+      value: "{{ mas_ws_facilities_properties_file_local }}"
+{%- endif %}
+{%- if mas_ws_facilities_properties_secret_name is defined and mas_ws_facilities_properties_secret_name != "" %}
+    - name: mas_ws_facilities_properties_secret_name
+      value: "{{ mas_ws_facilities_properties_secret_name }}"
+{%- endif %}
+{%- if mas_ws_facilities_dataconnectagent_deploymentmode is defined and mas_ws_facilities_dataconnectagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_dataconnectagent_deploymentmode
+      value: "{{ mas_ws_facilities_dataconnectagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_extendedformulaagent_deploymentmode is defined and mas_ws_facilities_extendedformulaagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_extendedformulaagent_deploymentmode
+      value: "{{ mas_ws_facilities_extendedformulaagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_formularecalcagent_deploymentmode is defined and mas_ws_facilities_formularecalcagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_formularecalcagent_deploymentmode
+      value: "{{ mas_ws_facilities_formularecalcagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_incomingmailagent_deploymentmode is defined and mas_ws_facilities_incomingmailagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_incomingmailagent_deploymentmode
+      value: "{{ mas_ws_facilities_incomingmailagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_objectmigrationagent_deploymentmode is defined and mas_ws_facilities_objectmigrationagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_objectmigrationagent_deploymentmode
+      value: "{{ mas_ws_facilities_objectmigrationagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_objectpublishagent_deploymentmode is defined and mas_ws_facilities_objectpublishagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_objectpublishagent_deploymentmode
+      value: "{{ mas_ws_facilities_objectpublishagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_maintenanceagent_deploymentmode is defined and mas_ws_facilities_maintenanceagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_maintenanceagent_deploymentmode
+      value: "{{ mas_ws_facilities_maintenanceagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_reportqueueagent_deploymentmode is defined and mas_ws_facilities_reportqueueagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_reportqueueagent_deploymentmode
+      value: "{{ mas_ws_facilities_reportqueueagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_wfagent_deploymentmode is defined and mas_ws_facilities_wfagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_wfagent_deploymentmode
+      value: "{{ mas_ws_facilities_wfagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_wffutureagent_deploymentmode is defined and mas_ws_facilities_wffutureagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_wffutureagent_deploymentmode
+      value: "{{ mas_ws_facilities_wffutureagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_wfnotificationagent_deploymentmode is defined and mas_ws_facilities_wfnotificationagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_wfnotificationagent_deploymentmode
+      value: "{{ mas_ws_facilities_wfnotificationagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_reservesmtpagent_deploymentmode is defined and mas_ws_facilities_reservesmtpagent_deploymentmode != "" %}
+    - name: mas_ws_facilities_reservesmtpagent_deploymentmode
+      value: "{{ mas_ws_facilities_reservesmtpagent_deploymentmode }}"
+{%- endif %}
+{%- if mas_ws_facilities_scheduleragent_deploymentmode is defined and mas_ws_facilities_scheduleragent_deploymentmode != "" %}
+    - name: mas_ws_facilities_scheduleragent_deploymentmode
+      value: "{{ mas_ws_facilities_scheduleragent_deploymentmode }}"
 {%- endif %}
 
 {%- endif %}
@@ -977,3 +1052,11 @@ spec:
     - name: shared-aiservice-config
       secret:
         secretName: pipeline-aiservice-config
+
+    # Facilities Properties configurations
+    # -------------------------------------------------------------------------
+    {% if mas_ws_facilities_custom_properties == "true" %}
+    - name: shared-facilities-properties
+      secret:
+        secretName: pipeline-facilities-properties
+    {% endif %}

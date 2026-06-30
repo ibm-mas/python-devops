@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -13,9 +13,11 @@ import yaml
 
 from os import path, listdir
 
-from kubernetes import client as k8s_client
-from openshift.dynamic import DynamicClient
 from jinja2 import Environment
+from kubernetes import client as k8s_client
+from kubernetes.dynamic import DynamicClient
+
+from .ocp import applyResource
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ def _validate_selected_apps(selectedApps: list[str] | None) -> set[str]:
         "monitor",
         "optimizer",
         "predict",
-        "visualinspection"
+        "visualinspection",
     }
 
     validatedApps = set()
@@ -60,13 +62,13 @@ def _get_selected_operator_dirs(selectedApps: set[str]) -> set[str]:
         "monitor": "ibm-mas-monitor",
         "optimizer": "ibm-mas-optimizer",
         "predict": "ibm-mas-predict",
-        "visualinspection": "ibm-mas-visualinspection"
+        "visualinspection": "ibm-mas-visualinspection",
     }
 
     return {appToOperatorDir[app] for app in selectedApps}
 
 
-def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -> bool:
+def _should_apply_preinstall_mas_rbac_file(fileName: str, adminMode: str) -> bool:
     lowerName = path.basename(fileName).lower()
 
     if lowerName == "kustomization.yaml":
@@ -75,10 +77,10 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -
     if not (lowerName.endswith(".yml") or lowerName.endswith(".yaml")):
         return False
 
-    if permissionMode == "cluster":
+    if adminMode == "cluster":
         return lowerName.startswith("cluster-role-")
 
-    if permissionMode == "namespaced":
+    if adminMode == "namespaced":
         return lowerName.startswith("role-non-essential-")
 
     return False
@@ -87,18 +89,15 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, permissionMode: str) -
 def _collect_preinstall_mas_rbac_files_from_source(
     sourceOperatorsRoot: str,
     masVersion: str,
-    permissionMode: str,
-    operatorNames: set[str] | None = None
+    adminMode: str,
+    operatorNames: set[str] | None = None,
 ) -> list[str]:
     if not path.isdir(sourceOperatorsRoot):
         logger.debug(f"Skipping missing RBAC source root {sourceOperatorsRoot}")
         return []
 
     if operatorNames is None:
-        operatorNames = {
-            operatorName for operatorName in listdir(sourceOperatorsRoot)
-            if path.isdir(path.join(sourceOperatorsRoot, operatorName))
-        }
+        operatorNames = {operatorName for operatorName in listdir(sourceOperatorsRoot) if path.isdir(path.join(sourceOperatorsRoot, operatorName))}
 
     manifestFiles = []
     for operatorName in sorted(operatorNames):
@@ -117,18 +116,13 @@ def _collect_preinstall_mas_rbac_files_from_source(
             if not path.isfile(manifestFile):
                 continue
 
-            if _should_apply_preinstall_mas_rbac_file(manifestName, permissionMode):
+            if _should_apply_preinstall_mas_rbac_file(manifestName, adminMode):
                 manifestFiles.append(manifestFile)
 
     return manifestFiles
 
 
-def _discover_preinstall_mas_rbac_files(
-    rbacRootDir: str | None,
-    masVersion: str,
-    permissionMode: str,
-    selectedApps: set[str]
-) -> list[str]:
+def _discover_preinstall_mas_rbac_files(rbacRootDir: str | None, masVersion: str, adminMode: str, selectedApps: set[str]) -> list[str]:
     if not rbacRootDir:
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
 
@@ -137,12 +131,9 @@ def _discover_preinstall_mas_rbac_files(
     sourceRoots = [
         (
             path.join(rbacRootDir, "maximo-operator-catalog", "operators"),
-            selectedOperatorDirs
+            selectedOperatorDirs,
         ),
-        (
-            path.join(rbacRootDir, "openshift-platform", "operators"),
-            None
-        )
+        (path.join(rbacRootDir, "openshift-platform", "operators"), None),
     ]
 
     manifestFiles = []
@@ -151,21 +142,17 @@ def _discover_preinstall_mas_rbac_files(
             _collect_preinstall_mas_rbac_files_from_source(
                 sourceOperatorsRoot=sourceRoot,
                 masVersion=masVersion,
-                permissionMode=permissionMode,
-                operatorNames=operatorNames
+                adminMode=adminMode,
+                operatorNames=operatorNames,
             )
         )
 
     return list(dict.fromkeys(manifestFiles))
 
 
-def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, permissionMode: str, selectedApps: set[str]) -> set[str]:
+def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, adminMode: str, selectedApps: set[str]) -> set[str]:
 
-    # Due to ingresscontroller role we need to apply the preinstall RBAC for the minimal permission mode
-    # if permissionMode == "minimal":
-    #     return set()
-
-    if permissionMode == "cluster":
+    if adminMode == "cluster":
         return set()
 
     namespaces = {f"mas-{masInstanceId}-core"}
@@ -179,7 +166,7 @@ def _get_preinstall_mas_rbac_namespaces(masInstanceId: str, permissionMode: str,
         "monitor": f"mas-{masInstanceId}-monitor",
         "optimizer": f"mas-{masInstanceId}-optimizer",
         "predict": f"mas-{masInstanceId}-predict",
-        "visualinspection": f"mas-{masInstanceId}-visualinspection"
+        "visualinspection": f"mas-{masInstanceId}-visualinspection",
     }
 
     for app in selectedApps:
@@ -194,17 +181,12 @@ def _check_self_subject_access(
     verb: str,
     resource: str,
     group: str = "rbac.authorization.k8s.io",
-    namespace: str | None = None
+    namespace: str | None = None,
 ) -> bool:
     authAPI = k8s_client.AuthorizationV1Api(dynClient.client)
     review = k8s_client.V1SelfSubjectAccessReview(
         spec=k8s_client.V1SelfSubjectAccessReviewSpec(
-            resource_attributes=k8s_client.V1ResourceAttributes(
-                namespace=namespace,
-                verb=verb,
-                resource=resource,
-                group=group
-            )
+            resource_attributes=k8s_client.V1ResourceAttributes(namespace=namespace, verb=verb, resource=resource, group=group)
         )
     )
     result = authAPI.create_self_subject_access_review(body=review)
@@ -222,10 +204,7 @@ def buildClusterAdminPermissionMatrix() -> list[dict[str, str]]:
     ]
 
 
-def permissionCheckForRBAC(
-    dynClient: DynamicClient,
-    checks: list[dict[str, str]] | None = None
-) -> list[dict[str, str | bool]]:
+def permissionCheckForRBAC(dynClient: DynamicClient, checks: list[dict[str, str]] | None = None) -> list[dict[str, str | bool]]:
     if checks is None:
         checks = buildClusterAdminPermissionMatrix()
 
@@ -242,14 +221,14 @@ def permissionCheckForRBAC(
             verb=verb,
             resource=resource,
             group=group,
-            namespace=namespace
+            namespace=namespace,
         )
 
         result: dict[str, str | bool] = {
             "verb": verb,
             "resource": resource,
             "group": group,
-            "allowed": allowed
+            "allowed": allowed,
         }
 
         if namespace is not None:
@@ -264,22 +243,22 @@ def applyPreInstallMASRBAC(
     dynClient: DynamicClient,
     masVersion: str,
     masInstanceId: str,
-    permissionMode: str,
+    adminMode: str,
     selectedApps: list[str] | None = None,
-    rbacRootDir: str | None = None
+    rbacRootDir: str | None = None,
 ) -> None:
     if not rbacRootDir:
         rbacRootDir = DEFAULT_PREINSTALL_MAS_RBAC_ROOT
 
     # Minimal mode - essential roles will be applied by each operator
-    if permissionMode == "minimal":
-        logger.info("Minimal permission mode - essential roles will be applied by each operator")
+    if adminMode == "minimal":
+        logger.info("Minimal admin mode - essential roles will be applied by each operator")
         return
 
     # For cluster mode, use ibm-mas operator only (apps not required)
-    if permissionMode == "cluster":
+    if adminMode == "cluster":
         validatedApps = {"core"}  # Use core which maps to ibm-mas operator
-        logger.info("Cluster permission mode - using ibm-mas operator only")
+        logger.info("Cluster admin mode - using ibm-mas operator only")
     else:
         # For namespaced mode, validate and use selected apps
         validatedApps = _validate_selected_apps(selectedApps)
@@ -290,13 +269,13 @@ def applyPreInstallMASRBAC(
     manifestFiles = _discover_preinstall_mas_rbac_files(
         rbacRootDir=rbacRootDir,
         masVersion=masVersion,
-        permissionMode=permissionMode,
-        selectedApps=validatedApps
+        adminMode=adminMode,
+        selectedApps=validatedApps,
     )
 
     logger.info(
         f"Applying pre-install MAS RBAC from {rbacRootDir} for MAS {masVersion}, "
-        f"masInstanceId={masInstanceId}, permissionMode={permissionMode}, "
+        f"masInstanceId={masInstanceId}, adminMode={adminMode}, "
         f"selectedApps={sorted(validatedApps)}, "
         f"manifestCount={len(manifestFiles)}"
     )
@@ -305,22 +284,20 @@ def applyPreInstallMASRBAC(
         logger.info("No pre-install MAS RBAC manifests selected for apply")
         return
 
-    namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
-    requiredNamespaces = _get_preinstall_mas_rbac_namespaces(
-        masInstanceId=masInstanceId,
-        permissionMode=permissionMode,
-        selectedApps=validatedApps
-    )
+    requiredNamespaces = _get_preinstall_mas_rbac_namespaces(masInstanceId=masInstanceId, adminMode=adminMode, selectedApps=validatedApps)
 
     for namespace in sorted(requiredNamespaces):
         logger.info(f"Ensuring namespace exists for pre-install MAS RBAC: {namespace}")
-        namespaceAPI.apply(body={
-            "apiVersion": "v1",
-            "kind": "Namespace",
-            "metadata": {
-                "name": namespace
-            }
-        })
+        applyResource(
+            dynClient=dynClient,
+            apiVersion="v1",
+            kind="Namespace",
+            body={
+                "apiVersion": "v1",
+                "kind": "Namespace",
+                "metadata": {"name": namespace},
+            },
+        )
 
     env = Environment()
     appliedResourceCount = 0
@@ -342,24 +319,18 @@ def applyPreInstallMASRBAC(
             resourceNamespace = metadata.get("namespace")
 
             if kind in {"Role", "RoleBinding"} and not resourceNamespace:
-                raise ValueError(
-                    f"Namespaced RBAC resource {kind}/{resourceName} from {manifestFile} is missing metadata.namespace"
-                )
+                raise ValueError(f"Namespaced RBAC resource {kind}/{resourceName} from {manifestFile} is missing metadata.namespace")
 
-            logger.debug(
-                f"Applying {kind} {resourceName} "
-                f"(apiVersion={apiVersion}, namespace={resourceNamespace})"
+            logger.debug(f"Applying {kind} {resourceName} " f"(apiVersion={apiVersion}, namespace={resourceNamespace})")
+
+            applyResource(
+                dynClient=dynClient,
+                apiVersion=apiVersion,
+                kind=kind,
+                body=resourceBody,
+                namespace=resourceNamespace,
             )
-
-            resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
-            if resourceNamespace:
-                resourceAPI.apply(body=resourceBody, namespace=resourceNamespace)
-            else:
-                resourceAPI.apply(body=resourceBody)
 
             appliedResourceCount += 1
 
-    logger.info(
-        f"Pre-install MAS RBAC apply completed: processedFiles={len(manifestFiles)}, "
-        f"appliedResources={appliedResourceCount}"
-    )
+    logger.info(f"Pre-install MAS RBAC apply completed: processedFiles={len(manifestFiles)}, " f"appliedResources={appliedResourceCount}")

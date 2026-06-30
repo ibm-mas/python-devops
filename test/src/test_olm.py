@@ -9,7 +9,7 @@
 # *****************************************************************************
 
 import pytest
-from openshift import dynamic
+from kubernetes import dynamic
 from kubernetes import config
 from kubernetes.client import api_client
 
@@ -21,9 +21,7 @@ pytestmark = pytest.mark.openshift
 @pytest.fixture(scope="module")
 def dynClient():
     """Create DynamicClient for OpenShift cluster access."""
-    return dynamic.DynamicClient(
-        api_client.ApiClient(configuration=config.load_kube_config())
-    )
+    return dynamic.DynamicClient(api_client.ApiClient(configuration=config.load_kube_config()))
 
 
 def test_get_manifest(dynClient):
@@ -72,11 +70,7 @@ def test_crud(dynClient):
 def test_crud_with_config(dynClient):
     namespace = "cli-fvt-2"
     # We don't need this, just want to test that it works
-    testConfig = {
-        "env": [
-            {"name": "DUMMY_ENV_VAR", "value": "testing"}
-        ]
-    }
+    testConfig = {"env": [{"name": "DUMMY_ENV_VAR", "value": "testing"}]}
     subscription = olm.applySubscription(dynClient, namespace, "ibm-sls", packageChannel="3.x", config=testConfig)
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
@@ -102,7 +96,7 @@ def test_crud_with_manual_approval(dynClient):
             namespace,
             "ibm-sls",
             packageChannel="3.x",
-            installPlanApproval="Manual"
+            installPlanApproval="Manual",
         )
         # If we get here, the test should fail
         assert False, "Expected OLMException to be raised when installPlanApproval is Manual without startingCSV"
@@ -121,7 +115,7 @@ def test_crud_with_starting_csv(dynClient):
         namespace,
         "ibm-sls",
         packageChannel="3.x",
-        startingCSV="ibm-sls.v3.8.0"
+        startingCSV="ibm-sls.v3.8.0",
     )
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
@@ -151,7 +145,7 @@ def test_crud_with_manual_approval_and_starting_csv(dynClient):
         "ibm-sls",
         packageChannel="3.x",
         installPlanApproval="Manual",
-        startingCSV="ibm-sls.v3.8.0"
+        startingCSV="ibm-sls.v3.8.0",
     )
     assert subscription.metadata.name == "ibm-sls"
     assert subscription.metadata.namespace == namespace
