@@ -8,3 +8,8 @@ build-backend = "setuptools.build_meta"
 markers = [
     "openshift: marks tests as requiring an OpenShift cluster (deselect with '-m \"not openshift\"')",
 ]
+
+[tool.black]
+line-length = 160
+target-version = ['py312']
+include = '(src|tests)/.*\.py$'

@@ -9,8 +9,8 @@
 # *****************************************************************************
 import logging
 import yaml
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import NotFoundError, ResourceNotFoundError
 
 logger = logging.getLogger(name=__name__)
 
@@ -26,7 +26,7 @@ def loadYamlFile(file_path: str):
         dict: Parsed YAML content or None if error
     """
     try:
-        with open(file_path, 'r') as yaml_file:
+        with open(file_path, "r") as yaml_file:
             content = yaml.safe_load(yaml_file)
         return content
     except Exception as e:
@@ -55,16 +55,16 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
     """
     try:
         # Extract resource metadata
-        kind = resource_data.get('kind')
-        api_version = resource_data.get('apiVersion')
-        metadata = resource_data.get('metadata', {})
-        resource_name = metadata.get('name')
-        resource_namespace = namespace or metadata.get('namespace')
+        kind = resource_data.get("kind")
+        api_version = resource_data.get("apiVersion")
+        metadata = resource_data.get("metadata", {})
+        resource_name = metadata.get("name")
+        resource_namespace = namespace or metadata.get("namespace")
 
         if not kind or not api_version or not resource_name:
             error_msg = "Resource missing required fields (kind, apiVersion, or name)"
             logger.error(error_msg)
-            return (False, resource_name or 'unknown', error_msg)
+            return (False, resource_name or "unknown", error_msg)
 
         # Get the resource API
         resourceAPI = dynClient.resources.get(api_version=api_version, kind=kind)
@@ -92,9 +92,18 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
                     logger.info(f"Patching existing {kind} '{resource_name}' in {scope_desc}")
 
                     if resource_namespace:
-                        resourceAPI.patch(body=resource_data, name=resource_name, namespace=resource_namespace, content_type='application/merge-patch+json')
+                        resourceAPI.patch(
+                            body=resource_data,
+                            name=resource_name,
+                            namespace=resource_namespace,
+                            content_type="application/merge-patch+json",
+                        )
                     else:
-                        resourceAPI.patch(body=resource_data, name=resource_name, content_type='application/merge-patch+json')
+                        resourceAPI.patch(
+                            body=resource_data,
+                            name=resource_name,
+                            content_type="application/merge-patch+json",
+                        )
                     logger.info(f"Successfully patched {kind} '{resource_name}' in {scope_desc}")
                     return (True, resource_name, "updated")
                 else:
@@ -116,7 +125,14 @@ def restoreResource(dynClient: DynamicClient, resource_data: dict, namespace=Non
             logger.error(error_msg)
             return (False, resource_name, error_msg)
 
+    except ResourceNotFoundError:
+        return (True, resource_data.get("kind"), "skipped")
+
     except Exception as e:
         error_msg = f"Error restoring resource: {e}"
         logger.error(error_msg)
-        return (False, resource_data.get('metadata', {}).get('name', 'unknown'), error_msg)
+        return (
+            False,
+            resource_data.get("metadata", {}).get("name", "unknown"),
+            error_msg,
+        )

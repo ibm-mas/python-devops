@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024, 2025 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2025, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -11,11 +11,12 @@ from setuptools import setup, find_namespace_packages
 import codecs
 import sys
 import os
-sys.path.insert(0, 'src')
+
+sys.path.insert(0, "src")
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 # Maintain a single source of versioning
@@ -24,13 +25,13 @@ with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+    with codecs.open(os.path.join(here, rel_path), "r") as fp:
         return fp.read()
 
 
 def get_version(rel_path):
     for line in read(rel_path).splitlines():
-        if line.startswith('__version__'):
+        if line.startswith("__version__"):
             delim = '"' if '"' in line else "'"
             return line.split(delim)[1]
     else:
@@ -38,61 +39,59 @@ def get_version(rel_path):
 
 
 setup(
-    name='mas-devops',
+    name="mas-devops",
     version=get_version("src/mas/devops/__init__.py"),
-    author='David Parker',
-    author_email='parkerda@uk.ibm.com',
-    package_dir={'': 'src'},
-    packages=find_namespace_packages(where='src'),
+    author="David Parker",
+    author_email="parkerda@uk.ibm.com",
+    package_dir={"": "src"},
+    packages=find_namespace_packages(where="src"),
     include_package_data=True,
-    url='https://github.com/ibm-mas/python-devops',
-    license='Eclipse Public License - v1.0',
-    description='Python for Maximo Application Suite Dev/Ops',
+    url="https://github.com/ibm-mas/python-devops",
+    license="Eclipse Public License - v1.0",
+    description="Python for Maximo Application Suite Dev/Ops",
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     install_requires=[
-        'pyyaml',                  # MIT License
-        'openshift',               # Apache Software License
-        'kubernetes<36',           # Apache Software License
-        'kubeconfig',              # BSD License
-        'setuptools',              # MIT License (required to install kubeconfig)
-        'jinja2',                  # BSD License
-        'jinja2-base64-filters',   # MIT License
-        'semver',                  # BSD License
-        'boto3',                   # Apache Software License
-        'slack_sdk',               # MIT License
-        "packaging",               # Apache Software License
+        "pyyaml",  # MIT License
+        "kubernetes<36",  # Apache Software License
+        "jinja2",  # BSD License
+        "jinja2-base64-filters",  # MIT License
+        "semver",  # BSD License
+        "boto3",  # Apache Software License
+        "slack_sdk",  # MIT License
+        "packaging",  # Apache Software License
     ],
     extras_require={
-        'dev': [
-            'build',          # MIT License
-            'flake8',         # MIT License
-            'pytest',         # MIT License
-            'pytest-mock',    # MIT License
-            'requests-mock',  # Apache Software License
+        "dev": [
+            "build",  # MIT License
+            "flake8",  # MIT License
+            "pytest",  # MIT License
+            "pytest-mock",  # MIT License
+            "requests-mock",  # Apache Software License
         ],
-        'docs': [
-            'mkdocs',                      # BSD License
-            'mkdocs-material',             # MIT License
-            'mkdocstrings[python]',        # ISC License
-            'pymdown-extensions',          # MIT License
-        ]
+        "docs": [
+            "mkdocs",  # BSD License
+            "mkdocs-material",  # MIT License
+            "mkdocstrings[python]",  # ISC License
+            "pymdown-extensions",  # MIT License
+        ],
     },
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'Operating System :: Microsoft :: Windows',
-        'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3.12',
-        'Topic :: Communications',
-        'Topic :: Internet',
-        'Topic :: Software Development :: Libraries :: Python Modules'
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3.12",
+        "Topic :: Communications",
+        "Topic :: Internet",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     scripts=[
-        'bin/mas-devops-db2-validate-config',
-        'bin/mas-devops-create-initial-users-for-saas',
-        'bin/mas-devops-saas-job-cleaner',
-        'bin/mas-devops-notify-slack',
-    ]
+        "bin/mas-devops-db2-validate-config",
+        "bin/mas-devops-create-initial-users-for-saas",
+        "bin/mas-devops-saas-job-cleaner",
+        "bin/mas-devops-notify-slack",
+        "bin/mas-devops-apply-preinstall-rbac-for-saas",
+    ],
 )

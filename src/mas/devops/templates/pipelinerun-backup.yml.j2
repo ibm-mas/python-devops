@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
   name: "{{ mas_instance_id }}-backup-{{ backup_version }}-{{ timestamp }}"
@@ -8,7 +8,8 @@ metadata:
 spec:
   pipelineRef:
     name: mas-backup
-  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  taskRunTemplate:
+    serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   timeouts:
     pipeline: "0"
   workspaces:
@@ -130,6 +131,10 @@ spec:
     - name: manage_workspace_id
       value: "{{ manage_workspace_id }}"
     {% endif %}
+    {% if backup_manage_include_pvc is defined and backup_manage_include_pvc != "" %}
+    - name: backup_manage_include_pvc
+      value: "{{ backup_manage_include_pvc }}"
+    {% endif %}
 
     # Manage Db2 Backup Configuration
     {% if manage_db2_namespace is defined and manage_db2_namespace != "" %}
@@ -177,6 +182,10 @@ spec:
     {% if facilities_workspace_id is defined and facilities_workspace_id != "" %}
     - name: facilities_workspace_id
       value: "{{ facilities_workspace_id }}"
+    {% endif %}
+    {% if backup_facilities_include_pvc is defined and backup_facilities_include_pvc != "" %}
+    - name: backup_facilities_include_pvc
+      value: "{{ backup_facilities_include_pvc }}"
     {% endif %}
 
     # Facilities Db2 Backup Configuration
