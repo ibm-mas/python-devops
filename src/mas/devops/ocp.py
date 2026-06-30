@@ -10,7 +10,7 @@
 
 import logging
 import os
-import tempfile
+from pathlib import Path
 from time import sleep
 
 from kubernetes import client, config
@@ -31,6 +31,7 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     Connect to a target OpenShift Container Platform (OCP) cluster.
 
     Configures Kubernetes client with the provided server URL and authentication token.
+    Updates the default kubeconfig file with the new cluster context.
 
     Parameters:
         server (str): The OpenShift cluster API server URL (e.g., "https://api.cluster.example.com:6443")
@@ -46,51 +47,77 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     logger.info(f"Connect(server={server}, token=***)")
 
     try:
-        # Create kubeconfig structure
-        kubeconfigDict = {
-            "apiVersion": "v1",
-            "kind": "Config",
-            "clusters": [
-                {
-                    "name": "my-cluster",
-                    "cluster": {
-                        "server": server,
-                        "insecure-skip-tls-verify": skipVerify,
-                    },
-                }
-            ],
-            "users": [
-                {
-                    "name": "my-credentials",
-                    "user": {"token": token},
-                }
-            ],
-            "contexts": [
-                {
-                    "name": "my-context",
-                    "context": {
-                        "cluster": "my-cluster",
-                        "user": "my-credentials",
-                    },
-                }
-            ],
-            "current-context": "my-context",
+        # Determine kubeconfig path
+        kubeconfig_path = os.environ.get("KUBECONFIG")
+        if not kubeconfig_path:
+            kubeconfig_path = os.path.join(Path.home(), ".kube", "config")
+
+        logger.debug(f"Using kubeconfig at {kubeconfig_path}")
+
+        # Load existing kubeconfig or create new one
+        if os.path.exists(kubeconfig_path):
+            with open(kubeconfig_path, "r") as f:
+                kubeconfigDict = yaml.safe_load(f) or {}
+        else:
+            kubeconfigDict = {"apiVersion": "v1", "kind": "Config", "clusters": [], "users": [], "contexts": [], "current-context": ""}
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(kubeconfig_path), exist_ok=True)
+
+        # Ensure required keys exist
+        if "clusters" not in kubeconfigDict:
+            kubeconfigDict["clusters"] = []
+        if "users" not in kubeconfigDict:
+            kubeconfigDict["users"] = []
+        if "contexts" not in kubeconfigDict:
+            kubeconfigDict["contexts"] = []
+
+        # Define cluster, user, and context names
+        cluster_name = "mas-cluster"
+        user_name = "mas-user"
+        context_name = "mas-context"
+
+        # Update or add cluster
+        cluster_entry = {
+            "name": cluster_name,
+            "cluster": {
+                "server": server,
+                "insecure-skip-tls-verify": skipVerify,
+            },
         }
+        # Remove existing cluster with same name
+        kubeconfigDict["clusters"] = [c for c in kubeconfigDict["clusters"] if c.get("name") != cluster_name]
+        kubeconfigDict["clusters"].append(cluster_entry)
 
-        # Write to temporary file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".kubeconfig", delete=False) as tmpFile:
-            tmpKubeconfigPath = tmpFile.name
-            yaml.dump(kubeconfigDict, tmpFile)
+        # Update or add user
+        user_entry = {"name": user_name, "user": {"token": token}}
+        # Remove existing user with same name
+        kubeconfigDict["users"] = [u for u in kubeconfigDict["users"] if u.get("name") != user_name]
+        kubeconfigDict["users"].append(user_entry)
 
-        logger.debug(f"Created temporary kubeconfig at {tmpKubeconfigPath}")
+        # Update or add context
+        context_entry = {
+            "name": context_name,
+            "context": {
+                "cluster": cluster_name,
+                "user": user_name,
+            },
+        }
+        # Remove existing context with same name
+        kubeconfigDict["contexts"] = [c for c in kubeconfigDict["contexts"] if c.get("name") != context_name]
+        kubeconfigDict["contexts"].append(context_entry)
 
-        # Load the configuration
-        config.load_kube_config(config_file=tmpKubeconfigPath)
-        logger.info("KubeConfig context changed to my-context")
+        # Set current context
+        kubeconfigDict["current-context"] = context_name
 
-        # Clean up temporary file
-        os.unlink(tmpKubeconfigPath)
-        logger.debug(f"Removed temporary kubeconfig {tmpKubeconfigPath}")
+        # Write updated kubeconfig
+        with open(kubeconfig_path, "w") as f:
+            yaml.dump(kubeconfigDict, f, default_flow_style=False)
+
+        logger.debug(f"Updated kubeconfig at {kubeconfig_path}")
+
+        # Load the configuration from the updated kubeconfig
+        config.load_kube_config(config_file=kubeconfig_path)
+        logger.info(f"KubeConfig context changed to {context_name}")
 
         return True
 
