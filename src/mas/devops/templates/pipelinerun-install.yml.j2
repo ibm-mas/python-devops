@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
 {%- if mas_instance_id is defined and mas_instance_id != "" %}
@@ -13,7 +13,8 @@ spec:
   pipelineRef:
     name: mas-install
 
-  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  taskRunTemplate:
+    serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   timeouts:
     pipeline: "0"
 
@@ -112,7 +113,7 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
-  {%- if db2_action_facilities == "install" %}      
+  {%- if db2_action_facilities == "install" %}
     - name: db2_facilities_timezone
       value: "{{ db2_facilities_timezone }}"
   {%- endif %}

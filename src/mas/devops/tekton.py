@@ -1139,7 +1139,7 @@ def launchUpgradePipeline(
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,
@@ -1193,7 +1193,7 @@ def launchUninstallPipeline(
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,
@@ -1233,7 +1233,7 @@ def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: st
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,
@@ -1364,7 +1364,7 @@ def launchAiServiceUpgradePipeline(
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,
