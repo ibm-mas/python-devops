@@ -32,7 +32,8 @@ def test_list_catalogs():
 def test_get_newest_catalog_tag():
     catalogTag = getNewestCatalogTag("amd64")
     # Reminder: update this test when adding a new catalog each month!
-    assert catalogTag == "v9-260625-amd64"
+    # Note: v9-cpd531-amd64 is a special catalog for CPD 5.3.1 Helm testing
+    assert catalogTag == "v9-cpd531-amd64"
 
 
 def test_get_newest_catalog_tag_fail():
