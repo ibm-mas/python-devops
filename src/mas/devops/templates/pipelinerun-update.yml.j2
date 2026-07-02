@@ -28,11 +28,6 @@ spec:
     - name: mas_catalog_version
       value: "{{ mas_catalog_version }}"
 
-{%- if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
-    # TODO: What even uses this, nothing in the update pipeline should be using this
-    - name: ibm_entitlement_key
-      value: "{{ ibm_entitlement_key }}"
-{%- endif %}
 {%- if artifactory_username is defined and artifactory_username != "" %}
     # Enable development catalogs
     # -------------------------------------------------------------------------
