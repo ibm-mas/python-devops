@@ -727,22 +727,17 @@ def prepareAiServicePipelinesNamespace(
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
-def prepareRestoreSecrets(
-    dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None, additionalConfigs: dict = None, ibm_entitlement_key: str = None
-):
+def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None):
     """
-    Create or update secrets required for MAS Restore pipeline.
+    Create or update secret required for MAS Restore pipeline.
 
-    Creates secrets in the specified namespace:
+    Creates secret in the specified namespace:
         - pipeline-restore-configs
-        - pipeline-additional-configs
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to create secrets in
         restoreConfigs (dict, optional): configuration data for restore. Defaults to None (empty secret).
-        additionalConfigs (dict, optional): Additional configuration data. Defaults to None (empty secret).
-        ibm_entitlement_key (str, optional): IBM entitlement key for authentication. Defaults to None.
 
     Returns:
         None
@@ -769,31 +764,6 @@ def prepareRestoreSecrets(
         }
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
-    # 2. Secret/pipeline-additional-configs
-    # -------------------------------------------------------------------------
-    # Must exist, but can be empty
-    try:
-        secretsAPI.delete(name="pipeline-additional-configs", namespace=namespace)
-    except NotFoundError:
-        pass
-
-    if additionalConfigs is None:
-        additionalConfigs = {"apiVersion": "v1", "kind": "Secret", "type": "Opaque", "metadata": {"name": "pipeline-additional-configs"}}
-
-    additionalConfigs.setdefault("apiVersion", "v1")
-    additionalConfigs.setdefault("kind", "Secret")
-    additionalConfigs.setdefault("type", "Opaque")
-    additionalConfigs.setdefault("metadata", {})
-    additionalConfigs["metadata"]["name"] = "pipeline-additional-configs"
-
-    # Add IBM_ENTITLEMENT_KEY to the secret if provided
-    if ibm_entitlement_key:
-        if "data" not in additionalConfigs:
-            additionalConfigs["data"] = {}
-        additionalConfigs["data"]["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
-
-    secretsAPI.create(body=additionalConfigs, namespace=namespace)
-
 
 def prepareInstallSecrets(
     dynClient: DynamicClient,
@@ -807,7 +777,6 @@ def prepareInstallSecrets(
     aiserviceConfig: str = None,
     db2LicenseFile: dict | None = None,
     facilitiesProperties: dict | None = None,
-    ibm_entitlement_key: str = None,
 ) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
@@ -828,7 +797,6 @@ def prepareInstallSecrets(
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
         aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
         facilitiesProperties (dict, optional): Facilities properties file content. Defaults to None (empty secret).
-        ibm_entitlement_key (str, optional): IBM entitlement key for authentication. Defaults to None.
 
     Returns:
         None
@@ -890,19 +858,6 @@ def prepareInstallSecrets(
             "type": "Opaque",
             "metadata": {"name": "pipeline-additional-configs"},
         }
-
-    additionalConfigs.setdefault("apiVersion", "v1")
-    additionalConfigs.setdefault("kind", "Secret")
-    additionalConfigs.setdefault("type", "Opaque")
-    additionalConfigs.setdefault("metadata", {})
-    additionalConfigs["metadata"]["name"] = "pipeline-additional-configs"
-
-    # Add IBM_ENTITLEMENT_KEY to the secret if provided
-    if ibm_entitlement_key:
-        if "data" not in additionalConfigs:
-            additionalConfigs["data"] = {}
-        additionalConfigs["data"]["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
-
     secretsAPI.create(body=additionalConfigs, namespace=namespace)
 
     # 2. Secret/pipeline-sls-entitlement
