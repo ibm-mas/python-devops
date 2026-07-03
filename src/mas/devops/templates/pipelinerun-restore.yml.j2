@@ -19,9 +19,6 @@ spec:
     - name: restore-configurations
       secret:
         secretName: pipeline-restore-configs
-    - name: shared-additional-configs
-      secret:
-        secretName: pipeline-additional-configs
   params:
     # Common Parameters
     - name: image_pull_policy
@@ -101,6 +98,10 @@ spec:
     {% if dro_contact_lastname is defined and dro_contact_lastname != "" %}
     - name: dro_contact_lastname
       value: "{{ dro_contact_lastname }}"
+    {% endif %}
+    {% if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
     {% endif %}
     {% if dro_namespace is defined and dro_namespace != "" %}
     - name: dro_namespace
