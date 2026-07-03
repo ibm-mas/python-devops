@@ -52,6 +52,7 @@ def test_get_catalog_fail():
 # Dev / rolling catalog tests
 # ---------------------------------------------------------------------------
 
+
 def test_get_dev_catalog_v9_master_amd64():
     """getCatalog() for v9-master-amd64 returns a minimal CatalogSource dict."""
     catalog = getCatalog("v9-master-amd64")
