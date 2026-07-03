@@ -41,6 +41,12 @@ spec:
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
+{%- if skip_compatibility_check is defined and skip_compatibility_check != "" %}
+    # Skip compatibility check
+    # -------------------------------------------------------------------------
+    - name: skip_compatibility_check
+      value: "{{ skip_compatibility_check }}"
+{%- endif %}
 {%- if artifactory_username is defined and artifactory_username != "" %}
 
     # Enable development catalogs
