@@ -46,3 +46,38 @@ def test_get_newest_catalog_tag_fail():
 def test_get_catalog_fail():
     with pytest.raises(NoSuchCatalogError, match="Catalog nonexistent-catalog is unknown"):
         getCatalog("nonexistent-catalog")
+
+
+# ---------------------------------------------------------------------------
+# Dev / rolling catalog tests
+# ---------------------------------------------------------------------------
+
+def test_get_dev_catalog_v9_master_amd64():
+    """getCatalog() for v9-master-amd64 returns a minimal CatalogSource dict."""
+    catalog = getCatalog("v9-master-amd64")
+    assert catalog["kind"] == "CatalogSource"
+    assert "v9-master-amd64" in catalog["spec"]["image"]
+
+
+def test_get_dev_catalog_v9_master_s390x():
+    """getCatalog() for v9-master-s390x also resolves as a dev catalog."""
+    catalog = getCatalog("v9-master-s390x")
+    assert catalog["kind"] == "CatalogSource"
+    assert "v9-master-s390x" in catalog["spec"]["image"]
+
+
+def test_get_dev_catalog_contains_expected_keys():
+    """Dev catalog descriptor contains the expected top-level keys."""
+    catalog = getCatalog("v9-master-amd64")
+    assert "apiVersion" in catalog
+    assert "kind" in catalog
+    assert "metadata" in catalog
+    assert "spec" in catalog
+
+
+def test_get_dev_catalog_does_not_raise_no_such_catalog_error():
+    """Rolling dev catalog IDs must NOT raise NoSuchCatalogError."""
+    try:
+        getCatalog("v9-master-amd64")
+    except NoSuchCatalogError:
+        pytest.fail("getCatalog('v9-master-amd64') raised NoSuchCatalogError unexpectedly")
