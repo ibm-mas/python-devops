@@ -24,6 +24,16 @@ class NoSuchCatalogError(Exception):
     pass
 
 
+# Dev catalog IDs that resolve from Artifactory (not static yaml files).
+# These use a rolling build so there is no fixed version metadata.
+_DEV_CATALOG_PREFIXES = ("v9-master", "v9-dev")
+
+
+def _isDevCatalogId(name: str) -> bool:
+    """Return True if the catalog ID refers to a rolling dev/master catalog."""
+    return any(name.startswith(prefix) for prefix in _DEV_CATALOG_PREFIXES)
+
+
 def getCatalog(name: str) -> dict:
     """
     Load a specific IBM Operator Catalog definition by name.
@@ -31,15 +41,39 @@ def getCatalog(name: str) -> dict:
     This function reads a catalog YAML file from the catalogs directory and returns
     its contents as a dictionary.
 
+    For rolling dev catalogs (e.g. ``v9-master-amd64``), no static yaml file
+    exists.  A minimal descriptor is returned instead so that callers do not
+    need to special-case the dev-catalog path.
+
     Args:
-        name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v8-240528-amd64").
+        name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v9-master-amd64").
 
     Returns:
         dict: The catalog definition dictionary containing operator versions and metadata.
 
     Raises:
-        NoSuchCatalogError: If the specified catalog does not exist.
+        NoSuchCatalogError: If the specified catalog does not exist and is not a dev catalog.
     """
+    # Dev/master catalogs are rolling builds served from Artifactory.
+    # They have no static yaml descriptor — return a minimal placeholder so
+    # that downstream logic (update validation, pipelinerun generation) can
+    # proceed without crashing.
+    if _isDevCatalogId(name):
+        return {
+            "apiVersion": "operators.coreos.com/v1alpha1",
+            "kind": "CatalogSource",
+            "metadata": {
+                "name": "ibm-operator-catalog",
+                "namespace": "openshift-marketplace",
+            },
+            "spec": {
+                "displayName": f"IBM Maximo Operators ({name} Dev)",
+                "image": f"docker-na-public.artifactory.swg-devops.com/wiotp-docker-local/cpopen/ibm-maximo-operator-catalog:{name}",
+                "sourceType": "grpc",
+                "publisher": "IBM",
+            },
+        }
+
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
     catalogFileName = f"{name}.yaml"
