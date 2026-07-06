@@ -49,6 +49,12 @@ from mas.devops import db2
         ("X", "otherSTRING", "OTHERstring", False),
         ("X", "other string", "other string", True),
         ("X", "22", "22", True),
+        # ENCRLIB — short filename in CR, full absolute path in pod → should pass
+        ("ENCRLIB", "libdb2compr_encr.so", "/opt/ibm/db2/V11.5.0.0/lib64/libdb2compr_encr.so.1", True),
+        # ENCRLIB — future DB2 version path → should still pass
+        ("ENCRLIB", "libdb2compr_encr.so", "/opt/ibm/db2/V11.5.10.0/lib64/libdb2compr_encr.so.1", True),
+        # ENCRLIB — completely wrong library → should fail
+        ("ENCRLIB", "libdb2compr_encr.so", "/opt/ibm/db2/V11.5.0.0/lib64/somewronglibrary.so", False),
     ],
 )
 def test_cr_pod_v_matches(cr_k, cr_v, pod_v, expected):
