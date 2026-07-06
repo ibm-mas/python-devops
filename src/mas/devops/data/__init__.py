@@ -55,11 +55,13 @@ def getCatalog(name: str) -> dict:
         NoSuchCatalogError: If the specified catalog does not exist and is not a dev catalog.
     """
     # Dev/master catalogs are rolling builds served from Artifactory.
-    # They have no static yaml descriptor — return a minimal placeholder so
-    # that downstream logic (update validation, pipelinerun generation) can
-    # proceed without crashing.
+    # They have no static yaml descriptor — return a descriptor with the
+    # CatalogSource fields plus the version-metadata keys that the CLI
+    # accesses (processCatalogChoice, validateCatalog, etc.).
+    # Rolling builds have no fixed digest; empty string is used as a sentinel.
     if _isDevCatalogId(name):
         return {
+            # --- Kubernetes CatalogSource fields ---
             "apiVersion": "operators.coreos.com/v1alpha1",
             "kind": "CatalogSource",
             "metadata": {
@@ -71,6 +73,59 @@ def getCatalog(name: str) -> dict:
                 "image": f"docker-na-public.artifactory.swg-devops.com/wiotp-docker-local/cpopen/ibm-maximo-operator-catalog:{name}",
                 "sourceType": "grpc",
                 "publisher": "IBM",
+            },
+            # --- Catalog version metadata (dev/rolling — no fixed values) ---
+            # Empty digest signals a rolling build; CLI code guards on this where needed.
+            "catalog_digest": "",
+            "ocp_compatibility": [],
+            # Dependency default versions — kept in sync with the latest monthly catalog.
+            "mongo_extras_version_default": "8.0.20",
+            "db2_channel_default": "v120104.0",
+            "cpd_product_version_default": "5.2.0",
+            # MAS channel → version mappings for dev channels.
+            "mas_core_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+                "9.0.x-dev": "9.0.x-dev",
+            },
+            "aiservice_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+            },
+            "mas_manage_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+                "9.0.x-dev": "9.0.x-dev",
+            },
+            "mas_iot_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+                "9.0.x-dev": "9.0.x-dev",
+            },
+            "mas_monitor_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+                "9.0.x-dev": "9.0.x-dev",
+            },
+            "mas_optimizer_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+            },
+            "mas_predict_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+            },
+            "mas_visualinspection_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+            },
+            "mas_assist_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
+            },
+            "mas_facilities_version": {
+                "9.2.x-dev": "9.2.x-dev",
+                "9.1.x-dev": "9.1.x-dev",
             },
         }
 
