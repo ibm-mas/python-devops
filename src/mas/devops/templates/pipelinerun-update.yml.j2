@@ -45,6 +45,12 @@ spec:
     - name: artifactory_token
       value: "{{ artifactory_token }}"
 {%- endif %}
+{%- if mas_icr_cpopen is defined and mas_icr_cpopen != "" %}
+    # ICR registry override for dev mode
+    # -------------------------------------------------------------------------
+    - name: mas_icr_cpopen
+      value: "{{ mas_icr_cpopen }}"
+{%- endif %}
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
     # Skip pre-check
     # -------------------------------------------------------------------------
