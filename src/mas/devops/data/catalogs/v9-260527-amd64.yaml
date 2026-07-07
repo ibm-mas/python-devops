@@ -17,14 +17,14 @@ ocp_compatibility:
 
 # Dependencies
 # -----------------------------------------------------------------------------
-ibm_licensing_version: 4.2.17                   # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
-common_svcs_version: 4.13.0                     # Operator version 4.13.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
+ibm_licensing_version: 4.2.20                   # Operator version 4.2.20 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+common_svcs_version: 4.17.0                     # Operator version 4.17.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
 #common_svcs_version_1: 4.11.0                   # Additional version 4.11.0
 
-cp4d_platform_version: 5.2.0+20250709.170324    # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+cp4d_platform_version: 5.4.0+20260501.120952.925.640.50    # Operator version 5.4.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
 ibm_zen_version: 6.4.0+20260210.170932.92      # For CPD5 ibm-zen has to be explicitily mirrored
 
-db2u_version: 7.3.1+20250821.161005.16793       # Operator version 110509.0.6 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_version: 7.5.2+20260224.152548.19265       # Operator version 110509.0.6 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 db2_channel_default: v110509.0                  # Default Channel version for db2u-operator
 uds_version: 2.0.12                             # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.12.8             # No Update       # Operator version 3.12.7 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
@@ -36,7 +36,7 @@ appconnect_version: 6.2.0                       # Operator version 6.2.0 # stick
 wsl_version: 12.1.0                             # CPD 5.3.1 Watson Studio CASE version for Helm
 wsl_runtimes_version: 12.1.0                    # CPD 5.3.1 Watson Studio Runtimes CASE version
 wml_version: 12.1.0                             # CPD 5.3.1 Watson Machine Learning CASE version for Helm
-postgress_version: 5.16.0+20250827.110911.2626  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
+postgress_version: 5.31.0+20260129.161021.2713  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
 
 # CPD 5.3.1 Shared Dependencies
 ccs_build: 12.1.0                               # CPD 5.3.1 Common Core Services CASE version
