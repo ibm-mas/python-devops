@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2025 IBM Corporation and other Contributors.
+# Copyright (c) 2025, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -9,8 +9,9 @@
 # *****************************************************************************
 
 import logging
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import (
+
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import (
     NotFoundError,
     ResourceNotFoundError,
     UnauthorizedError,

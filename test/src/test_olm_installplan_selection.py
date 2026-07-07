@@ -111,11 +111,21 @@ def test_automatic_approval_uses_label_selector_only(
     mock_subscription.status.state = "AtLatestKnown"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription,  # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            # First call with label_selector returns empty list
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            # Subsequent calls return the subscription
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            # Direct get by name returns the subscription
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API - label selector returns one InstallPlan
@@ -183,11 +193,18 @@ def test_manual_approval_without_starting_csv_uses_label_selector_only(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription,  # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API
@@ -270,11 +287,18 @@ def test_manual_approval_with_starting_csv_label_selector_finds_match(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription,  # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API - label selector returns matching InstallPlan
@@ -357,11 +381,18 @@ def test_manual_approval_with_starting_csv_fallback_to_ownership_search(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription,  # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API
@@ -464,11 +495,18 @@ def test_manual_approval_filters_by_subscription_ownership(
     mock_subscription.status.state = "UpgradePending"
     mock_subscription.status.installedCSV = "test-operator.v1.0.0"
 
-    # First call returns empty list (no existing subscription), subsequent calls return the subscription
-    sub_api.get.side_effect = [
-        MockResourceList([]),  # Initial check for existing subscription
-        mock_subscription,  # Subsequent calls when waiting for subscription to complete
-    ]
+    # Mock to return empty list first, then the subscription for all subsequent calls
+    def sub_get_side_effect(*args, **kwargs):
+        if "label_selector" in kwargs:
+            if not hasattr(sub_get_side_effect, "called"):
+                sub_get_side_effect.called = True
+                return MockResourceList([])
+            return MockResourceList([mock_subscription])
+        elif "name" in kwargs:
+            return mock_subscription
+        return MockResourceList([])
+
+    sub_api.get.side_effect = sub_get_side_effect
     sub_api.apply.return_value = Mock()
 
     # Mock InstallPlan API

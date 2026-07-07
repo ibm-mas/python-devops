@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260625 (AMD64)
+# Case bundle configuration for IBM Maximo Operator Catalog 260730 (AMD64)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:028ecfe475c743c277917ef818698dea0ddfe7dcee79830ffaa5b3a61f89cdbd
+catalog_digest: sha256:3a9f89efcdefc8b0bba4deaf2efea2b17835880ba17215274637a93b30f126b0
 
 ocp_compatibility:
 - "4.16"
@@ -64,12 +64,12 @@ minio_extras_version: 1.0.0
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.20
+mongo_extras_version_default: 8.0.23
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.20
+mongo_extras_version_8: 8.0.23
 
 
 # Dependencies - Amlen

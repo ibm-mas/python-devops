@@ -9,11 +9,12 @@
 # *****************************************************************************
 import logging
 import os
-import yaml
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError, ResourceNotFoundError
+
 import boto3
+import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import NotFoundError, ResourceNotFoundError
 
 logger = logging.getLogger(name=__name__)
 

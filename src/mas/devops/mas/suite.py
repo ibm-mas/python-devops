@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -13,16 +13,16 @@ import re
 import yaml
 from os import path
 from types import SimpleNamespace
-from kubernetes.dynamic.resource import ResourceInstance
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import (
+from jinja2 import Environment, FileSystemLoader
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import (
     NotFoundError,
     ResourceNotFoundError,
     UnauthorizedError,
 )
-from jinja2 import Environment, FileSystemLoader
+from kubernetes.dynamic.resource import ResourceInstance
 
-from ..ocp import getStorageClasses, listInstances
+from ..ocp import applyResource, getStorageClasses, listInstances
 from ..olm import getSubscription
 
 logger = logging.getLogger(__name__)
@@ -324,9 +324,14 @@ def updateIBMEntitlementKey(
     template = env.get_template("ibm-entitlement-secret.yml.j2")
     renderedTemplate = template.render(name=secretName, namespace=namespace, docker_config=dockerConfig)
     secret = yaml.safe_load(renderedTemplate)
-    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
 
-    secret = secretsAPI.apply(body=secret, namespace=namespace)
+    secret = applyResource(
+        dynClient=dynClient,
+        apiVersion="v1",
+        kind="Secret",
+        body=secret,
+        namespace=namespace,
+    )
     return secret
 
 

@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Copyright (c) 2024 IBM Corporation and other Contributors.
+# Copyright (c) 2024, 2026 IBM Corporation and other Contributors.
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -9,17 +9,17 @@
 # *****************************************************************************
 
 import logging
+import os
+from pathlib import Path
 from time import sleep
 
-from kubeconfig import KubeConfig
-from kubeconfig.exceptions import KubectlNotFoundError
-from openshift.dynamic import DynamicClient
-from openshift.dynamic.exceptions import NotFoundError
-
-from kubernetes import client
+from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
+from kubernetes.dynamic import DynamicClient
+from kubernetes.dynamic.exceptions import NotFoundError
+from kubernetes.dynamic.resource import ResourceInstance
 from kubernetes.stream import stream
 from kubernetes.stream.ws_client import ERROR_CHANNEL
-from kubernetes.dynamic.resource import ResourceInstance
 
 import yaml
 
@@ -30,7 +30,8 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
     """
     Connect to a target OpenShift Container Platform (OCP) cluster.
 
-    Configures kubectl/oc context with the provided server URL and authentication token.
+    Configures Kubernetes client with the provided server URL and authentication token.
+    Updates the default kubeconfig file with the new cluster context.
 
     Parameters:
         server (str): The OpenShift cluster API server URL (e.g., "https://api.cluster.example.com:6443")
@@ -38,30 +39,94 @@ def connect(server: str, token: str, skipVerify: bool = False) -> bool:
         skipVerify (bool, optional): Whether to skip TLS certificate verification. Defaults to False.
 
     Returns:
-        bool: True if connection was successful, False if kubectl is not found on the path
+        bool: True if connection was successful, False if configuration fails
 
     Raises:
-        KubectlNotFoundError: If kubectl/oc is not available in the system PATH
+        ConfigException: If the Kubernetes configuration cannot be loaded
     """
     logger.info(f"Connect(server={server}, token=***)")
 
     try:
-        conf = KubeConfig()
-    except KubectlNotFoundError:
-        logger.warning("Unable to locate kubectl on the path")
+        # Determine kubeconfig path
+        kubeconfig_path = os.environ.get("KUBECONFIG")
+        if not kubeconfig_path:
+            kubeconfig_path = os.path.join(Path.home(), ".kube", "config")
+
+        logger.debug(f"Using kubeconfig at {kubeconfig_path}")
+
+        # Load existing kubeconfig or create new one
+        if os.path.exists(kubeconfig_path):
+            with open(kubeconfig_path, "r") as f:
+                kubeconfigDict = yaml.safe_load(f) or {}
+        else:
+            kubeconfigDict = {"apiVersion": "v1", "kind": "Config", "clusters": [], "users": [], "contexts": [], "current-context": ""}
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(kubeconfig_path), exist_ok=True)
+
+        # Ensure required keys exist
+        if "clusters" not in kubeconfigDict:
+            kubeconfigDict["clusters"] = []
+        if "users" not in kubeconfigDict:
+            kubeconfigDict["users"] = []
+        if "contexts" not in kubeconfigDict:
+            kubeconfigDict["contexts"] = []
+
+        # Define cluster, user, and context names
+        cluster_name = "mas-cluster"
+        user_name = "mas-user"
+        context_name = "mas-context"
+
+        # Update or add cluster
+        cluster_entry = {
+            "name": cluster_name,
+            "cluster": {
+                "server": server,
+                "insecure-skip-tls-verify": skipVerify,
+            },
+        }
+        # Remove existing cluster with same name
+        kubeconfigDict["clusters"] = [c for c in kubeconfigDict["clusters"] if c.get("name") != cluster_name]
+        kubeconfigDict["clusters"].append(cluster_entry)
+
+        # Update or add user
+        user_entry = {"name": user_name, "user": {"token": token}}
+        # Remove existing user with same name
+        kubeconfigDict["users"] = [u for u in kubeconfigDict["users"] if u.get("name") != user_name]
+        kubeconfigDict["users"].append(user_entry)
+
+        # Update or add context
+        context_entry = {
+            "name": context_name,
+            "context": {
+                "cluster": cluster_name,
+                "user": user_name,
+            },
+        }
+        # Remove existing context with same name
+        kubeconfigDict["contexts"] = [c for c in kubeconfigDict["contexts"] if c.get("name") != context_name]
+        kubeconfigDict["contexts"].append(context_entry)
+
+        # Set current context
+        kubeconfigDict["current-context"] = context_name
+
+        # Write updated kubeconfig
+        with open(kubeconfig_path, "w") as f:
+            yaml.dump(kubeconfigDict, f, default_flow_style=False)
+
+        logger.debug(f"Updated kubeconfig at {kubeconfig_path}")
+
+        # Load the configuration from the updated kubeconfig
+        config.load_kube_config(config_file=kubeconfig_path)
+        logger.info(f"KubeConfig context changed to {context_name}")
+
+        return True
+
+    except ConfigException as e:
+        logger.warning(f"Unable to configure Kubernetes client: {e}")
         return False
-
-    conf.view()
-    logger.debug(f"Starting KubeConfig context: {conf.current_context()}")
-
-    conf.set_credentials(name="my-credentials", token=token)
-    conf.set_cluster(name="my-cluster", server=server, insecure_skip_tls_verify=skipVerify)
-    conf.set_context(name="my-context", cluster="my-cluster", user="my-credentials")
-
-    conf.use_context("my-context")
-    conf.view()
-    logger.info(f"KubeConfig context changed to {conf.current_context()}")
-    return True
+    except Exception as e:
+        logger.error(f"Unexpected error during connection: {e}")
+        return False
 
 
 def getClusterVersion(dynClient: DynamicClient) -> str:
@@ -467,28 +532,85 @@ def getSecret(dynClient: DynamicClient, namespace: str, secret_name: str) -> dic
     return {}
 
 
-def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str):
+def applyResource(
+    dynClient: DynamicClient,
+    apiVersion: str,
+    kind: str,
+    body: dict,
+    namespace: str | None = None,
+):
     """
-    Apply a Kubernetes resource from its YAML definition.
-    If the resource already exists, it will be updated.
-    If it does not exist, it will be created.
+    Create or patch a Kubernetes resource.
+
+    Mimic the OpenShift dynamic client's apply behavior by creating the resource
+    when it does not exist and patching it when it already exists.
+
+    Args:
+        dynClient (DynamicClient): Kubernetes dynamic client
+        apiVersion (str): API version for the resource
+        kind (str): Resource kind
+        body (dict): Resource manifest to create or patch
+        namespace (str, optional): Namespace for namespaced resources. Defaults to None.
+
+    Returns:
+        ResourceInstance: The created or patched resource
+
+    Raises:
+        KeyError: If metadata.name is missing from the resource body
     """
-    resource_dict = yaml.safe_load(resource_yaml)
-    kind = resource_dict["kind"]
-    api_version = resource_dict["apiVersion"]
-    metadata = resource_dict["metadata"]
+    resourceAPI = dynClient.resources.get(api_version=apiVersion, kind=kind)
+    metadata = body.get("metadata", {})
     name = metadata["name"]
 
     try:
-        resource = dynClient.resources.get(api_version=api_version, kind=kind)
-        # Try to get the existing resource
-        resource.get(name=name, namespace=namespace)
-        # If found, skip creation
-        logger.debug(f"{kind} '{name}' already exists in namespace '{namespace}', skipping creation.")
+        if namespace:
+            resourceAPI.get(name=name, namespace=namespace)
+            logger.debug(f"Patching existing {kind} '{name}' in namespace '{namespace}'")
+            return resourceAPI.patch(
+                body=body,
+                name=name,
+                namespace=namespace,
+                content_type="application/merge-patch+json",
+            )
+
+        resourceAPI.get(name=name)
+        logger.debug(f"Patching existing cluster-scoped {kind} '{name}'")
+        return resourceAPI.patch(
+            body=body,
+            name=name,
+            content_type="application/merge-patch+json",
+        )
     except NotFoundError:
-        # If not found, create it
-        logger.debug(f"Creating new {kind} '{name}' in namespace '{namespace}'")
-        resource.create(body=resource_dict, namespace=namespace)
+        if namespace:
+            logger.debug(f"Creating new {kind} '{name}' in namespace '{namespace}'")
+            return resourceAPI.create(body=body, namespace=namespace)
+
+        logger.debug(f"Creating new cluster-scoped {kind} '{name}'")
+        return resourceAPI.create(body=body)
+
+
+def apply_resource(dynClient: DynamicClient, resource_yaml: str, namespace: str):
+    """
+    Apply a Kubernetes resource from its YAML definition.
+
+    Create the resource when it does not exist and patch it when it already exists.
+
+    Args:
+        dynClient (DynamicClient): Kubernetes dynamic client
+        resource_yaml (str): YAML manifest for the resource
+        namespace (str): Namespace for the resource
+
+    Returns:
+        ResourceInstance: The created or patched resource
+    """
+    resourceDict = yaml.safe_load(resource_yaml)
+    return applyResource(
+        dynClient=dynClient,
+        apiVersion=resourceDict["apiVersion"],
+        kind=resourceDict["kind"],
+        body=resourceDict,
+        namespace=namespace,
+    )
 
 
 def listInstances(dynClient: DynamicClient, apiVersion: str, kind: str) -> list:
@@ -684,7 +806,13 @@ def updateGlobalPullSecret(dynClient: DynamicClient, registryUrl: str, username:
     secretDict["data"][".dockerconfigjson"] = updatedDockerConfig
 
     # Apply the updated secret
-    updatedSecret = secretsAPI.apply(body=secretDict, namespace="openshift-config")
+    updatedSecret = applyResource(
+        dynClient=dynClient,
+        apiVersion="v1",
+        kind="Secret",
+        body=secretDict,
+        namespace="openshift-config",
+    )
 
     logger.info(f"Successfully updated global pull secret with credentials for {registryUrl}")
 

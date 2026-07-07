@@ -11,7 +11,7 @@ mas.devops
 Example
 -------------------------------------------------------------------------------
 ```python
-from openshift import dynamic
+from kubernetes import dynamic
 from kubernetes import config
 from kubernetes.client import api_client
 

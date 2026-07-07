@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
 {%- if mas_instance_id is defined and mas_instance_id != "" %}
@@ -13,7 +13,8 @@ spec:
   pipelineRef:
     name: mas-install
 
-  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  taskRunTemplate:
+    serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   timeouts:
     pipeline: "0"
 
@@ -116,7 +117,7 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
-  {%- if db2_action_facilities == "install" %}      
+  {%- if db2_action_facilities == "install" %}
     - name: db2_facilities_timezone
       value: "{{ db2_facilities_timezone }}"
   {%- endif %}
@@ -618,9 +619,11 @@ spec:
     - name: manage_bind_aiservice_tenant_id
       value: "{{ manage_bind_aiservice_tenant_id }}"
   {%- endif %}
+  {%- if cpd_product_version is defined and cpd_product_version != "" %}
   {%- if mas_appws_bindings_health_wsl_flag is defined and mas_appws_bindings_health_wsl_flag != "" %}
     - name: mas_appws_bindings_health_wsl_flag
       value: "{{ mas_appws_bindings_health_wsl_flag }}"
+  {%- endif %}
   {%- endif %}
   {%- if mas_app_settings_aio_flag is defined and mas_app_settings_aio_flag != "" %}
     - name: mas_app_settings_aio_flag
@@ -1000,6 +1003,29 @@ spec:
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
       value: "{{ aiservice_certificate_issuer }}"
+{%- endif %}
+
+    # AI Service - Database Configuration
+    # -------------------------------------------------------------------------
+{%- if install_db2 is defined %}
+    - name: install_db2
+      value: "{{ install_db2 }}"
+{%- endif %}
+{%- if aiservice_db_jdbc_url is defined and aiservice_db_jdbc_url != "" %}
+    - name: aiservice_db_jdbc_url
+      value: "{{ aiservice_db_jdbc_url }}"
+{%- endif %}
+{%- if aiservice_db_username is defined and aiservice_db_username != "" %}
+    - name: aiservice_db_username
+      value: "{{ aiservice_db_username }}"
+{%- endif %}
+{%- if aiservice_db_password is defined and aiservice_db_password != "" %}
+    - name: aiservice_db_password
+      value: "{{ aiservice_db_password }}"
+{%- endif %}
+{%- if aiservice_db_ca_cert is defined and aiservice_db_ca_cert != "" %}
+    - name: aiservice_db_ca_cert
+      value: "{{ aiservice_db_ca_cert }}"
 {%- endif %}
 
 {%- endif %}
