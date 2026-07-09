@@ -274,7 +274,7 @@ class TestCollectPreinstallMasRbacFilesFromSource:
             adminMode="cluster",
         )
         assert len(result) == 1
-        assert result[0].endswith("cluster-role-manage.yaml")
+        assert os.path.basename(result[0]) == "cluster-role-manage.yaml"
 
     def test_exact_version_match_namespaced_mode(self, make_operator_tree):
         root = make_operator_tree({
@@ -286,7 +286,7 @@ class TestCollectPreinstallMasRbacFilesFromSource:
             adminMode="namespaced",
         )
         assert len(result) == 1
-        assert result[0].endswith("role-non-essential-manage.yaml")
+        assert os.path.basename(result[0]) == "role-non-essential-manage.yaml"
 
     def test_version_fallback_uses_lower_dir(self, make_operator_tree):
         """Running 9.4, only 9.2 dir exists — resolves to 9.2."""
@@ -299,7 +299,8 @@ class TestCollectPreinstallMasRbacFilesFromSource:
             adminMode="cluster",
         )
         assert len(result) == 1
-        assert "9.2" in result[0]
+        # full path must include the resolved version directory name
+        assert os.path.join("rbac", "9.2") in result[0]
 
     def test_operator_with_no_rbac_dir_skipped(self, make_operator_tree):
         """Operator directory exists but has no rbac/ subdir — skipped."""
@@ -370,4 +371,8 @@ class TestCollectPreinstallMasRbacFilesFromSource:
             masVersion="9.2",
             adminMode="cluster",
         )
-        assert all("kustomization" not in f for f in result)
+        # Check basenames only — the tmp_path directory itself is named after
+        # the test function and contains "kustomization" in its path string.
+        result_basenames = [os.path.basename(f) for f in result]
+        assert "kustomization.yaml" not in result_basenames
+        assert "cluster-role-manage.yaml" in result_basenames
