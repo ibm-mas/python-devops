@@ -19,10 +19,10 @@ from mas.devops.pre_install import (
     _collect_preinstall_mas_rbac_files_from_source,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def make_rbac_dir(tmp_path):
@@ -47,6 +47,7 @@ def make_operator_tree(tmp_path):
             "ibm-mas-manage": {"9.2": ["cluster-role-foo.yaml", "role-non-essential-bar.yaml"]},
         })
     """
+
     def _make(operators: dict) -> str:
         for operatorName, versions in operators.items():
             for version, files in versions.items():
@@ -62,6 +63,7 @@ def make_operator_tree(tmp_path):
 # ===========================================================================
 # _validate_selected_apps
 # ===========================================================================
+
 
 def test_validate_selected_apps_none_returns_empty():
     assert _validate_selected_apps(None) == set()
@@ -97,6 +99,7 @@ def test_validate_selected_apps_deduplicates():
 # _get_selected_operator_dirs
 # ===========================================================================
 
+
 def test_get_selected_operator_dirs_core_maps_to_ibm_mas():
     assert _get_selected_operator_dirs({"core"}) == {"ibm-mas"}
 
@@ -121,6 +124,7 @@ def test_get_selected_operator_dirs_multiple():
 # ===========================================================================
 # _should_apply_preinstall_mas_rbac_file
 # ===========================================================================
+
 
 class TestShouldApplyClusterMode:
     def test_cluster_role_yaml_applied(self):
@@ -178,6 +182,7 @@ class TestShouldApplyMinimalMode:
 # ===========================================================================
 # _resolve_rbac_version
 # ===========================================================================
+
 
 class TestResolveRbacVersion:
     def test_exact_match(self, make_rbac_dir):
@@ -255,6 +260,7 @@ class TestResolveRbacVersion:
 # _collect_preinstall_mas_rbac_files_from_source
 # ===========================================================================
 
+
 class TestCollectPreinstallMasRbacFilesFromSource:
     def test_missing_source_root_returns_empty(self, tmp_path):
         result = _collect_preinstall_mas_rbac_files_from_source(
@@ -265,9 +271,11 @@ class TestCollectPreinstallMasRbacFilesFromSource:
         assert result == []
 
     def test_exact_version_match_cluster_mode(self, make_operator_tree):
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml", "role-non-essential-manage.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml", "role-non-essential-manage.yaml"]},
+            }
+        )
         result = _collect_preinstall_mas_rbac_files_from_source(
             sourceOperatorsRoot=root,
             masVersion="9.2",
@@ -277,9 +285,11 @@ class TestCollectPreinstallMasRbacFilesFromSource:
         assert os.path.basename(result[0]) == "cluster-role-manage.yaml"
 
     def test_exact_version_match_namespaced_mode(self, make_operator_tree):
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml", "role-non-essential-manage.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml", "role-non-essential-manage.yaml"]},
+            }
+        )
         result = _collect_preinstall_mas_rbac_files_from_source(
             sourceOperatorsRoot=root,
             masVersion="9.2",
@@ -290,9 +300,11 @@ class TestCollectPreinstallMasRbacFilesFromSource:
 
     def test_version_fallback_uses_lower_dir(self, make_operator_tree):
         """Running 9.4, only 9.2 dir exists — resolves to 9.2."""
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
+            }
+        )
         result = _collect_preinstall_mas_rbac_files_from_source(
             sourceOperatorsRoot=root,
             masVersion="9.4",
@@ -304,9 +316,11 @@ class TestCollectPreinstallMasRbacFilesFromSource:
 
     def test_operator_with_no_rbac_dir_skipped(self, make_operator_tree):
         """Operator directory exists but has no rbac/ subdir — skipped."""
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
+            }
+        )
         # add an operator dir with no rbac subdir
         os.makedirs(os.path.join(root, "ibm-mas-iot"))
         result = _collect_preinstall_mas_rbac_files_from_source(
@@ -320,9 +334,11 @@ class TestCollectPreinstallMasRbacFilesFromSource:
 
     def test_version_too_old_skips_operator(self, make_operator_tree):
         """Running 9.1, only 9.2 dir exists — operator is skipped entirely."""
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
+            }
+        )
         result = _collect_preinstall_mas_rbac_files_from_source(
             sourceOperatorsRoot=root,
             masVersion="9.1",
@@ -332,10 +348,12 @@ class TestCollectPreinstallMasRbacFilesFromSource:
 
     def test_operator_names_filter(self, make_operator_tree):
         """Only operators in operatorNames are processed."""
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
-            "ibm-mas-iot": {"9.2": ["cluster-role-iot.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
+                "ibm-mas-iot": {"9.2": ["cluster-role-iot.yaml"]},
+            }
+        )
         result = _collect_preinstall_mas_rbac_files_from_source(
             sourceOperatorsRoot=root,
             masVersion="9.2",
@@ -347,10 +365,12 @@ class TestCollectPreinstallMasRbacFilesFromSource:
 
     def test_multiple_operators_collected_in_order(self, make_operator_tree):
         """Files from multiple operators are collected, operators sorted."""
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
-            "ibm-mas-iot": {"9.2": ["cluster-role-iot.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml"]},
+                "ibm-mas-iot": {"9.2": ["cluster-role-iot.yaml"]},
+            }
+        )
         result = _collect_preinstall_mas_rbac_files_from_source(
             sourceOperatorsRoot=root,
             masVersion="9.2",
@@ -363,9 +383,11 @@ class TestCollectPreinstallMasRbacFilesFromSource:
 
     def test_kustomization_file_excluded(self, make_operator_tree):
         """kustomization.yaml is always excluded regardless of adminMode."""
-        root = make_operator_tree({
-            "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml", "kustomization.yaml"]},
-        })
+        root = make_operator_tree(
+            {
+                "ibm-mas-manage": {"9.2": ["cluster-role-manage.yaml", "kustomization.yaml"]},
+            }
+        )
         result = _collect_preinstall_mas_rbac_files_from_source(
             sourceOperatorsRoot=root,
             masVersion="9.2",
