@@ -220,6 +220,31 @@ class TestResolveRbacVersion:
         d = make_rbac_dir("9.2", "9.9", "9.10")
         assert _resolve_rbac_version(d, "9.9") == "9.9"
 
+    def test_version_10_exact_match(self, make_rbac_dir):
+        """Running 10.0, dir 10.0 exists — picks 10.0, not fooled by '1' < '9'."""
+        d = make_rbac_dir("9.2", "10.0")
+        assert _resolve_rbac_version(d, "10.0") == "10.0"
+
+    def test_version_10_falls_back_within_v10(self, make_rbac_dir):
+        """Running 10.1, only 10.0 dir exists — falls back to 10.0."""
+        d = make_rbac_dir("9.2", "10.0")
+        assert _resolve_rbac_version(d, "10.1") == "10.0"
+
+    def test_version_10_picks_highest_v10(self, make_rbac_dir):
+        """Running 10.2 with 10.0 and 10.1 on disk — picks 10.1."""
+        d = make_rbac_dir("9.2", "10.0", "10.1")
+        assert _resolve_rbac_version(d, "10.2") == "10.1"
+
+    def test_version_10_not_selected_for_v9(self, make_rbac_dir):
+        """Running 9.9, dir 10.0 exists — 10.0 is newer, must not be selected."""
+        d = make_rbac_dir("9.2", "9.9", "10.0")
+        assert _resolve_rbac_version(d, "9.9") == "9.9"
+
+    def test_version_10_falls_back_to_v9_when_no_v10_dir(self, make_rbac_dir):
+        """Running 10.0, no 10.x dir exists — falls back to highest v9 dir."""
+        d = make_rbac_dir("9.2", "9.5")
+        assert _resolve_rbac_version(d, "10.0") == "9.5"
+
     def test_version_below_all_available_returns_none(self, make_rbac_dir):
         """Running 9.1, only 9.2 dir exists — nothing qualifies."""
         d = make_rbac_dir("9.2")
