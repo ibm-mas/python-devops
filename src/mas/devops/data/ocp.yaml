@@ -17,7 +17,7 @@ ocp_versions:
   "4.20":
     ga_date: "October 21, 2025"
     standard_support: "April 21, 2027"
-    extended_support: "October 21, 2028"
+    extended_support: "October 21, 2027"
 
   "4.19":
     ga_date: "June 17, 2025"
@@ -27,7 +27,7 @@ ocp_versions:
   "4.18":
     ga_date: "February 25, 2025"
     standard_support: "August 25, 2026"
-    extended_support: "February 25, 2028"
+    extended_support: "February 25, 2027"
 
   "4.17":
     ga_date: "October 1, 2024"
@@ -37,7 +37,7 @@ ocp_versions:
   "4.16":
     ga_date: "June 27, 2024"
     standard_support: "December 27, 2025"
-    extended_support: "June 27, 2027"
+    extended_support: "June 27, 2026"
 
   "4.15":
     ga_date: "February 27, 2024"
@@ -47,7 +47,7 @@ ocp_versions:
   "4.14":
     ga_date: "October 31, 2023"
     standard_support: "May 1, 2025"
-    extended_support: "October 31, 2026"
+    extended_support: "October 31, 2025"
 
   "4.13":
     ga_date: "May 17, 2023"
