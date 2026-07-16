@@ -49,7 +49,7 @@ db2u_extras_version: 1.0.6                       # No Update
 db2u_filter: db2
 
 db2_channel_default: v120104.0                   # Default Channel version for db2u-operator
-db2u_kind_default: db2ucluster                   # Default Kind for db2u-operator
+db2u_kind_default: db2uinstance                   # Default Kind for db2u-operator
 
 
 # Dependencies - CouchDb
@@ -65,12 +65,12 @@ minio_extras_version: 1.0.0
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.23
+mongo_extras_version_default: 8.0.20
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.23
+mongo_extras_version_8: 8.0.20
 
 
 # Dependencies - Amlen
