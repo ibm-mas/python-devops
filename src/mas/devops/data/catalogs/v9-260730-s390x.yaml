@@ -1,0 +1,86 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog 260625 (Z)
+# -----------------------------------------------------------------------------
+# In the future this won't be necessary as we'll be able to mirror from the
+# catalog itself, but not everything in the catalog supports this yet (including MAS)
+# so we need to use the CASE bundle mirror process still.
+
+catalog_digest: sha256:d044437a912032f3d436e498b8b629ed827ccfd80292efaaed62c7a7769e9c9d
+
+ocp_compatibility:
+- "4.16"
+- "4.17"
+- "4.18"
+- "4.19"
+- "4.20"
+- "4.21"
+
+# Dependencies - Db2u
+# -----------------------------------------------------------------------------
+db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+
+db2_channel_default: v120104.0                   # Default Channel version for db2u-operator
+
+
+# Dependencies - UDS
+# -----------------------------------------------------------------------------
+uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+uds_extras_version: 1.5.0                    # No Update
+
+
+# Dependencies - Suite License Service
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-sls/releases
+sls_version: 3.13.0             # Updated
+
+
+# Dependencies - Truststore Manager
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
+tsm_version: 1.7.7              # Updated
+
+
+# Dependencies - MongoDB
+# -----------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.23
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.12
+mongo_extras_version_8: 8.0.23
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.2.x: 9.2.0                          # Updated
+  9.2.x-feature: 9.2.0                  # Updated
+  9.1.x: 9.1.19                         # Updated
+  9.0.x: 9.0.27                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+mas_manage_version:
+  9.2.x: 9.2.0                          # Updated
+  9.2.x-feature: 9.2.0                  # Updated
+  9.1.x: 9.1.19                         # Updated
+  9.0.x: 9.0.27                         # Updated
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+
+
+# Editorial
+# ------------------------------------------------------------------------------
+editorial:
+  whats_new:
+  - title: New feature release
+    details:
+    - IBM Maximo Application Suite Core Platform [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
+    - IBM Maximo Manage [v9.2.0](https://www.ibm.com/support/pages/node/7276377)
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform [v9.0.27](https://www.ibm.com/support/pages/node/7277381) and [v9.1.19](https://www.ibm.com/support/pages/node/7277382)
+    - IBM Maximo Manage [v9.0.27](https://www.ibm.com/support/pages/node/7276396) and [v9.1.19](https://www.ibm.com/support/pages/node/7276393)
+    - IBM Truststore Manager v1.7
+    - IBM Suite License Service v3.13
+  known_issues:
+    - title: A known issue exists in the June 25, 2026 release affecting IBM Maximo Visual Inspection. Customers with MVI installed and using custom cluster issuer should avoid upgrading to the June release. Installation of MVI 9.2.x should be deferred until the July 2026 patch.
+    - title: A know issue exists in the June 25 2026 release when a customer has environment setup with mas core+manage+Optimizer with out AIP as a addon. Then under manage work space two pods will appear aipoptimization-uninstall and it will be in error status. Even though these pods are in error status it does not have any functional impact on manage or optimizer. The fix has been identified and will be delivered in upcoming July 9.2 patch.
