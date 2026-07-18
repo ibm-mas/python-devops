@@ -42,6 +42,7 @@ postgress_version: 5.31.0+20260129.161021.2713  # ibm-cpd-cloud-native-postgresq
 ccs_build: 12.1.0                               # CPD 5.3.1 Common Core Services CASE version
 opensearch_version: 1.2.0                       # CPD 5.3.1 OpenSearch CASE version
 datarefinery_version: 12.1.0                    # CPD 5.3.1 Data Refinery CASE version
+redis_version: 1.3.1                            # CPD 5.3.1 IBM Redis CP CASE version (WML dependency)
 
 spark_version: 12.1.0                           # CPD 5.3.1 Analytics Engine/Spark CASE version for Helm
 cognos_version: 29.1.0                          # CPD 5.3.1 Cognos Analytics CASE version for Helm (Helm-only)
