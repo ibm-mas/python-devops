@@ -36,7 +36,7 @@ appconnect_version: 6.2.0                       # Operator version 6.2.0 # stick
 wsl_version: 12.1.0                             # CPD 5.3.1 Watson Studio CASE version for Helm
 wsl_runtimes_version: 12.1.0                    # CPD 5.3.1 Watson Studio Runtimes CASE version
 wml_version: 12.1.0                             # CPD 5.3.1 Watson Machine Learning CASE version for Helm
-postgress_version: 5.31.0+20260129.161021.2713  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
+postgress_version: 5.16.0+20250827.110911.2626  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
 
 # CPD 5.3.1 Shared Dependencies
 ccs_build: 12.1.0                               # CPD 5.3.1 Common Core Services CASE version
