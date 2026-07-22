@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:694c446a7ff4ca0f1c588d2b1f28711234aa21f7e928b5eb086abccc54e477ea
+catalog_digest: sha256:81c1a61a26fa0b6bcfb77729f253e3497d481871918909d83fd238d8a6363f98
 
 ocp_compatibility:
 - "4.16"
@@ -118,15 +118,15 @@ redis_extras_version: 2.1.40             # No Update
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.0                          # Updated
+  9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
   9.1.x: 9.1.19                         # Updated
-  9.0.x: 9.0.27                         # Updated
+  9.0.x: 9.0.28                         # Updated
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
-  9.1.x: 9.1.12                         # Updated
-  9.0.x: 9.0.18                         # Updated
+  9.1.x: 9.1.13                         # Updated
+  9.0.x: 9.0.19                         # Updated
   8.10.x: 8.7.8                         # No Update
   8.11.x: 8.8.7                         # No Update
 mas_hputilities_version:
@@ -135,45 +135,45 @@ mas_hputilities_version:
   8.10.x: 8.6.7                         # No Update
   8.11.x: ""                            # Not Supported
 mas_iot_version:
-  9.2.x: 9.2.0                          # Updated
+  9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
   9.1.x: 9.1.12                         # Updated
   9.0.x: 9.0.21                         # Updated
   8.10.x: 8.7.33                        # No Update
   8.11.x: 8.8.30                        # No Update
 mas_manage_version:
-  9.2.x: 9.2.0                          # Updated
+  9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
   9.1.x: 9.1.19                         # Updated
-  9.0.x: 9.0.27                         # Updated
+  9.0.x: 9.0.28                         # Updated
   8.10.x: 8.6.38                        # No Update
   8.11.x: 8.7.32                        # No Update
 mas_monitor_version:
-  9.2.x: 9.2.0                          # Updated
+  9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.12                         # Updated
-  9.0.x: 9.0.22                         # Updated
+  9.1.x: 9.1.13                         # Updated
+  9.0.x: 9.0.23                         # Updated
   8.10.x: 8.10.30                       # No Update
   8.11.x: 8.11.28                       # No Update
 mas_optimizer_version:
-  9.2.x: 9.2.0                          # Updated
+  9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
   9.1.x: 9.1.13                         # Updated
-  9.0.x: 9.0.24                         # Updated
+  9.0.x: 9.0.25                         # Updated
   8.10.x: 8.4.28                        # Updated
   8.11.x: 8.5.28                        # Updated
 mas_predict_version:
-  9.2.x: 9.2.0                          # Updated
+  9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
   9.1.x: 9.1.9                          # Updated
   9.0.x: 9.0.16                         # Updated
   8.10.x: 8.8.15                        # No Update
   8.11.x: 8.9.17                        # No Update
 mas_visualinspection_version:
-  9.2.x: 9.2.0                          # Updated
+  9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
   9.1.x: 9.1.18                         # Updated
-  9.0.x: 9.0.21                         # Updated
+  9.0.x: 9.0.22                         # Updated
   8.10.x: 8.8.4                         # No Update
   8.11.x: 8.9.21                        # No Update
 mas_facilities_version:
@@ -190,7 +190,7 @@ mas_facilities_version:
 aiservice_version:
   9.2.x: 9.2.0                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.16                         # Updated
+  9.1.x: 9.1.17                         # Updated
 
 aiservice_tenant_version:
   9.2.x: 9.2.0                          # Updated
