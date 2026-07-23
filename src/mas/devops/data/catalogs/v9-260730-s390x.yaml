@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:7027a69d9c7cdd54657762fb8a30d3a5625b6eede69bc380a83b156ca660bc8d
+catalog_digest: sha256:6d5cefc8a3e09e32b3895c47fb1987d9068e5cf5b690a41b649d133eab7041a4
 
 ocp_compatibility:
 - "4.16"
@@ -54,14 +54,14 @@ mongo_extras_version_8: 8.0.23
 mas_core_version:
   9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.19                         # Updated
+  9.1.x: 9.1.20                         # Updated
   9.0.x: 9.0.28                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
   9.2.x: 9.2.1                          # Updated
   9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.19                         # Updated
+  9.1.x: 9.1.20                         # Updated
   9.0.x: 9.0.28                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
