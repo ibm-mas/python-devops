@@ -89,3 +89,4 @@ Example of initial_users secret:
 ```json
 {"john.smith1@example.com":"primary,john1,smith1","john.smith2@example.com":"primary,john2,smith2","john.smith3@example.com":"secondary,john3,smith3"}
 ```
+
