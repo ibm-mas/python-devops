@@ -211,7 +211,7 @@ editorial:
     - IBM Maximo Assist/Collaborate [v9.0.19](https://www.ibm.com/support/pages/node/7281391), [v9.1.13](https://www.ibm.com/support/pages/node/7281392)
     - IBM Maximo Predict [v9.0.17](https://www.ibm.com/support/pages/node/7280608), [v9.1.10](https://www.ibm.com/support/pages/node/7280609) and [v9.2.1](https://www.ibm.com/support/pages/node/7280611)
     - IBM Maximo Visual Inspection [v9.0.22](https://www.ibm.com/support/pages/node/7281598),[v9.1.19](https://www.ibm.com/support/pages/node/7281597) and [v9.2.1](https://www.ibm.com/support/pages/node/7281599)
-    - IBM Maximo Real Estate and Facilities [v9.1.13](https://www.ibm.com/support/pages/node/7281077) and [v9.1.20](https://www.ibm.com/support/pages/node/7281367)
-    - IBM Maximo AI Service [v9.1.17](https://www.ibm.com/support/pages/node/7280919) and [v9.1.20](https://www.ibm.com/support/pages/node/7280920)
+    - IBM Maximo Real Estate and Facilities [v9.1.13](https://www.ibm.com/support/pages/node/7281077) and [v9.2.1](https://www.ibm.com/support/pages/node/7281367)
+    - IBM Maximo AI Service [v9.1.17](https://www.ibm.com/support/pages/node/7280919) and [v9.2.1](https://www.ibm.com/support/pages/node/7280920)
   known_issues:
     - title: A known issue exists in the 9.0.x release affecting IBM Maximo Manage customers upgrading from 8.7.x to 9.0.x with the Civil component and Image Stitching deployed; the Image Stitching CR will not recover post-upgrade without manual intervention. To recover, patch the ManageWorkspace CR with kubectl -n mas-<instanceId>-manage patch manageworkspace <instanceId>-<workspaceId> --type merge -p '{"spec":{"components":{"civil":{"imagestitchingpvcname":"imagestitching-pvc-in"}}}}', replacing imagestitching-pvc-in with the value obtained by running kubectl -n mas-<instanceId>-manage get pvc -l app.kubernetes.io/component=imagestitching-api and stripping the <instanceId>-<workspaceId>- prefix from the returned PVC name.
