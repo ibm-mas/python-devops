@@ -74,7 +74,7 @@ mongo_extras_version_8: 8.0.23
 
 # Dependencies - Amlen
 # -----------------------------------------------------------------------------
-amlen_extras_version: 1.1.5              # Updated
+amlen_extras_version: 1.1.5              # No Update
 
 
 # Dependencies - UDS
@@ -91,13 +91,13 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.0             # Updated
+sls_version: 3.13.0             # No Update
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.7              # Updated
+tsm_version: 1.7.7              # No Update
 
 
 # Dependencies - Data Dictionary
