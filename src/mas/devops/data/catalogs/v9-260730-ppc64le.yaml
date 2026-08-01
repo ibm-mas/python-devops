@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:a414ca5c7c5ab647fb5478cc48f2da20a95226763d0d9b6f4830fc6a57d8c983
+catalog_digest: sha256:5944d34f9584733c806b0acc77e3490c8b64b640159b6944425136f976eb6427
 
 ocp_compatibility:
 - "4.16"
@@ -32,13 +32,13 @@ uds_extras_version: 1.5.0                    # No Update
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.0             # Updated
+sls_version: 3.13.0             # No Update
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.7              # Updated
+tsm_version: 1.7.7              # No Update
 
 
 # Dependencies - MongoDB
@@ -72,16 +72,9 @@ mas_manage_version:
 # ------------------------------------------------------------------------------
 editorial:
   whats_new:
-  - title: New feature release
-    details:
-    - IBM Maximo Application Suite Core Platform [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
-    - IBM Maximo Manage [v9.2.0](https://www.ibm.com/support/pages/node/7276377)
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.27](https://www.ibm.com/support/pages/node/7277381) and [v9.1.19](https://www.ibm.com/support/pages/node/7277382)
-    - IBM Maximo Manage [v9.0.27](https://www.ibm.com/support/pages/node/7276396) and [v9.1.19](https://www.ibm.com/support/pages/node/7276393)
-    - IBM Truststore Manager v1.7
-    - IBM Suite License Service v3.13
+    - IBM Maximo Application Suite Core Platform [v9.0.28](https://www.ibm.com/support/pages/node/7281592), [v9.1.20](https://www.ibm.com/support/pages/node/7281593) and [v9.2.1](https://www.ibm.com/support/pages/node/7281594)
+    - IBM Maximo Manage [v9.0.28](https://www.ibm.com/support/pages/node/7281106),[v9.1.20](https://www.ibm.com/support/pages/node/7281105) and [v9.2.1](https://www.ibm.com/support/pages/node/7276395)
   known_issues:
-    - title: A known issue exists in the June 25, 2026 release affecting IBM Maximo Visual Inspection. Customers with MVI installed and using custom cluster issuer should avoid upgrading to the June release. Installation of MVI 9.2.x should be deferred until the July 2026 patch.
-    - title: A know issue exists in the June 25 2026 release when a customer has environment setup with mas core+manage+Optimizer with out AIP as a addon. Then under manage work space two pods will appear aipoptimization-uninstall and it will be in error status. Even though these pods are in error status it does not have any functional impact on manage or optimizer. The fix has been identified and will be delivered in upcoming July 9.2 patch.
+    - title: A known issue exists in the 9.0.x release affecting IBM Maximo Manage customers upgrading from 8.7.x to 9.0.x with the Civil component and Image Stitching deployed; the Image Stitching CR will not recover post-upgrade without manual intervention. To recover, patch the ManageWorkspace CR with kubectl -n mas-{instanceId}-manage patch manageworkspace {instanceId}-{workspaceId} --type merge -p '{"spec":{"components":{"civil":{"imagestitchingpvcname":"imagestitching-pvc-in"}}}}', replacing imagestitching-pvc-in with the value obtained by running kubectl -n mas-{instanceId}-manage get pvc -l app.kubernetes.io/component=imagestitching-api and stripping the {instanceId}-{workspaceId}- prefix from the returned PVC name.

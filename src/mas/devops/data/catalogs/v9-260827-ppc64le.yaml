@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260730 (Z)
+# Case bundle configuration for IBM Maximo Operator Catalog 260827 (PPC)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:84311732b6078cb9857ef557bcd4db64949a6c1d8ce351c6a4aac59ac08637cb
+catalog_digest: sha256:d2efbd1659e1bdb3c6f2772b91babab9f576095f3f685ba506c58e155b511a97
 
 ocp_compatibility:
 - "4.16"
@@ -14,7 +14,6 @@ ocp_compatibility:
 - "4.19"
 - "4.20"
 - "4.21"
-- "4.22"
 
 # Dependencies - Db2u
 # -----------------------------------------------------------------------------
@@ -77,4 +76,4 @@ editorial:
     - IBM Maximo Application Suite Core Platform [v9.0.28](https://www.ibm.com/support/pages/node/7281592), [v9.1.20](https://www.ibm.com/support/pages/node/7281593) and [v9.2.1](https://www.ibm.com/support/pages/node/7281594)
     - IBM Maximo Manage [v9.0.28](https://www.ibm.com/support/pages/node/7281106),[v9.1.20](https://www.ibm.com/support/pages/node/7281105) and [v9.2.1](https://www.ibm.com/support/pages/node/7276395)
   known_issues:
-    - title: A known issue exists in the 9.0.x release affecting IBM Maximo Manage customers upgrading from 8.7.x to 9.0.x with the Civil component and Image Stitching deployed; the Image Stitching CR will not recover post-upgrade without manual intervention. To recover, patch the ManageWorkspace CR with kubectl -n mas-{instanceId}-manage patch manageworkspace {instanceId}-{workspaceId} --type merge -p '{"spec":{"components":{"civil":{"imagestitchingpvcname":"imagestitching-pvc-in"}}}}', replacing imagestitching-pvc-in with the value obtained by running kubectl -n mas-{instanceId}-manage get pvc -l app.kubernetes.io/component=imagestitching-api and stripping the {instanceId}-{workspaceId}- prefix from the returned PVC name.
+    - title: A known issue exists in the 9.0.x release affecting IBM Maximo Manage customers upgrading from 8.7.x to 9.0.x with the Civil component and Image Stitching deployed; the Image Stitching CR will not recover post-upgrade without manual intervention. To recover, patch the ManageWorkspace CR with kubectl -n mas-<instanceId>-manage patch manageworkspace <instanceId>-<workspaceId> --type merge -p '{"spec":{"components":{"civil":{"imagestitchingpvcname":"imagestitching-pvc-in"}}}}', replacing imagestitching-pvc-in with the value obtained by running kubectl -n mas-<instanceId>-manage get pvc -l app.kubernetes.io/component=imagestitching-api and stripping the <instanceId>-<workspaceId>- prefix from the returned PVC name.
