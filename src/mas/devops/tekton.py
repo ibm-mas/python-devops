@@ -983,14 +983,32 @@ def prepareUpdateSecrets(
         namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
         namespaceAPI.get(name=namespace)
     except NotFoundError:
-        logger.warning(f"Namespace {namespace} does not exist, skipping slack secret creation")
+        logger.warning(f"Namespace {namespace} does not exist, skipping secret creation")
         return
 
-    # Only create secret if both slack_token and slack_channel are provided
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # Always create pipeline-db2-license secret — required by the PipelineRun workspace
+    # binding regardless of whether a license file was provided or Slack is configured
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {"name": "pipeline-db2-license"},
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
+
+    # Only create mas-devops-slack secret if both slack_token and slack_channel are provided
     if not slack_token or not slack_channel:
         logger.debug("Slack token or channel not provided, skipping slack secret creation")
-
-    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+        return
 
     # Delete existing secret if it exists
     try:
@@ -1017,21 +1035,6 @@ def prepareUpdateSecrets(
 
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
-
-    try:
-        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
-    except NotFoundError:
-        pass
-
-    if db2LicenseFile is None:
-        db2LicenseFile = {
-            "apiVersion": "v1",
-            "kind": "Secret",
-            "type": "Opaque",
-            "metadata": {"name": "pipeline-db2-license"},
-        }
-    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
-    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
 
 
 def testCLI() -> None:
