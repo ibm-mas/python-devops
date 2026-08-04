@@ -27,6 +27,10 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_catalog_version
       value: "{{ mas_catalog_version }}"
+{%- if mas_catalog_digest is defined and mas_catalog_digest != "" %}
+    - name: mas_catalog_digest
+      value: "{{ mas_catalog_digest }}"
+{%- endif %}
 
 {%- if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
     # TODO: What even uses this, nothing in the update pipeline should be using this
@@ -40,6 +44,12 @@ spec:
       value: "{{ artifactory_username }}"
     - name: artifactory_token
       value: "{{ artifactory_token }}"
+{%- endif %}
+{%- if mas_icr_cpopen is defined and mas_icr_cpopen != "" %}
+    # ICR registry override for dev mode
+    # -------------------------------------------------------------------------
+    - name: mas_icr_cpopen
+      value: "{{ mas_icr_cpopen }}"
 {%- endif %}
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
     # Skip pre-check
