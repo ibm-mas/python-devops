@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260625 (AMD64)
+# Case bundle configuration for IBM Maximo Operator Catalog 260730 (AMD64)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:028ecfe475c743c277917ef818698dea0ddfe7dcee79830ffaa5b3a61f89cdbd
+catalog_digest: sha256:8b78bc126d05663f881a44321fbda9a19076bb589a24f0c785fafef1fb56eab8
 
 ocp_compatibility:
 - "4.16"
@@ -74,7 +74,7 @@ mongo_extras_version_8: 8.0.23
 
 # Dependencies - Amlen
 # -----------------------------------------------------------------------------
-amlen_extras_version: 1.1.5              # Updated
+amlen_extras_version: 1.1.5              # No Update
 
 
 # Dependencies - UDS
@@ -91,13 +91,13 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.0             # Updated
+sls_version: 3.13.0             # No Update
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.7              # Updated
+tsm_version: 1.7.7              # No Update
 
 
 # Dependencies - Data Dictionary
@@ -118,15 +118,15 @@ redis_extras_version: 2.1.40             # No Update
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.19                         # Updated
-  9.0.x: 9.0.27                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.20                         # Updated
+  9.0.x: 9.0.28                         # Updated
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
-  9.1.x: 9.1.12                         # Updated
-  9.0.x: 9.0.18                         # Updated
+  9.1.x: 9.1.13                         # Updated
+  9.0.x: 9.0.19                         # Updated
   8.10.x: 8.7.8                         # No Update
   8.11.x: 8.8.7                         # No Update
 mas_hputilities_version:
@@ -135,51 +135,51 @@ mas_hputilities_version:
   8.10.x: 8.6.7                         # No Update
   8.11.x: ""                            # Not Supported
 mas_iot_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.12                         # Updated
-  9.0.x: 9.0.21                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.13                         # Updated
+  9.0.x: 9.0.22                         # Updated
   8.10.x: 8.7.33                        # No Update
   8.11.x: 8.8.30                        # No Update
 mas_manage_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.19                         # Updated
-  9.0.x: 9.0.27                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.20                         # Updated
+  9.0.x: 9.0.28                         # Updated
   8.10.x: 8.6.38                        # No Update
   8.11.x: 8.7.32                        # No Update
 mas_monitor_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.12                         # Updated
-  9.0.x: 9.0.22                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.13                         # Updated
+  9.0.x: 9.0.23                         # Updated
   8.10.x: 8.10.30                       # No Update
   8.11.x: 8.11.28                       # No Update
 mas_optimizer_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.13                         # Updated
-  9.0.x: 9.0.24                         # Updated
-  8.10.x: 8.4.28                        # Updated
-  8.11.x: 8.5.28                        # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.14                         # Updated
+  9.0.x: 9.0.25                         # Updated
+  8.10.x: 8.4.28                        # No Update
+  8.11.x: 8.5.28                        # No Update
 mas_predict_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.9                          # Updated
-  9.0.x: 9.0.16                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.10                         # Updated
+  9.0.x: 9.0.17                         # Updated
   8.10.x: 8.8.15                        # No Update
   8.11.x: 8.9.17                        # No Update
 mas_visualinspection_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.18                         # Updated
-  9.0.x: 9.0.21                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.19                         # Updated
+  9.0.x: 9.0.22                         # Updated
   8.10.x: 8.8.4                         # No Update
   8.11.x: 8.9.21                        # No Update
 mas_facilities_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.12                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.13                         # Updated
   9.0.x: ""                             # Not Supported
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
@@ -188,46 +188,30 @@ mas_facilities_version:
 # Maximo AI Service
 # ------------------------------------------------------------------------------
 aiservice_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
-  9.1.x: 9.1.16                         # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.17                         # Updated
 
 aiservice_tenant_version:
-  9.2.x: 9.2.0                          # Updated
-  9.2.x-feature: 9.2.0                  # Updated
+  9.2.x: 9.2.1                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
 
 
 # Editorial
 # ------------------------------------------------------------------------------
 editorial:
   whats_new:
-  - title: New feature release
-    details:
-    - IBM Maximo Application Suite Core Platform [v9.2.0](https://www.ibm.com/support/pages/node/7277376)
-    - IBM Maximo Manage [v9.2.0](https://www.ibm.com/support/pages/node/7276377)
-    - IBM Maximo Monitor/IoT [v9.2.0](https://www.ibm.com/support/pages/node/7277101)
-    - IBM Maximo Optimizer [v9.2.0](https://www.ibm.com/support/pages/node/7276586)
-    - IBM Maximo Predict [v9.2.0](https://www.ibm.com/support/pages/node/7275237)
-    - IBM Maximo Visual Inspection [v9.2.0](https://www.ibm.com/support/pages/node/7277289)
-    - IBM Maximo Real Estate and Facilities [v9.2.0](https://www.ibm.com/support/pages/node/7275247)
-    - IBM Maximo AI Service [v9.2.0](https://www.ibm.com/support/pages/node/7276603)
-    - IBM Maximo AI Service Tenant v9.2
-    - IBM Maximo Location Service for Esri v9.2
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.27](https://www.ibm.com/support/pages/node/7277381) and [v9.1.19](https://www.ibm.com/support/pages/node/7277382)
-    - IBM Maximo Manage [v9.0.27](https://www.ibm.com/support/pages/node/7276396) and [v9.1.19](https://www.ibm.com/support/pages/node/7276393)
-    - IBM Maximo IoT [v9.0.21](https://www.ibm.com/support/pages/node/7277130) and [v9.1.12](https://www.ibm.com/support/pages/node/7277131)
-    - IBM Maximo Monitor [v9.0.22](https://www.ibm.com/support/pages/node/7277099) and [v9.1.12](https://www.ibm.com/support/pages/node/7277100)
-    - IBM Maximo Optimizer [v9.0.24](https://www.ibm.com/support/pages/node/7276568) and [v9.1.13](https://www.ibm.com/support/pages/node/7276570)
-    - IBM Maximo Assist/Collaborate [v9.0.18](https://www.ibm.com/support/pages/node/7273929), [v9.1.12](https://www.ibm.com/support/pages/node/7273930)
-    - IBM Maximo Predict [v9.0.16](https://www.ibm.com/support/pages/node/7276914) and [v9.1.9](https://www.ibm.com/support/pages/node/7276913)
-    - IBM Maximo Visual Inspection [v9.0.21](https://www.ibm.com/support/pages/node/7277291) and [v9.1.18](https://www.ibm.com/support/pages/node/7277891)
-    - IBM Maximo Real Estate and Facilities [v9.1.12](https://www.ibm.com/support/pages/node/7276768)
-    - IBM Maximo AI Service [v9.1.16](https://www.ibm.com/support/pages/node/7276604)
-    - IBM Truststore Manager v1.7
-    - IBM Suite License Service v3.13
-    - Amlen v1.1
+    - IBM Maximo Application Suite Core Platform [v9.0.28](https://www.ibm.com/support/pages/node/7281592), [v9.1.20](https://www.ibm.com/support/pages/node/7281593) and [v9.2.1](https://www.ibm.com/support/pages/node/7281594)
+    - IBM Maximo Manage [v9.0.28](https://www.ibm.com/support/pages/node/7281106),[v9.1.20](https://www.ibm.com/support/pages/node/7281105) and [v9.2.1](https://www.ibm.com/support/pages/node/7276395)
+    - IBM Maximo IoT [v9.0.22](https://www.ibm.com/support/pages/node/7281365) ,[v9.1.13](https://www.ibm.com/support/pages/node/7281366)
+    - IBM Maximo Monitor [v9.0.23](https://www.ibm.com/support/pages/node/7280601),[v9.1.13](https://www.ibm.com/support/pages/node/7280594) and [v9.2.1](https://www.ibm.com/support/pages/node/7280603)
+    - IBM Maximo Optimizer [v9.0.25](https://www.ibm.com/support/pages/node/7276568),[v9.1.14](https://www.ibm.com/support/pages/node/7280908), [v9.2.1](https://www.ibm.com/support/pages/node/7280906)
+    - IBM Maximo Assist/Collaborate [v9.0.19](https://www.ibm.com/support/pages/node/7281391), [v9.1.13](https://www.ibm.com/support/pages/node/7281392)
+    - IBM Maximo Predict [v9.0.17](https://www.ibm.com/support/pages/node/7280608), [v9.1.10](https://www.ibm.com/support/pages/node/7280609) and [v9.2.1](https://www.ibm.com/support/pages/node/7280611)
+    - IBM Maximo Visual Inspection [v9.0.22](https://www.ibm.com/support/pages/node/7281598),[v9.1.19](https://www.ibm.com/support/pages/node/7281597) and [v9.2.1](https://www.ibm.com/support/pages/node/7281599)
+    - IBM Maximo Real Estate and Facilities [v9.1.13](https://www.ibm.com/support/pages/node/7281077) and [v9.2.1](https://www.ibm.com/support/pages/node/7281367)
+    - IBM Maximo AI Service [v9.1.17](https://www.ibm.com/support/pages/node/7280919) and [v9.2.1](https://www.ibm.com/support/pages/node/7280920)
   known_issues:
-    - title: A known issue exists in the June 25, 2026 release affecting IBM Maximo Visual Inspection. Customers with MVI installed and using custom cluster issuer should avoid upgrading to the June release. Installation of MVI 9.2.x should be deferred until the July 2026 patch.
-    - title: A know issue exists in the June 25 2026 release when a customer has environment setup with mas core+manage+Optimizer with out AIP as a addon. Then under manage work space two pods will appear aipoptimization-uninstall and it will be in error status. Even though these pods are in error status it does not have any functional impact on manage or optimizer. The fix has been identified and will be delivered in upcoming July 9.2 patch.
+    - title: A known issue exists in the 9.0.x release affecting IBM Maximo Manage customers upgrading from 8.7.x to 9.0.x with the Civil component and Image Stitching deployed; the Image Stitching CR will not recover post-upgrade without manual intervention. To recover, patch the ManageWorkspace CR with kubectl -n mas-{instanceId}-manage patch manageworkspace {instanceId}-{workspaceId} --type merge -p '{"spec":{"components":{"civil":{"imagestitchingpvcname":"imagestitching-pvc-in"}}}}', replacing imagestitching-pvc-in with the value obtained by running kubectl -n mas-{instanceId}-manage get pvc -l app.kubernetes.io/component=imagestitching-api and stripping the {instanceId}-{workspaceId}- prefix from the returned PVC name.
