@@ -579,6 +579,28 @@ def preparePipelinesNamespace(
 
         # Create config PVC if requested
         if createConfigPVC:
+            # If config-pvc already exists with a different storageClass, delete it first.
+            # Kubernetes does not allow changing storageClassName on an existing PVC (immutable
+            # field), so patching would fail with a conflict error.  Deleting and recreating
+            # is safe here because config-pvc only holds transient pipeline workspace data —
+            # it is not a source of truth for any persistent application state.
+            try:
+                existingConfigPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                existingStorageClass = existingConfigPVC.spec.storageClassName
+                if existingStorageClass != storageClass:
+                    logger.info(
+                        f"config-pvc already exists with storageClassName='{existingStorageClass}' "
+                        f"which differs from requested storageClassName='{storageClass}'. "
+                        f"Deleting existing config-pvc so it can be recreated with the correct storageClass."
+                    )
+                    pvcAPI.delete(name="config-pvc", namespace=namespace)
+                else:
+                    logger.info(
+                        f"config-pvc already exists with matching storageClassName='{existingStorageClass}', skipping delete."
+                    )
+            except NotFoundError:
+                pass  # PVC does not exist yet — will be created below
+
             logger.info("Creating config PVC")
             template = env.get_template("pipelines-pvc.yml.j2")
             renderedTemplate = template.render(
