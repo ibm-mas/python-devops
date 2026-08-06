@@ -87,6 +87,12 @@ uds_extras_version: 1.5.0
 # -----------------------------------------------------------------------------
 appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
 
+# Dependencies - Service Mesh
+# -----------------------------------------------------------------------------
+servicemesh_channel: stable-3.3
+servicemesh_starting_csv: servicemeshoperator3.v3.3.3
+kiali_channel: stable
+kiali_starting_csv: kiali-operator.v2.22.1
 
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
