@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:c170cccccca0eeca484318d16f236504a0e7669cfe769a7a1dbe205f36aa03d3
+catalog_digest: sha256:52c9e8b629bb28e5f2cebc5ac9fac7628dbc04712e63f30f90768cddd4c290b5
 
 ocp_compatibility:
 - "4.16"
@@ -118,7 +118,7 @@ redis_extras_version: 2.1.40             # No Update
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.1                          # Updated
+  9.2.x: 9.2.2                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
   9.1.x: 9.1.20                         # Updated
   9.0.x: 9.0.28                         # Updated
