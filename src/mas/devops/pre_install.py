@@ -11,7 +11,10 @@
 import logging
 import yaml
 
+import re
+
 from os import path, listdir
+from packaging.version import Version
 
 from jinja2 import Environment
 from kubernetes import client as k8s_client
@@ -86,6 +89,29 @@ def _should_apply_preinstall_mas_rbac_file(fileName: str, adminMode: str) -> boo
     return False
 
 
+def _resolve_rbac_version(rbacDir: str, masVersion: str) -> str | None:
+    """Return the highest x.y version directory under rbacDir that is <= masVersion.
+
+    Only directories whose names match the 'x.y' pattern are considered.
+    Returns None if no usable directory exists.
+    """
+    if not path.isdir(rbacDir):
+        return None
+
+    target = Version(masVersion)
+    best: Version | None = None
+
+    for entry in listdir(rbacDir):
+        if not re.fullmatch(r"\d+\.\d+", entry):
+            continue
+        candidate = Version(entry)
+        if candidate <= target:
+            if best is None or candidate > best:
+                best = candidate
+
+    return str(best) if best is not None else None
+
+
 def _collect_preinstall_mas_rbac_files_from_source(
     sourceOperatorsRoot: str,
     masVersion: str,
@@ -106,11 +132,16 @@ def _collect_preinstall_mas_rbac_files_from_source(
             logger.debug(f"Skipping missing operator root {operatorRoot}")
             continue
 
-        versionDir = path.join(operatorRoot, "rbac", masVersion)
-        if not path.isdir(versionDir):
-            logger.debug(f"Skipping missing RBAC version directory {versionDir}")
+        rbacDir = path.join(operatorRoot, "rbac")
+        resolvedVersion = _resolve_rbac_version(rbacDir, masVersion)
+        if resolvedVersion is None:
+            logger.debug(f"No usable RBAC version directory for {operatorName} at {masVersion} under {rbacDir}")
             continue
 
+        if resolvedVersion != masVersion:
+            logger.debug(f"RBAC version resolved: {operatorName} requested={masVersion} resolved={resolvedVersion}")
+
+        versionDir = path.join(rbacDir, resolvedVersion)
         for manifestName in sorted(listdir(versionDir)):
             manifestFile = path.join(versionDir, manifestName)
             if not path.isfile(manifestFile):
