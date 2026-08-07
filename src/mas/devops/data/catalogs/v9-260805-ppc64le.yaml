@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260827 (Z)
+# Case bundle configuration for IBM Maximo Operator Catalog 260805 (PPC)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:7fd94ee621879a872996fa1bc96b662340e7675d41c543ee8a115a6c042e70d9
+catalog_digest: sha256:f007008fbe4bdf379dde5e2ff6f34f993861305e4f8b4726ce964aa5d135fa87
 
 ocp_compatibility:
 - "4.16"
@@ -14,7 +14,6 @@ ocp_compatibility:
 - "4.19"
 - "4.20"
 - "4.21"
-- "4.22"
 
 # Dependencies - Db2u
 # -----------------------------------------------------------------------------
@@ -55,15 +54,15 @@ mongo_extras_version_8: 8.0.23
 mas_core_version:
   9.2.x: 9.2.2                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.20                         # Updated
-  9.0.x: 9.0.28                         # Updated
+  9.1.x: 9.1.20                         # No Update
+  9.0.x: 9.0.28                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x: 9.2.1                          # Updated
+  9.2.x: 9.2.1                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.20                         # Updated
-  9.0.x: 9.0.28                         # Updated
+  9.1.x: 9.1.20                         # No Update
+  9.0.x: 9.0.28                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
@@ -74,7 +73,4 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.28](https://www.ibm.com/support/pages/node/7281592), [v9.1.20](https://www.ibm.com/support/pages/node/7281593) and [v9.2.1](https://www.ibm.com/support/pages/node/7281594)
-    - IBM Maximo Manage [v9.0.28](https://www.ibm.com/support/pages/node/7281106),[v9.1.20](https://www.ibm.com/support/pages/node/7281105) and [v9.2.1](https://www.ibm.com/support/pages/node/7276395)
-  known_issues:
-    - title: A known issue exists in the 9.0.x release affecting IBM Maximo Manage customers upgrading from 8.7.x to 9.0.x with the Civil component and Image Stitching deployed; the Image Stitching CR will not recover post-upgrade without manual intervention. To recover, patch the ManageWorkspace CR with kubectl -n mas-<instanceId>-manage patch manageworkspace <instanceId>-<workspaceId> --type merge -p '{"spec":{"components":{"civil":{"imagestitchingpvcname":"imagestitching-pvc-in"}}}}', replacing imagestitching-pvc-in with the value obtained by running kubectl -n mas-<instanceId>-manage get pvc -l app.kubernetes.io/component=imagestitching-api and stripping the <instanceId>-<workspaceId>- prefix from the returned PVC name.
+    - IBM Maximo Application Suite Core Platform v9.2.2
