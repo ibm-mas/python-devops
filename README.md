@@ -8,7 +8,7 @@ mas.devops
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/mas.devops)
 
 
-Example
+Example 
 -------------------------------------------------------------------------------
 ```python
 from kubernetes import dynamic
