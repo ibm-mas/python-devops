@@ -594,10 +594,21 @@ def preparePipelinesNamespace(
                         f"Deleting existing config-pvc so it can be recreated with the correct storageClass."
                     )
                     pvcAPI.delete(name="config-pvc", namespace=namespace)
+                    # Wait for deletion to complete before recreating.
+                    # Kubernetes delete is asynchronous — the PVC enters "Terminating" state
+                    # and applyResource() would still see it and try to patch it (causing the
+                    # same immutable field conflict) if we proceed immediately.
+                    logger.info("Waiting for config-pvc deletion to complete...")
+                    while True:
+                        try:
+                            pvcAPI.get(name="config-pvc", namespace=namespace)
+                            logger.debug("config-pvc still terminating, waiting 5s...")
+                            sleep(5)
+                        except NotFoundError:
+                            logger.info("config-pvc deletion confirmed.")
+                            break
                 else:
-                    logger.info(
-                        f"config-pvc already exists with matching storageClassName='{existingStorageClass}', skipping delete."
-                    )
+                    logger.info(f"config-pvc already exists with matching storageClassName='{existingStorageClass}', skipping delete.")
             except NotFoundError:
                 pass  # PVC does not exist yet — will be created below
 
