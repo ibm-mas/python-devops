@@ -926,6 +926,10 @@ spec:
     - name: tenant_scheduling_cfg_file
       value: "{{ tenant_scheduling_config_file }}"
 {%- endif %}
+{%- if tenant_operator_config_file is defined and tenant_operator_config_file != "" %}
+    - name: tenant_operator_cfg_file
+      value: "{{ tenant_operator_config_file }}"
+{%- endif %}
 
 {%- if rsl_ca_crt is defined and rsl_ca_crt != "" %}
     # RSL - CA Certificate
@@ -1003,6 +1007,29 @@ spec:
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
       value: "{{ aiservice_certificate_issuer }}"
+{%- endif %}
+
+    # AI Service - Database Configuration
+    # -------------------------------------------------------------------------
+{%- if install_db2 is defined %}
+    - name: install_db2
+      value: "{{ install_db2 }}"
+{%- endif %}
+{%- if aiservice_db_jdbc_url is defined and aiservice_db_jdbc_url != "" %}
+    - name: aiservice_db_jdbc_url
+      value: "{{ aiservice_db_jdbc_url }}"
+{%- endif %}
+{%- if aiservice_db_username is defined and aiservice_db_username != "" %}
+    - name: aiservice_db_username
+      value: "{{ aiservice_db_username }}"
+{%- endif %}
+{%- if aiservice_db_password is defined and aiservice_db_password != "" %}
+    - name: aiservice_db_password
+      value: "{{ aiservice_db_password }}"
+{%- endif %}
+{%- if aiservice_db_ca_cert is defined and aiservice_db_ca_cert != "" %}
+    - name: aiservice_db_ca_cert
+      value: "{{ aiservice_db_ca_cert }}"
 {%- endif %}
 
 {%- endif %}
