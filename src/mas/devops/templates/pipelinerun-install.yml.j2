@@ -1009,6 +1009,13 @@ spec:
       value: "{{ aiservice_certificate_issuer }}"
 {%- endif %}
 
+    # AI Service - DNS
+    # -------------------------------------------------------------------------
+{%- if aiservice_domain is defined and aiservice_domain != "" %}
+    - name: aiservice_domain
+      value: "{{ aiservice_domain }}"
+{%- endif %}
+
     # AI Service - Database Configuration
     # -------------------------------------------------------------------------
 {%- if install_db2 is defined %}
