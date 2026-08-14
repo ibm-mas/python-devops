@@ -579,55 +579,32 @@ def preparePipelinesNamespace(
 
         # Create config PVC if requested
         if createConfigPVC:
-            # If config-pvc already exists with a different storageClass, delete it first.
-            # Kubernetes does not allow changing storageClassName on an existing PVC (immutable
-            # field), so patching would fail with a conflict error.  Deleting and recreating
-            # is safe here because config-pvc only holds transient pipeline workspace data —
-            # it is not a source of truth for any persistent application state.
+            # If config-pvc already exists, remove its pvc-protection finalizer and delete it
+            # so it can be recreated with the correct storageClass.  storageClassName is immutable
+            # in Kubernetes — patching it causes a 422 error.
             try:
                 existingConfigPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
                 existingStorageClass = existingConfigPVC.spec.storageClassName
                 existingPhase = existingConfigPVC.status.phase
-                if existingPhase == "Bound":
-                    # config-pvc already exists and is healthy — storageClassName is immutable
-                    # in Kubernetes so we must not try to patch it with a new storageClass
-                    # (which would cause a 422 Unprocessable Entity error).  The pipeline only
-                    # needs the PVC to exist and be mountable — it does not care which
-                    # storageClass backs it.
-                    logger.info(
-                        f"config-pvc already exists and is Bound with storageClassName='{existingStorageClass}', "
-                        f"reusing existing PVC as-is (skipping recreate)."
-                    )
-                    return
-                else:
-                    # PVC exists but is not Bound (e.g. Lost or Pending because the backing
-                    # storageClass was removed).  Delete it so it can be recreated below.
-                    # We must remove the pvc-protection finalizer first — otherwise Kubernetes
-                    # will block deletion indefinitely while any pod (e.g. mas-cli deployment)
-                    # still has the PVC mounted.
-                    logger.info(
-                        f"config-pvc exists but is in '{existingPhase}' state "
-                        f"(storageClassName='{existingStorageClass}'). "
-                        f"Removing finalizer and deleting so it can be recreated with storageClassName='{storageClass}'."
-                    )
-                    pvcAPI.patch(
-                        name="config-pvc",
-                        namespace=namespace,
-                        body={"metadata": {"finalizers": []}},
-                        content_type="application/merge-patch+json",
-                    )
-                    pvcAPI.delete(name="config-pvc", namespace=namespace)
-                    logger.info("Waiting for config-pvc deletion to complete...")
-                    while True:
-                        try:
-                            pvcAPI.get(name="config-pvc", namespace=namespace)
-                            logger.debug("config-pvc still terminating, waiting 5s...")
-                            sleep(5)
-                        except NotFoundError:
-                            logger.info("config-pvc deletion confirmed.")
-                            break
+                logger.info(f"config-pvc already exists (storageClassName='{existingStorageClass}', phase='{existingPhase}'). Removing finalizer and deleting to recreate with storageClassName='{storageClass}'.")
+                pvcAPI.patch(
+                    name="config-pvc",
+                    namespace=namespace,
+                    body={"metadata": {"finalizers": []}},
+                    content_type="application/merge-patch+json",
+                )
+                pvcAPI.delete(name="config-pvc", namespace=namespace)
+                logger.info("Waiting for config-pvc deletion to complete...")
+                while True:
+                    try:
+                        pvcAPI.get(name="config-pvc", namespace=namespace)
+                        logger.debug("config-pvc still terminating, waiting 5s...")
+                        sleep(5)
+                    except NotFoundError:
+                        logger.info("config-pvc deletion confirmed.")
+                        break
             except NotFoundError:
-                pass  # PVC does not exist yet — will be created below
+                pass  # PVC does not exist yet, will be created below
 
             logger.info("Creating config PVC")
             template = env.get_template("pipelines-pvc.yml.j2")
