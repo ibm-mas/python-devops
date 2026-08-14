@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:2f0c96033310e4efa190668fe2198c72695387eab475a5be02480ef397948bf7
+catalog_digest: sha256:73ebfe7b5e64d890ee29052555a299d26e25ffbb60d55508aecf5c0bfbce6653
 
 ocp_compatibility:
 - "4.16"
@@ -49,7 +49,7 @@ db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (
 db2u_extras_version: 1.0.6                       # No Update
 db2u_filter: db2
 
-db2_channel_default: v120105.0                   # Default Channel version for db2u-operator
+db2_channel_default: v120104.0                   # Default Channel version for db2u-operator
 
 
 # Dependencies - CouchDb
