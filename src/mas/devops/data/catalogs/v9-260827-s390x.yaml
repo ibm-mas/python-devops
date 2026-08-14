@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:0139113ce4eee0e5d067969289a2eecbdced95ea0a87b12b2e51071f6ecc22d3
+catalog_digest: sha256:d35eb3c1c78e4d035f6ffb2c27fca99f2e0c53bd935b7192bd45d868c989e1cf
 
 ocp_compatibility:
 - "4.16"
@@ -38,7 +38,7 @@ sls_version: 3.13.0             # No Update
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.7              # No Update
+tsm_version: 1.7.8              # Updated
 
 
 # Dependencies - MongoDB
