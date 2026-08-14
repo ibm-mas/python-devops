@@ -586,7 +586,9 @@ def preparePipelinesNamespace(
                 existingConfigPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
                 existingStorageClass = existingConfigPVC.spec.storageClassName
                 existingPhase = existingConfigPVC.status.phase
-                logger.info(f"config-pvc already exists (storageClassName='{existingStorageClass}', phase='{existingPhase}'). Removing finalizer and deleting to recreate with storageClassName='{storageClass}'.")
+                logger.info(
+                    f"config-pvc already exists (storageClassName='{existingStorageClass}', phase='{existingPhase}'). Removing finalizer and deleting to recreate with storageClassName='{storageClass}'."
+                )
                 pvcAPI.patch(
                     name="config-pvc",
                     namespace=namespace,
