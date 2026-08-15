@@ -38,7 +38,7 @@ sls_version: 3.13.0             # No Update
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.7              # No Update
+tsm_version: 1.7.8              # Updated
 
 
 # Dependencies - MongoDB
