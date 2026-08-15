@@ -23,6 +23,7 @@ ibm_zen_version: 6.2.0+20250530.152516.232       # For CPD5 ibm-zen has to be ex
 wsl_version: 11.0.0+20250521.202913.73
 wsl_runtimes_version: 11.0.0+20250515.090949.21
 wml_version: 11.0.0+20250530.193146.282          # Operator version 5.2.0
+redis_version: 1.3.1                            # CPD 5.3.1 Redis CASE version (WML dependency)
 spark_version: 11.0.0+20250604.163055.2097       # Operator version 5.2.0
 cognos_version: 28.0.0+20250515.175459.10054     # Operator version 25.0.0
 
