@@ -29,14 +29,6 @@ common_svcs_version: 4.17.0                     # Operator version 4.17.0 (https
 cp4d_platform_version: 5.4.0+20260501.120952.925.640.50    # Operator version 5.4.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
 ibm_zen_version: 6.4.0+20260210.170932.92      # For CPD5 ibm-zen has to be explicitily mirrored
 
-db2u_version: 7.5.2+20260224.152548.19265       # Operator version 110509.0.6 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
-db2_channel_default: v110509.0                  # Default Channel version for db2u-operator
-uds_version: 2.0.12                             # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-sls_version: 3.12.8             # No Update       # Operator version 3.12.7 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
-tsm_version: 1.7.6              # No Update       # Operator version 1.7.6 (https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases)
-dd_version: 1.1.23              # No Update     # Operator version 1.1.23 (https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases)
-appconnect_version: 6.2.0                       # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
-
 # CPD 5.3.1 Helm Component Versions (CASE versions for Helm charts)
 wsl_version: 12.1.0                             # CPD 5.3.1 Watson Studio CASE version for Helm
 wsl_runtimes_version: 12.1.0                    # CPD 5.3.1 Watson Studio Runtimes CASE version
