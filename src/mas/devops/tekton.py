@@ -579,23 +579,26 @@ def preparePipelinesNamespace(
 
         # Create config PVC if requested
         if createConfigPVC:
-            # If config-pvc already exists, remove its pvc-protection finalizer and delete it
-            # so it can be recreated with the correct storageClass.  storageClassName is immutable
-            # in Kubernetes — patching it causes a 422 error.
             try:
                 existingConfigPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
                 existingStorageClass = existingConfigPVC.spec.storageClassName
                 existingPhase = existingConfigPVC.status.phase
                 logger.info(
-                    f"config-pvc already exists (storageClassName='{existingStorageClass}', phase='{existingPhase}'). Removing finalizer and deleting to recreate with storageClassName='{storageClass}'."
+                    f"config-pvc already exists (storageClassName='{existingStorageClass}', phase='{existingPhase}'). "
+                    f"Deleting to recreate with storageClassName='{storageClass}'."
                 )
+
+                # Remove the pvc-protection finalizer, then force-delete (grace_period_seconds=0).
+                # These two together are equivalent to: kubectl delete pvc --grace-period=0 --force
+                # Without both, the PVC gets stuck in Terminating — Kubernetes re-adds the finalizer
+                # as long as the PVC is Bound, and grace_period=0 tells the API server not to wait for it.
                 pvcAPI.patch(
                     name="config-pvc",
                     namespace=namespace,
                     body={"metadata": {"finalizers": []}},
                     content_type="application/merge-patch+json",
                 )
-                pvcAPI.delete(name="config-pvc", namespace=namespace)
+                pvcAPI.delete(name="config-pvc", namespace=namespace, grace_period_seconds=0)
                 logger.info("Waiting for config-pvc deletion to complete...")
                 while True:
                     try:
@@ -606,7 +609,7 @@ def preparePipelinesNamespace(
                         logger.info("config-pvc deletion confirmed.")
                         break
             except NotFoundError:
-                pass  # PVC does not exist yet, will be created below
+                pass  # PVC does not exist yet, will be created fresh below
 
             logger.info("Creating config PVC")
             template = env.get_template("pipelines-pvc.yml.j2")
