@@ -20,7 +20,7 @@ ocp_compatibility:
 # -----------------------------------------------------------------------------
 db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
-db2_channel_default: v120104.0                   # Default Channel version for db2u-operator
+db2_channel_default: v120105.0                   # Default Channel version for db2u-operator
 
 
 # Dependencies - UDS
