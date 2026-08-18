@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:760ca3eff12e8767f621ddddfab165b3586bb1bd387341d4c189523d6d67282c
+catalog_digest: sha256:bf0b133feceb803e83e156654cb6b396b5ff92bf0820eb76a2695752c458551a
 
 ocp_compatibility:
 - "4.16"
@@ -20,7 +20,7 @@ ocp_compatibility:
 # -----------------------------------------------------------------------------
 db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
-db2_channel_default: v120104.0                   # Default Channel version for db2u-operator
+db2_channel_default: v120105.0                   # Default Channel version for db2u-operator
 
 
 # Dependencies - UDS
