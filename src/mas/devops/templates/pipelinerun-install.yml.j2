@@ -412,6 +412,14 @@ spec:
       value: "{{ override_edge_certs }}"
     - name: cis_proxy
       value: "{{ cis_proxy }}"
+    - name: cis_waf
+      value: "{{ cis_waf }}"
+    - name: delete_wildcards
+      value: "{{ delete_wildcards }}"
+    - name: update_dns_entries
+      value: "{{ update_dns_entries }}"
+    - name: cis_entries_to_add
+      value: "{{ cis_entries_to_add }}"
   {%- endif %}
 {%- endif %}
 {%- if aws_access_key_id is defined and aws_access_key_id != "" %}
