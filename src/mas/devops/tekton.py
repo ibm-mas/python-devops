@@ -588,17 +588,30 @@ def preparePipelinesNamespace(
                     f"Deleting to recreate with storageClassName='{storageClass}'."
                 )
 
-                # Remove the pvc-protection finalizer, then force-delete (grace_period_seconds=0).
-                # These two together are equivalent to: kubectl delete pvc --grace-period=0 --force
-                # Without both, the PVC gets stuck in Terminating — Kubernetes re-adds the finalizer
-                # as long as the PVC is Bound, and grace_period=0 tells the API server not to wait for it.
-                pvcAPI.patch(
-                    name="config-pvc",
-                    namespace=namespace,
-                    body={"metadata": {"finalizers": []}},
-                    content_type="application/merge-patch+json",
-                )
-                pvcAPI.delete(name="config-pvc", namespace=namespace, grace_period_seconds=0)
+                # Unbind the PVC by removing claimRef from its backing PV.
+                # While the PVC is Bound, PVCProtectionController keeps re-adding the pvc-protection
+                # finalizer, blocking deletion. Removing claimRef moves the PVC to Lost/Released,
+                # causing the controller to drop the finalizer itself — then a normal delete works cleanly.
+                pvName = existingConfigPVC.spec.volumeName
+                if pvName:
+                    logger.info(f"Unbinding config-pvc from PV '{pvName}' to allow clean deletion.")
+                    pvAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolume")
+                    pvAPI.patch(
+                        name=pvName,
+                        body={"spec": {"claimRef": None}},
+                        content_type="application/merge-patch+json",
+                    )
+                    # Wait for the PVC to leave Bound state — once unbound, PVCProtectionController
+                    # removes the finalizer itself so the subsequent delete goes through cleanly.
+                    for _ in range(30):
+                        current = pvcAPI.get(name="config-pvc", namespace=namespace)
+                        if current.status.phase != "Bound":
+                            logger.info(f"config-pvc is now '{current.status.phase}', finalizer released.")
+                            break
+                        logger.debug("config-pvc still Bound, waiting 2s...")
+                        sleep(2)
+
+                pvcAPI.delete(name="config-pvc", namespace=namespace)
                 logger.info("Waiting for config-pvc deletion to complete...")
                 while True:
                     try:
@@ -608,6 +621,16 @@ def preparePipelinesNamespace(
                     except NotFoundError:
                         logger.info("config-pvc deletion confirmed.")
                         break
+
+                # Delete the now-orphaned PV so it does not accumulate across upgrades.
+                # The new config-pvc will get a fresh PV provisioned automatically.
+                if pvName:
+                    try:
+                        pvAPI.delete(name=pvName)
+                        logger.info(f"Deleted orphaned PV '{pvName}'.")
+                    except NotFoundError:
+                        pass  # already gone (e.g. reclaimPolicy: Delete handled it)
+
             except NotFoundError:
                 pass  # PVC does not exist yet, will be created fresh below
 
