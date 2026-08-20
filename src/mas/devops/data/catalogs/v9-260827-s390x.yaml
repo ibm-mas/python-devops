@@ -18,7 +18,7 @@ ocp_compatibility:
 
 # Dependencies - Db2u
 # -----------------------------------------------------------------------------
-db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 db2_channel_default: v120105.0                   # Default Channel version for db2u-operator
 
