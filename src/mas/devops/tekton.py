@@ -590,8 +590,7 @@ def preparePipelinesNamespace(
                     # Storage class differs — delete and recreate with the correct one.
                     # storageClassName is immutable in Kubernetes so the PVC must be deleted first.
                     logger.info(
-                        f"config-pvc exists with storageClassName='{existingStorageClass}' but upgrade requires "
-                        f"'{storageClass}'. Deleting and recreating."
+                        f"config-pvc exists with storageClassName='{existingStorageClass}' but upgrade requires " f"'{storageClass}'. Deleting and recreating."
                     )
                     pvName = existingConfigPVC.spec.volumeName
                     pvAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolume")
