@@ -587,56 +587,72 @@ def preparePipelinesNamespace(
                     f"config-pvc already exists (storageClassName='{existingStorageClass}', phase='{existingPhase}'). "
                     f"Deleting to recreate with storageClassName='{storageClass}'."
                 )
-
-                # Unbind the PVC by clearing the claimRef on its backing PV, then remove the finalizer.
-                # PVCProtectionController keeps re-adding pvc-protection on Bound PVCs so we must
-                # move it to Lost state first before the finalizer patch and delete will stick.
                 pvName = existingConfigPVC.spec.volumeName
                 pvAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolume")
-                if pvName:
-                    logger.info(f"Unbinding config-pvc from PV '{pvName}' to allow clean deletion.")
-                    # Clear all claimRef fields — setting name/namespace/uid to empty strings forces
-                    # Lost state even when the PVC already has a deletionTimestamp (Terminating).
-                    pvAPI.patch(
-                        name=pvName,
-                        body={"spec": {"claimRef": {"name": "", "namespace": "", "uid": "", "resourceVersion": ""}}},
-                        content_type="application/merge-patch+json",
-                    )
-                    # Wait for the PVC to leave Bound state
-                    for _ in range(30):
-                        current = pvcAPI.get(name="config-pvc", namespace=namespace)
-                        if current.status.phase != "Bound":
-                            logger.info(f"config-pvc is now '{current.status.phase}'.")
-                            break
-                        logger.debug("config-pvc still Bound, waiting 2s...")
-                        sleep(2)
 
-                # Remove the finalizer directly — safe now that the PVC is no longer Bound
-                pvcAPI.patch(
-                    name="config-pvc",
-                    namespace=namespace,
-                    body={"metadata": {"finalizers": []}},
-                    content_type="application/merge-patch+json",
-                )
-                pvcAPI.delete(name="config-pvc", namespace=namespace)
-                logger.info("Waiting for config-pvc deletion to complete...")
-                while True:
+                # Force-delete the config-pvc regardless of its current state (Bound, Lost, Terminating).
+                # Each iteration applies every known unblocking step, then checks if the PVC is gone.
+                for attempt in range(30):
+                    logger.debug(f"config-pvc force-delete attempt {attempt + 1}/30")
+
+                    # Step 1: clear claimRef on the backing PV so the PVC moves from Bound → Lost.
+                    # Using empty strings (not null) — null is ignored when PVC has a deletionTimestamp.
+                    if pvName:
+                        try:
+                            pvAPI.patch(
+                                name=pvName,
+                                body={"spec": {"claimRef": {"name": "", "namespace": "", "uid": "", "resourceVersion": ""}}},
+                                content_type="application/merge-patch+json",
+                            )
+                        except NotFoundError:
+                            pvName = None  # PV already gone, skip PV steps
+
+                    # Step 2: clear PV finalizers in case the PV itself is stuck Terminating
+                    if pvName:
+                        try:
+                            pvAPI.patch(
+                                name=pvName,
+                                body={"metadata": {"finalizers": []}},
+                                content_type="application/merge-patch+json",
+                            )
+                        except NotFoundError:
+                            pvName = None
+
+                    # Step 3: clear PVC finalizer and issue delete
+                    try:
+                        pvcAPI.patch(
+                            name="config-pvc",
+                            namespace=namespace,
+                            body={"metadata": {"finalizers": []}},
+                            content_type="application/merge-patch+json",
+                        )
+                        pvcAPI.delete(name="config-pvc", namespace=namespace)
+                    except NotFoundError:
+                        logger.info("config-pvc is gone.")
+                        break
+
+                    sleep(3)
+
+                    # Check if gone
                     try:
                         pvcAPI.get(name="config-pvc", namespace=namespace)
-                        logger.debug("config-pvc still terminating, waiting 5s...")
-                        sleep(5)
+                        logger.debug("config-pvc still present, retrying...")
                     except NotFoundError:
                         logger.info("config-pvc deletion confirmed.")
                         break
 
-                # Delete the now-orphaned PV so it does not accumulate across upgrades.
-                # The new config-pvc will get a fresh PV provisioned automatically.
+                # Clean up the orphaned PV if still around
                 if pvName:
                     try:
+                        pvAPI.patch(
+                            name=pvName,
+                            body={"metadata": {"finalizers": []}},
+                            content_type="application/merge-patch+json",
+                        )
                         pvAPI.delete(name=pvName)
                         logger.info(f"Deleted orphaned PV '{pvName}'.")
                     except NotFoundError:
-                        pass  # already gone (e.g. reclaimPolicy: Delete handled it)
+                        pass  # already gone
 
             except NotFoundError:
                 pass  # PVC does not exist yet, will be created fresh below
