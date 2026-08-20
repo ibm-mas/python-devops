@@ -588,29 +588,36 @@ def preparePipelinesNamespace(
                     f"Deleting to recreate with storageClassName='{storageClass}'."
                 )
 
-                # Unbind the PVC by removing claimRef from its backing PV.
-                # While the PVC is Bound, PVCProtectionController keeps re-adding the pvc-protection
-                # finalizer, blocking deletion. Removing claimRef moves the PVC to Lost/Released,
-                # causing the controller to drop the finalizer itself — then a normal delete works cleanly.
+                # Unbind the PVC by clearing the claimRef on its backing PV, then remove the finalizer.
+                # PVCProtectionController keeps re-adding pvc-protection on Bound PVCs so we must
+                # move it to Lost state first before the finalizer patch and delete will stick.
                 pvName = existingConfigPVC.spec.volumeName
+                pvAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolume")
                 if pvName:
                     logger.info(f"Unbinding config-pvc from PV '{pvName}' to allow clean deletion.")
-                    pvAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolume")
+                    # Clear all claimRef fields — setting name/namespace/uid to empty strings forces
+                    # Lost state even when the PVC already has a deletionTimestamp (Terminating).
                     pvAPI.patch(
                         name=pvName,
-                        body={"spec": {"claimRef": None}},
+                        body={"spec": {"claimRef": {"name": "", "namespace": "", "uid": "", "resourceVersion": ""}}},
                         content_type="application/merge-patch+json",
                     )
-                    # Wait for the PVC to leave Bound state — once unbound, PVCProtectionController
-                    # removes the finalizer itself so the subsequent delete goes through cleanly.
+                    # Wait for the PVC to leave Bound state
                     for _ in range(30):
                         current = pvcAPI.get(name="config-pvc", namespace=namespace)
                         if current.status.phase != "Bound":
-                            logger.info(f"config-pvc is now '{current.status.phase}', finalizer released.")
+                            logger.info(f"config-pvc is now '{current.status.phase}'.")
                             break
                         logger.debug("config-pvc still Bound, waiting 2s...")
                         sleep(2)
 
+                # Remove the finalizer directly — safe now that the PVC is no longer Bound
+                pvcAPI.patch(
+                    name="config-pvc",
+                    namespace=namespace,
+                    body={"metadata": {"finalizers": []}},
+                    content_type="application/merge-patch+json",
+                )
                 pvcAPI.delete(name="config-pvc", namespace=namespace)
                 logger.info("Waiting for config-pvc deletion to complete...")
                 while True:
