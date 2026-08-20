@@ -45,7 +45,7 @@ datarefinery_version: 11.0.0+20250513.203727.232
 
 # Dependencies - Db2u
 # -----------------------------------------------------------------------------
-db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 db2u_extras_version: 1.0.6                       # No Update
 db2u_filter: db2
 
