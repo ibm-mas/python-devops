@@ -1,0 +1,210 @@
+---
+# Case bundle configuration for IBM Maximo Operator Catalog 260805 (AMD64)
+# -----------------------------------------------------------------------------
+# In the future this won't be necessary as we'll be able to mirror from the
+# catalog itself, but not everything in the catalog supports this yet (including MAS)
+# so we need to use the CASE bundle mirror process still.
+
+catalog_digest: sha256:b26345aa36372f7cb283ab67fcdb0a432bd6b1c0fa1c06469547f81c33ad7a7c
+
+ocp_compatibility:
+- "4.16"
+- "4.17"
+- "4.18"
+- "4.19"
+- "4.20"
+- "4.21"
+- "4.22"
+
+# Dependencies - Cloud Pak for Data
+# -----------------------------------------------------------------------------
+cpd_product_version_default: 5.3.1       # cpd 5.3.1
+
+# Dependencies
+# -----------------------------------------------------------------------------
+ibm_licensing_version: 4.2.20                   # Operator version 4.2.20 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
+common_svcs_version: 4.17.0                     # Operator version 4.17.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
+#common_svcs_version_1: 4.11.0                   # Additional version 4.11.0
+
+cp4d_platform_version: 5.4.0+20260501.120952.925.640.50    # Operator version 5.4.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+ibm_zen_version: 6.4.0+20260210.170932.92      # For CPD5 ibm-zen has to be explicitily mirrored
+
+# CPD 5.3.1 Helm Component Versions (CASE versions for Helm charts)
+wsl_version: 12.1.0                             # CPD 5.3.1 Watson Studio CASE version for Helm
+wsl_runtimes_version: 12.1.0                    # CPD 5.3.1 Watson Studio Runtimes CASE version
+wml_version: 12.1.0                             # CPD 5.3.1 Watson Machine Learning CASE version for Helm
+redis_version: 1.3.1                            # CPD 5.3.1 Redis CASE version (WML dependency)
+postgress_version: 5.31.0+20260129.161021.2713  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
+
+# CPD 5.3.1 Shared Dependencies
+ccs_build: 12.1.0                               # CPD 5.3.1 Common Core Services CASE version
+opensearch_version: 1.2.0                       # CPD 5.3.1 OpenSearch CASE version
+datarefinery_version: 12.1.0                    # CPD 5.3.1 Data Refinery CASE version
+
+spark_version: 12.1.0                           # CPD 5.3.1 Analytics Engine/Spark CASE version for Helm
+cognos_version: 29.1.0                          # CPD 5.3.1 Cognos Analytics CASE version for Helm (Helm-only)
+elasticsearch_version: 1.1.2667                
+
+
+# Dependencies - Db2u
+# -----------------------------------------------------------------------------
+db2u_version: 7.6.0+20260224.123157.19264        # Operator version 120104.0.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_extras_version: 1.0.6                       # No Update
+db2u_filter: db2
+
+db2_channel_default: v120104.0                   # Default Channel version for db2u-operator
+
+
+# Dependencies - CouchDb
+# -----------------------------------------------------------------------------
+# Note: This is required for Assist 9.0 (https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-couchdb/index.yaml)
+couchdb_version: 1.0.13  # Operator version 2.2.1 (1.0.13) sticking with 1.0.13
+
+
+# Dependencies - Minio
+# -----------------------------------------------------------------------------
+minio_version: RELEASE.2025-06-13T11-33-47Z
+minio_extras_version: 1.0.0
+
+# Dependencies - MongoDB
+# -----------------------------------------------------------------------------
+mongo_extras_version_default: 8.0.23
+mongo_extras_version_4: 4.4.21
+mongo_extras_version_5: 5.0.23
+mongo_extras_version_6: 6.0.12
+mongo_extras_version_7: 7.0.23
+mongo_extras_version_8: 8.0.23
+
+
+# Dependencies - Amlen
+# -----------------------------------------------------------------------------
+amlen_extras_version: 1.1.5              # No Update
+
+
+# Dependencies - UDS
+# -----------------------------------------------------------------------------
+uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
+uds_extras_version: 1.5.0
+
+
+# Dependencies - App Connect
+# -----------------------------------------------------------------------------
+appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking to 6.2.0 version # Please do Not Change
+
+
+# Dependencies - Suite License Service
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-sls/releases
+sls_version: 3.13.0             # No Update
+
+
+# Dependencies - Truststore Manager
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
+tsm_version: 1.7.7              # No Update
+
+
+# Dependencies - Data Dictionary
+# -----------------------------------------------------------------------------
+# https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
+dd_version: 1.1.23              # No Update
+
+# Dependencies - Opendata hub
+# -----------------------------------------------------------------------------
+# https://github.com/opendatahub-io/opendatahub-operator/releases
+odh_version: 2.32.0
+
+# Extra Images for Redis (Collaborate)
+# ------------------------------------------------------------------------------
+redis_extras_version: 2.1.40             # No Update
+
+
+# Maximo Application Suite
+# -----------------------------------------------------------------------------
+mas_core_version:
+  9.2.x: 9.2.2                          # Updated
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.20                         # No Update
+  9.0.x: 9.0.28                         # No Update
+  8.10.x: 8.10.37                       # No Update
+  8.11.x: 8.11.34                       # No Update
+mas_assist_version:
+  9.1.x: 9.1.13                         # No Update
+  9.0.x: 9.0.19                         # No Update
+  8.10.x: 8.7.8                         # No Update
+  8.11.x: 8.8.7                         # No Update
+mas_hputilities_version:
+  9.1.x: ""                             # Not Supported
+  9.0.x: ""                             # Not Supported
+  8.10.x: 8.6.7                         # No Update
+  8.11.x: ""                            # Not Supported
+mas_iot_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.13                         # No Update
+  9.0.x: 9.0.22                         # No Update
+  8.10.x: 8.7.33                        # No Update
+  8.11.x: 8.8.30                        # No Update
+mas_manage_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.20                         # No Update
+  9.0.x: 9.0.28                         # No Update
+  8.10.x: 8.6.38                        # No Update
+  8.11.x: 8.7.32                        # No Update
+mas_monitor_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.13                         # No Update
+  9.0.x: 9.0.23                         # No Update
+  8.10.x: 8.10.30                       # No Update
+  8.11.x: 8.11.28                       # No Update
+mas_optimizer_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.14                         # No Update
+  9.0.x: 9.0.25                         # No Update
+  8.10.x: 8.4.28                        # No Update
+  8.11.x: 8.5.28                        # No Update
+mas_predict_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.10                         # No Update
+  9.0.x: 9.0.17                         # No Update
+  8.10.x: 8.8.15                        # No Update
+  8.11.x: 8.9.17                        # No Update
+mas_visualinspection_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.19                         # No Update
+  9.0.x: 9.0.22                         # No Update
+  8.10.x: 8.8.4                         # No Update
+  8.11.x: 8.9.21                        # No Update
+mas_facilities_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.13                         # No Update
+  9.0.x: ""                             # Not Supported
+  8.10.x: ""                            # Not Supported
+  8.11.x: ""                            # Not Supported
+
+
+# Maximo AI Service
+# ------------------------------------------------------------------------------
+aiservice_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+  9.1.x: 9.1.17                         # No Update
+
+aiservice_tenant_version:
+  9.2.x: 9.2.1                          # No Update
+  9.2.x-feature: 9.2.0                  # No Update
+
+
+# Editorial
+# ------------------------------------------------------------------------------
+editorial:
+  whats_new:
+  - title: '**Security updates and bug fixes**'
+    details:
+    - IBM Maximo Application Suite Core Platform v9.2.2

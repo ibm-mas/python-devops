@@ -926,6 +926,10 @@ spec:
     - name: tenant_scheduling_cfg_file
       value: "{{ tenant_scheduling_config_file }}"
 {%- endif %}
+{%- if tenant_operator_config_file is defined and tenant_operator_config_file != "" %}
+    - name: tenant_operator_cfg_file
+      value: "{{ tenant_operator_config_file }}"
+{%- endif %}
 
 {%- if rsl_ca_crt is defined and rsl_ca_crt != "" %}
     # RSL - CA Certificate
