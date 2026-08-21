@@ -23,24 +23,25 @@ cpd_product_version_default: 5.2.0       # No Update
 ibm_licensing_version: 4.2.17                    # Operator version 4.2.14 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-licensing)
 common_svcs_version: 4.13.0                      # Operator version 4.13.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-common-services)
 #common_svcs_version_1: 4.11.0                   # Additional version 4.11.0
-cp4d_platform_version: 5.2.0+20250709.170324     # Operator version 5.2.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
-ibm_zen_version: 6.2.0+20250530.152516.232       # For CPD5 ibm-zen has to be explicitily mirrored
-wsl_version: 11.0.0+20250521.202913.73           # used for wsl and wsl_runtimes unless wsl_runtimes_version also specified
-wsl_runtimes_version: 11.0.0+20250515.090949.21  # cpd 5.1.3 uses version 10.3.0 of wsl runtimes but only 10.2.0 for wsl itself
-wml_version: 11.0.0+20250530.193146.282          # Operator version 5.2.0
-spark_version: 11.0.0+20250604.163055.2097       # Operator version 5.2.0
-cognos_version: 28.0.0+20250515.175459.10054     # Operator version 25.0.0
 
-postgress_version: 5.16.0+20250827.110911.2626   # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
-ccs_build: 11.0.0+20250605.130237.468            # cpd 5.2.0 using ccs build
-ccs_extras_version: 11.0.0                       # Extra Images for CCS used for PCD 5.2.0 Hotfix
+cp4d_platform_version: 5.4.0+20260501.120952.925.640.50    # Operator version 5.4.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+ibm_zen_version: 6.4.0+20260210.170932.92      # For CPD5 ibm-zen has to be explicitily mirrored
 
-elasticsearch_version: 1.1.2667                  # Operator version 1.1.2667 # used in cpd 5.1.3 only
-opensearch_version: 1.1.2494                     # Operator version 1.1.2494
+# CPD 5.3.1 Helm Component Versions (CASE versions for Helm charts)
+wsl_version: 12.1.0                             # CPD 5.3.1 Watson Studio CASE version for Helm
+wsl_runtimes_version: 12.1.0                    # CPD 5.3.1 Watson Studio Runtimes CASE version
+wml_version: 12.1.0                             # CPD 5.3.1 Watson Machine Learning CASE version for Helm
+redis_version: 1.3.1                            # CPD 5.3.1 Redis CASE version (WML dependency)
+postgress_version: 5.31.0+20260129.161021.2713  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
 
-# I have added this as a guess as to the actual version used, we are currently using the wsl_version, but that does not exist for datarefinery
-# See: https://ibm-mas.slack.com/archives/C02PUHKQB5L/p1770849370378689
-datarefinery_version: 11.0.0+20250513.203727.232
+# CPD 5.3.1 Shared Dependencies
+ccs_build: 12.1.0                               # CPD 5.3.1 Common Core Services CASE version
+opensearch_version: 1.2.0                       # CPD 5.3.1 OpenSearch CASE version
+datarefinery_version: 12.1.0                    # CPD 5.3.1 Data Refinery CASE version
+
+spark_version: 12.1.0                           # CPD 5.3.1 Analytics Engine/Spark CASE version for Helm
+cognos_version: 29.1.0                          # CPD 5.3.1 Cognos Analytics CASE version for Helm (Helm-only)
+elasticsearch_version: 1.1.2667                
 
 
 # Dependencies - Db2u
