@@ -197,7 +197,7 @@ aiservice_version:
   9.1.x: 9.1.18                         # Updated
 
 aiservice_tenant_version:
-  9.2.x: 9.2.1                          # Updated
+  9.2.x: 9.2.2                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
 
 
