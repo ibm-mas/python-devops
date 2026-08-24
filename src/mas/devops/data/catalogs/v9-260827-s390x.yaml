@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:49da4b80d68e815cd7a71cec3678a21fb32a160a091c1cb29ae87ef3f3b3d321
+catalog_digest: sha256:610100f7e93ec9312f94d9958aa9766e346a5b6a525c7f6e1b67d8626b4a5cda
 
 ocp_compatibility:
 - "4.16"
@@ -32,13 +32,13 @@ uds_extras_version: 1.5.0                    # No Update
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.0             # No Update
+sls_version: 3.13.1             # Updated
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.8              # Updated
+tsm_version: 1.7.9              # Updated
 
 
 # Dependencies - MongoDB
@@ -55,8 +55,8 @@ mongo_extras_version_8: 8.0.29
 mas_core_version:
   9.2.x: 9.2.3                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.20                         # Updated
-  9.0.x: 9.0.28                         # Updated
+  9.1.x: 9.1.21                         # Updated
+  9.0.x: 9.0.29                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
