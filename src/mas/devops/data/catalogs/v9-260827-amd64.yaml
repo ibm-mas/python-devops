@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:0701baf0fa5be305bb23433cd4a658de57d385dd17b93161fb60b83ffd541ae6
+catalog_digest: sha256:2b9b1a2adb5d1f5967372a421cc61af1a47d0d13a3f538c0351d5d8902be60af
 
 ocp_compatibility:
 - "4.16"
@@ -95,13 +95,13 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.0             # No Update
+sls_version: 3.13.1             # Updated
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.8              # Updated
+tsm_version: 1.7.9              # Updated
 
 
 # Dependencies - Data Dictionary
@@ -124,8 +124,8 @@ redis_extras_version: 2.1.40             # No Update
 mas_core_version:
   9.2.x: 9.2.3                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.20                         # Updated
-  9.0.x: 9.0.28                         # Updated
+  9.1.x: 9.1.21                         # Updated
+  9.0.x: 9.0.29                         # Updated
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
