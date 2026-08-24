@@ -2012,20 +2012,20 @@
 </code></pre></div>
 <h3 id="3-perform-operations">3. Perform Operations</h3>
 <h4 id="create-a-namespace">Create a Namespace</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">namespace</span> <span class="o">=</span> <span class="s2">&quot;my-mas-namespace&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">namespace</span> <span class="o">=</span> <span class="s2">"my-mas-namespace"</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">createNamespace</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">namespace</span><span class="p">)</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Namespace &#39;</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">&#39; created successfully&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Namespace '</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">' created successfully"</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="install-openshift-pipelines">Install OpenShift Pipelines</h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">installOpenShiftPipelines</span><span class="p">(</span><span class="n">dynClient</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;OpenShift Pipelines installed successfully&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"OpenShift Pipelines installed successfully"</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="update-tekton-definitions">Update Tekton Definitions</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">pipelinesNamespace</span> <span class="o">=</span> <span class="s2">&quot;mas-myinstance-pipelines&quot;</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">tektonYamlPath</span> <span class="o">=</span> <span class="s2">&quot;/path/to/ibm-mas-tekton.yaml&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">pipelinesNamespace</span> <span class="o">=</span> <span class="s2">"mas-myinstance-pipelines"</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">tektonYamlPath</span> <span class="o">=</span> <span class="s2">"/path/to/ibm-mas-tekton.yaml"</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">updateTektonDefinitions</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">pipelinesNamespace</span><span class="p">,</span> <span class="n">tektonYamlPath</span><span class="p">)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Tekton definitions updated successfully&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Tekton definitions updated successfully"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="complete-example-mas-upgrade-pipeline">Complete Example: MAS Upgrade Pipeline</h2>
 <p>Here's a complete example that sets up and launches a MAS upgrade pipeline:</p>
@@ -2041,9 +2041,9 @@
 <a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">)</span>
 <a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
 <a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># Configuration</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">instanceId</span> <span class="o">=</span> <span class="s2">&quot;mymas&quot;</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="n">pipelinesNamespace</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;mas-</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">-pipelines&quot;</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">tektonYamlPath</span> <span class="o">=</span> <span class="s2">&quot;/mascli/templates/ibm-mas-tekton.yaml&quot;</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">instanceId</span> <span class="o">=</span> <span class="s2">"mymas"</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="n">pipelinesNamespace</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"mas-</span><span class="si">{</span><span class="n">instanceId</span><span class="si">}</span><span class="s2">-pipelines"</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">tektonYamlPath</span> <span class="o">=</span> <span class="s2">"/mascli/templates/ibm-mas-tekton.yaml"</span>
 <a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
 <a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="c1"># Create OpenShift client</span>
 <a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="n">dynClient</span> <span class="o">=</span> <span class="n">dynamic</span><span class="o">.</span><span class="n">DynamicClient</span><span class="p">(</span>
@@ -2051,22 +2051,22 @@
 <a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="p">)</span>
 <a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>
 <a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="c1"># Install OpenShift Pipelines Operator</span>
-<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Installing OpenShift Pipelines...&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Installing OpenShift Pipelines..."</span><span class="p">)</span>
 <a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="n">installOpenShiftPipelines</span><span class="p">(</span><span class="n">dynClient</span><span class="p">)</span>
 <a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
 <a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="c1"># Create pipelines namespace</span>
-<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Creating namespace &#39;</span><span class="si">{</span><span class="n">pipelinesNamespace</span><span class="si">}</span><span class="s2">&#39;...&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Creating namespace '</span><span class="si">{</span><span class="n">pipelinesNamespace</span><span class="si">}</span><span class="s2">'..."</span><span class="p">)</span>
 <a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="n">createNamespace</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">pipelinesNamespace</span><span class="p">)</span>
 <a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>
 <a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="c1"># Update Tekton definitions</span>
-<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Updating Tekton definitions...&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Updating Tekton definitions..."</span><span class="p">)</span>
 <a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="n">updateTektonDefinitions</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">pipelinesNamespace</span><span class="p">,</span> <span class="n">tektonYamlPath</span><span class="p">)</span>
 <a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>
 <a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a><span class="c1"># Launch upgrade pipeline</span>
-<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Launching upgrade pipeline...&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Launching upgrade pipeline..."</span><span class="p">)</span>
 <a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a><span class="n">pipelineURL</span> <span class="o">=</span> <span class="n">launchUpgradePipeline</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="n">instanceId</span><span class="p">)</span>
-<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pipeline launched successfully!&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;View pipeline run at: </span><span class="si">{</span><span class="n">pipelineURL</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Pipeline launched successfully!"</span><span class="p">)</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"View pipeline run at: </span><span class="si">{</span><span class="n">pipelineURL</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="using-cli-tools">Using CLI Tools</h2>
 <p>The package includes several command-line tools for common operations.</p>
@@ -2093,31 +2093,31 @@
 </code></pre></div>
 <h3 id="send-slack-notification">Send Slack Notification</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>mas-devops-notify-slack<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span>--webhook-url<span class="w"> </span><span class="s2">&quot;https://hooks.slack.com/services/YOUR/WEBHOOK/URL&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>--message<span class="w"> </span><span class="s2">&quot;Deployment completed successfully&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span>--channel<span class="w"> </span><span class="s2">&quot;#deployments&quot;</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span>--webhook-url<span class="w"> </span><span class="s2">"https://hooks.slack.com/services/YOUR/WEBHOOK/URL"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>--message<span class="w"> </span><span class="s2">"Deployment completed successfully"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span>--channel<span class="w"> </span><span class="s2">"#deployments"</span>
 </code></pre></div>
 <h2 id="working-with-db2">Working with DB2</h2>
 <p>Validate DB2 configuration for a MAS application:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mas.devops.db2</span><span class="w"> </span><span class="kn">import</span> <span class="n">validateDB2Config</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">namespace</span> <span class="o">=</span> <span class="s2">&quot;mas-myinstance-core&quot;</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">instanceName</span> <span class="o">=</span> <span class="s2">&quot;myinstance&quot;</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">app</span> <span class="o">=</span> <span class="s2">&quot;manage&quot;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">namespace</span> <span class="o">=</span> <span class="s2">"mas-myinstance-core"</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">instanceName</span> <span class="o">=</span> <span class="s2">"myinstance"</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">app</span> <span class="o">=</span> <span class="s2">"manage"</span>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
 <a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">result</span> <span class="o">=</span> <span class="n">validateDB2Config</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">instanceName</span><span class="p">,</span> <span class="n">app</span><span class="p">)</span>
 <a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="k">if</span> <span class="n">result</span><span class="p">:</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DB2 configuration is valid&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"DB2 configuration is valid"</span><span class="p">)</span>
 <a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DB2 configuration validation failed&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"DB2 configuration validation failed"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="working-with-slack-notifications">Working with Slack Notifications</h2>
 <p>Send notifications to Slack:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mas.devops.slack</span><span class="w"> </span><span class="kn">import</span> <span class="n">sendSlackNotification</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">webhookUrl</span> <span class="o">=</span> <span class="s2">&quot;https://hooks.slack.com/services/YOUR/WEBHOOK/URL&quot;</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;MAS deployment completed successfully&quot;</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">channel</span> <span class="o">=</span> <span class="s2">&quot;#deployments&quot;</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">webhookUrl</span> <span class="o">=</span> <span class="s2">"https://hooks.slack.com/services/YOUR/WEBHOOK/URL"</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">message</span> <span class="o">=</span> <span class="s2">"MAS deployment completed successfully"</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">channel</span> <span class="o">=</span> <span class="s2">"#deployments"</span>
 <a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
 <a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">sendSlackNotification</span><span class="p">(</span><span class="n">webhookUrl</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">channel</span><span class="p">)</span>
 </code></pre></div>
@@ -2126,10 +2126,10 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mas.devops.ocp</span><span class="w"> </span><span class="kn">import</span> <span class="n">createNamespace</span>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">createNamespace</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="s2">&quot;my-namespace&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Namespace created successfully&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">createNamespace</span><span class="p">(</span><span class="n">dynClient</span><span class="p">,</span> <span class="s2">"my-namespace"</span><span class="p">)</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Namespace created successfully"</span><span class="p">)</span>
 <a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error creating namespace: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Error creating namespace: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
