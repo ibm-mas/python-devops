@@ -78,5 +78,8 @@ editorial:
     - IBM Maximo Manage [v9.0.29](https://www.ibm.com/support/pages/node/7284559),[v9.1.21](https://www.ibm.com/support/pages/node/7284558) and [v9.2.2](https://www.ibm.com/support/pages/node/7284557)
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.13
+    - CP4D: 5.3.1
+    - OCP: 4.22
+    - Mongo: 8.0.29
   known_issues:
     - title: 

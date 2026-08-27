@@ -219,5 +219,8 @@ editorial:
     - IBM Maximo AI Service [v9.1.18](https://www.ibm.com/support/pages/node/7284133) and [v9.2.2](https://www.ibm.com/support/pages/node/7284134)
     - IBM Truststore Manager v1.7
     - IBM Suite License Service v3.13
+    - CP4D: 5.3.1
+    - OCP: 4.22
+    - Mongo: 8.0.29
   known_issues:
     - title: 
