@@ -18,7 +18,7 @@ ocp_compatibility:
 
 # Dependencies - Cloud Pak for Data
 # -----------------------------------------------------------------------------
-cpd_product_version_default: 5.3.1       # cpd 5.3.1
+cpd_product_version_default: 5.3.1       # Updated # cpd 5.3.1
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -49,10 +49,10 @@ elasticsearch_version: 1.1.2667
 # Dependencies - Db2u
 # -----------------------------------------------------------------------------
 db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
-db2u_extras_version: 1.0.6                       # No Update
+db2u_extras_version: 1.0.6                       
 db2u_filter: db2
 
-db2_channel_default: v120105.0                   # Default Channel version for db2u-operator
+db2_channel_default: v120105.0               # Updated    # Default Channel version for db2u-operator
 
 
 # Dependencies - CouchDb
@@ -73,7 +73,7 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.29
+mongo_extras_version_8: 8.0.29.  # Updated
 
 
 # Dependencies - Amlen
@@ -174,9 +174,9 @@ mas_predict_version:
   8.10.x: 8.8.15                        # No Update
   8.11.x: 8.9.17                        # No Update
 mas_visualinspection_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.20                         # Updated
+  9.1.x: 9.1.20                         # No Update
   9.0.x: 9.0.23                         # Updated
   8.10.x: 8.8.4                         # No Update
   8.11.x: 8.9.21                        # No Update
