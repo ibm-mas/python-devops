@@ -325,6 +325,9 @@ def lookupPipelineStorageClass(dynClient: DynamicClient, instanceId: str) -> tup
     except NotFoundError:
         logger.debug(f"config-pvc not found in {namespace}, will fall back to storage class detection")
         return None, None
+    except AttributeError:
+        logger.debug(f"config-pvc response in {namespace} was not a PVC object, will fall back to storage class detection")
+        return None, None
 
 
 def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
