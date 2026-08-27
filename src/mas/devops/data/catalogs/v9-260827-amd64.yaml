@@ -174,9 +174,9 @@ mas_predict_version:
   8.10.x: 8.8.15                        # No Update
   8.11.x: 8.9.17                        # No Update
 mas_visualinspection_version:
-  9.2.x: 9.2.1                          # Updated
+  9.2.x: 9.2.1                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.19                         # Updated
+  9.1.x: 9.1.19                         # No Update
   9.0.x: 9.0.23                         # Updated
   8.10.x: 8.8.4                         # No Update
   8.11.x: 8.9.21                        # No Update
