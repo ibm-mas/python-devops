@@ -74,7 +74,10 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.28](https://www.ibm.com/support/pages/node/7281592), [v9.1.20](https://www.ibm.com/support/pages/node/7281593) and [v9.2.1](https://www.ibm.com/support/pages/node/7281594)
-    - IBM Maximo Manage [v9.0.28](https://www.ibm.com/support/pages/node/7281106),[v9.1.20](https://www.ibm.com/support/pages/node/7281105) and [v9.2.1](https://www.ibm.com/support/pages/node/7276395)
+    - IBM Maximo Application Suite Core Platform [v9.0.29](https://www.ibm.com/support/pages/node/7285203), [v9.1.21](https://www.ibm.com/support/pages/node/7285204) and [v9.2.3](https://www.ibm.com/support/pages/node/7285205)
+    - IBM Maximo Manage [v9.0.29](https://www.ibm.com/support/pages/node/7284559),[v9.1.21](https://www.ibm.com/support/pages/node/7284558) and [v9.2.2](https://www.ibm.com/support/pages/node/7284557)
+    - IBM Truststore Manager v1.7
+    - IBM Suite License Service v3.13
   known_issues:
-    - title: A known issue exists in the 9.0.x release affecting IBM Maximo Manage customers upgrading from 8.7.x to 9.0.x with the Civil component and Image Stitching deployed; the Image Stitching CR will not recover post-upgrade without manual intervention. To recover, patch the ManageWorkspace CR with kubectl -n mas-<instanceId>-manage patch manageworkspace <instanceId>-<workspaceId> --type merge -p '{"spec":{"components":{"civil":{"imagestitchingpvcname":"imagestitching-pvc-in"}}}}', replacing imagestitching-pvc-in with the value obtained by running kubectl -n mas-<instanceId>-manage get pvc -l app.kubernetes.io/component=imagestitching-api and stripping the <instanceId>-<workspaceId>- prefix from the returned PVC name.
+    - title: 
+    
