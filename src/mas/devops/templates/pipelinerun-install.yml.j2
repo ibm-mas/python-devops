@@ -574,6 +574,15 @@ spec:
     - name: mas_issuer_kind
       value: "{{ mas_issuer_kind }}"
 {%- endif %}
+{%- if mas_letsencrypt_http01_enabled is defined and mas_letsencrypt_http01_enabled == "true" %}
+
+    # Let's Encrypt HTTP-01
+    # -------------------------------------------------------------------------
+    - name: mas_letsencrypt_http01_enabled
+      value: "{{ mas_letsencrypt_http01_enabled }}"
+    - name: mas_le_email
+      value: "{{ mas_le_email }}"
+{%- endif %}
 
     # MAS Workspace
     # -------------------------------------------------------------------------
