@@ -222,5 +222,6 @@ editorial:
     - CP4D: 5.3.1
     - OCP: 4.22
     - Mongo: 8.0.29
+    - db2u: 120105.0.1
   known_issues:
     - title: During upgrades from MAS Manage 9.0.x to 9.1.x using the online-offline upgrade process, some environments may fail during the offline phase because the PLGCOUNT table does not contain the expected MAXPRODUCTID column. This issue is upgrade-blocking and was identified late in the release validation cycle. Due to the August 27, 2026 GA release timeline, MAS Manage 9.1.x was released with this documented as a known limitation. A corrective fix has been developed, and an Interim Fix (IFIX) release is being prepared. Customers encountering this issue should contact IBM Support and reference the [technote](https://www.ibm.com/support/pages/node/7285399)
