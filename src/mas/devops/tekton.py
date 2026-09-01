@@ -297,6 +297,39 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         return False
 
 
+def lookupPipelineStorageClass(dynClient: DynamicClient, instanceId: str) -> tuple[str | None, str | None]:
+    """
+    Look up the storage class and access mode already in use by the config-pvc
+    PersistentVolumeClaim in the instance's pipelines namespace.
+
+    During an upgrade the pipelines namespace already exists (it was created by
+    the original install).
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        instanceId (str): MAS instance ID
+
+    Returns:
+        tuple[str | None, str | None]: (storageClassName, accessMode) read from
+        the existing config-pvc, or (None, None) if the PVC does not exist yet.
+    """
+    namespace = f"mas-{instanceId}-pipelines"
+    try:
+        pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+        existingPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+        storageClass = existingPVC.spec.storageClassName or None
+        accessModes = existingPVC.spec.accessModes or []
+        accessMode = accessModes[0] if accessModes else None
+        logger.info(f"Detected existing config-pvc in {namespace}: storageClass='{storageClass}', accessMode='{accessMode}'")
+        return storageClass, accessMode
+    except NotFoundError:
+        logger.debug(f"config-pvc not found in {namespace}, will fall back to storage class detection")
+        return None, None
+    except AttributeError:
+        logger.debug(f"config-pvc response in {namespace} was not a PVC object, will fall back to storage class detection")
+        return None, None
+
+
 def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
     """
     OpenShift Pipelines has a problem when there is no default storage class defined in a cluster, this function
