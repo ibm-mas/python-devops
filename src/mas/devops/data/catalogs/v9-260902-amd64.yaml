@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260827 (AMD64)
+# Case bundle configuration for IBM Maximo Operator Catalog 260902 (AMD64)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:d711d11e213e509fb1dd9eee701350ebd5580ab2c77d6574dd441fb9e6f0740d
+catalog_digest: sha256:54579587186fe9cd6158e87ad0a6b1c5baf2363bddd41bd32543535cfa10a2d5
 
 ocp_compatibility:
 - "4.16"
@@ -18,7 +18,7 @@ ocp_compatibility:
 
 # Dependencies - Cloud Pak for Data
 # -----------------------------------------------------------------------------
-cpd_product_version_default: 5.3.1       # Updated # cpd 5.3.1
+cpd_product_version_default: 5.3.1      # cpd 5.3.1
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (
 db2u_extras_version: 1.0.6                       
 db2u_filter: db2
 
-db2_channel_default: v120105.0               # Updated    # Default Channel version for db2u-operator
+db2_channel_default: v120105.0                 # Default Channel version for db2u-operator
 
 
 # Dependencies - CouchDb
@@ -73,12 +73,12 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.29  # Updated
+mongo_extras_version_8: 8.0.29  
 
 
 # Dependencies - Amlen
 # -----------------------------------------------------------------------------
-amlen_extras_version: 1.1.5              # No Update
+amlen_extras_version: 1.1.5              
 
 
 # Dependencies - UDS
@@ -95,19 +95,19 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.1             # Updated
+sls_version: 3.13.1             
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.9              # Updated
+tsm_version: 1.7.9             
 
 
 # Dependencies - Data Dictionary
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
-dd_version: 1.1.23              # No Update
+dd_version: 1.1.23              
 
 # Dependencies - Opendata hub
 # -----------------------------------------------------------------------------
@@ -116,21 +116,21 @@ odh_version: 2.32.0
 
 # Extra Images for Redis (Collaborate)
 # ------------------------------------------------------------------------------
-redis_extras_version: 2.1.40             # No Update
+redis_extras_version: 2.1.40             
 
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.3                          # Updated
+  9.2.x: 9.2.3                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.21                         # Updated
-  9.0.x: 9.0.29                         # Updated
+  9.1.x: 9.1.22                         # Updated
+  9.0.x: 9.0.29                         # No Update
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
-  9.1.x: 9.1.14                         # Updated
-  9.0.x: 9.0.20                         # Updated
+  9.1.x: 9.1.14                         # No Update
+  9.0.x: 9.0.20                         # No Update
   8.10.x: 8.7.8                         # No Update
   8.11.x: 8.8.7                         # No Update
 mas_hputilities_version:
@@ -139,51 +139,51 @@ mas_hputilities_version:
   8.10.x: 8.6.7                         # No Update
   8.11.x: ""                            # Not Supported
 mas_iot_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.14                         # Updated
-  9.0.x: 9.0.23                         # Updated
+  9.1.x: 9.1.14                         # No Update
+  9.0.x: 9.0.23                         # No Update
   8.10.x: 8.7.33                        # No Update
   8.11.x: 8.8.30                        # No Update
 mas_manage_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.21                         # Updated
-  9.0.x: 9.0.29                         # Updated
+  9.1.x: 9.1.22                         # Updated
+  9.0.x: 9.0.29                         # No Update
   8.10.x: 8.6.38                        # No Update
   8.11.x: 8.7.32                        # No Update
 mas_monitor_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.14                         # Updated
-  9.0.x: 9.0.24                         # Updated
+  9.1.x: 9.1.14                         # No Update
+  9.0.x: 9.0.24                         # No Update
   8.10.x: 8.10.30                       # No Update
   8.11.x: 8.11.28                       # No Update
 mas_optimizer_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.15                         # Updated
-  9.0.x: 9.0.26                         # Updated
+  9.1.x: 9.1.15                         # No Update
+  9.0.x: 9.0.26                         # No Update
   8.10.x: 8.4.28                        # No Update
   8.11.x: 8.5.28                        # No Update
 mas_predict_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.11                         # Updated
-  9.0.x: 9.0.18                         # Updated
+  9.1.x: 9.1.11                         # No Update
+  9.0.x: 9.0.18                         # No Update
   8.10.x: 8.8.15                        # No Update
   8.11.x: 8.9.17                        # No Update
 mas_visualinspection_version:
   9.2.x: 9.2.1                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
   9.1.x: 9.1.19                         # No Update
-  9.0.x: 9.0.23                         # Updated
+  9.0.x: 9.0.23                         # No Update
   8.10.x: 8.8.4                         # No Update
   8.11.x: 8.9.21                        # No Update
 mas_facilities_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.14                         # Updated
+  9.1.x: 9.1.14                         # No Update
   9.0.x: ""                             # Not Supported
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
@@ -192,12 +192,12 @@ mas_facilities_version:
 # Maximo AI Service
 # ------------------------------------------------------------------------------
 aiservice_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.18                         # Updated
+  9.1.x: 9.1.18                         # No Update
 
 aiservice_tenant_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
 
 
@@ -207,21 +207,6 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.29](https://www.ibm.com/support/pages/node/7285203), [v9.1.21](https://www.ibm.com/support/pages/node/7285204) and [v9.2.3](https://www.ibm.com/support/pages/node/7285205)
-    - IBM Maximo Manage [v9.0.29](https://www.ibm.com/support/pages/node/7284559),[v9.1.21](https://www.ibm.com/support/pages/node/7284558) and [v9.2.2](https://www.ibm.com/support/pages/node/7284557)
-    - IBM Maximo IoT [v9.0.23](https://www.ibm.com/support/pages/node/7284662) ,[v9.1.14](https://www.ibm.com/support/pages/node/7284663)
-    - IBM Maximo Monitor [v9.0.24](https://www.ibm.com/support/pages/node/7285137),[v9.1.14](https://www.ibm.com/support/pages/node/7285139) and [v9.2.2](https://www.ibm.com/support/pages/node/7285140)
-    - IBM Maximo Optimizer [v9.0.26](https://www.ibm.com/support/pages/node/7284808),[v9.1.15](https://www.ibm.com/support/pages/node/7284811), [v9.2.2](https://www.ibm.com/support/pages/node/7284812)
-    - IBM Maximo Assist/Collaborate [v9.0.20](https://www.ibm.com/support/pages/node/7284656), [v9.1.14](https://www.ibm.com/support/pages/node/7284660)
-    - IBM Maximo Predict [v9.0.18](https://www.ibm.com/support/pages/node/7285189), [v9.1.11](https://www.ibm.com/support/pages/node/7285187) and [v9.2.2](https://www.ibm.com/support/pages/node/7285186)
-    - IBM Maximo Visual Inspection [v9.0.23](https://www.ibm.com/support/pages/node/7285181)
-    - IBM Maximo Real Estate and Facilities [v9.1.14](https://www.ibm.com/support/pages/node/7284881) and [v9.2.2](https://www.ibm.com/support/pages/node/7284884)
-    - IBM Maximo AI Service [v9.1.18](https://www.ibm.com/support/pages/node/7284133) and [v9.2.2](https://www.ibm.com/support/pages/node/7284134)
-    - IBM Truststore Manager v1.7
-    - IBM Suite License Service v3.13
-    - 'CP4D: 5.3.1'
-    - 'OCP: 4.22'
-    - 'Mongo: 8.0.29'
-    - 'db2u: 120105.0.1'
-  known_issues:
-    - title: During upgrades from MAS Manage 9.0.x to 9.1.x using the online-offline upgrade process, some environments may fail during the offline phase because the PLGCOUNT table does not contain the expected MAXPRODUCTID column. This issue is upgrade-blocking and was identified late in the release validation cycle. Due to the August 27, 2026 GA release timeline, MAS Manage 9.1.x was released with this documented as a known limitation. A corrective fix has been developed, and an Interim Fix (IFIX) release is being prepared. Customers encountering this issue should contact IBM Support and reference the [technote](https://www.ibm.com/support/pages/node/7285399)
+    - IBM Maximo Application Suite Core Platform [v9.1.22](https://www.ibm.com/support/pages/node/7286040)
+    - IBM Maximo Manage [v9.1.22](https://www.ibm.com/support/pages/node/7286040)
+    
