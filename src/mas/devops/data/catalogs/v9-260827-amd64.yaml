@@ -33,7 +33,7 @@ ibm_zen_version: 6.10.0+20260529.144051.189      # For CPD5 ibm-zen has to be ex
 wsl_version: 13.0.0                             # CPD 5.4.0 Watson Studio CASE version for Helm
 wsl_runtimes_version: 13.0.0                    # CPD 5.4.0 Watson Studio Runtimes CASE version
 wml_version: 13.0.0                             # CPD 5.4.0 Watson Machine Learning CASE version for Helm
-redis_version: 1.4.1                            # CPD 5.4.0 Redis CASE version (WML dependency)
+redis_version: 1.4.0                            # CPD 5.4.0 Redis CASE version (WML dependency)
 postgress_version: 5.40.0+20260511.071333.2716  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
 
 # CPD 5.4.0 Shared Dependencies
