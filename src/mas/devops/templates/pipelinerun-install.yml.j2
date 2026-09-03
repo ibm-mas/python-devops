@@ -412,6 +412,14 @@ spec:
       value: "{{ override_edge_certs }}"
     - name: cis_proxy
       value: "{{ cis_proxy }}"
+    - name: cis_waf
+      value: "{{ cis_waf }}"
+    - name: delete_wildcards
+      value: "{{ delete_wildcards }}"
+    - name: update_dns_entries
+      value: "{{ update_dns_entries }}"
+    - name: cis_entries_to_add
+      value: "{{ cis_entries_to_add }}"
   {%- endif %}
 {%- endif %}
 {%- if aws_access_key_id is defined and aws_access_key_id != "" %}
@@ -1007,6 +1015,13 @@ spec:
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
       value: "{{ aiservice_certificate_issuer }}"
+{%- endif %}
+
+    # AI Service - DNS
+    # -------------------------------------------------------------------------
+{%- if aiservice_domain is defined and aiservice_domain != "" %}
+    - name: aiservice_domain
+      value: "{{ aiservice_domain }}"
 {%- endif %}
 
     # AI Service - Database Configuration
