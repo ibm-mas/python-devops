@@ -14,8 +14,7 @@ This module covers prepareMcpiPipelinesNamespace() and launchMcpiInstallPipeline
 added to mas.devops.tekton.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 
 class TestPrepareMcpiPipelinesNamespace:
@@ -193,10 +192,7 @@ class TestLaunchMcpiInstallPipeline:
             params={"mas_instance_id": "inst1", "mcpi_channel": "v9.2"},
         )
 
-        assert url == (
-            "https://console.example.com/k8s/ns/mcpi-inst1-pipelines"
-            "/tekton.dev~v1beta1~PipelineRun/inst1-install-260101-1200"
-        )
+        assert url == ("https://console.example.com/k8s/ns/mcpi-inst1-pipelines" "/tekton.dev~v1beta1~PipelineRun/inst1-install-260101-1200")
 
     @patch("mas.devops.tekton.getConsoleURL")
     @patch("mas.devops.tekton.launchPipelineRun")
