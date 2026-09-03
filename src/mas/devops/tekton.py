@@ -843,6 +843,83 @@ def prepareAiServicePipelinesNamespace(
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
+def prepareMcpiPipelinesNamespace(
+    dynClient: DynamicClient,
+    instanceId: str = None,
+    storageClass: str = None,
+    accessMode: str = None,
+    waitForBind: bool = True,
+    configureRBAC: bool = True,
+):
+    """
+    Prepare a namespace for MCPI pipelines by creating RBAC and PVC resources.
+
+    Creates MCPI-specific pipeline namespace with necessary role bindings
+    and persistent volume claims.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        instanceId (str, optional): MCPI instance ID. Defaults to None.
+        storageClass (str, optional): Storage class for the PVC. Defaults to None.
+        accessMode (str, optional): Access mode for the PVC. Defaults to None.
+        waitForBind (bool, optional): Whether to wait for PVC to bind. Defaults to True.
+        configureRBAC (bool, optional): Whether to configure RBAC. Defaults to True.
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
+    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
+    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
+    namespace = f"mcpi-{instanceId}-pipelines"
+    template = env.get_template("mcpi-pipelines-rbac.yml.j2")
+
+    if configureRBAC:
+        renderedTemplate = template.render(mcpi_instance_id=instanceId)
+        logger.debug(renderedTemplate)
+        crb = yaml.safe_load(renderedTemplate)
+        applyResource(
+            dynClient=dynClient,
+            apiVersion="rbac.authorization.k8s.io/v1",
+            kind="ClusterRoleBinding",
+            body=crb,
+            namespace=namespace,
+        )
+
+    template = env.get_template("mcpi-pipelines-pvc.yml.j2")
+    renderedTemplate = template.render(
+        mcpi_instance_id=instanceId,
+        pipeline_storage_class=storageClass,
+        pipeline_storage_accessmode=accessMode,
+    )
+    logger.debug(renderedTemplate)
+    pvc = yaml.safe_load(renderedTemplate)
+    pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+    applyResource(
+        dynClient=dynClient,
+        apiVersion="v1",
+        kind="PersistentVolumeClaim",
+        body=pvc,
+        namespace=namespace,
+    )
+
+    volumeBindingMode = getStorageClassVolumeBindingMode(dynClient, storageClass)
+    waitForBind = volumeBindingMode == "Immediate"
+
+    if waitForBind:
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, waiting for PVC to bind")
+        pvcIsBound = False
+        while not pvcIsBound:
+            configPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+            if configPVC.status.phase == "Bound":
+                pvcIsBound = True
+            else:
+                logger.debug("Waiting 15s before checking status of PVC again")
+                logger.debug(configPVC)
+                sleep(15)
+    else:
+        logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
+
+
 def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None):
     """
     Create or update secret required for MAS Restore pipeline.
@@ -1340,6 +1417,26 @@ def launchInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/{applicationType}-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
     return pipelineURL
+
+
+def launchMcpiInstallPipeline(dynClient: DynamicClient, params: dict) -> str:
+    """
+    Create a PipelineRun to install an MCPI instance.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): Installation parameters including mas_instance_id and mcpi_channel
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
+
+    Raises:
+        NotFoundError: If resources cannot be created
+    """
+    instanceId = params["mas_instance_id"]
+    namespace = f"mcpi-{instanceId}-pipelines"
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-mcpi-install", params)
+    return f"{getConsoleURL(dynClient)}/k8s/ns/mcpi-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-install-{timestamp}"
 
 
 def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
