@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260827 (Z)
+# Case bundle configuration for IBM Maximo Operator Catalog 260902 (Z)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:f37ced410d580a49496f4f35c71d72d8af92da43fba38ba6ff426850f8c01f2d
+catalog_digest: sha256:c5d1bb87e7ffb1de7b35b8dac2ded22cf0f734e523a5154fd173f4fd66ebbab8
 
 ocp_compatibility:
 - "4.16"
@@ -20,25 +20,25 @@ ocp_compatibility:
 # -----------------------------------------------------------------------------
 db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
-db2_channel_default: v120105.0             # Updated      # Default Channel version for db2u-operator
+db2_channel_default: v120105.0                # Default Channel version for db2u-operator
 
 
 # Dependencies - UDS
 # -----------------------------------------------------------------------------
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-uds_extras_version: 1.5.0                    # No Update
+uds_extras_version: 1.5.0                    
 
 
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.1             # Updated
+sls_version: 3.13.1             
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.9              # Updated
+tsm_version: 1.7.9          
 
 
 # Dependencies - MongoDB
@@ -48,22 +48,22 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
-mongo_extras_version_8: 8.0.29  # Updated
+mongo_extras_version_8: 8.0.29  
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.3                          # Updated
+  9.2.x: 9.2.3                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.21                         # Updated
-  9.0.x: 9.0.29                         # Updated
+  9.1.x: 9.1.22                         # Updated
+  9.0.x: 9.0.29                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.21                         # Updated
-  9.0.x: 9.0.29                         # Updated
+  9.1.x: 9.1.22                         # Updated
+  9.0.x: 9.0.29                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
@@ -74,14 +74,6 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.29](https://www.ibm.com/support/pages/node/7285203), [v9.1.21](https://www.ibm.com/support/pages/node/7285204) and [v9.2.3](https://www.ibm.com/support/pages/node/7285205)
-    - IBM Maximo Manage [v9.0.29](https://www.ibm.com/support/pages/node/7284559),[v9.1.21](https://www.ibm.com/support/pages/node/7284558) and [v9.2.2](https://www.ibm.com/support/pages/node/7284557)
-    - IBM Truststore Manager v1.7
-    - IBM Suite License Service v3.13
-    - 'CP4D: 5.3.1'
-    - 'OCP: 4.22'
-    - 'Mongo: 8.0.29'
-    - 'db2u: 120105.0.1'
-  known_issues:
-    - title: During upgrades from MAS Manage 9.0.x to 9.1.x using the online-offline upgrade process, some environments may fail during the offline phase because the PLGCOUNT table does not contain the expected MAXPRODUCTID column. This issue is upgrade-blocking and was identified late in the release validation cycle. Due to the August 27, 2026 GA release timeline, MAS Manage 9.1.x was released with this documented as a known limitation. A corrective fix has been developed, and an Interim Fix (IFIX) release is being prepared. Customers encountering this issue should contact IBM Support and reference the technote [technote](https://www.ibm.com/support/pages/node/7285399)
+    - IBM Maximo Application Suite Core Platform [v9.1.22](https://www.ibm.com/support/pages/node/7286040)
+    - IBM Maximo Manage [v9.1.22](https://www.ibm.com/support/pages/node/7286040)
     
