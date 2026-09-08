@@ -27,6 +27,7 @@ common_svcs_version: 4.19.0                     # Operator version 4.19.0 (https
 #common_svcs_version_1: 4.11.0                   # Additional version 4.11.0
 
 cp4d_platform_version: 5.10.0+20260817.145852.1672.6100.68    # Operator version 5.10.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
+swhub_version: 5.10.0             # ibm-swhub-control-center CASE version (base version from cp4d_platform_version)
 ibm_zen_version: 6.10.0+20260529.144051.189      # For CPD5 ibm-zen has to be explicitily mirrored
 
 # CPD 5.4.0 Helm Component Versions (CASE versions for Helm charts)
@@ -35,6 +36,7 @@ wsl_runtimes_version: 13.0.0                    # CPD 5.4.0 Watson Studio Runtim
 wml_version: 13.0.0                             # CPD 5.4.0 Watson Machine Learning CASE version for Helm
 redis_version: 1.4.0                            # CPD 5.4.0 Redis CASE version (WML dependency)
 postgress_version: 5.40.0+20260511.071333.2716  # ibm-cpd-cloud-native-postgresql-operator 5.2.0 cp4d
+pg_operator_version: 28.3.1+20260528.204410.526 # ibm-pg-operator Helm chart version (independent of postgresql CASE)
 
 # CPD 5.4.0 Shared Dependencies
 ccs_build: 13.0.0                               # CPD 5.4.0 Common Core Services CASE version
