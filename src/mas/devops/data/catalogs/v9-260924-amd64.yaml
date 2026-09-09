@@ -68,12 +68,12 @@ minio_extras_version: 1.0.0
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.30
+mongo_extras_version_default: 8.0.29
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.30  # Updated
+mongo_extras_version_8: 8.0.29  # Updated
 
 
 # Dependencies - Amlen
@@ -221,6 +221,6 @@ editorial:
     - IBM Suite License Service v3.13
     - CP4D: 5.3.1
     - OCP: 4.22
-    - Mongo: 8.0.30
+    - Mongo: 8.0.29
   known_issues:
     - title: 
