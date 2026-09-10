@@ -18,7 +18,7 @@ ocp_compatibility:
 
 # Dependencies - Cloud Pak for Data
 # -----------------------------------------------------------------------------
-cpd_product_version_default: 5.3.1 # cpd 5.3.1
+cpd_product_version_default: 5.3.1      # cpd 5.3.1
 
 # Dependencies
 # -----------------------------------------------------------------------------
