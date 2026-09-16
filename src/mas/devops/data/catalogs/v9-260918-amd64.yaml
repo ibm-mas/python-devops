@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:de6c145f30780c9d977164505273fef2b02843b68ed81bdb4edc1c3e68df2a9a
+catalog_digest: sha256:3a5b60c166239819e68e6936a2e3069a55e53cebe2ba3badcb5e14c8c7004dc0
 
 ocp_compatibility:
 - "4.16"
@@ -124,8 +124,8 @@ redis_extras_version: 2.1.40
 mas_core_version:
   9.2.x: 9.2.4                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.22                         # No Update
-  9.0.x: 9.0.29                         # No Update
+  9.1.x: 9.1.23                         # No Update
+  9.0.x: 9.0.30                         # No Update
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
