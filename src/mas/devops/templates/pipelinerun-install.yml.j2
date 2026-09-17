@@ -349,6 +349,10 @@ spec:
     # -------------------------------------------------------------------------
     - name: mas_channel
       value: "{{ mas_channel }}"
+{%- if tsm_channel is defined and tsm_channel != "" %}
+    - name: tsm_channel
+      value: "{{ tsm_channel }}"
+{%- endif %}
     - name: mas_catalog_version
       value: "{{ mas_catalog_version }}"
 {%- if mas_catalog_digest is defined and mas_catalog_digest != "" %}
