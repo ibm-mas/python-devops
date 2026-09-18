@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:4e296493f6ae239380c5cf1fd75e1f1f33e6e66eb6e703c46682788dca418ac9
+catalog_digest: sha256:c133ddc1cdf996f535d1f57444ac92198ca2ea7d75a0af56e925a0bec737b1ed
 
 ocp_compatibility:
 - "4.16"
@@ -74,6 +74,4 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.1.22](https://www.ibm.com/support/pages/node/7286040)
-    - IBM Maximo Manage [v9.1.22](https://www.ibm.com/support/pages/node/7286040)
     
