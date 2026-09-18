@@ -82,7 +82,7 @@ def isVersionEqualOrAfter(_compare_to_version, _current_version):
     return current_version.compare(compareToVersion) >= 0
 
 
-def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/coreapi", timeout: int = 30) -> bool:
+def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/coreapi", timeout: int = 30):
     """Validate IBM entitlement key against cp.icr.io registry.
 
     This function validates an IBM entitlement key by attempting to obtain
@@ -95,10 +95,9 @@ def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/cor
         timeout (int, optional): Request timeout in seconds. Defaults to 30.
 
     Returns:
-        bool: True if key is valid and grants access to the repository, False otherwise.
-
-    Raises:
-        requests.exceptions.RequestException: If network request fails.
+        True if key is valid and grants access to the repository.
+        False if authentication failed (key is wrong).
+        None if a network or SSL error prevented validation (key status unknown).
     """
     try:
         registry_url = f"https://cp.icr.io/v2/{repository}/tags/list"
@@ -166,6 +165,9 @@ def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/cor
             logger.error(f"Unexpected response (HTTP {response.status_code})")
             return False
 
+    except requests.exceptions.SSLError as e:
+        logger.error(f"SSL certificate verification failed — could not reach cp.icr.io: {e}")
+        return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Request failed: {e}")
-        raise
+        return None
