@@ -29,7 +29,7 @@ common_svcs_version: 4.17.0                     # Operator version 4.17.0 (https
 cp4d_platform_version: 5.4.0+20260501.120952.925.640.50    # Operator version 5.4.0 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-cp-datacore/)
 ibm_zen_version: 6.4.0+20260210.170932.92      # For CPD5 ibm-zen has to be explicitily mirrored
 
-# CPD 5.3.1 Helm Component Versions (CASE versions for Helm charts)
+# CPD 5.3.1 Helm Component Versions (CASE versions For Helm charts)
 wsl_version: 12.1.0                             # CPD 5.3.1 Watson Studio CASE version for Helm
 wsl_runtimes_version: 12.1.0                    # CPD 5.3.1 Watson Studio Runtimes CASE version
 wml_version: 12.1.0                             # CPD 5.3.1 Watson Machine Learning CASE version for Helm
@@ -68,12 +68,12 @@ minio_extras_version: 1.0.0
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.29
+mongo_extras_version_default: 8.0.30
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.29  # Updated
+mongo_extras_version_8: 8.0.30  # Updated
 
 
 # Dependencies - Amlen
@@ -221,6 +221,6 @@ editorial:
     - IBM Suite License Service v3.13
     - CP4D: 5.3.1
     - OCP: 4.22
-    - Mongo: 8.0.29
+    - Mongo: 8.0.30
   known_issues:
     - title: 
