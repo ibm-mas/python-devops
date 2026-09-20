@@ -78,5 +78,5 @@ editorial:
     - IBM Maximo Manage [v9.2.3,v9.1.24,v9.0.31](https://www.ibm.com/support/pages/node/7288419)
     - FIPS [fips-140-2-mode-applicable-semeru-fips-140-2-restricted-security-profile-reaches-its-sunset-date-21-september-2026](https://www.ibm.com/support/pages/ibm-semeru-runtime-includes-restricted-security-profiles-used-maximo-application-suite-components-operating-fips-140-2-mode-applicable-semeru-fips-140-2-restricted-security-profile-reaches-its-sunset-date-21-september-2026?view=full)
   known_issues:
-    - title: On or after 21 September 2026, on a FIPS-enabled cluster, the maxinst pod (<instance_id>-<workspace_id>-manage-maxinst) fails to start or crashes during the database initialisation/upgrade phase [workaround](https://www.ibm.com/support/pages/node/7288522)
+    - title: On or after 21 September 2026, on a FIPS-enabled cluster, the maxinst pod (<instance_id>-<workspace_id>-manage-maxinst) fails to start or crashes during the database initialisation/upgrade phase [Workaround](https://www.ibm.com/support/pages/node/7288522)
     
