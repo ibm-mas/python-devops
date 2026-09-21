@@ -226,7 +226,23 @@ Upsert key: `(region, instance_id, account, cluster, type)` — an existing docu
 
 **`--status-details` schema**
 
-*ACTIVE*
+*REQUESTED* — pipeline has received the request but processing has not yet started.
+```json
+{
+  "message": "Allow list request received.",
+  "request_configuration": "2405:201:d000:9062::/64"
+}
+```
+
+*IN_PROGRESS* — pipeline is actively deploying the feature.
+```json
+{
+  "message": "Allow list deployment in progress.",
+  "request_configuration": "2405:201:d000:9062::/64"
+}
+```
+
+*ACTIVE* — deployment completed successfully.
 ```json
 {
   "message": "Allow list is active.",
@@ -234,7 +250,7 @@ Upsert key: `(region, instance_id, account, cluster, type)` — an existing docu
 }
 ```
 
-*ERROR*
+*ERROR* — deployment failed.
 ```json
 {
   "message": "sample error message",
@@ -253,7 +269,33 @@ Upsert key: `(region, instance_id, account, cluster, type)` — an existing docu
 **Examples**
 
 ```bash
-# ACTIVE status
+# REQUESTED status — record that a request has been received
+mas-devops-feature-status-update status-update \
+    --region us-east-2 \
+    --instance-id inst02 \
+    --account fyre-noble10-dev \
+    --cluster noble10 \
+    --subscription-id sub-id01 \
+    --type allow-list \
+    --feature-details '{"ips": ["2405:201:d000:9062::/64"]}' \
+    --status REQUESTED \
+    --status-details '{"message": "Allow list request received.", "request_configuration": "2405:201:d000:9062::/64"}' \
+    --deployment-start 2026-09-11T11:48:42+00:00
+
+# IN_PROGRESS status — record that deployment has started
+mas-devops-feature-status-update status-update \
+    --region us-east-2 \
+    --instance-id inst02 \
+    --account fyre-noble10-dev \
+    --cluster noble10 \
+    --subscription-id sub-id01 \
+    --type allow-list \
+    --feature-details '{"ips": ["2405:201:d000:9062::/64"]}' \
+    --status IN_PROGRESS \
+    --status-details '{"message": "Allow list deployment in progress.", "request_configuration": "2405:201:d000:9062::/64"}' \
+    --deployment-start 2026-09-11T11:48:42+00:00
+
+# ACTIVE status — record successful completion
 mas-devops-feature-status-update status-update \
     --region us-east-2 \
     --instance-id inst02 \
@@ -267,7 +309,7 @@ mas-devops-feature-status-update status-update \
     --deployment-start 2026-09-11T11:48:42+00:00 \
     --deployment-end   2026-09-11T11:53:10+00:00
 
-# ERROR status
+# ERROR status — record a failed deployment
 mas-devops-feature-status-update status-update \
     --region us-east-2 \
     --instance-id inst02 \
@@ -288,7 +330,9 @@ mas-devops-feature-status-update status-update \
         "stacktrace": "Traceback (most recent call last): ..."
       },
       "request_configuration": "2405:201:d000:9060::/64"
-    }'
+    }' \
+    --deployment-start 2026-09-11T11:48:42+00:00 \
+    --deployment-end   2026-09-11T11:53:10+00:00
 ```
 
 ---
