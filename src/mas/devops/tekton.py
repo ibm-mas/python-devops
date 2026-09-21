@@ -1233,6 +1233,9 @@ def launchUninstallPipeline(
     uninstallDRO: bool = False,
     uninstallMongoDb: bool = False,
     uninstallSLS: bool = False,
+    uninstallCp4d: bool = False,
+    cpdOperatorsNamespace: str = "",
+    cpdInstanceNamespace: str = "",
 ) -> str:
     """
     Create a PipelineRun to uninstall the chosen MAS instance (and selected dependencies)
@@ -1250,6 +1253,7 @@ def launchUninstallPipeline(
     mongoDbAction = "uninstall" if uninstallMongoDb else "none"
     slsAction = "uninstall" if uninstallSLS else "none"
     droAction = "uninstall" if uninstallDRO else "none"
+    cp4dAction = "uninstall" if uninstallCp4d else "none"
 
     # Render the pipelineRun
     renderedTemplate = template.render(
@@ -1262,6 +1266,9 @@ def launchUninstallPipeline(
         sls_action=slsAction,
         dro_action=droAction,
         dro_namespace=droNamespace,
+        cp4d_action=cp4dAction,
+        cpd_operators_namespace=cpdOperatorsNamespace,
+        cpd_instance_namespace=cpdInstanceNamespace,
     )
     logger.debug(renderedTemplate)
     pipelineRun = yaml.safe_load(renderedTemplate)
