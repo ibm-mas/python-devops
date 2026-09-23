@@ -60,6 +60,7 @@ setup(
         "boto3",  # Apache Software License
         "slack_sdk",  # MIT License
         "packaging",  # Apache Software License
+        "pymongo",  # Apache Software License
     ],
     extras_require={
         "dev": [
@@ -93,5 +94,6 @@ setup(
         "bin/mas-devops-saas-job-cleaner",
         "bin/mas-devops-notify-slack",
         "bin/mas-devops-apply-preinstall-rbac-for-saas",
+        "bin/mas-devops-feature-status-update",
     ],
 )

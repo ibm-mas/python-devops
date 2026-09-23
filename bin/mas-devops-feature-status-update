@@ -1,0 +1,484 @@
+#!/usr/bin/env python3
+
+# *****************************************************************************
+# Copyright (c) 2025 IBM Corporation and other Contributors.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+#
+# *****************************************************************************
+"""
+mas-devops-feature-status-update — Write MAS feature status records to the
+DevOps MongoDB (mas_devops.feature_status collection).
+
+Sub-commands
+────────────
+
+  prep
+    Verify MongoDB connectivity and confirm that the required indexes
+    (instance_config_level, cluster_config_level) exist on the collection.
+    Pass --create-indexes to create them when absent.
+
+    Example:
+      mas-devops-feature-status-update prep \\
+          --db-details '{"url": "mongodb://<host>:27017", "credentials": {"username": "<username>"}}' #pragma: allowlist secret
+
+      mas-devops-feature-status-update prep --db-url mongodb://host:27017 --create-indexes
+
+
+  status-update
+    Upsert a feature status document.
+    Upsert key: (region, instance_id, account, cluster, type).
+
+    Example — ACTIVE:
+      mas-devops-feature-status-update status-update \\
+          --region us-east-2 \\
+          --instance-id inst02 \\
+          --account fyre-noble10-dev \\
+          --cluster noble10 \\
+          --subscription-id sub-id01 \\
+          --type allow-list \\
+          --feature-details '{"ips": ["2405:201:d000:9062::/64"]}' \\
+          --status ACTIVE \\
+          --status-details '{"message": "Allow list is active.", "request_configuration": "2405:201:d000:9062::/64"}' \\
+          --deployment-start 2026-09-11T11:48:42+00:00 \\
+          --deployment-end   2026-09-11T11:53:10+00:00
+
+    Example — ERROR:
+      mas-devops-feature-status-update status-update \\
+          --region us-east-2 \\
+          --instance-id inst02 \\
+          --account fyre-noble10-dev \\
+          --cluster noble10 \\
+          --subscription-id sub-id01 \\
+          --type allow-list \\
+          --feature-details '{"ips": ["2405:201:d000:9062::/64"]}' \\
+          --status ERROR \\
+          --status-details '{
+            "message": "sample error message",
+            "error_code": 401,
+            "error_source": {
+              "gitops_version": "8.6.0",
+              "filename": "cis_ip_allowlist.yml",
+              "line_no": 148,
+              "log_file": "/var/log/gitops/run-001.log",
+              "stacktrace": "Traceback (most recent call last): ..."
+            },
+            "request_configuration": "2405:201:d000:9060::/64"
+          }'
+
+Environment variables
+─────────────────────
+  MAS_FEATURE_STATUS_DB_URL          MongoDB connection URL
+  MAS_FEATURE_STATUS_DB_CREDENTIALS  JSON object: username, password,
+                                     authSource, tls (all optional)
+"""
+
+import argparse
+import json
+import logging
+import os
+import sys
+from datetime import datetime, timezone
+from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Env-var names used to persist / retrieve DB details between invocations
+# ---------------------------------------------------------------------------
+
+_ENV_DB_URL = "MAS_FEATURE_STATUS_DB_URL"
+_ENV_DB_CREDENTIALS = "MAS_FEATURE_STATUS_DB_CREDENTIALS"  # pragma: allowlist secret
+
+
+# ---------------------------------------------------------------------------
+# Argument-parsing helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_json_relaxed(raw: str) -> dict:
+    """Parse a JSON string, accepting bare keys and single quotes (shell-friendly)."""
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        import re
+
+        relaxed = re.sub(r"'([^']*)'", r'"\1"', raw)
+        relaxed = re.sub(r"([{,\[]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:", r'\1"\2":', relaxed)
+        relaxed = re.sub(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:", r'\1"\2":', relaxed)
+        try:
+            return json.loads(relaxed)
+        except json.JSONDecodeError:
+            raise ValueError(f"Could not parse value as JSON.\n" f"  Input : {raw!r}\n" f'  Hint  : use double-quoted keys, e.g. {{"url": "mongodb://..."}}')
+
+
+def _parse_json_arg(value: str, arg_name: str) -> dict:
+    try:
+        result = _parse_json_relaxed(value)
+    except ValueError as exc:
+        print(f"ERROR: --{arg_name}: {exc}", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(result, dict):
+        print(f"ERROR: --{arg_name} must be a JSON object (got {type(result).__name__})", file=sys.stderr)
+        sys.exit(1)
+    return result
+
+
+def _parse_isodate(value: Optional[str], arg_name: str) -> Optional[datetime]:
+    """Parse an ISO-8601 datetime, stripping MongoDB ISODate() wrappers."""
+    if value is None:
+        return None
+    import re
+
+    m = re.match(r"ISODate\(['\"](.+?)['\"]\)", value.strip())
+    if m:
+        value = m.group(1)
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except ValueError:
+        print(f"ERROR: --{arg_name} must be an ISO-8601 datetime string, got: {value!r}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _resolve_db(args) -> tuple:
+    """Return (mongo_url, credentials) resolving from CLI args then env vars.
+
+    Precedence:
+      1. --db-details JSON
+      2. --db-url
+      3. MAS_FEATURE_STATUS_DB_URL / MAS_FEATURE_STATUS_DB_CREDENTIALS
+    """
+    db_details = getattr(args, "db_details", None)
+    db_url_arg = getattr(args, "db_url", None)
+
+    if db_details:
+        details = _parse_json_arg(db_details, "db-details")
+        url = details.get("url") or details.get("mongo_url")
+        if not url:
+            print("ERROR: --db-details must contain a 'url' key", file=sys.stderr)
+            sys.exit(1)
+        credentials = details.get("credentials") or None
+        return url, credentials
+
+    if db_url_arg:
+        return db_url_arg, None
+
+    env_url = os.environ.get(_ENV_DB_URL, "")
+    if env_url:
+        creds_raw = os.environ.get(_ENV_DB_CREDENTIALS, "")
+        credentials = json.loads(creds_raw) if creds_raw else None
+        return env_url, credentials
+
+    print(
+        "ERROR: MongoDB connection details are required.\n"
+        "  Provide one of:\n"
+        f'    --db-details \'{{"url": "mongodb://..."}}\'\n'
+        f"    --db-url <url>\n"
+        f"    {_ENV_DB_URL} environment variable",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# Sub-command: prep
+# ---------------------------------------------------------------------------
+
+
+def cmd_prep(args) -> int:
+    """Verify connection and confirm required indexes exist."""
+    from mas.devops.feature_status import (
+        _redact_url,
+        create_indexes,
+        verify_connection_and_indexes,
+    )
+
+    mongo_url, credentials = _resolve_db(args)
+    print(f"Connecting to: {_redact_url(mongo_url)}")
+
+    try:
+        warnings = verify_connection_and_indexes(mongo_url, credentials)
+    except Exception as exc:
+        print(f"ERROR: Could not connect to MongoDB: {exc}", file=sys.stderr)
+        return 1
+
+    if warnings:
+        for w in warnings:
+            print(f"WARNING: {w}")
+        if args.create_indexes:
+            print("Creating missing indexes …")
+            try:
+                create_indexes(mongo_url, credentials)
+                print("Indexes created successfully.")
+            except Exception as exc:
+                print(f"ERROR: Failed to create indexes: {exc}", file=sys.stderr)
+                return 1
+        else:
+            print(
+                "\nTip: re-run with --create-indexes to create missing indexes automatically.",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        print("All required indexes are present.")
+
+    print("\n# To reuse these DB details in subsequent calls, export:")
+    print(f"# export {_ENV_DB_URL}='{mongo_url}'")
+    if credentials:
+        print(f"# export {_ENV_DB_CREDENTIALS}='{json.dumps(credentials)}'")
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Sub-command: get
+# ---------------------------------------------------------------------------
+
+
+def cmd_get(args) -> int:
+    """Fetch and pretty-print a feature status document by ObjectId."""
+    from mas.devops.feature_status import get_feature_status_by_id
+
+    mongo_url, credentials = _resolve_db(args)
+
+    try:
+        doc = get_feature_status_by_id(mongo_url, args.id, credentials)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"ERROR: Could not connect to MongoDB: {exc}", file=sys.stderr)
+        return 1
+
+    if doc is None:
+        print(f"No document found with ID: {args.id}", file=sys.stderr)
+        return 1
+
+    print(json.dumps(doc, indent=2, default=str))
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Sub-command: status-update
+# ---------------------------------------------------------------------------
+
+
+def cmd_status_update(args) -> int:
+    """Upsert a feature status document into MongoDB."""
+    from mas.devops.feature_status import (
+        VALID_STATUSES,
+        _redact_url,
+        upsert_feature_status,
+        validate_feature_details,
+    )
+
+    # Validate status enum
+    if args.status not in VALID_STATUSES:
+        print(f"ERROR: --status must be one of {sorted(VALID_STATUSES)}, got '{args.status}'", file=sys.stderr)
+        return 1
+
+    # Parse JSON arguments
+    feature_details = _parse_json_arg(args.feature_details, "feature-details")
+    status_details = _parse_json_arg(args.status_details, "status-details")
+
+    # Type-specific feature_details validation
+    try:
+        validate_feature_details(args.type, feature_details)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    # Parse datetime arguments
+    deployment_start = _parse_isodate(args.deployment_start, "deployment-start")
+    deployment_end = _parse_isodate(args.deployment_end, "deployment-end")
+    created_at = _parse_isodate(args.created_at, "created-at")
+    updated_at = _parse_isodate(args.updated_at, "updated-at")
+
+    # Resolve DB details
+    mongo_url, credentials = _resolve_db(args)
+
+    print(f"Writing feature status: account={args.account} cluster={args.cluster} " f"instance={args.instance_id} type={args.type} status={args.status}")
+    print(f"  MongoDB: {_redact_url(mongo_url)}")
+
+    try:
+        doc_id = upsert_feature_status(
+            mongo_url,
+            region=args.region,
+            instance_id=args.instance_id,
+            account=args.account,
+            cluster=args.cluster,
+            subscription_id=args.subscription_id,
+            feature_type=args.type,
+            feature_details=feature_details,
+            status=args.status,
+            status_details=status_details,
+            deployment_start=deployment_start,
+            deployment_end=deployment_end,
+            created_at=created_at,
+            updated_at=updated_at,
+            credentials=credentials,  # pragma: allowlist secret
+        )
+        print(f"Feature status written successfully. Document ID: {doc_id}")
+        return 0
+    except ValueError as exc:
+        print(f"ERROR: Validation failed — {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"ERROR: Failed to write feature status to MongoDB: {exc}", file=sys.stderr)
+        return 1
+
+
+# ---------------------------------------------------------------------------
+# Argument parser
+# ---------------------------------------------------------------------------
+
+
+def _add_db_args(parser: argparse.ArgumentParser) -> None:
+    """Add the shared --db-details / --db-url arguments to a sub-parser."""
+    g = parser.add_argument_group("database connection")
+    g.add_argument(
+        "--db-details",
+        required=False,
+        default=None,
+        metavar="JSON",
+        help=(
+            'JSON object with "url" and optional "credentials" keys. '
+            'Example: \'{"url": "mongodb://host:27017", "credentials": {"username": "u", "password": "p"}}\''  # pragma: allowlist secret
+        ),
+    )
+    g.add_argument(
+        "--db-url",
+        required=False,
+        default=None,
+        metavar="URL",
+        help=f"MongoDB connection URL (alternative to --db-details). Can also be set via {_ENV_DB_URL}.",
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="mas-devops-feature-status-update",
+        description="Write MAS feature status records to the DevOps MongoDB.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--log-level",
+        required=False,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="WARNING",
+        help="Python logging level (default: WARNING)",
+    )
+
+    subparsers = parser.add_subparsers(dest="command", metavar="<command>")
+    subparsers.required = True
+
+    # ── prep ──────────────────────────────────────────────────────────────────
+    prep = subparsers.add_parser(
+        "prep",
+        help="Verify MongoDB connection and check/create required indexes.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    _add_db_args(prep)
+    prep.add_argument(
+        "--create-indexes",
+        action="store_true",
+        default=False,
+        help="Create missing indexes automatically instead of failing with a warning.",
+    )
+
+    # ── status-update ─────────────────────────────────────────────────────────
+    su = subparsers.add_parser(
+        "status-update",
+        help="Upsert a feature status document into mas_devops.feature_status.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    identity = su.add_argument_group("identity")
+    identity.add_argument("--region", required=True, help="AWS region (e.g. us-east-2)")
+    identity.add_argument("--instance-id", required=True, dest="instance_id", help="MAS instance ID (e.g. inst02)")
+    identity.add_argument("--account", required=True, help="GitOps account name (e.g. fyre-noble10-dev)")
+    identity.add_argument("--cluster", required=True, help="GitOps cluster name (e.g. noble10)")
+    identity.add_argument("--subscription-id", required=True, dest="subscription_id", help="Subscription ID")
+
+    feature = su.add_argument_group("feature")
+    feature.add_argument(
+        "--type",
+        required=True,
+        help="Feature type (e.g. allow-list). Drives feature_details validation.",
+    )
+    feature.add_argument(
+        "--feature-details",
+        required=True,
+        dest="feature_details",
+        metavar="JSON",
+        help="JSON object with type-specific fields. allow-list requires 'ips'.",
+    )
+
+    status = su.add_argument_group("status")
+    status.add_argument(
+        "--status",
+        required=True,
+        choices=["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR"],
+        help="Feature lifecycle status.",
+    )
+    status.add_argument(
+        "--status-details",
+        required=True,
+        dest="status_details",
+        metavar="JSON",
+        help=(
+            "JSON object describing the outcome. "
+            "ACTIVE: {message, request_configuration}. "
+            "ERROR: {message, error_code, error_source, request_configuration}."
+        ),
+    )
+
+    timestamps = su.add_argument_group("timestamps (all optional, default: now)")
+    timestamps.add_argument("--deployment-start", required=False, default=None, dest="deployment_start", metavar="ISO-8601")
+    timestamps.add_argument("--deployment-end", required=False, default=None, dest="deployment_end", metavar="ISO-8601")
+    timestamps.add_argument("--created-at", required=False, default=None, dest="created_at", metavar="ISO-8601", help="Used only on document insert.")
+    timestamps.add_argument("--updated-at", required=False, default=None, dest="updated_at", metavar="ISO-8601")
+
+    _add_db_args(su)
+
+    # ── get ───────────────────────────────────────────────────────────────────
+    get = subparsers.add_parser(
+        "get",
+        help="Fetch and print a feature status document by its ObjectId.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    get.add_argument(
+        "id",
+        metavar="OBJECT_ID",
+        help="24-character hex ObjectId of the document (e.g. 6ab0e70ee6d3a31faa808547).",
+    )
+    _add_db_args(get)
+
+    return parser
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    parser = build_parser()
+    args = parser.parse_args()
+
+    log_level = getattr(logging, args.log_level)
+    logging.basicConfig(format="%(levelname)s %(name)s: %(message)s")
+    logging.getLogger("mas.devops.feature_status").setLevel(log_level)
+
+    if args.command == "prep":
+        sys.exit(cmd_prep(args))
+    elif args.command == "status-update":
+        sys.exit(cmd_status_update(args))
+    elif args.command == "get":
+        sys.exit(cmd_get(args))
+    else:
+        parser.print_help()
+        sys.exit(1)
