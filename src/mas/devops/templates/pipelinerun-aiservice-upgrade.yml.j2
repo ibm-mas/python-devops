@@ -22,27 +22,12 @@ spec:
     - name: aiservice_channel
       value: "{{ aiservice_channel }}"
 
-    # IBM Entitlement Key
-    # -------------------------------------------------------------------------
-    - name: ibm_entitlement_key
-      value: "{{ ibm_entitlement_key }}"
-
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
     # Skip pre-check
     # -------------------------------------------------------------------------
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
-{%- if artifactory_username is defined and artifactory_username != "" %}
-
-    # Enable development catalogs
-    # -------------------------------------------------------------------------
-    - name: artifactory_username
-      value: "{{ artifactory_username }}"
-    - name: artifactory_token
-      value: "{{ artifactory_token }}"
-{%- endif %}
-
   workspaces:
     # The generated configuration files
     # -------------------------------------------------------------------------

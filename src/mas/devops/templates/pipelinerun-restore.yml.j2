@@ -99,10 +99,6 @@ spec:
     - name: dro_contact_lastname
       value: "{{ dro_contact_lastname }}"
     {% endif %}
-    {% if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
-    - name: ibm_entitlement_key
-      value: "{{ ibm_entitlement_key }}"
-    {% endif %}
     {% if dro_namespace is defined and dro_namespace != "" %}
     - name: dro_namespace
       value: "{{ dro_namespace }}"
@@ -146,16 +142,6 @@ spec:
     {% if cert_manager_provider is defined and cert_manager_provider != "" %}
     - name: cert_manager_provider
       value: "{{ cert_manager_provider }}"
-    {% endif %}
-
-    # Development Build Support
-    {% if artifactory_username is defined and artifactory_username != "" %}
-    - name: artifactory_username
-      value: "{{ artifactory_username }}"
-    {% endif %}
-    {% if artifactory_token is defined and artifactory_token != "" %}
-    - name: artifactory_token
-      value: "{{ artifactory_token }}"
     {% endif %}
 
     # Download Configuration

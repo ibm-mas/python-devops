@@ -74,16 +74,6 @@ spec:
       value: "{{ cert_manager_provider }}"
     {% endif %}
 
-    # Development Build Support
-    {% if artifactory_username is defined and artifactory_username != "" %}
-    - name: artifactory_username
-      value: "{{ artifactory_username }}"
-    {% endif %}
-    {% if artifactory_token is defined and artifactory_token != "" %}
-    - name: artifactory_token
-      value: "{{ artifactory_token }}"
-    {% endif %}
-
     # Upload Configuration
     {% if upload_backup is defined and upload_backup != "" %}
     - name: upload_backup
