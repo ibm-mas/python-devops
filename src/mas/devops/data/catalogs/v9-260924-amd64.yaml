@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:2cb1744e865de182280ce8ab7ee9a8655cc834f38f2ddea085459c77ec232b61
+catalog_digest: sha256:9bb3dc31ad4f43e7199815cf7017256d5fdb7725b662a77aa7217b79e00c64ca
 
 ocp_compatibility:
 - "4.16"
@@ -95,7 +95,7 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.1             # Updated
+sls_version: 3.13.2             # Updated
 
 
 # Dependencies - Truststore Manager
