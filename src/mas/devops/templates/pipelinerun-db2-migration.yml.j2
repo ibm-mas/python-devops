@@ -1,0 +1,51 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: "db2-migration-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: mas-devops-db2-migration
+spec:
+  pipelineRef:
+    name: mas-devops-db2-migration
+  
+  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
+  
+  params:
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+
+    # DB2 Migration Parameters
+    # -------------------------------------------------------------------------
+    - name: db2_action
+      value: "migrate"
+    
+    - name: db2_migration_namespace
+      value: "{{ db2_migration_namespace }}"
+    
+    - name: db2_migration_cluster_name
+      value: "{{ db2_migration_cluster_name }}"
+    
+    - name: db2_migration_backup_enabled
+      value: "{{ db2_migration_backup_enabled }}"
+
+{%- if db2_migration_cleanup_old_cluster is defined and db2_migration_cleanup_old_cluster != "" %}
+    - name: db2_migration_cleanup_old_cluster
+      value: "{{ db2_migration_cleanup_old_cluster }}"
+{%- endif %}
+
+{%- if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+{%- endif %}
+
+  workspaces:
+    # Shared workspace for configs
+    - name: shared-configs
+      emptyDir: {}
