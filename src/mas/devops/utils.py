@@ -170,4 +170,4 @@ def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/cor
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Request failed: {e}")
-        return None
+        raise
