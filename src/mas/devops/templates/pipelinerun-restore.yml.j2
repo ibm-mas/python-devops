@@ -20,6 +20,11 @@ spec:
       secret:
         secretName: pipeline-restore-configs
   params:
+    # Registry Credentials Secret
+    # -------------------------------------------------------------------------
+    - name: pipeline_registry_secret_name
+      value: "mas-restore-secrets"
+
     # Common Parameters
     - name: image_pull_policy
       value: IfNotPresent

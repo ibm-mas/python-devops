@@ -17,6 +17,11 @@ spec:
       persistentVolumeClaim:
         claimName: backup-pvc
   params:
+    # Registry Credentials Secret
+    # -------------------------------------------------------------------------
+    - name: pipeline_registry_secret_name
+      value: "mas-backup-secrets"
+
     # Common Parameters
     - name: image_pull_policy
       value: IfNotPresent

@@ -15,6 +15,11 @@ spec:
     pipeline: "0"
 
   params:
+    # Registry Credentials Secret
+    # -------------------------------------------------------------------------
+    - name: pipeline_registry_secret_name
+      value: "mas-update-secrets"
+
 {%- if image_pull_policy is defined and image_pull_policy != "" %}
 
     # Image Pull Policy

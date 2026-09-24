@@ -850,13 +850,14 @@ def prepareRestoreSecrets(
     ibm_entitlement_key: str = None,
     artifactory_token: str = None,
     artifactory_username: str = None,
+    registry_secret_name: str = "mas-restore-secrets",
 ):
     """
     Create or update secret required for MAS Restore pipeline.
 
     Creates secrets in the specified namespace:
         - pipeline-restore-configs
-        - mas-devops-credentials (only when credentials are provided)
+        - {registry_secret_name} (only when credentials are provided)
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -865,6 +866,7 @@ def prepareRestoreSecrets(
         ibm_entitlement_key (str, optional): IBM entitlement key for registry access. Defaults to None.
         artifactory_token (str, optional): Artifactory token for dev catalog access. Defaults to None.
         artifactory_username (str, optional): Artifactory username for dev catalog access. Defaults to None.
+        registry_secret_name (str, optional): Name of the per-pipeline registry credentials secret. Defaults to "mas-restore-secrets".
 
     Returns:
         None
@@ -891,7 +893,7 @@ def prepareRestoreSecrets(
         }
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
-    # 2. Secret/mas-devops-credentials
+    # 2. Secret/{registry_secret_name}
     # -------------------------------------------------------------------------
     credentials_data = {}
 
@@ -906,7 +908,7 @@ def prepareRestoreSecrets(
 
     if credentials_data:
         try:
-            secretsAPI.delete(name="mas-devops-credentials", namespace=namespace)
+            secretsAPI.delete(name=registry_secret_name, namespace=namespace)
         except NotFoundError:
             pass
 
@@ -915,12 +917,12 @@ def prepareRestoreSecrets(
                 "apiVersion": "v1",
                 "kind": "Secret",
                 "type": "Opaque",
-                "metadata": {"name": "mas-devops-credentials"},
+                "metadata": {"name": registry_secret_name},
                 "data": credentials_data,
             },
             namespace=namespace,
         )
-        logger.info(f"Created mas-devops-credentials secret in namespace {namespace}")
+        logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
 
 
 def prepareInstallSecrets(
@@ -938,11 +940,12 @@ def prepareInstallSecrets(
     ibm_entitlement_key: str = None,
     artifactory_token: str = None,
     artifactory_username: str = None,
+    registry_secret_name: str = None,
 ) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
-    Creates secrets in the specified namespace: mas-devops-slack, mas-devops-credentials,
+    Creates secrets in the specified namespace: mas-devops-slack, {registry_secret_name},
     pipeline-additional-configs, pipeline-sls-entitlement, pipeline-certificates,
     pipeline-pod-templates, pipeline-aiservice-config, pipeline-db2-license, and
     pipeline-facilities-properties.
@@ -1008,11 +1011,17 @@ def prepareInstallSecrets(
         secretsAPI.create(body=mas_devops_secret, namespace=namespace)
         logger.info(f"Created mas-devops-slack secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}")
 
-    # 1. Secret/mas-devops-credentials
+    # 1. Secret/{registry_secret_name}
     # -------------------------------------------------------------------------
-    # New secret holding registry credentials sourced from secret instead of pipeline params.
+    # Per-pipeline secret holding registry credentials sourced from secret instead of pipeline params.
     # Only created when at least one credential is provided — all keys are optional.
+    # Secret name is derived from namespace prefix if not explicitly provided:
+    #   mas-{id}-pipelines       → mas-install-secrets
+    #   aiservice-{id}-pipelines → mas-aiservice-install-secrets
     if instance_id:
+        if registry_secret_name is None:
+            registry_secret_name = "mas-aiservice-install-secrets" if namespace.startswith("aiservice-") else "mas-install-secrets"
+
         credentials_data = {}
 
         if ibm_entitlement_key:
@@ -1026,7 +1035,7 @@ def prepareInstallSecrets(
 
         if credentials_data:
             try:
-                secretsAPI.delete(name="mas-devops-credentials", namespace=namespace)
+                secretsAPI.delete(name=registry_secret_name, namespace=namespace)
             except NotFoundError:
                 pass
 
@@ -1035,12 +1044,12 @@ def prepareInstallSecrets(
                     "apiVersion": "v1",
                     "kind": "Secret",
                     "type": "Opaque",
-                    "metadata": {"name": "mas-devops-credentials"},
+                    "metadata": {"name": registry_secret_name},
                     "data": credentials_data,
                 },
                 namespace=namespace,
             )
-            logger.info(f"Created mas-devops-credentials secret in namespace {namespace}")
+            logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
 
     # 1. Secret/pipeline-additional-configs
     # -------------------------------------------------------------------------
@@ -1159,12 +1168,13 @@ def prepareUpdateSecrets(
     db2LicenseFile: dict | None = None,
     artifactory_token: str = None,
     artifactory_username: str = None,
+    registry_secret_name: str = "mas-update-secrets",
 ) -> None:
     """
     Create or update mas-devops-slack secret in mas-pipelines namespace for update pipeline.
 
     Creates the slack secret in mas-pipelines namespace if it exists and slack credentials are provided.
-    Also creates mas-devops-credentials secret if artifactory credentials are provided.
+    Also creates {registry_secret_name} secret if artifactory credentials are provided.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -1173,6 +1183,7 @@ def prepareUpdateSecrets(
         db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
         artifactory_token (str, optional): Artifactory token for dev catalog access. Defaults to None.
         artifactory_username (str, optional): Artifactory username for dev catalog access. Defaults to None.
+        registry_secret_name (str, optional): Name of the per-pipeline registry credentials secret. Defaults to "mas-update-secrets".
 
     Returns:
         None
@@ -1240,7 +1251,7 @@ def prepareUpdateSecrets(
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
 
-    # Create mas-devops-credentials if artifactory credentials are provided
+    # Create {registry_secret_name} if artifactory credentials are provided
     # Note: update pipeline does not use ibm_entitlement_key (skipped via skip_entitlement_key_flag)
     credentials_data = {}
 
@@ -1252,7 +1263,7 @@ def prepareUpdateSecrets(
 
     if credentials_data:
         try:
-            secretsAPI.delete(name="mas-devops-credentials", namespace=namespace)
+            secretsAPI.delete(name=registry_secret_name, namespace=namespace)
         except NotFoundError:
             pass
 
@@ -1261,12 +1272,12 @@ def prepareUpdateSecrets(
                 "apiVersion": "v1",
                 "kind": "Secret",
                 "type": "Opaque",
-                "metadata": {"name": "mas-devops-credentials"},
+                "metadata": {"name": registry_secret_name},
                 "data": credentials_data,
             },
             namespace=namespace,
         )
-        logger.info(f"Created mas-devops-credentials secret in namespace {namespace}")
+        logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
 
 
 def testCLI() -> None:

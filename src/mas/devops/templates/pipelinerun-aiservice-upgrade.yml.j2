@@ -15,6 +15,11 @@ spec:
     pipeline: "0"
 
   params:
+    # Registry Credentials Secret
+    # -------------------------------------------------------------------------
+    - name: pipeline_registry_secret_name
+      value: "mas-aiservice-upgrade-secrets"
+
     # Target AI Service Instance
     # -------------------------------------------------------------------------
     - name: aiservice_instance_id

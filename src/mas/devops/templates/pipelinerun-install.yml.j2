@@ -19,6 +19,15 @@ spec:
     pipeline: "0"
 
   params:
+    # Registry Credentials Secret
+    # -------------------------------------------------------------------------
+    - name: pipeline_registry_secret_name
+{%- if mas_instance_id is defined and mas_instance_id != "" %}
+      value: "mas-install-secrets"
+{%- else %}
+      value: "mas-aiservice-install-secrets"
+{%- endif %}
+
 {%- if skip_pre_check is defined and skip_pre_check != "" %}
 
     # Pipeline config
