@@ -1,0 +1,150 @@
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: "{{mas_instance_id}}-install-{{ timestamp }}"
+  labels:
+    tekton.dev/pipeline: mcpi-install
+spec:
+  pipelineRef:
+    name: mcpi-install
+
+  taskRunTemplate:
+    serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  timeouts:
+    pipeline: "0"
+
+  params:
+    # IBM Entitlement Key
+    # -------------------------------------------------------------------------
+    - name: ibm_entitlement_key
+      value: "{{ ibm_entitlement_key }}"
+{%- if skip_pre_check is defined and skip_pre_check != "" %}
+
+    # Pipeline config
+    # -------------------------------------------------------------------------
+    - name: skip_pre_check
+      value: "{{ skip_pre_check }}"
+{%- endif %}
+{%- if image_pull_policy is defined and image_pull_policy != "" %}
+
+    # Image Pull Policy
+    # -------------------------------------------------------------------------
+    - name: image_pull_policy
+      value: "{{ image_pull_policy }}"
+{%- endif %}
+{%- if artifactory_username is defined and artifactory_username != "" %}
+
+    # Enable development catalogs
+    # -------------------------------------------------------------------------
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
+{%- endif %}
+
+    # Storage Classes
+    # -------------------------------------------------------------------------
+    - name: storage_class_rwx
+      value: "{{ storage_class_rwx }}"
+    - name: storage_class_rwo
+      value: "{{ storage_class_rwo }}"
+
+    # Dependencies - SLS
+    # -------------------------------------------------------------------------
+{%- if sls_channel is defined and sls_channel != "" %}
+    - name: sls_channel
+      value: "{{ sls_channel }}"
+{%- endif %}
+{%- if sls_entitlement_file is defined and sls_entitlement_file != "" %}
+    - name: sls_entitlement_file
+      value: "{{ sls_entitlement_file }}"
+{%- endif %}
+{%- if sls_namespace is defined and sls_namespace != "" %}
+    - name: sls_namespace
+      value: "{{ sls_namespace }}"
+{%- endif %}
+{%- if sls_action is defined and sls_action != "" %}
+    - name: sls_action
+      value: "{{ sls_action }}"
+{%- endif %}
+
+    # Dependencies - DRO (Required)
+    # -------------------------------------------------------------------------
+    - name: dro_action
+      value: "{{ dro_action }}"
+    - name: dro_contact_email
+      value: "{{ dro_contact_email }}"
+    - name: dro_contact_firstname
+      value: "{{ dro_contact_firstname }}"
+    - name: dro_contact_lastname
+      value: "{{ dro_contact_lastname }}"
+{%- if dro_namespace is defined and dro_namespace != "" %}
+    - name: dro_namespace
+      value: "{{ dro_namespace }}"
+{%- endif %}
+
+    # Dependencies - Certificate Manager
+    # -------------------------------------------------------------------------
+    - name: cert_manager_provider
+      value: "{{ cert_manager_provider }}"
+    - name: cert_manager_action
+      value: "{{ cert_manager_action }}"
+
+    # MAS Catalog
+    # -------------------------------------------------------------------------
+    - name: mas_catalog_version
+      value: "{{ mas_catalog_version }}"
+{%- if mas_catalog_digest is defined and mas_catalog_digest != "" %}
+    - name: mas_catalog_digest
+      value: "{{ mas_catalog_digest }}"
+{%- endif %}
+
+    # MAS Core
+    # -------------------------------------------------------------------------
+    - name: mas_instance_id
+      value: "{{ mas_instance_id }}"
+
+    # MCPI Add-On
+    # -------------------------------------------------------------------------
+    - name: mcpi_channel
+      value: "{{ mcpi_channel }}"
+{%- if routing_mode is defined and routing_mode != "" %}
+    - name: routing_mode
+      value: "{{ routing_mode }}"
+{%- endif %}
+{%- if manual_route_mgmt is defined and manual_route_mgmt != "" %}
+    - name: manual_route_mgmt
+      value: "{{ manual_route_mgmt }}"
+{%- endif %}
+
+  workspaces:
+    # The generated configuration files
+    # -------------------------------------------------------------------------
+    - name: shared-configs
+      persistentVolumeClaim:
+        claimName: config-pvc
+
+    # User-provided configurations
+    # -------------------------------------------------------------------------
+    - name: shared-additional-configs
+      secret:
+        secretName: pipeline-additional-configs
+
+    # SLS entitlement
+    # -------------------------------------------------------------------------
+    - name: shared-entitlement
+      secret:
+        secretName: pipeline-sls-entitlement
+
+    # PodTemplates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-pod-templates
+      secret:
+        secretName: pipeline-pod-templates
+
+    # Certificates configurations
+    # -------------------------------------------------------------------------
+    - name: shared-certificates
+      secret:
+        secretName: pipeline-certificates
