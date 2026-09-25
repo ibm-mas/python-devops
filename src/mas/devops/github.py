@@ -158,3 +158,19 @@ def updateCheckRun(checkRunId: int, repoSlug: str, conclusion: str, detailsUrl: 
         payload["output"] = {"title": outputTitle, "summary": outputSummary}
     _apiRequest("PATCH", f"{_GITHUB_API_BASE}/repos/{repoSlug}/check-runs/{checkRunId}", appToken, payload)
     logger.debug("Updated check run id=%s conclusion=%s", checkRunId, conclusion)
+
+
+def findCheckRun(name: str, repoSlug: str, commitSha: str) -> int | None:
+    """Return the ID of the most recent existing check run matching name+commit, or None.
+
+    Used to upsert — update an existing check run rather than creating a duplicate.
+    """
+    org = repoSlug.split("/")[0]
+    appToken = _getInstallationToken(org)
+    url = f"{_GITHUB_API_BASE}/repos/{repoSlug}/commits/{commitSha}/check-runs"
+    response = _apiRequest("GET", url, appToken)
+    for run in response.get("check_runs", []):
+        if run.get("name") == name:
+            logger.debug("Found existing check run id=%s name=%s", run["id"], name)
+            return run["id"]
+    return None
