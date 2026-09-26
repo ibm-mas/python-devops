@@ -1,11 +1,11 @@
 ---
-# Case bundle configuration for IBM Maximo Operator Catalog 260918 (Z)
+# Case bundle configuration for IBM Maximo Operator Catalog 260924 (Z)
 # -----------------------------------------------------------------------------
 # In the future this won't be necessary as we'll be able to mirror from the
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:c133ddc1cdf996f535d1f57444ac92198ca2ea7d75a0af56e925a0bec737b1ed
+catalog_digest: sha256:089120c920dfa5ed5f93c6aff079d579fd0827ab096302edbdcc1b3ac78dea4c
 
 ocp_compatibility:
 - "4.16"
@@ -20,25 +20,25 @@ ocp_compatibility:
 # -----------------------------------------------------------------------------
 db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
-db2_channel_default: v120105.0                # Default Channel version for db2u-operator
+db2_channel_default: v120105.0             # Updated      # Default Channel version for db2u-operator
 
 
 # Dependencies - UDS
 # -----------------------------------------------------------------------------
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
-uds_extras_version: 1.5.0                    
+uds_extras_version: 1.5.0                    # No Update
 
 
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.1             
+sls_version: 3.13.2             # Updated
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.9          
+tsm_version: 1.7.9              # Updated
 
 
 # Dependencies - MongoDB
@@ -48,22 +48,22 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
-mongo_extras_version_8: 8.0.30 
+mongo_extras_version_8: 8.0.30  # Updated
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.6                          # Updated
+  9.2.x: 9.2.7                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.25                         # Updated
-  9.0.x: 9.0.31                         # Updated
+  9.1.x: 9.1.26                         # Updated
+  9.0.x: 9.0.32                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x: 9.2.3                          # Updated
+  9.2.x: 9.2.4                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.24                         # Updated
-  9.0.x: 9.0.31                         # Updated
+  9.1.x: 9.1.25                         # Updated
+  9.0.x: 9.0.32                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
@@ -74,9 +74,13 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.2.6](https://www.ibm.com/support/pages/node/7288414), [v9.1.25](https://www.ibm.com/support/pages/node/7288415), [v9.0.31](https://www.ibm.com/support/pages/node/7288418)
-    - IBM Maximo Manage [v9.2.3,v9.1.24,v9.0.31](https://www.ibm.com/support/pages/node/7288419)
-    - FIPS [fips-140-2-mode-applicable-semeru-fips-140-2-restricted-security-profile-reaches-its-sunset-date-21-september-2026](https://www.ibm.com/support/pages/ibm-semeru-runtime-includes-restricted-security-profiles-used-maximo-application-suite-components-operating-fips-140-2-mode-applicable-semeru-fips-140-2-restricted-security-profile-reaches-its-sunset-date-21-september-2026?view=full)
+    - IBM Maximo Application Suite Core Platform [v9.0.29](https://www.ibm.com/support/pages/node/7285203), [v9.1.21](https://www.ibm.com/support/pages/node/7285204) and [v9.2.3](https://www.ibm.com/support/pages/node/7285205)
+    - IBM Maximo Manage [v9.0.29](https://www.ibm.com/support/pages/node/7284559),[v9.1.21](https://www.ibm.com/support/pages/node/7284558) and [v9.2.2](https://www.ibm.com/support/pages/node/7284557)
+    - IBM Truststore Manager v1.7
+    - IBM Suite License Service v3.13
+    - CP4D: 5.3.1
+    - OCP: 4.22
+    - Mongo: 8.0.30
   known_issues:
-    - title: On or after 21 September 2026, on a FIPS-enabled cluster, the maxinst pod (<instance_id>-<workspace_id>-manage-maxinst) fails to start or crashes during the database initialisation/upgrade phase [Workaround](https://www.ibm.com/support/pages/node/7288522)
+    - title: 
     
