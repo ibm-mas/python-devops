@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:01e9c4864e057d2b5e4b7949b10c915351715fdab8aa6bf7e83168b7e1ea546f
+catalog_digest: sha256:f13646e5f0e5e619eafe32e574296bf63135e4ae8cd0bc1cd88bcfbaaa7fb5fe
 
 ocp_compatibility:
 - "4.16"
@@ -53,17 +53,17 @@ mongo_extras_version_8: 8.0.30  # Updated
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.6                          # Updated
+  9.2.x: 9.2.7                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.25                         # Updated
-  9.0.x: 9.0.31                         # Updated
+  9.1.x: 9.1.26                         # Updated
+  9.0.x: 9.0.32                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x: 9.2.3                          # Updated
+  9.2.x: 9.2.4                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
   9.1.x: 9.1.24                         # Updated
-  9.0.x: 9.0.31                         # Updated
+  9.0.x: 9.0.32                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
