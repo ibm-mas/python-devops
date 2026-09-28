@@ -127,9 +127,11 @@ def notifyPipelineStart(
     # Send pipeline started message to all channels
     toolchainLink = _getToolchainLink()
     instanceInfo = f"Instance ID: `{instanceId}`" if instanceId else ""
+    consoleUrl = os.getenv("OCP_CONSOLE_URL", "")
+    clusterInfo = f"Cluster: {consoleUrl}" if consoleUrl else ""
     message = [
         SlackUtil.buildHeader(f"🚀 MAS {pipelineName} Pipeline Started"),
-        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}\n{toolchainLink}"),
+        SlackUtil.buildSection(f"Pipeline Run: {pipelineName}\n{instanceInfo}\n{clusterInfo}\n{toolchainLink}"),
     ]
     response = SlackUtil.postMessageBlocks(channels, message)
 
