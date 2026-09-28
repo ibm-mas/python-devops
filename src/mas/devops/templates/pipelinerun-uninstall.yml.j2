@@ -39,4 +39,19 @@ spec:
       value: {{ dro_action }}
     - name: dro_namespace
       value: {{ dro_namespace }}
+{%- if cp4d_action is defined and cp4d_action != "none" %}
+
+    # Dependencies - CP4D
+    # -------------------------------------------------------------------------
+    - name: cp4d_action
+      value: "{{ cp4d_action }}"
+{%- if cpd_operators_namespace is defined and cpd_operators_namespace != "" %}
+    - name: cpd_operators_namespace
+      value: "{{ cpd_operators_namespace }}"
+{%- endif %}
+{%- if cpd_instance_namespace is defined and cpd_instance_namespace != "" %}
+    - name: cpd_instance_namespace
+      value: "{{ cpd_instance_namespace }}"
+{%- endif %}
+{%- endif %}
 
