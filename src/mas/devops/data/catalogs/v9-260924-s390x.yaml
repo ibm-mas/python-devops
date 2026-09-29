@@ -20,7 +20,7 @@ ocp_compatibility:
 # -----------------------------------------------------------------------------
 db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
-db2_channel_default: v120105.0             # Updated      # Default Channel version for db2u-operator
+db2_channel_default: v120105.0             # No Updated      # Default Channel version for db2u-operator
 
 
 # Dependencies - UDS
@@ -38,7 +38,7 @@ sls_version: 3.13.2             # Updated
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.9              # Updated
+tsm_version: 1.7.9              # No Updated
 
 
 # Dependencies - MongoDB

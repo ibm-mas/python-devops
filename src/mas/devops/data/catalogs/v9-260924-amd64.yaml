@@ -18,7 +18,7 @@ ocp_compatibility:
 
 # Dependencies - Cloud Pak for Data
 # -----------------------------------------------------------------------------
-cpd_product_version_default: 5.3.1       # Updated # cpd 5.3.1
+cpd_product_version_default: 5.3.1              # No Updated
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (
 db2u_extras_version: 1.0.6                       
 db2u_filter: db2
 
-db2_channel_default: v120105.0               # Updated    # Default Channel version for db2u-operator
+db2_channel_default: v120105.0               # No Updated    # Default Channel version for db2u-operator
 
 
 # Dependencies - CouchDb
@@ -78,7 +78,7 @@ mongo_extras_version_8: 8.0.30  # Updated
 
 # Dependencies - Amlen
 # -----------------------------------------------------------------------------
-amlen_extras_version: 1.1.6              # No Update
+amlen_extras_version: 1.1.6              # Update
 
 
 # Dependencies - UDS
@@ -101,7 +101,7 @@ sls_version: 3.13.2             # Updated
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.9              # Updated
+tsm_version: 1.7.9              # No Updated
 
 
 # Dependencies - Data Dictionary
@@ -167,10 +167,10 @@ mas_optimizer_version:
   8.10.x: 8.4.28                        # No Update
   8.11.x: 8.5.28                        # No Update
 mas_predict_version:
-  9.2.x: 9.2.2                          # Updated
+  9.2.x: 9.2.2                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.11                         # Updated
-  9.0.x: 9.0.18                         # Updated
+  9.1.x: 9.1.11                         # No Update
+  9.0.x: 9.0.18                         # No Update
   8.10.x: 8.8.15                        # No Update
   8.11.x: 8.9.17                        # No Update
 mas_visualinspection_version:
