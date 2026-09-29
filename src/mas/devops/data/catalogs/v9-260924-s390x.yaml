@@ -8,8 +8,6 @@
 catalog_digest: sha256:089120c920dfa5ed5f93c6aff079d579fd0827ab096302edbdcc1b3ac78dea4c
 
 ocp_compatibility:
-- "4.16"
-- "4.17"
 - "4.18"
 - "4.19"
 - "4.20"
