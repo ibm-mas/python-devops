@@ -148,6 +148,8 @@ Verifies MongoDB connectivity and confirms that the required indexes exist on th
 
 Pass `--create-indexes` to create missing indexes automatically instead of exiting with an error.
 
+**Idempotency:** Safe to run repeatedly. The connectivity check is read-only. When `--create-indexes` is passed, `create_index` is a no-op for any index that already exists — it will never drop or recreate an existing index.
+
 **Options**
 
 | Flag | Required | Description |
@@ -181,8 +183,10 @@ After a successful `prep` run the command prints the `export` statements needed 
 
 ### `status-update`
 
-Upserts a feature status document.  
+Upserts a feature status document.
 Upsert key: `(region, instance_id, account, cluster, type)` — an existing document is updated in-place; a new document is inserted if no match is found.
+
+**Idempotency:** Safe to call multiple times with the same arguments. The underlying `find_one_and_update` with `upsert=True` guarantees that re-running with the same identity key produces the same final document state. `created_at` is set only on the first insert (`$setOnInsert`); subsequent calls update `updated_at` and all mutable fields without creating duplicate documents.
 
 **Identity options** *(all required)*
 
@@ -340,6 +344,8 @@ mas-devops-feature-status-update status-update \
 ### `get`
 
 Fetches a single feature status document by its ObjectId and prints it as formatted JSON.
+
+**Idempotency:** Read-only. Safe to call any number of times with no side effects.
 
 **Arguments**
 

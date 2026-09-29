@@ -489,6 +489,44 @@ db.instance_level_config.aggregate([
 mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/init_db.js
 ```
 
+> **Idempotency:** `db.createCollection()` raises a `MongoServerError: Collection already exists` error if the collection is already present. The initialization scripts are **not safe to re-run** against an existing database. Use the safe re-initialization pattern below if you need to ensure indexes are up to date without dropping data.
+
+### Safe re-initialization (collections already exist)
+
+If the collections already exist and you only need to ensure indexes are up to date, run `createIndex` calls directly — they are no-ops when the index name and definition already match:
+
+```js
+use feature_dashboard
+
+// cluster_level_config indexes
+db.cluster_level_config.createIndex(
+  { tenant_id: 1, account: 1, region: 1, cluster: 1 },
+  { unique: true, name: "ux_cluster_level_config_tenant_account_region_cluster" }
+);
+db.cluster_level_config.createIndex(
+  { tenant_id: 1, account: 1 },
+  { name: "ix_cluster_level_config_tenant_account" }
+);
+
+// instance_level_config indexes
+db.instance_level_config.createIndex(
+  { tenant_id: 1, subscription_id: 1, account: 1, region: 1, cluster: 1, instance: 1 },
+  { unique: true, name: "ux_instance_level_config_tenant_sub_account_region_cluster_instance" }
+);
+db.instance_level_config.createIndex(
+  { tenant_id: 1, subscription_id: 1, account: 1, region: 1, cluster: 1 },
+  { name: "ix_instance_level_config_tenant_sub_account_region_cluster" }
+);
+db.instance_level_config.createIndex(
+  { "instance_level_features.status": 1 },
+  { name: "ix_instance_level_config_feature_status" }
+);
+db.instance_level_config.createIndex(
+  { "instance_level_features.status_details.error_code": 1 },
+  { sparse: true, name: "ix_instance_level_config_error_code" }
+);
+```
+
 ### Clear the collections
 
 ```js
@@ -496,6 +534,8 @@ use feature_dashboard
 db.cluster_level_config.deleteMany({})
 db.instance_level_config.deleteMany({})
 ```
+
+> **Idempotency:** Safe to run repeatedly — `deleteMany({})` is a no-op when the collection is already empty.
 
 ### Drop the collections
 
@@ -506,6 +546,7 @@ db.instance_level_config.drop()
 ```
 
 > **Note:** `drop()` removes the collection, all its documents, and its indexes. Re-run `init_db.js` to recreate them.
+> **Idempotency:** Not idempotent — `drop()` raises an error if the collection does not exist. Re-running `init_db.js` after a drop is safe because the collections no longer exist at that point.
 
 ### Run a schema file directly
 
@@ -513,6 +554,22 @@ db.instance_level_config.drop()
 mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/cluster_level_config.js
 mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/instance_level_config.js
 ```
+
+> **Idempotency:** Same caveat as `init_db.js` — each file calls `db.createCollection()`, which fails if the collection already exists. Only run against a fresh or dropped database.
+
+---
+
+## Idempotency reference
+
+| Operation | Idempotent | Notes |
+|---|---|---|
+| `init_db.js` (full init) | ❌ | `db.createCollection()` fails if the collection already exists. Only run against a fresh or dropped database. |
+| `cluster_level_config.js` | ❌ | Same — calls `db.createCollection()`. |
+| `instance_level_config.js` | ❌ | Same — calls `db.createCollection()`. |
+| `createIndex` (standalone) | ✅ | No-op when an index with the same name and definition already exists. Safe to run on a live collection. |
+| `deleteMany({})` (clear) | ✅ | No-op on an already-empty collection. |
+| `drop()` | ❌ | Errors if the collection does not exist. |
+| Document upserts via `mas-devops-feature-status-update status-update` | ✅ | Uses `find_one_and_update` with `upsert=True`. Repeated calls on the same identity key update in-place; `created_at` is protected by `$setOnInsert`. |
 
 ---
 

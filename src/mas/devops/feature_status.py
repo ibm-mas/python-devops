@@ -179,14 +179,12 @@ def create_indexes(mongo_url: str, credentials: Optional[dict] = None) -> None:
         collection.create_index(
             [("region", ASCENDING), ("instance_id", ASCENDING), ("account", ASCENDING)],
             name="instance_config_level",
-            background=True,
         )
         logger.info("Index 'instance_config_level' ensured on %s.%s", DATABASE, COLLECTION)
 
         collection.create_index(
             [("region", ASCENDING), ("cluster", ASCENDING), ("account", ASCENDING)],
             name="cluster_config_level",
-            background=True,
         )
         logger.info("Index 'cluster_config_level' ensured on %s.%s", DATABASE, COLLECTION)
     finally:
