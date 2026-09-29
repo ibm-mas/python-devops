@@ -343,7 +343,12 @@ mas-devops-feature-status-update status-update \
 
 ### `get`
 
-Fetches a single feature status document by its ObjectId and prints it as formatted JSON.
+Fetches a single feature status document and prints it as formatted JSON.
+
+Two mutually exclusive lookup modes are supported — exactly one must be provided:
+
+- **`--id`** — look up by ObjectId (the value printed by `status-update` on success).
+- **`--region` + criteria flags** — look up by the document's identifying fields.
 
 **Idempotency:** Read-only. Safe to call any number of times with no side effects.
 
@@ -351,16 +356,37 @@ Fetches a single feature status document by its ObjectId and prints it as format
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `OBJECT_ID` | Yes | 24-character hex ObjectId (printed by `status-update` on success) |
+| `--id OBJECT_ID` | One of `--id` / `--region` | 24-character hex ObjectId |
+| `--region REGION` | One of `--id` / `--region` | AWS region (e.g. `us-east-2`). Enables criteria-based lookup |
+| `--instance-id INSTANCE_ID` | Yes (criteria mode) | MAS instance ID (e.g. `inst02`) |
+| `--account ACCOUNT` | Yes (criteria mode) | GitOps account name (e.g. `fyre-noble10-dev`) |
+| `--cluster CLUSTER` | Yes (criteria mode) | GitOps cluster name (e.g. `noble10`) |
+| `--subscription-id SUBSCRIPTION_ID` | Yes (criteria mode) | Subscription ID |
+| `--type TYPE` | Yes (criteria mode) | Feature type (e.g. `allow-list`) |
 | `--db-details JSON` | No† | JSON object with `url` and optional `credentials` keys |
 | `--db-url URL` | No† | MongoDB connection URL |
 
 † At least one of `--db-details`, `--db-url`, or the `MAS_FEATURE_STATUS_DB_URL` environment variable is required.
 
-**Example**
+**Example — by ObjectId**
 
 ```bash
-mas-devops-feature-status-update get 6ab0e70ee6d3a31faa808547
+mas-devops-feature-status-update get \
+    --id 6ab0e70ee6d3a31faa808547 \
+    --db-url mongodb://localhost:27017
+```
+
+**Example — by criteria**
+
+```bash
+mas-devops-feature-status-update get \
+    --region us-east-2 \
+    --instance-id inst02 \
+    --account fyre-noble10-dev \
+    --cluster noble10 \
+    --subscription-id sub-id01 \
+    --type allow-list \
+    --db-url mongodb://localhost:27017
 ```
 
 **Sample output**
@@ -562,7 +588,7 @@ Verify connectivity before any write. Use `--create-indexes` on first run.
 
 ### Minimal task — `get`
 
-Extract the document ID from `status-update` output and fetch the written document:
+**By ObjectId** — extract the document ID from `status-update` output and fetch the written document:
 
 ```yaml
 - name: Extract document ID
@@ -572,12 +598,34 @@ Extract the document ID from `status-update` output and fetch the written docume
          | regex_search('Document ID: ([a-f0-9]{24})', '\1')
          | first }}
 
-- name: Fetch feature status document
+- name: Fetch feature status document by ID
   ansible.builtin.command:
     cmd: >-
       mas-devops-feature-status-update get
+      --id {{ mas_document_id }}
       --db-url {{ mas_mongo_url }}
-      {{ mas_document_id }}
+  register: get_result
+  changed_when: false
+
+- name: Display document
+  ansible.builtin.debug:
+    msg: "{{ get_result.stdout | from_json }}"
+```
+
+**By criteria** — look up the document without needing to capture an ObjectId first:
+
+```yaml
+- name: Fetch feature status document by criteria
+  ansible.builtin.command:
+    cmd: >-
+      mas-devops-feature-status-update get
+      --region {{ mas_region }}
+      --instance-id {{ mas_instance_id }}
+      --account {{ mas_account }}
+      --cluster {{ mas_cluster }}
+      --subscription-id {{ mas_subscription_id }}
+      --type allow-list
+      --db-url {{ mas_mongo_url }}
   register: get_result
   changed_when: false
 

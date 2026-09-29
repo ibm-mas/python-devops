@@ -314,6 +314,55 @@ def get_feature_status_by_id(mongo_url: str, doc_id: str, credentials: Optional[
         client.close()
 
 
+def get_feature_status_by_criteria(
+    mongo_url: str,
+    *,
+    region: str,
+    instance_id: str,
+    account: str,
+    cluster: str,
+    subscription_id: str,
+    feature_type: str,
+    credentials: Optional[dict] = None,
+) -> Optional[dict]:
+    """Fetch a single feature status document by its identifying criteria fields.
+
+    Args:
+        mongo_url (str): MongoDB connection URL.
+        region (str): AWS region (e.g. us-east-2).
+        instance_id (str): MAS instance ID (e.g. inst02).
+        account (str): GitOps account name (e.g. fyre-noble10-dev).
+        cluster (str): GitOps cluster name (e.g. noble10).
+        subscription_id (str): Subscription ID.
+        feature_type (str): Feature type (e.g. allow-list).
+        credentials (dict, optional): Optional credential overrides. Defaults to None.
+
+    Returns:
+        dict: The matching document with ``_id`` serialised to a string, or None if not found.
+
+    Raises:
+        pymongo.errors.ConnectionFailure: If the MongoDB server is unreachable.
+    """
+    filterDoc = {
+        "region": region,
+        "instance_id": instance_id,
+        "account": account,
+        "cluster": cluster,
+        "subscription_id": subscription_id,
+        "type": feature_type,
+    }
+
+    client = _get_client(mongo_url, credentials)
+    try:
+        doc = client[DATABASE][COLLECTION].find_one(filterDoc)
+        if doc is None:
+            return None
+        doc["_id"] = str(doc["_id"])
+        return doc
+    finally:
+        client.close()
+
+
 # ---------------------------------------------------------------------------
 # URL redaction helper (keeps passwords out of logs)
 # ---------------------------------------------------------------------------

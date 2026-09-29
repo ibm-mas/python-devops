@@ -240,13 +240,47 @@ def cmd_prep(args) -> int:
 
 
 def cmd_get(args) -> int:
-    """Fetch and pretty-print a feature status document by ObjectId."""
-    from mas.devops.feature_status import get_feature_status_by_id
+    """Fetch and pretty-print a feature status document by ObjectId or by criteria fields."""
+    from mas.devops.feature_status import get_feature_status_by_criteria, get_feature_status_by_id
 
     mongo_url, credentials = _resolve_db(args)
 
     try:
-        doc = get_feature_status_by_id(mongo_url, args.id, credentials)
+        if args.id:
+            doc = get_feature_status_by_id(mongo_url, args.id, credentials)
+            not_found_msg = f"No document found with ID: {args.id}"
+        else:
+            # Criteria mode — all companion flags are required.
+            missing = [
+                f
+                for f, v in [
+                    ("--instance-id", args.instance_id),
+                    ("--account", args.account),
+                    ("--cluster", args.cluster),
+                    ("--subscription-id", args.subscription_id),
+                    ("--type", args.type),
+                ]
+                if v is None
+            ]
+            if missing:
+                print(f"ERROR: the following arguments are required when using --region: {', '.join(missing)}", file=sys.stderr)
+                return 1
+
+            doc = get_feature_status_by_criteria(
+                mongo_url,
+                region=args.region,
+                instance_id=args.instance_id,
+                account=args.account,
+                cluster=args.cluster,
+                subscription_id=args.subscription_id,
+                feature_type=args.type,
+                credentials=credentials,  # pragma: allowlist secret
+            )
+            not_found_msg = (
+                f"No document found for region={args.region} instance_id={args.instance_id} "
+                f"account={args.account} cluster={args.cluster} "
+                f"subscription_id={args.subscription_id} type={args.type}"
+            )
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -255,7 +289,7 @@ def cmd_get(args) -> int:
         return 1
 
     if doc is None:
-        print(f"No document found with ID: {args.id}", file=sys.stderr)
+        print(not_found_msg, file=sys.stderr)
         return 1
 
     print(json.dumps(doc, indent=2, default=str))
@@ -448,14 +482,45 @@ def build_parser() -> argparse.ArgumentParser:
     # ── get ───────────────────────────────────────────────────────────────────
     get = subparsers.add_parser(
         "get",
-        help="Fetch and print a feature status document by its ObjectId.",
+        help="Fetch and print a feature status document by ObjectId or by criteria fields.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=(
+            "Retrieve a feature status document using either its ObjectId (--id) or a\n"
+            "combination of criteria fields (--region, --instance-id, --account,\n"
+            "--cluster, --subscription-id, --type).  Exactly one lookup mode must be\n"
+            "provided; the two modes are mutually exclusive.\n\n"
+            "Examples:\n"
+            "  # by ObjectId\n"
+            "  mas-devops-feature-status-update get --id 6ab0e70ee6d3a31faa808547\n\n"
+            "  # by criteria\n"
+            "  mas-devops-feature-status-update get \\\n"
+            "      --region us-east-2 \\\n"
+            "      --instance-id inst02 \\\n"
+            "      --account fyre-noble10-dev \\\n"
+            "      --cluster noble10 \\\n"
+            "      --subscription-id sub-id01 \\\n"
+            "      --type allow-list"
+        ),
     )
-    get.add_argument(
-        "id",
+    get_lookup = get.add_mutually_exclusive_group(required=True)
+    get_lookup.add_argument(
+        "--id",
+        default=None,
         metavar="OBJECT_ID",
         help="24-character hex ObjectId of the document (e.g. 6ab0e70ee6d3a31faa808547).",
     )
+    get_lookup.add_argument(
+        "--region",
+        default=None,
+        metavar="REGION",
+        help="AWS region (e.g. us-east-2). Use together with the other criteria flags.",
+    )
+    get_criteria = get.add_argument_group("criteria (required when --region is used)")
+    get_criteria.add_argument("--instance-id", dest="instance_id", default=None, metavar="INSTANCE_ID", help="MAS instance ID (e.g. inst02)")
+    get_criteria.add_argument("--account", default=None, metavar="ACCOUNT", help="GitOps account name (e.g. fyre-noble10-dev)")
+    get_criteria.add_argument("--cluster", default=None, metavar="CLUSTER", help="GitOps cluster name (e.g. noble10)")
+    get_criteria.add_argument("--subscription-id", dest="subscription_id", default=None, metavar="SUBSCRIPTION_ID", help="Subscription ID")
+    get_criteria.add_argument("--type", default=None, metavar="TYPE", help="Feature type (e.g. allow-list)")
     _add_db_args(get)
 
     return parser
