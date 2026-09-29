@@ -75,7 +75,7 @@ editorial:
     - IBM Maximo Application Suite Core Platform [v9.0.32](https://www.ibm.com/support/pages/node/7289766), [v9.1.26](https://www.ibm.com/support/pages/node/7289767) and [v9.2.7](https://www.ibm.com/support/pages/node/7289768)
     - IBM Maximo Manage [v9.0.32](https://www.ibm.com/support/pages/node/7289352),[v9.1.25](https://www.ibm.com/support/pages/node/7289351) and [v9.2.4](https://www.ibm.com/support/pages/node/7289350)
     - IBM Suite License Service v3.13
-    - Mongo: 8.0.30
+    - 'Mongo: 8.0.30'
   known_issues:
     - title: During an upgrade from MVI 9.0.x to 9.1.x, the vision-auth pod may fail to start due to an SSL hostname verification error when connecting to Valkey. Restart the Valkey and Auth deployments in the MVI namespace to resolve the issue.
     
