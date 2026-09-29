@@ -77,5 +77,5 @@ editorial:
     - IBM Suite License Service v3.13
     - Mongo: 8.0.30
   known_issues:
-    - title: 
+    - title: During an upgrade from MVI 9.0.x to 9.1.x, the vision-auth pod may fail to start due to an SSL hostname verification error when connecting to Valkey. Restart the Valkey and Auth deployments in the MVI namespace to resolve the issue.
     
