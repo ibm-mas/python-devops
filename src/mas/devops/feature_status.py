@@ -80,7 +80,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
+
+from pymongo import MongoClient  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -165,39 +167,50 @@ def validate_feature_details(feature_type: str, feature_details: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Per-type status_details validators
+# ---------------------------------------------------------------------------
+
+_STATUS_DETAILS_REQUIRED_FIELDS: dict[str, dict[str, set[str]]] = {
+    "allow-list": {
+        "ACTIVE": {"message", "request_configuration"},
+        "ERROR": {"message", "error_code", "error_source", "request_configuration"},
+    }
+}
+
+
+def validate_status_details(feature_type: str, status: str, status_details: dict) -> None:
+    """Validate that *status_details* contains the required keys for *feature_type* and *status*.
+
+    Raises:
+        ValueError: if required keys are missing or status_details is not a dict.
+    """
+    if not isinstance(status_details, dict):
+        raise ValueError(f"status_details must be a JSON object, got {type(status_details).__name__}")
+
+    required = _STATUS_DETAILS_REQUIRED_FIELDS.get(feature_type, {}).get(status)
+    if required is None:
+        logger.warning(
+            "No status_details validation rules defined for type='%s' status='%s'",
+            feature_type,
+            status,
+        )
+        return
+
+    missing = required - set(status_details.keys())
+    if missing:
+        raise ValueError(f"status_details is missing required field(s) for " f"type='{feature_type}' status='{status}': {sorted(missing)}")
+
+
+# ---------------------------------------------------------------------------
 # MongoDB helpers
 # ---------------------------------------------------------------------------
 
 
-def _get_client(mongo_url: str, credentials: Optional[dict] = None):
-    """Return a pymongo MongoClient for *mongo_url*."""
-    try:
-        from pymongo import MongoClient  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError("pymongo is required. Install it with: pip install pymongo") from exc
-
-    kwargs: dict[str, Any] = {"serverSelectionTimeoutMS": 10_000}
-    if credentials:
-        if "username" in credentials:
-            kwargs["username"] = credentials["username"]
-        if "password" in credentials:
-            kwargs["password"] = credentials["password"]
-        if "authSource" in credentials:
-            kwargs["authSource"] = credentials["authSource"]
-        if "tls" in credentials:
-            kwargs["tls"] = credentials["tls"]
-
-    return MongoClient(mongo_url, **kwargs)
-
-
-def create_indexes(mongo_url: str, credentials: Optional[dict] = None) -> None:
+def create_indexes(mongo_url: str) -> None:
     """Create all required indexes on both collections (idempotent)."""
-    try:
-        from pymongo import ASCENDING  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError("pymongo is required. Install it with: pip install pymongo") from exc
+    from pymongo import ASCENDING  # type: ignore
 
-    client = _get_client(mongo_url, credentials)
+    client = MongoClient(mongo_url)
     try:
         db = client[DATABASE]
 
@@ -285,17 +298,21 @@ def _build_feature_entry(
     updated_at: Optional[datetime],
 ) -> dict:
     """Build a single feature entry dict for embedding in the features array."""
-    return {
+    entry = {
         "type": feature_type,
         "feature_details": feature_details,
         "status": status,
         "status_details": status_details,
         "deployment_start": (deployment_start or now).isoformat(),
-        "deployment_end": deployment_end.isoformat() if deployment_end else None,
         "source": FEATURE_SOURCE,
         "created_at": created_at or now,
         "updated_at": updated_at or now,
     }
+    # deployment_end is omitted entirely when not yet known (REQUESTED/IN_PROGRESS).
+    # Writing null would violate the JSON schema (bsonType: "string").
+    if deployment_end is not None:
+        entry["deployment_end"] = deployment_end.isoformat()
+    return entry
 
 
 # ---------------------------------------------------------------------------
@@ -320,23 +337,18 @@ def upsert_instance_feature(
     deployment_end: Optional[datetime] = None,
     created_at: Optional[datetime] = None,
     updated_at: Optional[datetime] = None,
-    credentials: Optional[dict] = None,
 ) -> str:
     """Upsert a feature entry inside instance_level_config.
 
     The parent document is identified by
     (tenant_id, subscription_id, account, region, cluster, instance).
-    If the parent does not exist it is created with an empty features array
-    and then the entry is pushed.  If a feature entry with the same *type*
-    already exists it is updated in-place via arrayFilters; otherwise the
-    entry is appended.
+    If a feature entry with the same *type* already exists it is updated
+    in-place via a single atomic find_one_and_update with arrayFilters;
+    otherwise the entry is appended (with parent upsert if needed).
 
     Returns the parent document _id as a string.
     """
-    try:
-        from pymongo import ReturnDocument  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError("pymongo is required. Install it with: pip install pymongo") from exc
+    from pymongo import ReturnDocument  # type: ignore
 
     if status not in VALID_STATUSES:
         raise ValueError(f"Invalid status '{status}'. Must be one of {sorted(VALID_STATUSES)}")
@@ -354,58 +366,60 @@ def upsert_instance_feature(
         "instance": instance,
     }
 
-    client = _get_client(mongo_url, credentials)
+    client = MongoClient(mongo_url)
     try:
         collection = client[DATABASE][COLLECTION_INSTANCE]
 
-        # Step 1 — ensure the parent document exists.
-        collection.update_one(
-            parent_filter,
+        # Step 1 — attempt an atomic in-place update of an existing feature entry.
+        # Matches only when the parent document AND a feature entry with this type exist.
+        result = collection.find_one_and_update(
+            {**parent_filter, "instance_level_features.type": feature_type},
             {
-                "$setOnInsert": {
-                    **parent_filter,
-                    "instance_level_features": [],
-                    "created_at": created_at or now,
-                },
-                "$set": {"updated_at": updated_at or now},
+                "$set": {
+                    "updated_at": updated_at or now,
+                    **{f"instance_level_features.$[elem].{k}": v for k, v in entry.items() if k != "created_at"},
+                }
             },
-            upsert=True,
+            array_filters=[{"elem.type": feature_type}],
+            return_document=ReturnDocument.AFTER,
         )
 
-        # Step 2 — check whether a feature entry for this type already exists.
-        existing = collection.find_one({**parent_filter, "instance_level_features.type": feature_type})
-
-        if existing:
-            # Update the matching array element in-place.
+        if result is None:
+            # No existing feature entry for this type — warn if --created-at would be discarded
+            # on a subsequent call, then append (upsert parent if it doesn't exist yet).
+            if created_at is not None:
+                logger.warning(
+                    "--created-at is only applied on the initial insert of a feature entry "
+                    "(type=%s). It is ignored when updating an existing entry to preserve "
+                    "the original created_at.",
+                    feature_type,
+                )
             result = collection.find_one_and_update(
                 parent_filter,
                 {
-                    "$set": {
-                        "updated_at": updated_at or now,
-                        **{f"instance_level_features.$[elem].{k}": v for k, v in entry.items() if k != "created_at"},
-                    }
-                },
-                array_filters=[{"elem.type": feature_type}],
-                return_document=ReturnDocument.AFTER,
-            )
-        else:
-            # Append a brand-new feature entry.
-            result = collection.find_one_and_update(
-                parent_filter,
-                {
+                    "$setOnInsert": {
+                        **parent_filter,
+                        "created_at": created_at or now,
+                    },
                     "$push": {"instance_level_features": entry},
                     "$set": {"updated_at": updated_at or now},
                 },
+                upsert=True,
                 return_document=ReturnDocument.AFTER,
             )
+        else:
+            if created_at is not None:
+                logger.warning(
+                    "--created-at is ignored when updating an existing feature entry " "(type=%s). The original created_at is preserved.",
+                    feature_type,
+                )
 
         doc_id = str(result["_id"])
         logger.info(
-            "Instance feature upserted [%s / %s / %s / %s] status=%s id=%s",
+            "Instance feature upserted [%s / %s / %s] status=%s id=%s",
             account,
             instance,
             feature_type,
-            status,
             status,
             doc_id,
         )
@@ -434,19 +448,15 @@ def upsert_cluster_feature(
     deployment_end: Optional[datetime] = None,
     created_at: Optional[datetime] = None,
     updated_at: Optional[datetime] = None,
-    credentials: Optional[dict] = None,
 ) -> str:
     """Upsert a feature entry inside cluster_level_config.
 
     The parent document is identified by (tenant_id, account, region, cluster).
-    Same two-step upsert pattern as upsert_instance_feature.
+    Same atomic two-step pattern as upsert_instance_feature.
 
     Returns the parent document _id as a string.
     """
-    try:
-        from pymongo import ReturnDocument  # type: ignore
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError("pymongo is required. Install it with: pip install pymongo") from exc
+    from pymongo import ReturnDocument  # type: ignore
 
     if status not in VALID_STATUSES:
         raise ValueError(f"Invalid status '{status}'. Must be one of {sorted(VALID_STATUSES)}")
@@ -462,48 +472,52 @@ def upsert_cluster_feature(
         "cluster": cluster,
     }
 
-    client = _get_client(mongo_url, credentials)
+    client = MongoClient(mongo_url)
     try:
         collection = client[DATABASE][COLLECTION_CLUSTER]
 
-        # Step 1 — ensure the parent document exists.
-        collection.update_one(
-            parent_filter,
+        # Step 1 — attempt an atomic in-place update of an existing feature entry.
+        # Matches only when the parent document AND a feature entry with this type exist.
+        result = collection.find_one_and_update(
+            {**parent_filter, "cluster_level_features.type": feature_type},
             {
-                "$setOnInsert": {
-                    **parent_filter,
-                    "cluster_level_features": [],
-                    "created_at": created_at or now,
-                },
-                "$set": {"updated_at": updated_at or now},
+                "$set": {
+                    "updated_at": updated_at or now,
+                    **{f"cluster_level_features.$[elem].{k}": v for k, v in entry.items() if k != "created_at"},
+                }
             },
-            upsert=True,
+            array_filters=[{"elem.type": feature_type}],
+            return_document=ReturnDocument.AFTER,
         )
 
-        # Step 2 — check whether a feature entry for this type already exists.
-        existing = collection.find_one({**parent_filter, "cluster_level_features.type": feature_type})
-
-        if existing:
+        if result is None:
+            # No existing feature entry for this type — append (upsert parent if needed).
+            if created_at is not None:
+                logger.warning(
+                    "--created-at is only applied on the initial insert of a feature entry "
+                    "(type=%s). It is ignored when updating an existing entry to preserve "
+                    "the original created_at.",
+                    feature_type,
+                )
             result = collection.find_one_and_update(
                 parent_filter,
                 {
-                    "$set": {
-                        "updated_at": updated_at or now,
-                        **{f"cluster_level_features.$[elem].{k}": v for k, v in entry.items() if k != "created_at"},
-                    }
-                },
-                array_filters=[{"elem.type": feature_type}],
-                return_document=ReturnDocument.AFTER,
-            )
-        else:
-            result = collection.find_one_and_update(
-                parent_filter,
-                {
+                    "$setOnInsert": {
+                        **parent_filter,
+                        "created_at": created_at or now,
+                    },
                     "$push": {"cluster_level_features": entry},
                     "$set": {"updated_at": updated_at or now},
                 },
+                upsert=True,
                 return_document=ReturnDocument.AFTER,
             )
+        else:
+            if created_at is not None:
+                logger.warning(
+                    "--created-at is ignored when updating an existing feature entry " "(type=%s). The original created_at is preserved.",
+                    feature_type,
+                )
 
         doc_id = str(result["_id"])
         logger.info(
@@ -524,7 +538,7 @@ def upsert_cluster_feature(
 # ---------------------------------------------------------------------------
 
 
-def get_feature_status_by_id(mongo_url: str, doc_id: str, credentials: Optional[dict] = None) -> Optional[dict]:
+def get_feature_status_by_id(mongo_url: str, doc_id: str) -> Optional[dict]:
     """Fetch a parent document by its ObjectId from either collection.
 
     Tries instance_level_config first, then cluster_level_config.
@@ -546,7 +560,7 @@ def get_feature_status_by_id(mongo_url: str, doc_id: str, credentials: Optional[
     except InvalidId:
         raise ValueError(f"'{doc_id}' is not a valid ObjectId (expected a 24-character hex string)")
 
-    client = _get_client(mongo_url, credentials)
+    client = MongoClient(mongo_url)
     try:
         for col_name in (COLLECTION_INSTANCE, COLLECTION_CLUSTER):
             doc = client[DATABASE][col_name].find_one({"_id": oid})
@@ -568,14 +582,13 @@ def get_instance_feature_by_criteria(
     cluster: str,
     subscription_id: str,
     feature_type: str,
-    credentials: Optional[dict] = None,
 ) -> Optional[dict]:
     """Fetch the feature entry for *feature_type* from instance_level_config.
 
     Returns the matching feature entry dict (not the full parent document),
     or None if the parent or the feature entry does not exist.
     """
-    client = _get_client(mongo_url, credentials)
+    client = MongoClient(mongo_url)
     try:
         filter_doc = {
             "tenant_id": tenant_id,
@@ -604,14 +617,13 @@ def get_cluster_feature_by_criteria(
     account: str,
     cluster: str,
     feature_type: str,
-    credentials: Optional[dict] = None,
 ) -> Optional[dict]:
     """Fetch the feature entry for *feature_type* from cluster_level_config.
 
     Returns the matching feature entry dict (not the full parent document),
     or None if the parent or the feature entry does not exist.
     """
-    client = _get_client(mongo_url, credentials)
+    client = MongoClient(mongo_url)
     try:
         filter_doc = {
             "tenant_id": tenant_id,

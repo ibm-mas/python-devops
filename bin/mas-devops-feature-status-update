@@ -100,9 +100,15 @@ Sub-commands
 
 Environment variables
 ─────────────────────
-  DEVOPS_MONGO_URI  (required) MongoDB connection URI with embedded credentials
-                    and TLS options:
-                    mongodb://user:password@host1:port1,host2:port2/admin?tls=true&tlsAllowInvalidCertificates=true # pragma: allowlist secret
+  DEVOPS_MONGO_URI  (required) Full MongoDB connection URI. All options — including
+                    TLS settings — are passed as query parameters in the URI and are
+                    handled directly by pymongo.
+
+  With TLS enabled (production):
+    export DEVOPS_MONGO_URI="mongodb://user:pass@host1:port1,host2:port2/admin?tls=true" # pragma: allowlist secret
+
+  With TLS disabled or self-signed certs (local / dev):
+    export DEVOPS_MONGO_URI="mongodb://user:pass@localhost:27017/admin?tls=false&tlsAllowInvalidCertificates=true" # pragma: allowlist secret
 
 One-time initialisation
 ───────────────────────
@@ -185,13 +191,13 @@ def _resolve_db() -> str:
 
     Raises SystemExit(1) if the variable is unset or empty.
     """
-    uri = os.environ.get(_ENV_DEVOPS_MONGO_URI, "")
+    uri = os.getenv(_ENV_DEVOPS_MONGO_URI, "")
     if not uri:
         print(
             f"ERROR: {_ENV_DEVOPS_MONGO_URI} environment variable is required.\n"
             f"  Set it to a full MongoDB connection URI, e.g.:\n"
-            f"    export {_ENV_DEVOPS_MONGO_URI}='mongodb://user:password@host:port/admin"  # pragma: allowlist secret
-            f"?tls=true&tlsAllowInvalidCertificates=true'",
+            f'    export {_ENV_DEVOPS_MONGO_URI}="mongodb://user:pass@localhost:27017/admin'  # pragma: allowlist secret
+            f'?tls=false&tlsAllowInvalidCertificates=true"',
             file=sys.stderr,
         )
         sys.exit(1)
@@ -214,11 +220,10 @@ def cmd_get(args) -> int:
     )
 
     mongo_url = _resolve_db()
-    credentials = None
 
     try:
         if args.id:
-            doc = get_feature_status_by_id(mongo_url, args.id, credentials)
+            doc = get_feature_status_by_id(mongo_url, args.id)
             not_found_msg = f"No document found with ID: {args.id}"
         else:
             # Criteria mode — tenant_id, region, account, cluster, type are always required.
@@ -259,7 +264,6 @@ def cmd_get(args) -> int:
                     cluster=args.cluster,
                     subscription_id=args.subscription_id,
                     feature_type=args.type,
-                    credentials=credentials,  # pragma: allowlist secret
                 )
                 not_found_msg = (
                     f"No '{args.type}' feature entry found for "
@@ -278,7 +282,6 @@ def cmd_get(args) -> int:
                     account=args.account,
                     cluster=args.cluster,
                     feature_type=args.type,
-                    credentials=credentials,  # pragma: allowlist secret
                 )
                 not_found_msg = (
                     f"No '{args.type}' feature entry found for "
@@ -323,6 +326,7 @@ def cmd_status_update(args) -> int:
         upsert_cluster_feature,
         upsert_instance_feature,
         validate_feature_details,
+        validate_status_details,
     )
 
     # Validate status enum
@@ -349,9 +353,10 @@ def cmd_status_update(args) -> int:
     feature_details = _parse_json_arg(args.feature_details, "feature-details")
     status_details = _parse_json_arg(args.status_details, "status-details")
 
-    # Type-specific feature_details validation
+    # Type-specific validation
     try:
         validate_feature_details(args.type, feature_details)
+        validate_status_details(args.type, args.status, status_details)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -364,7 +369,6 @@ def cmd_status_update(args) -> int:
 
     # Resolve DB URI from environment
     mongo_url = _resolve_db()
-    credentials = None
 
     # Build the console label from the resolved level.
     if level == INSTANCE_LEVEL:
@@ -379,7 +383,7 @@ def cmd_status_update(args) -> int:
 
     # Ensure required indexes exist on both collections (idempotent — no-op when already present).
     try:
-        create_indexes(mongo_url, credentials)
+        create_indexes(mongo_url)
     except Exception as exc:
         print(f"ERROR: Could not initialise collection indexes: {exc}", file=sys.stderr)
         return 1
@@ -402,7 +406,6 @@ def cmd_status_update(args) -> int:
                 deployment_end=deployment_end,
                 created_at=created_at,
                 updated_at=updated_at,
-                credentials=credentials,  # pragma: allowlist secret
             )
         else:
             doc_id = upsert_cluster_feature(
@@ -419,7 +422,6 @@ def cmd_status_update(args) -> int:
                 deployment_end=deployment_end,
                 created_at=created_at,
                 updated_at=updated_at,
-                credentials=credentials,  # pragma: allowlist secret
             )
         print(f"Feature status written successfully. Document ID: {doc_id}")
         return 0
@@ -512,7 +514,18 @@ def build_parser() -> argparse.ArgumentParser:
     timestamps = su.add_argument_group("timestamps (all optional, default: now)")
     timestamps.add_argument("--deployment-start", required=False, default=None, dest="deployment_start", metavar="ISO-8601")
     timestamps.add_argument("--deployment-end", required=False, default=None, dest="deployment_end", metavar="ISO-8601")
-    timestamps.add_argument("--created-at", required=False, default=None, dest="created_at", metavar="ISO-8601", help="Used only on document insert.")
+    timestamps.add_argument(
+        "--created-at",
+        required=False,
+        default=None,
+        dest="created_at",
+        metavar="ISO-8601",
+        help=(
+            "Timestamp recorded as the entry's creation time. "
+            "Only applied when the feature entry does not yet exist; "
+            "ignored on updates to preserve the original value."
+        ),
+    )
     timestamps.add_argument("--updated-at", required=False, default=None, dest="updated_at", metavar="ISO-8601")
 
     # ── get ───────────────────────────────────────────────────────────────────

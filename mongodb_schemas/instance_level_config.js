@@ -213,7 +213,7 @@ db.createCollection("instance_level_config", {
               },
               deployment_end: {
                 bsonType: "string",
-                description: "ISO-8601 timestamp set when the pipeline completes, whether successfully (ACTIVE) or with failure (ERROR). Null while the pipeline is still running."
+                description: "ISO-8601 timestamp set when the pipeline completes, whether successfully (ACTIVE) or with failure (ERROR). Omitted (field absent) while the pipeline is still running (REQUESTED/IN_PROGRESS)."
               },
 
               // ---- audit ---------------------------------------------------
