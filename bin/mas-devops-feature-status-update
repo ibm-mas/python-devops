@@ -16,20 +16,10 @@ DevOps MongoDB (mas_devops.feature_status collection).
 Sub-commands
 ────────────
 
-  prep
-    Verify MongoDB connectivity and confirm that the required indexes
-    (instance_config_level, cluster_config_level) exist on the collection.
-    Pass --create-indexes to create them when absent.
-
-    Example:
-      mas-devops-feature-status-update prep \\
-          --db-details '{"url": "mongodb://<host>:27017", "credentials": {"username": "<username>"}}' #pragma: allowlist secret
-
-      mas-devops-feature-status-update prep --db-url mongodb://host:27017 --create-indexes
-
-
   status-update
     Upsert a feature status document.
+    Required indexes (instance_config_level, cluster_config_level) are
+    created automatically on the first call if they do not already exist.
     Upsert key: (region, instance_id, account, cluster, type).
 
     Example — ACTIVE:
@@ -69,11 +59,35 @@ Sub-commands
             "request_configuration": "2405:201:d000:9060::/64"
           }'
 
+  get
+    Fetch and pretty-print a feature status document by ObjectId or by
+    criteria fields (region, instance_id, account, cluster, type).
+
+    Example — by ObjectId:
+      mas-devops-feature-status-update get --id 6ab0e70ee6d3a31faa808547
+
+    Example — by criteria:
+      mas-devops-feature-status-update get \\
+          --region us-east-2 \\
+          --instance-id inst02 \\
+          --account fyre-noble10-dev \\
+          --cluster noble10 \\
+          --subscription-id sub-id01 \\
+          --type allow-list
+
 Environment variables
 ─────────────────────
-  MAS_FEATURE_STATUS_DB_URL          MongoDB connection URL
-  MAS_FEATURE_STATUS_DB_CREDENTIALS  JSON object: username, password,
-                                     authSource, tls (all optional)
+  DEVOPS_MONGO_URI  (required) MongoDB connection URI with embedded credentials
+                    and TLS options:
+                    mongodb://user:password@host1:port1,host2:port2/admin?tls=true&tlsAllowInvalidCertificates=true # pragma: allowlist secret
+
+One-time initialisation
+───────────────────────
+  No separate setup step is required.  The first call to status-update
+  automatically creates the required collection indexes if they are absent.
+  For manual initialisation of the database schema and validators, run:
+
+    mongosh "<DEVOPS_MONGO_URI>" mongodb_schemas/init_db.js
 """
 
 import argparse
@@ -85,11 +99,10 @@ from datetime import datetime, timezone
 from typing import Optional
 
 # ---------------------------------------------------------------------------
-# Env-var names used to persist / retrieve DB details between invocations
+# Env-var name used to supply the MongoDB connection URI
 # ---------------------------------------------------------------------------
 
-_ENV_DB_URL = "MAS_FEATURE_STATUS_DB_URL"
-_ENV_DB_CREDENTIALS = "MAS_FEATURE_STATUS_DB_CREDENTIALS"  # pragma: allowlist secret
+_ENV_DEVOPS_MONGO_URI = "DEVOPS_MONGO_URI"
 
 
 # ---------------------------------------------------------------------------
@@ -144,94 +157,22 @@ def _parse_isodate(value: Optional[str], arg_name: str) -> Optional[datetime]:
         sys.exit(1)
 
 
-def _resolve_db(args) -> tuple:
-    """Return (mongo_url, credentials) resolving from CLI args then env vars.
+def _resolve_db() -> str:
+    """Return the MongoDB connection URI from the DEVOPS_MONGO_URI environment variable.
 
-    Precedence:
-      1. --db-details JSON
-      2. --db-url
-      3. MAS_FEATURE_STATUS_DB_URL / MAS_FEATURE_STATUS_DB_CREDENTIALS
+    Raises SystemExit(1) if the variable is unset or empty.
     """
-    db_details = getattr(args, "db_details", None)
-    db_url_arg = getattr(args, "db_url", None)
-
-    if db_details:
-        details = _parse_json_arg(db_details, "db-details")
-        url = details.get("url") or details.get("mongo_url")
-        if not url:
-            print("ERROR: --db-details must contain a 'url' key", file=sys.stderr)
-            sys.exit(1)
-        credentials = details.get("credentials") or None
-        return url, credentials
-
-    if db_url_arg:
-        return db_url_arg, None
-
-    env_url = os.environ.get(_ENV_DB_URL, "")
-    if env_url:
-        creds_raw = os.environ.get(_ENV_DB_CREDENTIALS, "")
-        credentials = json.loads(creds_raw) if creds_raw else None
-        return env_url, credentials
-
-    print(
-        "ERROR: MongoDB connection details are required.\n"
-        "  Provide one of:\n"
-        f'    --db-details \'{{"url": "mongodb://..."}}\'\n'
-        f"    --db-url <url>\n"
-        f"    {_ENV_DB_URL} environment variable",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
-
-# ---------------------------------------------------------------------------
-# Sub-command: prep
-# ---------------------------------------------------------------------------
-
-
-def cmd_prep(args) -> int:
-    """Verify connection and confirm required indexes exist."""
-    from mas.devops.feature_status import (
-        _redact_url,
-        create_indexes,
-        verify_connection_and_indexes,
-    )
-
-    mongo_url, credentials = _resolve_db(args)
-    print(f"Connecting to: {_redact_url(mongo_url)}")
-
-    try:
-        warnings = verify_connection_and_indexes(mongo_url, credentials)
-    except Exception as exc:
-        print(f"ERROR: Could not connect to MongoDB: {exc}", file=sys.stderr)
-        return 1
-
-    if warnings:
-        for w in warnings:
-            print(f"WARNING: {w}")
-        if args.create_indexes:
-            print("Creating missing indexes …")
-            try:
-                create_indexes(mongo_url, credentials)
-                print("Indexes created successfully.")
-            except Exception as exc:
-                print(f"ERROR: Failed to create indexes: {exc}", file=sys.stderr)
-                return 1
-        else:
-            print(
-                "\nTip: re-run with --create-indexes to create missing indexes automatically.",
-                file=sys.stderr,
-            )
-            return 1
-    else:
-        print("All required indexes are present.")
-
-    print("\n# To reuse these DB details in subsequent calls, export:")
-    print(f"# export {_ENV_DB_URL}='{mongo_url}'")
-    if credentials:
-        print(f"# export {_ENV_DB_CREDENTIALS}='{json.dumps(credentials)}'")
-
-    return 0
+    uri = os.environ.get(_ENV_DEVOPS_MONGO_URI, "")
+    if not uri:
+        print(
+            f"ERROR: {_ENV_DEVOPS_MONGO_URI} environment variable is required.\n"
+            f"  Set it to a full MongoDB connection URI, e.g.:\n"
+            f"    export {_ENV_DEVOPS_MONGO_URI}='mongodb://user:password@host:port/admin"  # pragma: allowlist secret
+            f"?tls=true&tlsAllowInvalidCertificates=true'",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return uri
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +184,8 @@ def cmd_get(args) -> int:
     """Fetch and pretty-print a feature status document by ObjectId or by criteria fields."""
     from mas.devops.feature_status import get_feature_status_by_criteria, get_feature_status_by_id
 
-    mongo_url, credentials = _resolve_db(args)
+    mongo_url = _resolve_db()
+    credentials = None
 
     try:
         if args.id:
@@ -302,10 +244,15 @@ def cmd_get(args) -> int:
 
 
 def cmd_status_update(args) -> int:
-    """Upsert a feature status document into MongoDB."""
+    """Upsert a feature status document into MongoDB.
+
+    Required indexes are created automatically if they do not already exist,
+    so no separate 'prep' step is needed.
+    """
     from mas.devops.feature_status import (
         VALID_STATUSES,
         _redact_url,
+        create_indexes,
         upsert_feature_status,
         validate_feature_details,
     )
@@ -332,11 +279,19 @@ def cmd_status_update(args) -> int:
     created_at = _parse_isodate(args.created_at, "created-at")
     updated_at = _parse_isodate(args.updated_at, "updated-at")
 
-    # Resolve DB details
-    mongo_url, credentials = _resolve_db(args)
+    # Resolve DB URI from environment
+    mongo_url = _resolve_db()
+    credentials = None
 
     print(f"Writing feature status: account={args.account} cluster={args.cluster} " f"instance={args.instance_id} type={args.type} status={args.status}")
     print(f"  MongoDB: {_redact_url(mongo_url)}")
+
+    # Ensure required indexes exist (idempotent — no-op when already present).
+    try:
+        create_indexes(mongo_url, credentials)
+    except Exception as exc:
+        print(f"ERROR: Could not initialise collection indexes: {exc}", file=sys.stderr)
+        return 1
 
     try:
         doc_id = upsert_feature_status(
@@ -371,28 +326,6 @@ def cmd_status_update(args) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _add_db_args(parser: argparse.ArgumentParser) -> None:
-    """Add the shared --db-details / --db-url arguments to a sub-parser."""
-    g = parser.add_argument_group("database connection")
-    g.add_argument(
-        "--db-details",
-        required=False,
-        default=None,
-        metavar="JSON",
-        help=(
-            'JSON object with "url" and optional "credentials" keys. '
-            'Example: \'{"url": "mongodb://host:27017", "credentials": {"username": "u", "password": "p"}}\''  # pragma: allowlist secret
-        ),
-    )
-    g.add_argument(
-        "--db-url",
-        required=False,
-        default=None,
-        metavar="URL",
-        help=f"MongoDB connection URL (alternative to --db-details). Can also be set via {_ENV_DB_URL}.",
-    )
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mas-devops-feature-status-update",
@@ -409,20 +342,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", metavar="<command>")
     subparsers.required = True
-
-    # ── prep ──────────────────────────────────────────────────────────────────
-    prep = subparsers.add_parser(
-        "prep",
-        help="Verify MongoDB connection and check/create required indexes.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    _add_db_args(prep)
-    prep.add_argument(
-        "--create-indexes",
-        action="store_true",
-        default=False,
-        help="Create missing indexes automatically instead of failing with a warning.",
-    )
 
     # ── status-update ─────────────────────────────────────────────────────────
     su = subparsers.add_parser(
@@ -477,8 +396,6 @@ def build_parser() -> argparse.ArgumentParser:
     timestamps.add_argument("--created-at", required=False, default=None, dest="created_at", metavar="ISO-8601", help="Used only on document insert.")
     timestamps.add_argument("--updated-at", required=False, default=None, dest="updated_at", metavar="ISO-8601")
 
-    _add_db_args(su)
-
     # ── get ───────────────────────────────────────────────────────────────────
     get = subparsers.add_parser(
         "get",
@@ -521,7 +438,6 @@ def build_parser() -> argparse.ArgumentParser:
     get_criteria.add_argument("--cluster", default=None, metavar="CLUSTER", help="GitOps cluster name (e.g. noble10)")
     get_criteria.add_argument("--subscription-id", dest="subscription_id", default=None, metavar="SUBSCRIPTION_ID", help="Subscription ID")
     get_criteria.add_argument("--type", default=None, metavar="TYPE", help="Feature type (e.g. allow-list)")
-    _add_db_args(get)
 
     return parser
 
@@ -538,9 +454,7 @@ if __name__ == "__main__":
     logging.basicConfig(format="%(levelname)s %(name)s: %(message)s")
     logging.getLogger("mas.devops.feature_status").setLevel(log_level)
 
-    if args.command == "prep":
-        sys.exit(cmd_prep(args))
-    elif args.command == "status-update":
+    if args.command == "status-update":
         sys.exit(cmd_status_update(args))
     elif args.command == "get":
         sys.exit(cmd_get(args))

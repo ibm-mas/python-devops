@@ -72,19 +72,16 @@ mongosh "mongodb://localhost:27017/feature_dashboard" --eval "db.getCollectionNa
 # Expected: [ 'cluster_level_config', 'instance_level_config' ]
 ```
 
-### Export the connection URL
+### Set the connection URI
 
-Export `MAS_FEATURE_STATUS_DB_URL` so every subsequent command picks it up automatically without needing `--db-url` or `--db-details`:
-
-```bash
-export MAS_FEATURE_STATUS_DB_URL='mongodb://localhost:27017'
-```
-
-Then verify connectivity and indexes:
+Set `DEVOPS_MONGO_URI` — all commands read it automatically. Credentials and TLS options are embedded directly in the URI, matching the convention used across all other DevOps pipeline scripts:
 
 ```bash
-mas-devops-feature-status-update prep --create-indexes
+export DEVOPS_MONGO_URI='mongodb://user:password@host1:port1,host2:port2/admin?tls=true&tlsAllowInvalidCertificates=true'  # pragma: allowlist secret
 ```
+
+No separate verification step is needed — the first `status-update` call will
+create required indexes automatically if they are absent.
 
 ---
 
@@ -128,7 +125,6 @@ chmod +x bin/mas-devops-feature-status-update
 mas-devops-feature-status-update --help
 
 # Sub-command help
-mas-devops-feature-status-update prep --help
 mas-devops-feature-status-update status-update --help
 mas-devops-feature-status-update get --help
 ```
@@ -137,54 +133,12 @@ mas-devops-feature-status-update get --help
 
 ## Sub-commands
 
-### `prep`
-
-Verifies MongoDB connectivity and confirms that the required indexes exist on the collection.
-
-| Index name             | Fields                                  |
-|------------------------|-----------------------------------------|
-| `instance_config_level` | `region` + `instance_id` + `account`  |
-| `cluster_config_level`  | `region` + `cluster` + `account`      |
-
-Pass `--create-indexes` to create missing indexes automatically instead of exiting with an error.
-
-**Idempotency:** Safe to run repeatedly. The connectivity check is read-only. When `--create-indexes` is passed, `create_index` is a no-op for any index that already exists — it will never drop or recreate an existing index.
-
-**Options**
-
-| Flag | Required | Description |
-|------|----------|-------------|
-| `--db-details JSON` | No† | JSON object with `url` and optional `credentials` keys |
-| `--db-url URL` | No† | MongoDB connection URL (alternative to `--db-details`) |
-| `--create-indexes` | No | Create missing indexes automatically |
-
-† At least one of `--db-details`, `--db-url`, or the `MAS_FEATURE_STATUS_DB_URL` environment variable is required.
-
-**Examples**
-
-```bash
-# Verify using a db-details JSON blob (local MongoDB, no auth)
-mas-devops-feature-status-update prep \
-    --db-details '{"url": "mongodb://localhost:27017"}'
-
-# Verify using a db-details JSON blob (with credentials)
-mas-devops-feature-status-update prep \
-    --db-details '{"url": "mongodb://localhost:27017", "credentials": {"username": "user", "password": "pass -- pragma: allowlist secret", "authSource": "admin"}}'
-
-# Verify and auto-create missing indexes
-mas-devops-feature-status-update prep \
-    --db-url mongodb://localhost:27017 \
-    --create-indexes
-```
-
-After a successful `prep` run the command prints the `export` statements needed to reuse the connection details in subsequent `status-update` calls.
-
----
-
 ### `status-update`
 
 Upserts a feature status document.
 Upsert key: `(region, instance_id, account, cluster, type)` — an existing document is updated in-place; a new document is inserted if no match is found.
+
+Required collection indexes (`instance_config_level`, `cluster_config_level`) are created automatically on the first call if they are absent — no separate setup step is needed.
 
 **Idempotency:** Safe to call multiple times with the same arguments. The underlying `find_one_and_update` with `upsert=True` guarantees that re-running with the same identity key produces the same final document state. `created_at` is set only on the first insert (`$setOnInsert`); subsequent calls update `updated_at` and all mutable fields without creating duplicate documents.
 
@@ -221,12 +175,7 @@ Upsert key: `(region, instance_id, account, cluster, type)` — an existing docu
 | `--created-at ISO-8601` | Overrides `created_at` on document insert only |
 | `--updated-at ISO-8601` | Overrides `updated_at` |
 
-**Database connection options** *(one required)*
-
-| Flag | Description |
-|------|-------------|
-| `--db-details JSON` | JSON object with `url` and optional `credentials` keys |
-| `--db-url URL` | MongoDB connection URL |
+The MongoDB connection URI is read from the `DEVOPS_MONGO_URI` environment variable — no connection flags are needed on the command line.
 
 **`--status-details` schema**
 
@@ -363,17 +312,14 @@ Two mutually exclusive lookup modes are supported — exactly one must be provid
 | `--cluster CLUSTER` | Yes (criteria mode) | GitOps cluster name (e.g. `noble10`) |
 | `--subscription-id SUBSCRIPTION_ID` | Yes (criteria mode) | Subscription ID |
 | `--type TYPE` | Yes (criteria mode) | Feature type (e.g. `allow-list`) |
-| `--db-details JSON` | No† | JSON object with `url` and optional `credentials` keys |
-| `--db-url URL` | No† | MongoDB connection URL |
 
-† At least one of `--db-details`, `--db-url`, or the `MAS_FEATURE_STATUS_DB_URL` environment variable is required.
+The MongoDB connection URI is read from `DEVOPS_MONGO_URI` — no connection flags are needed.
 
 **Example — by ObjectId**
 
 ```bash
 mas-devops-feature-status-update get \
-    --id 6ab0e70ee6d3a31faa808547 \
-    --db-url mongodb://localhost:27017
+    --id 6ab0e70ee6d3a31faa808547
 ```
 
 **Example — by criteria**
@@ -385,8 +331,7 @@ mas-devops-feature-status-update get \
     --account fyre-noble10-dev \
     --cluster noble10 \
     --subscription-id sub-id01 \
-    --type allow-list \
-    --db-url mongodb://localhost:27017
+    --type allow-list
 ```
 
 **Sample output**
@@ -415,22 +360,12 @@ mas-devops-feature-status-update get \
 
 ## Environment Variables
 
-Setting these avoids repeating `--db-details` / `--db-url` on every call.
-
-| Variable | Description |
-|----------|-------------|
-| `MAS_FEATURE_STATUS_DB_URL` | MongoDB connection URL |
-| `MAS_FEATURE_STATUS_DB_CREDENTIALS` | JSON object with optional `username`, `password`, `authSource`, `tls` keys |
-
-**Precedence** (highest to lowest): `--db-details` → `--db-url` → environment variables.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DEVOPS_MONGO_URI` | Yes | Full MongoDB connection URI with embedded credentials and TLS options. |
 
 ```bash
-export MAS_FEATURE_STATUS_DB_URL='mongodb://user:pass@host:27017' #pragma: allowlist secret
-export MAS_FEATURE_STATUS_DB_CREDENTIALS='{"username": "u", "password": "p"}' #pragma: allowlist secret
-
-mas-devops-feature-status-update status-update \
-    --region us-east-2 \
-    ...
+export DEVOPS_MONGO_URI='mongodb://user:password@host1:port1,host2:port2/admin?tls=true&tlsAllowInvalidCertificates=true'  # pragma: allowlist secret
 ```
 
 ---
@@ -550,21 +485,6 @@ Collection: `mas_devops.feature_status`
 
 See the full sample playbook at [`playbooks/feature-status-update.yml`](../playbooks/feature-status-update.yml).
 
-### Minimal task — `prep`
-
-Verify connectivity before any write. Use `--create-indexes` on first run.
-
-```yaml
-- name: Verify MongoDB connectivity and indexes
-  ansible.builtin.command:
-    cmd: >-
-      mas-devops-feature-status-update prep
-      --db-url {{ mas_mongo_url }}
-      --create-indexes
-  register: prep_result
-  changed_when: "'Creating missing indexes' in prep_result.stdout"
-```
-
 ### Minimal task — `status-update`
 
 ```yaml
@@ -572,7 +492,6 @@ Verify connectivity before any write. Use `--create-indexes` on first run.
   ansible.builtin.command:
     cmd: >-
       mas-devops-feature-status-update status-update
-      --db-url {{ mas_mongo_url }}
       --region {{ mas_region }}
       --instance-id {{ mas_instance_id }}
       --account {{ mas_account }}
@@ -603,7 +522,6 @@ Verify connectivity before any write. Use `--create-indexes` on first run.
     cmd: >-
       mas-devops-feature-status-update get
       --id {{ mas_document_id }}
-      --db-url {{ mas_mongo_url }}
   register: get_result
   changed_when: false
 
@@ -625,7 +543,6 @@ Verify connectivity before any write. Use `--create-indexes` on first run.
       --cluster {{ mas_cluster }}
       --subscription-id {{ mas_subscription_id }}
       --type allow-list
-      --db-url {{ mas_mongo_url }}
   register: get_result
   changed_when: false
 
@@ -634,19 +551,15 @@ Verify connectivity before any write. Use `--create-indexes` on first run.
     msg: "{{ get_result.stdout | from_json }}"
 ```
 
-### Using environment variables instead of `--db-url`
+### Using `DEVOPS_MONGO_URI`
 
-Set `MAS_FEATURE_STATUS_DB_URL` once (e.g. in `group_vars/all.yml` or a `block` `environment:`) to avoid repeating the flag on every task:
+Set `DEVOPS_MONGO_URI` once (e.g. in `group_vars/all.yml` or a `block` `environment:`). All sub-commands read it automatically — no connection flag is required on any task:
 
 ```yaml
 - name: Feature status tasks
   environment:
-    MAS_FEATURE_STATUS_DB_URL: "mongodb://localhost:27017"
+    DEVOPS_MONGO_URI: "mongodb://{{ mas_mongo_user }}:{{ mas_mongo_password }}@{{ mas_mongo_host }}:{{ mas_mongo_port }}/admin?tls=true&tlsAllowInvalidCertificates=true"  # pragma: allowlist secret
   block:
-    - name: prep
-      ansible.builtin.command:
-        cmd: mas-devops-feature-status-update prep --create-indexes
-
     - name: status-update
       ansible.builtin.command:
         cmd: >-
