@@ -1,6 +1,6 @@
-# MongoDB Schemas — `feature_dashboard`
+# MongoDB Schemas — `mas_devops`
 
-MongoDB validator scripts for the `feature_dashboard` database.
+MongoDB validator scripts for the `mas_devops` database.
 Extracted from [`allowlisting-tdd.md`](../allowlisting-tdd.md) §7.
 
 ## Collections
@@ -48,7 +48,7 @@ The original `allowlisting_config` collection has been split into two flat colle
 
 ## Query reference
 
-All queries assume `use feature_dashboard` has been run first. Replace
+All queries assume `use mas_devops` has been run first. Replace
 `<tenant>`, `<account>`, `<region>`, `<cluster>`, `<instance>`, and
 `<feature_key>` with real values.
 
@@ -486,7 +486,7 @@ db.instance_level_config.aggregate([
 ### Initialize the collections
 
 ```bash
-mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/init_db.js
+mongosh "mongodb://<host>:27017/mas_devops" mongodb_schemas/init_db.js
 ```
 
 > **Idempotency:** `db.createCollection()` raises a `MongoServerError: Collection already exists` error if the collection is already present. The initialization scripts are **not safe to re-run** against an existing database. Use the safe re-initialization pattern below if you need to ensure indexes are up to date without dropping data.
@@ -496,7 +496,7 @@ mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/init_db.js
 If the collections already exist and you only need to ensure indexes are up to date, run `createIndex` calls directly — they are no-ops when the index name and definition already match:
 
 ```js
-use feature_dashboard
+use mas_devops
 
 // cluster_level_config indexes
 db.cluster_level_config.createIndex(
@@ -530,7 +530,7 @@ db.instance_level_config.createIndex(
 ### Clear the collections
 
 ```js
-use feature_dashboard
+use mas_devops
 db.cluster_level_config.deleteMany({})
 db.instance_level_config.deleteMany({})
 ```
@@ -540,7 +540,7 @@ db.instance_level_config.deleteMany({})
 ### Drop the collections
 
 ```js
-use feature_dashboard
+use mas_devops
 db.cluster_level_config.drop()
 db.instance_level_config.drop()
 ```
@@ -551,8 +551,8 @@ db.instance_level_config.drop()
 ### Run a schema file directly
 
 ```bash
-mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/cluster_level_config.js
-mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/instance_level_config.js
+mongosh "mongodb://<host>:27017/mas_devops" mongodb_schemas/cluster_level_config.js
+mongosh "mongodb://<host>:27017/mas_devops" mongodb_schemas/instance_level_config.js
 ```
 
 > **Idempotency:** Same caveat as `init_db.js` — each file calls `db.createCollection()`, which fails if the collection already exists. Only run against a fresh or dropped database.

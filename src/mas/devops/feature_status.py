@@ -10,42 +10,70 @@
 """
 feature_status.py — Write feature status records into the DevOps MongoDB.
 
-Supports two operations:
+Database:    mas_devops
+Collections:
+  instance_level_config — one document per (tenant_id × subscription_id ×
+                           account × region × cluster × instance).
+                           Feature entries are embedded in instance_level_features[].
+                           Used when --instance-id is supplied.
 
-  prep          — Verify the MongoDB connection and confirm the expected indexes
-                  (instance_config_level, cluster_config_level) exist on the
-                  target collection.  Stores db-details for later use in an
-                  environment variable so they do not need to be repeated on
-                  every status-update call.
+  cluster_level_config  — one document per (tenant_id × account × region × cluster).
+                           Feature entries are embedded in cluster_level_features[].
+                           Used when --instance-id is omitted.
 
-  status_update — Upsert a feature status document into
-                  ``mas_devops.feature_status``.
-
-Collection: ``mas_devops.feature_status``
-
-Document schema (mirrors the CIS allowlist status tracking design):
+Document schema — instance_level_config top-level:
 
   {
-    "_id": <ObjectId>,
-    "schema_version": 1,
-    "region": str,
-    "instance_id": str,
-    "account": str,
-    "cluster": str,
+    "_id":          <ObjectId>,
+    "tenant_id":    str,
     "subscription_id": str,
-    "type": str,                    # e.g. "allow-list"
-    "feature_details": dict,        # type-specific payload
-    "status": str,                  # REQUESTED | IN_PROGRESS | ACTIVE | ERROR
-    "status_details": dict,         # message, error_code, error_source, …
-    "deployment_start": datetime,
-    "deployment_end":   datetime | None,
+    "account":      str,
+    "region":       str,
+    "cluster":      str,
+    "instance":     str,
+    "instance_level_features": [
+      {
+        "type":            str,       # e.g. "allow-list"
+        "feature_details": dict,      # type-specific payload
+        "status":          str,       # REQUESTED | IN_PROGRESS | ACTIVE | ERROR
+        "status_details":  dict,      # message, error_code, error_source, …
+        "deployment_start": str,      # ISO-8601
+        "deployment_end":   str|None, # ISO-8601
+        "source":          str,       # "ansible_devops"
+        "created_at":      datetime,
+        "updated_at":      datetime,
+      },
+      …
+    ],
     "created_at": datetime,
     "updated_at": datetime,
   }
 
-Indexes expected on the collection
-  • ``instance_config_level`` — compound: region + instance_id + account
-  • ``cluster_config_level``  — compound: region + cluster + account
+Document schema — cluster_level_config top-level:
+
+  {
+    "_id":        <ObjectId>,
+    "tenant_id":  str,
+    "account":    str,
+    "region":     str,
+    "cluster":    str,
+    "cluster_level_features": [
+      {
+        "type":            str,
+        "feature_details": dict,
+        "status":          str,
+        "status_details":  dict,
+        "deployment_start": str,
+        "deployment_end":   str|None,
+        "source":          str,
+        "created_at":      datetime,
+        "updated_at":      datetime,
+      },
+      …
+    ],
+    "created_at": datetime,
+    "updated_at": datetime,
+  }
 """
 
 from __future__ import annotations
@@ -60,10 +88,14 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-COLLECTION = "feature_status"
 DATABASE = "mas_devops"
+COLLECTION_INSTANCE = "instance_level_config"
+COLLECTION_CLUSTER = "cluster_level_config"
 
-# Status enum values (matches the CIS allowlist lifecycle)
+# Source tag written by this CLI tool into every feature entry.
+FEATURE_SOURCE = "ansible_devops"
+
+# Status enum values
 STATUS_REQUESTED = "REQUESTED"
 STATUS_IN_PROGRESS = "IN_PROGRESS"
 STATUS_ACTIVE = "ACTIVE"
@@ -71,15 +103,43 @@ STATUS_ERROR = "ERROR"
 
 VALID_STATUSES = {STATUS_REQUESTED, STATUS_IN_PROGRESS, STATUS_ACTIVE, STATUS_ERROR}
 
-# Required index names that must exist on the collection.
-REQUIRED_INDEX_NAMES = {"instance_config_level", "cluster_config_level"}
+# Feature-level constants
+INSTANCE_LEVEL = "INSTANCE_LEVEL"
+CLUSTER_LEVEL = "CLUSTER_LEVEL"
+
+# ---------------------------------------------------------------------------
+# Feature type → level map
+#
+# Declares which collection a feature type belongs to.  Add new feature types
+# here; the routing logic in the CLI and the library functions will pick it up
+# automatically.
+#
+# INSTANCE_LEVEL → mas_devops.instance_level_config  (requires --instance-id)
+# CLUSTER_LEVEL  → mas_devops.cluster_level_config   (no --instance-id needed)
+# ---------------------------------------------------------------------------
+
+FEATURE_LEVEL_MAP: dict[str, str] = {
+    "allow-list": INSTANCE_LEVEL,
+}
+
+
+def get_feature_level(feature_type: str) -> str:
+    """Return the level constant (INSTANCE_LEVEL or CLUSTER_LEVEL) for *feature_type*.
+
+    Raises:
+        ValueError: if *feature_type* is not registered in FEATURE_LEVEL_MAP.
+    """
+    level = FEATURE_LEVEL_MAP.get(feature_type)
+    if level is None:
+        known = sorted(FEATURE_LEVEL_MAP.keys())
+        raise ValueError(f"Unknown feature type '{feature_type}'. " f"Known types: {known}. " f"Add it to FEATURE_LEVEL_MAP in feature_status.py.")
+    return level
+
 
 # ---------------------------------------------------------------------------
 # Per-type feature_details validators
 # ---------------------------------------------------------------------------
 
-# Each key maps to the set of field names that MUST be present in feature_details
-# when --type matches that key.
 _FEATURE_DETAILS_REQUIRED_FIELDS: dict[str, set[str]] = {
     "allow-list": {"ips"},
 }
@@ -96,7 +156,6 @@ def validate_feature_details(feature_type: str, feature_details: dict) -> None:
 
     required = _FEATURE_DETAILS_REQUIRED_FIELDS.get(feature_type)
     if required is None:
-        # Unknown type — no field-level validation, but emit a warning.
         logger.warning("No feature_details validation rules defined for type '%s'", feature_type)
         return
 
@@ -111,11 +170,7 @@ def validate_feature_details(feature_type: str, feature_details: dict) -> None:
 
 
 def _get_client(mongo_url: str, credentials: Optional[dict] = None):
-    """Return a pymongo MongoClient for *mongo_url*.
-
-    Credentials dict may contain ``username`` and ``password`` keys.
-    If the URL already embeds credentials they take precedence.
-    """
+    """Return a pymongo MongoClient for *mongo_url*."""
     try:
         from pymongo import MongoClient  # type: ignore
     except ImportError as exc:  # pragma: no cover
@@ -135,37 +190,8 @@ def _get_client(mongo_url: str, credentials: Optional[dict] = None):
     return MongoClient(mongo_url, **kwargs)
 
 
-def verify_connection_and_indexes(mongo_url: str, credentials: Optional[dict] = None) -> list[str]:
-    """Connect to MongoDB and check that the expected indexes exist.
-
-    Returns a list of warning messages for any missing indexes.
-    Raises on connection failure.
-    """
-    client = _get_client(mongo_url, credentials)
-    try:
-        # Ping — will raise if the server is unreachable.
-        client.admin.command("ping")
-        logger.info("MongoDB connection OK: %s", _redact_url(mongo_url))
-
-        db = client[DATABASE]
-        collection = db[COLLECTION]
-
-        # Retrieve existing index names.
-        existing_index_names = {info["name"] for info in collection.list_indexes()}
-
-        warnings = []
-        for expected in REQUIRED_INDEX_NAMES:
-            if expected not in existing_index_names:
-                warnings.append(
-                    f"Index '{expected}' not found on {DATABASE}.{COLLECTION}. " f"Run the index-creation script or use 'prep' with --create-indexes."
-                )
-        return warnings
-    finally:
-        client.close()
-
-
 def create_indexes(mongo_url: str, credentials: Optional[dict] = None) -> None:
-    """Create the required indexes on the feature_status collection if they do not exist."""
+    """Create all required indexes on both collections (idempotent)."""
     try:
         from pymongo import ASCENDING  # type: ignore
     except ImportError as exc:  # pragma: no cover
@@ -174,31 +200,118 @@ def create_indexes(mongo_url: str, credentials: Optional[dict] = None) -> None:
     client = _get_client(mongo_url, credentials)
     try:
         db = client[DATABASE]
-        collection = db[COLLECTION]
 
-        collection.create_index(
-            [("region", ASCENDING), ("instance_id", ASCENDING), ("account", ASCENDING)],
-            name="instance_config_level",
-        )
-        logger.info("Index 'instance_config_level' ensured on %s.%s", DATABASE, COLLECTION)
+        # ── instance_level_config ────────────────────────────────────────────
+        inst = db[COLLECTION_INSTANCE]
 
-        collection.create_index(
-            [("region", ASCENDING), ("cluster", ASCENDING), ("account", ASCENDING)],
-            name="cluster_config_level",
+        inst.create_index(
+            [
+                ("tenant_id", ASCENDING),
+                ("subscription_id", ASCENDING),
+                ("account", ASCENDING),
+                ("region", ASCENDING),
+                ("cluster", ASCENDING),
+                ("instance", ASCENDING),
+            ],
+            unique=True,
+            name="ux_instance_level_config_tenant_sub_account_region_cluster_instance",
         )
-        logger.info("Index 'cluster_config_level' ensured on %s.%s", DATABASE, COLLECTION)
+        logger.info("Index 'ux_instance_level_config_tenant_sub_account_region_cluster_instance' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
+
+        inst.create_index(
+            [
+                ("tenant_id", ASCENDING),
+                ("subscription_id", ASCENDING),
+                ("account", ASCENDING),
+                ("region", ASCENDING),
+                ("cluster", ASCENDING),
+            ],
+            name="ix_instance_level_config_tenant_sub_account_region_cluster",
+        )
+        logger.info("Index 'ix_instance_level_config_tenant_sub_account_region_cluster' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
+
+        inst.create_index(
+            [("instance_level_features.status", ASCENDING)],
+            name="ix_instance_level_config_feature_status",
+        )
+        logger.info("Index 'ix_instance_level_config_feature_status' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
+
+        inst.create_index(
+            [("instance_level_features.status_details.error_code", ASCENDING)],
+            sparse=True,
+            name="ix_instance_level_config_error_code",
+        )
+        logger.info("Index 'ix_instance_level_config_error_code' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
+
+        # ── cluster_level_config ─────────────────────────────────────────────
+        clst = db[COLLECTION_CLUSTER]
+
+        clst.create_index(
+            [
+                ("tenant_id", ASCENDING),
+                ("account", ASCENDING),
+                ("region", ASCENDING),
+                ("cluster", ASCENDING),
+            ],
+            unique=True,
+            name="ux_cluster_level_config_tenant_account_region_cluster",
+        )
+        logger.info("Index 'ux_cluster_level_config_tenant_account_region_cluster' ensured on %s.%s", DATABASE, COLLECTION_CLUSTER)
+
+        clst.create_index(
+            [("tenant_id", ASCENDING), ("account", ASCENDING)],
+            name="ix_cluster_level_config_tenant_account",
+        )
+        logger.info("Index 'ix_cluster_level_config_tenant_account' ensured on %s.%s", DATABASE, COLLECTION_CLUSTER)
+
     finally:
         client.close()
 
 
-def upsert_feature_status(
+# ---------------------------------------------------------------------------
+# Write helpers — shared feature-entry builder
+# ---------------------------------------------------------------------------
+
+
+def _build_feature_entry(
+    feature_type: str,
+    feature_details: dict,
+    status: str,
+    status_details: dict,
+    deployment_start: Optional[datetime],
+    deployment_end: Optional[datetime],
+    now: datetime,
+    created_at: Optional[datetime],
+    updated_at: Optional[datetime],
+) -> dict:
+    """Build a single feature entry dict for embedding in the features array."""
+    return {
+        "type": feature_type,
+        "feature_details": feature_details,
+        "status": status,
+        "status_details": status_details,
+        "deployment_start": (deployment_start or now).isoformat(),
+        "deployment_end": deployment_end.isoformat() if deployment_end else None,
+        "source": FEATURE_SOURCE,
+        "created_at": created_at or now,
+        "updated_at": updated_at or now,
+    }
+
+
+# ---------------------------------------------------------------------------
+# instance_level_config — upsert
+# ---------------------------------------------------------------------------
+
+
+def upsert_instance_feature(
     mongo_url: str,
     *,
+    tenant_id: str,
+    subscription_id: str,
     region: str,
-    instance_id: str,
     account: str,
     cluster: str,
-    subscription_id: str,
+    instance: str,
     feature_type: str,
     feature_details: dict,
     status: str,
@@ -209,10 +322,16 @@ def upsert_feature_status(
     updated_at: Optional[datetime] = None,
     credentials: Optional[dict] = None,
 ) -> str:
-    """Upsert a feature status document.  Returns the upserted / matched document ID as a string.
+    """Upsert a feature entry inside instance_level_config.
 
-    The upsert key is ``(region, instance_id, account, cluster, type)``.
-    On insert ``created_at`` is set; ``updated_at`` is always refreshed.
+    The parent document is identified by
+    (tenant_id, subscription_id, account, region, cluster, instance).
+    If the parent does not exist it is created with an empty features array
+    and then the entry is pushed.  If a feature entry with the same *type*
+    already exists it is updated in-place via arrayFilters; otherwise the
+    entry is appended.
+
+    Returns the parent document _id as a string.
     """
     try:
         from pymongo import ReturnDocument  # type: ignore
@@ -221,53 +340,176 @@ def upsert_feature_status(
 
     if status not in VALID_STATUSES:
         raise ValueError(f"Invalid status '{status}'. Must be one of {sorted(VALID_STATUSES)}")
-
     validate_feature_details(feature_type, feature_details)
 
     now = datetime.now(timezone.utc)
-    deployment_start = deployment_start or now
-    updated_at = updated_at or now
-    created_at = created_at or now
+    entry = _build_feature_entry(feature_type, feature_details, status, status_details, deployment_start, deployment_end, now, created_at, updated_at)
 
-    filter_doc = {
-        "region": region,
-        "instance_id": instance_id,
+    parent_filter = {
+        "tenant_id": tenant_id,
+        "subscription_id": subscription_id,
         "account": account,
+        "region": region,
         "cluster": cluster,
-        "type": feature_type,
-    }
-
-    update_doc = {
-        "$set": {
-            "subscription_id": subscription_id,
-            "feature_details": feature_details,
-            "status": status,
-            "status_details": status_details,
-            "deployment_start": deployment_start,
-            "deployment_end": deployment_end,
-            "updated_at": updated_at,
-            "schema_version": 1,
-        },
-        "$setOnInsert": {
-            "created_at": created_at,
-        },
+        "instance": instance,
     }
 
     client = _get_client(mongo_url, credentials)
     try:
-        db = client[DATABASE]
-        collection = db[COLLECTION]
-        result = collection.find_one_and_update(
-            filter_doc,
-            update_doc,
+        collection = client[DATABASE][COLLECTION_INSTANCE]
+
+        # Step 1 — ensure the parent document exists.
+        collection.update_one(
+            parent_filter,
+            {
+                "$setOnInsert": {
+                    **parent_filter,
+                    "instance_level_features": [],
+                    "created_at": created_at or now,
+                },
+                "$set": {"updated_at": updated_at or now},
+            },
             upsert=True,
-            return_document=ReturnDocument.AFTER,
         )
+
+        # Step 2 — check whether a feature entry for this type already exists.
+        existing = collection.find_one({**parent_filter, "instance_level_features.type": feature_type})
+
+        if existing:
+            # Update the matching array element in-place.
+            result = collection.find_one_and_update(
+                parent_filter,
+                {
+                    "$set": {
+                        "updated_at": updated_at or now,
+                        **{f"instance_level_features.$[elem].{k}": v for k, v in entry.items() if k != "created_at"},
+                    }
+                },
+                array_filters=[{"elem.type": feature_type}],
+                return_document=ReturnDocument.AFTER,
+            )
+        else:
+            # Append a brand-new feature entry.
+            result = collection.find_one_and_update(
+                parent_filter,
+                {
+                    "$push": {"instance_level_features": entry},
+                    "$set": {"updated_at": updated_at or now},
+                },
+                return_document=ReturnDocument.AFTER,
+            )
+
         doc_id = str(result["_id"])
         logger.info(
-            "Feature status upserted [%s / %s / %s] status=%s id=%s",
+            "Instance feature upserted [%s / %s / %s / %s] status=%s id=%s",
             account,
-            instance_id,
+            instance,
+            feature_type,
+            status,
+            status,
+            doc_id,
+        )
+        return doc_id
+    finally:
+        client.close()
+
+
+# ---------------------------------------------------------------------------
+# cluster_level_config — upsert
+# ---------------------------------------------------------------------------
+
+
+def upsert_cluster_feature(
+    mongo_url: str,
+    *,
+    tenant_id: str,
+    region: str,
+    account: str,
+    cluster: str,
+    feature_type: str,
+    feature_details: dict,
+    status: str,
+    status_details: dict,
+    deployment_start: Optional[datetime] = None,
+    deployment_end: Optional[datetime] = None,
+    created_at: Optional[datetime] = None,
+    updated_at: Optional[datetime] = None,
+    credentials: Optional[dict] = None,
+) -> str:
+    """Upsert a feature entry inside cluster_level_config.
+
+    The parent document is identified by (tenant_id, account, region, cluster).
+    Same two-step upsert pattern as upsert_instance_feature.
+
+    Returns the parent document _id as a string.
+    """
+    try:
+        from pymongo import ReturnDocument  # type: ignore
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("pymongo is required. Install it with: pip install pymongo") from exc
+
+    if status not in VALID_STATUSES:
+        raise ValueError(f"Invalid status '{status}'. Must be one of {sorted(VALID_STATUSES)}")
+    validate_feature_details(feature_type, feature_details)
+
+    now = datetime.now(timezone.utc)
+    entry = _build_feature_entry(feature_type, feature_details, status, status_details, deployment_start, deployment_end, now, created_at, updated_at)
+
+    parent_filter = {
+        "tenant_id": tenant_id,
+        "account": account,
+        "region": region,
+        "cluster": cluster,
+    }
+
+    client = _get_client(mongo_url, credentials)
+    try:
+        collection = client[DATABASE][COLLECTION_CLUSTER]
+
+        # Step 1 — ensure the parent document exists.
+        collection.update_one(
+            parent_filter,
+            {
+                "$setOnInsert": {
+                    **parent_filter,
+                    "cluster_level_features": [],
+                    "created_at": created_at or now,
+                },
+                "$set": {"updated_at": updated_at or now},
+            },
+            upsert=True,
+        )
+
+        # Step 2 — check whether a feature entry for this type already exists.
+        existing = collection.find_one({**parent_filter, "cluster_level_features.type": feature_type})
+
+        if existing:
+            result = collection.find_one_and_update(
+                parent_filter,
+                {
+                    "$set": {
+                        "updated_at": updated_at or now,
+                        **{f"cluster_level_features.$[elem].{k}": v for k, v in entry.items() if k != "created_at"},
+                    }
+                },
+                array_filters=[{"elem.type": feature_type}],
+                return_document=ReturnDocument.AFTER,
+            )
+        else:
+            result = collection.find_one_and_update(
+                parent_filter,
+                {
+                    "$push": {"cluster_level_features": entry},
+                    "$set": {"updated_at": updated_at or now},
+                },
+                return_document=ReturnDocument.AFTER,
+            )
+
+        doc_id = str(result["_id"])
+        logger.info(
+            "Cluster feature upserted [%s / %s / %s] status=%s id=%s",
+            account,
+            cluster,
             feature_type,
             status,
             doc_id,
@@ -277,20 +519,21 @@ def upsert_feature_status(
         client.close()
 
 
-def get_feature_status_by_id(mongo_url: str, doc_id: str, credentials: Optional[dict] = None) -> Optional[dict]:
-    """Fetch a single feature status document by its ObjectId string.
+# ---------------------------------------------------------------------------
+# get helpers
+# ---------------------------------------------------------------------------
 
-    Args:
-        mongo_url (str): MongoDB connection URL.
-        doc_id (str): Hex string ObjectId of the document to retrieve.
-        credentials (dict, optional): Optional credential overrides. Defaults to None.
+
+def get_feature_status_by_id(mongo_url: str, doc_id: str, credentials: Optional[dict] = None) -> Optional[dict]:
+    """Fetch a parent document by its ObjectId from either collection.
+
+    Tries instance_level_config first, then cluster_level_config.
 
     Returns:
-        dict: The document with ``_id`` serialised to a string, or None if not found.
+        dict with ``_id`` serialised to a string, or None if not found in either collection.
 
     Raises:
-        ValueError: If *doc_id* is not a valid 24-character hex ObjectId.
-        pymongo.errors.ConnectionFailure: If the MongoDB server is unreachable.
+        ValueError: if *doc_id* is not a valid 24-character hex ObjectId.
     """
     try:
         from bson import ObjectId
@@ -305,18 +548,20 @@ def get_feature_status_by_id(mongo_url: str, doc_id: str, credentials: Optional[
 
     client = _get_client(mongo_url, credentials)
     try:
-        doc = client[DATABASE][COLLECTION].find_one({"_id": oid})
-        if doc is None:
-            return None
-        doc["_id"] = str(doc["_id"])
-        return doc
+        for col_name in (COLLECTION_INSTANCE, COLLECTION_CLUSTER):
+            doc = client[DATABASE][col_name].find_one({"_id": oid})
+            if doc is not None:
+                doc["_id"] = str(doc["_id"])
+                return doc
+        return None
     finally:
         client.close()
 
 
-def get_feature_status_by_criteria(
+def get_instance_feature_by_criteria(
     mongo_url: str,
     *,
+    tenant_id: str,
     region: str,
     instance_id: str,
     account: str,
@@ -325,40 +570,62 @@ def get_feature_status_by_criteria(
     feature_type: str,
     credentials: Optional[dict] = None,
 ) -> Optional[dict]:
-    """Fetch a single feature status document by its identifying criteria fields.
+    """Fetch the feature entry for *feature_type* from instance_level_config.
 
-    Args:
-        mongo_url (str): MongoDB connection URL.
-        region (str): AWS region (e.g. us-east-2).
-        instance_id (str): MAS instance ID (e.g. inst02).
-        account (str): GitOps account name (e.g. fyre-noble10-dev).
-        cluster (str): GitOps cluster name (e.g. noble10).
-        subscription_id (str): Subscription ID.
-        feature_type (str): Feature type (e.g. allow-list).
-        credentials (dict, optional): Optional credential overrides. Defaults to None.
-
-    Returns:
-        dict: The matching document with ``_id`` serialised to a string, or None if not found.
-
-    Raises:
-        pymongo.errors.ConnectionFailure: If the MongoDB server is unreachable.
+    Returns the matching feature entry dict (not the full parent document),
+    or None if the parent or the feature entry does not exist.
     """
-    filterDoc = {
-        "region": region,
-        "instance_id": instance_id,
-        "account": account,
-        "cluster": cluster,
-        "subscription_id": subscription_id,
-        "type": feature_type,
-    }
-
     client = _get_client(mongo_url, credentials)
     try:
-        doc = client[DATABASE][COLLECTION].find_one(filterDoc)
+        filter_doc = {
+            "tenant_id": tenant_id,
+            "subscription_id": subscription_id,
+            "account": account,
+            "region": region,
+            "cluster": cluster,
+            "instance": instance_id,
+        }
+        doc = client[DATABASE][COLLECTION_INSTANCE].find_one(filter_doc)
         if doc is None:
             return None
-        doc["_id"] = str(doc["_id"])
-        return doc
+        for entry in doc.get("instance_level_features", []):
+            if entry.get("type") == feature_type:
+                return entry
+        return None
+    finally:
+        client.close()
+
+
+def get_cluster_feature_by_criteria(
+    mongo_url: str,
+    *,
+    tenant_id: str,
+    region: str,
+    account: str,
+    cluster: str,
+    feature_type: str,
+    credentials: Optional[dict] = None,
+) -> Optional[dict]:
+    """Fetch the feature entry for *feature_type* from cluster_level_config.
+
+    Returns the matching feature entry dict (not the full parent document),
+    or None if the parent or the feature entry does not exist.
+    """
+    client = _get_client(mongo_url, credentials)
+    try:
+        filter_doc = {
+            "tenant_id": tenant_id,
+            "account": account,
+            "region": region,
+            "cluster": cluster,
+        }
+        doc = client[DATABASE][COLLECTION_CLUSTER].find_one(filter_doc)
+        if doc is None:
+            return None
+        for entry in doc.get("cluster_level_features", []):
+            if entry.get("type") == feature_type:
+                return entry
+        return None
     finally:
         client.close()
 
