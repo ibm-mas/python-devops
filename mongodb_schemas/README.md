@@ -9,8 +9,8 @@ The original `allowlisting_config` collection has been split into two flat colle
 
 | File | Collection | Cardinality | Description |
 |---|---|---|---|
-| [`cluster_level_config.js`](cluster_level_config.js) | `cluster_level_config` | 1 doc per `(tenant_id × account × region × cluster)` | Cluster-scoped feature entries (e.g. `dro`). |
-| [`instance_level_config.js`](instance_level_config.js) | `instance_level_config` | 1 doc per `(tenant_id × account × region × cluster × instance)` | Instance-scoped IP/CIDR allowlisting entries with per-feature deployment lifecycle state. |
+| [`cluster_level_config.js`](cluster_level_config.js) | `cluster_level_config` | 1 doc per `(account × region × cluster)` | Cluster-scoped feature entries (e.g. `dro`). |
+| [`instance_level_config.js`](instance_level_config.js) | `instance_level_config` | 1 doc per `(account × region × cluster × instance)` | Instance-scoped IP/CIDR allowlisting entries with per-feature deployment lifecycle state. |
 | [`init_db.js`](init_db.js) | *(all)* | — | Bootstrap runner — initialises both collections and all indexes. |
 
 ### Key fields per collection
@@ -19,7 +19,6 @@ The original `allowlisting_config` collection has been split into two flat colle
 
 | Field | Type | Notes |
 |---|---|---|
-| `tenant_id` | string | Multi-tenancy isolation key |
 | `account` | string | Account from cluster polling |
 | `region` | string | e.g. `us-east-1` |
 | `cluster` | string | Cluster name from polling |
@@ -29,7 +28,6 @@ The original `allowlisting_config` collection has been split into two flat colle
 
 | Field | Type | Notes |
 |---|---|---|
-| `tenant_id` | string | Multi-tenancy isolation key |
 | `account` | string | Account from cluster polling |
 | `region` | string | e.g. `us-east-1` |
 | `cluster` | string | Cluster name from polling |
@@ -49,7 +47,7 @@ The original `allowlisting_config` collection has been split into two flat colle
 ## Query reference
 
 All queries assume `use mas_devops` has been run first. Replace
-`<tenant>`, `<account>`, `<region>`, `<cluster>`, `<instance>`, and
+`<account>`, `<region>`, `<cluster>`, `<instance>`, and
 `<feature_key>` with real values.
 
 ---
@@ -62,20 +60,11 @@ All queries assume `use mas_devops` has been run first. Replace
 db.cluster_level_config.find().pretty()
 ```
 
-#### List all clusters for a tenant
-
-```js
-db.cluster_level_config.find(
-  { tenant_id: "<tenant>" },
-  { _id: 0, account: 1, region: 1, cluster: 1 }
-).pretty()
-```
-
 #### List all clusters for an account
 
 ```js
 db.cluster_level_config.find(
-  { tenant_id: "<tenant>", account: "<account>" },
+  { account: "<account>" },
   { _id: 0, region: 1, cluster: 1 }
 ).pretty()
 ```
@@ -84,7 +73,7 @@ db.cluster_level_config.find(
 
 ```js
 db.cluster_level_config.find(
-  { tenant_id: "<tenant>", account: "<account>", region: "<region>" },
+  { account: "<account>", region: "<region>" },
   { _id: 0, cluster: 1 }
 ).pretty()
 ```
@@ -93,10 +82,9 @@ db.cluster_level_config.find(
 
 ```js
 db.cluster_level_config.findOne({
-  tenant_id: "<tenant>",
-  account:   "<account>",
-  region:    "<region>",
-  cluster:   "<cluster>"
+  account: "<account>",
+  region:  "<region>",
+  cluster: "<cluster>"
 })
 ```
 
@@ -104,7 +92,7 @@ db.cluster_level_config.findOne({
 
 ```js
 db.cluster_level_config.findOne(
-  { tenant_id: "<tenant>", account: "<account>", region: "<region>", cluster: "<cluster>" },
+  { account: "<account>", region: "<region>", cluster: "<cluster>" },
   { _id: 0, cluster_level_features: 1 }
 )
 ```
@@ -113,10 +101,7 @@ db.cluster_level_config.findOne(
 
 ```js
 db.cluster_level_config.find(
-  {
-    tenant_id: "<tenant>",
-    "cluster_level_features.feature_key": "<feature_key>"
-  },
+  { "cluster_level_features.feature_key": "<feature_key>" },
   { _id: 0, account: 1, region: 1, cluster: 1, cluster_level_features: 1 }
 ).pretty()
 ```
@@ -125,7 +110,7 @@ db.cluster_level_config.find(
 
 ```js
 db.cluster_level_config.find(
-  { tenant_id: "<tenant>", "cluster_level_features.0": { $exists: true } },
+  { "cluster_level_features.0": { $exists: true } },
   { _id: 0, account: 1, region: 1, cluster: 1 }
 ).pretty()
 ```
@@ -134,26 +119,25 @@ db.cluster_level_config.find(
 
 ```js
 db.cluster_level_config.find(
-  { tenant_id: "<tenant>", cluster_level_features: { $size: 0 } },
+  { cluster_level_features: { $size: 0 } },
   { _id: 0, account: 1, region: 1, cluster: 1 }
 ).pretty()
 ```
 
-#### Count clusters per region (for a tenant)
+#### Count clusters per region for an account
 
 ```js
 db.cluster_level_config.aggregate([
-  { $match: { tenant_id: "<tenant>" } },
-  { $group: { _id: { account: "$account", region: "$region" }, cluster_count: { $sum: 1 } } },
-  { $sort: { "_id.account": 1, "_id.region": 1 } }
+  { $match: { account: "<account>" } },
+  { $group: { _id: "$region", cluster_count: { $sum: 1 } } },
+  { $sort: { _id: 1 } }
 ])
 ```
 
-#### Count clusters per account (for a tenant)
+#### Count clusters per account
 
 ```js
 db.cluster_level_config.aggregate([
-  { $match: { tenant_id: "<tenant>" } },
   { $group: { _id: "$account", cluster_count: { $sum: 1 } } },
   { $sort: { _id: 1 } }
 ])
@@ -169,20 +153,11 @@ db.cluster_level_config.aggregate([
 db.instance_level_config.find().pretty()
 ```
 
-#### List all instances for a tenant
-
-```js
-db.instance_level_config.find(
-  { tenant_id: "<tenant>" },
-  { _id: 0, account: 1, region: 1, cluster: 1, instance: 1 }
-).pretty()
-```
-
 #### List all instances for an account
 
 ```js
 db.instance_level_config.find(
-  { tenant_id: "<tenant>", account: "<account>" },
+  { account: "<account>" },
   { _id: 0, region: 1, cluster: 1, instance: 1 }
 ).pretty()
 ```
@@ -191,7 +166,7 @@ db.instance_level_config.find(
 
 ```js
 db.instance_level_config.find(
-  { tenant_id: "<tenant>", account: "<account>", region: "<region>" },
+  { account: "<account>", region: "<region>" },
   { _id: 0, cluster: 1, instance: 1 }
 ).pretty()
 ```
@@ -200,7 +175,7 @@ db.instance_level_config.find(
 
 ```js
 db.instance_level_config.find(
-  { tenant_id: "<tenant>", account: "<account>", region: "<region>", cluster: "<cluster>" },
+  { account: "<account>", region: "<region>", cluster: "<cluster>" },
   { _id: 0, instance: 1 }
 ).pretty()
 ```
@@ -209,11 +184,10 @@ db.instance_level_config.find(
 
 ```js
 db.instance_level_config.findOne({
-  tenant_id: "<tenant>",
-  account:   "<account>",
-  region:    "<region>",
-  cluster:   "<cluster>",
-  instance:  "<instance>"
+  account:  "<account>",
+  region:   "<region>",
+  cluster:  "<cluster>",
+  instance: "<instance>"
 })
 ```
 
@@ -222,11 +196,10 @@ db.instance_level_config.findOne({
 ```js
 db.instance_level_config.findOne(
   {
-    tenant_id: "<tenant>",
-    account:   "<account>",
-    region:    "<region>",
-    cluster:   "<cluster>",
-    instance:  "<instance>"
+    account:  "<account>",
+    region:   "<region>",
+    cluster:  "<cluster>",
+    instance: "<instance>"
   },
   { _id: 0, instance_level_features: 1 }
 )
@@ -239,11 +212,10 @@ Returns just the matching element from `instance_level_features[]` using `$elemM
 ```js
 db.instance_level_config.findOne(
   {
-    tenant_id: "<tenant>",
-    account:   "<account>",
-    region:    "<region>",
-    cluster:   "<cluster>",
-    instance:  "<instance>"
+    account:  "<account>",
+    region:   "<region>",
+    cluster:  "<cluster>",
+    instance: "<instance>"
   },
   {
     _id: 0,
@@ -258,10 +230,7 @@ db.instance_level_config.findOne(
 
 ```js
 db.instance_level_config.find(
-  {
-    tenant_id: "<tenant>",
-    "instance_level_features.feature_key": "<feature_key>"
-  },
+  { "instance_level_features.feature_key": "<feature_key>" },
   { _id: 0, account: 1, region: 1, cluster: 1, instance: 1 }
 ).pretty()
 ```
@@ -270,10 +239,7 @@ db.instance_level_config.find(
 
 ```js
 db.instance_level_config.find(
-  {
-    tenant_id: "<tenant>",
-    "instance_level_features.feature_key": "<feature_key>"
-  },
+  { "instance_level_features.feature_key": "<feature_key>" },
   {
     _id: 0,
     account: 1, region: 1, cluster: 1, instance: 1,
@@ -287,7 +253,6 @@ db.instance_level_config.find(
 ```js
 db.instance_level_config.find(
   {
-    tenant_id: "<tenant>",
     instance_level_features: {
       $elemMatch: {
         feature_key: "<feature_key>",
@@ -304,7 +269,6 @@ db.instance_level_config.find(
 ```js
 db.instance_level_config.find(
   {
-    tenant_id: "<tenant>",
     instance_level_features: {
       $elemMatch: {
         feature_key: "<feature_key>",
@@ -321,7 +285,6 @@ db.instance_level_config.find(
 ```js
 db.instance_level_config.find(
   {
-    tenant_id: "<tenant>",
     "instance_level_features.cluster_poll_status": { $in: ["stale", "unreachable"] }
   },
   { _id: 0, account: 1, region: 1, cluster: 1, instance: 1,
@@ -337,7 +300,6 @@ db.instance_level_config.find(
 ```js
 db.instance_level_config.find(
   {
-    tenant_id: "<tenant>",
     "instance_level_features.cluster_last_polled_at": {
       $lt: ISODate("<YYYY-MM-DDTHH:MM:SSZ>")
     }
@@ -350,10 +312,7 @@ db.instance_level_config.find(
 
 ```js
 db.instance_level_config.find(
-  {
-    tenant_id: "<tenant>",
-    "instance_level_features.cluster_last_polled_at": { $exists: false }
-  },
+  { "instance_level_features.cluster_last_polled_at": { $exists: false } },
   { _id: 0, account: 1, region: 1, cluster: 1, instance: 1 }
 ).pretty()
 ```
@@ -365,26 +324,21 @@ db.instance_level_config.find(
 #### List all distinct regions for an account
 
 ```js
-// From cluster_level_config (one query covers all clusters, hence all regions)
-db.cluster_level_config.distinct("region", {
-  tenant_id: "<tenant>",
-  account:   "<account>"
-})
+db.cluster_level_config.distinct("region", { account: "<account>" })
 ```
 
-#### List all distinct accounts for a tenant
+#### List all distinct accounts
 
 ```js
-db.cluster_level_config.distinct("account", { tenant_id: "<tenant>" })
+db.cluster_level_config.distinct("account")
 ```
 
 #### List all distinct clusters in a region
 
 ```js
 db.cluster_level_config.distinct("cluster", {
-  tenant_id: "<tenant>",
-  account:   "<account>",
-  region:    "<region>"
+  account: "<account>",
+  region:  "<region>"
 })
 ```
 
@@ -392,10 +346,9 @@ db.cluster_level_config.distinct("cluster", {
 
 ```js
 db.instance_level_config.distinct("instance", {
-  tenant_id: "<tenant>",
-  account:   "<account>",
-  region:    "<region>",
-  cluster:   "<cluster>"
+  account: "<account>",
+  region:  "<region>",
+  cluster: "<cluster>"
 })
 ```
 
@@ -408,10 +361,9 @@ using `$lookup`.
 db.cluster_level_config.aggregate([
   {
     $match: {
-      tenant_id: "<tenant>",
-      account:   "<account>",
-      region:    "<region>",
-      cluster:   "<cluster>"
+      account: "<account>",
+      region:  "<region>",
+      cluster: "<cluster>"
     }
   },
   {
@@ -420,7 +372,6 @@ db.cluster_level_config.aggregate([
       localField:   "cluster",
       foreignField: "cluster",
       let: {
-        t: "$tenant_id",
         a: "$account",
         r: "$region",
         c: "$cluster"
@@ -430,10 +381,9 @@ db.cluster_level_config.aggregate([
           $match: {
             $expr: {
               $and: [
-                { $eq: ["$tenant_id", "$$t"] },
-                { $eq: ["$account",   "$$a"] },
-                { $eq: ["$region",    "$$r"] },
-                { $eq: ["$cluster",   "$$c"] }
+                { $eq: ["$account", "$$a"] },
+                { $eq: ["$region",  "$$r"] },
+                { $eq: ["$cluster", "$$c"] }
               ]
             }
           }
@@ -454,11 +404,10 @@ db.cluster_level_config.aggregate([
 ])
 ```
 
-#### Count instances per cluster across all clusters for a tenant
+#### Count instances per cluster across all clusters
 
 ```js
 db.instance_level_config.aggregate([
-  { $match: { tenant_id: "<tenant>" } },
   {
     $group: {
       _id: { account: "$account", region: "$region", cluster: "$cluster" },
@@ -473,7 +422,7 @@ db.instance_level_config.aggregate([
 
 ```js
 db.instance_level_config.aggregate([
-  { $match: { tenant_id: "<tenant>", account: "<account>" } },
+  { $match: { account: "<account>" } },
   { $group: { _id: "$region", instance_count: { $sum: 1 } } },
   { $sort: { _id: 1 } }
 ])
@@ -500,22 +449,22 @@ use mas_devops
 
 // cluster_level_config indexes
 db.cluster_level_config.createIndex(
-  { tenant_id: 1, account: 1, region: 1, cluster: 1 },
-  { unique: true, name: "ux_cluster_level_config_tenant_account_region_cluster" }
+  { account: 1, region: 1, cluster: 1 },
+  { unique: true, name: "ux_cluster_level_config_account_region_cluster" }
 );
 db.cluster_level_config.createIndex(
-  { tenant_id: 1, account: 1 },
-  { name: "ix_cluster_level_config_tenant_account" }
+  { account: 1 },
+  { name: "ix_cluster_level_config_account" }
 );
 
 // instance_level_config indexes
 db.instance_level_config.createIndex(
-  { tenant_id: 1, subscription_id: 1, account: 1, region: 1, cluster: 1, instance: 1 },
-  { unique: true, name: "ux_instance_level_config_tenant_sub_account_region_cluster_instance" }
+  { subscription_id: 1, account: 1, region: 1, cluster: 1, instance: 1 },
+  { unique: true, name: "ux_instance_level_config_sub_account_region_cluster_instance" }
 );
 db.instance_level_config.createIndex(
-  { tenant_id: 1, subscription_id: 1, account: 1, region: 1, cluster: 1 },
-  { name: "ix_instance_level_config_tenant_sub_account_region_cluster" }
+  { subscription_id: 1, account: 1, region: 1, cluster: 1 },
+  { name: "ix_instance_level_config_sub_account_region_cluster" }
 );
 db.instance_level_config.createIndex(
   { "instance_level_features.status": 1 },

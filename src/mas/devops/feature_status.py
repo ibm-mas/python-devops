@@ -12,12 +12,12 @@ feature_status.py — Write feature status records into the DevOps MongoDB.
 
 Database:    mas_devops
 Collections:
-  instance_level_config — one document per (tenant_id × subscription_id ×
+  instance_level_config — one document per (subscription_id ×
                            account × region × cluster × instance).
                            Feature entries are embedded in instance_level_features[].
                            Used when --instance-id is supplied.
 
-  cluster_level_config  — one document per (tenant_id × account × region × cluster).
+  cluster_level_config  — one document per (account × region × cluster).
                            Feature entries are embedded in cluster_level_features[].
                            Used when --instance-id is omitted.
 
@@ -25,7 +25,6 @@ Document schema — instance_level_config top-level:
 
   {
     "_id":          <ObjectId>,
-    "tenant_id":    str,
     "subscription_id": str,
     "account":      str,
     "region":       str,
@@ -53,7 +52,6 @@ Document schema — cluster_level_config top-level:
 
   {
     "_id":        <ObjectId>,
-    "tenant_id":  str,
     "account":    str,
     "region":     str,
     "cluster":    str,
@@ -219,7 +217,6 @@ def create_indexes(mongo_url: str) -> None:
 
         inst.create_index(
             [
-                ("tenant_id", ASCENDING),
                 ("subscription_id", ASCENDING),
                 ("account", ASCENDING),
                 ("region", ASCENDING),
@@ -227,21 +224,20 @@ def create_indexes(mongo_url: str) -> None:
                 ("instance", ASCENDING),
             ],
             unique=True,
-            name="ux_instance_level_config_tenant_sub_account_region_cluster_instance",
+            name="ux_instance_level_config_sub_account_region_cluster_instance",
         )
-        logger.info("Index 'ux_instance_level_config_tenant_sub_account_region_cluster_instance' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
+        logger.info("Index 'ux_instance_level_config_sub_account_region_cluster_instance' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
 
         inst.create_index(
             [
-                ("tenant_id", ASCENDING),
                 ("subscription_id", ASCENDING),
                 ("account", ASCENDING),
                 ("region", ASCENDING),
                 ("cluster", ASCENDING),
             ],
-            name="ix_instance_level_config_tenant_sub_account_region_cluster",
+            name="ix_instance_level_config_sub_account_region_cluster",
         )
-        logger.info("Index 'ix_instance_level_config_tenant_sub_account_region_cluster' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
+        logger.info("Index 'ix_instance_level_config_sub_account_region_cluster' ensured on %s.%s", DATABASE, COLLECTION_INSTANCE)
 
         inst.create_index(
             [("instance_level_features.status", ASCENDING)],
@@ -261,21 +257,20 @@ def create_indexes(mongo_url: str) -> None:
 
         clst.create_index(
             [
-                ("tenant_id", ASCENDING),
                 ("account", ASCENDING),
                 ("region", ASCENDING),
                 ("cluster", ASCENDING),
             ],
             unique=True,
-            name="ux_cluster_level_config_tenant_account_region_cluster",
+            name="ux_cluster_level_config_account_region_cluster",
         )
-        logger.info("Index 'ux_cluster_level_config_tenant_account_region_cluster' ensured on %s.%s", DATABASE, COLLECTION_CLUSTER)
+        logger.info("Index 'ux_cluster_level_config_account_region_cluster' ensured on %s.%s", DATABASE, COLLECTION_CLUSTER)
 
         clst.create_index(
-            [("tenant_id", ASCENDING), ("account", ASCENDING)],
-            name="ix_cluster_level_config_tenant_account",
+            [("account", ASCENDING)],
+            name="ix_cluster_level_config_account",
         )
-        logger.info("Index 'ix_cluster_level_config_tenant_account' ensured on %s.%s", DATABASE, COLLECTION_CLUSTER)
+        logger.info("Index 'ix_cluster_level_config_account' ensured on %s.%s", DATABASE, COLLECTION_CLUSTER)
 
     finally:
         client.close()
@@ -323,7 +318,6 @@ def _build_feature_entry(
 def upsert_instance_feature(
     mongo_url: str,
     *,
-    tenant_id: str,
     subscription_id: str,
     region: str,
     account: str,
@@ -341,7 +335,7 @@ def upsert_instance_feature(
     """Upsert a feature entry inside instance_level_config.
 
     The parent document is identified by
-    (tenant_id, subscription_id, account, region, cluster, instance).
+    (subscription_id, account, region, cluster, instance).
     If a feature entry with the same *type* already exists it is updated
     in-place via a single atomic find_one_and_update with arrayFilters;
     otherwise the entry is appended (with parent upsert if needed).
@@ -358,7 +352,6 @@ def upsert_instance_feature(
     entry = _build_feature_entry(feature_type, feature_details, status, status_details, deployment_start, deployment_end, now, created_at, updated_at)
 
     parent_filter = {
-        "tenant_id": tenant_id,
         "subscription_id": subscription_id,
         "account": account,
         "region": region,
@@ -436,7 +429,6 @@ def upsert_instance_feature(
 def upsert_cluster_feature(
     mongo_url: str,
     *,
-    tenant_id: str,
     region: str,
     account: str,
     cluster: str,
@@ -451,7 +443,7 @@ def upsert_cluster_feature(
 ) -> str:
     """Upsert a feature entry inside cluster_level_config.
 
-    The parent document is identified by (tenant_id, account, region, cluster).
+    The parent document is identified by (account, region, cluster).
     Same atomic two-step pattern as upsert_instance_feature.
 
     Returns the parent document _id as a string.
@@ -466,7 +458,6 @@ def upsert_cluster_feature(
     entry = _build_feature_entry(feature_type, feature_details, status, status_details, deployment_start, deployment_end, now, created_at, updated_at)
 
     parent_filter = {
-        "tenant_id": tenant_id,
         "account": account,
         "region": region,
         "cluster": cluster,
@@ -575,7 +566,6 @@ def get_feature_status_by_id(mongo_url: str, doc_id: str) -> Optional[dict]:
 def get_instance_feature_by_criteria(
     mongo_url: str,
     *,
-    tenant_id: str,
     region: str,
     instance_id: str,
     account: str,
@@ -591,7 +581,6 @@ def get_instance_feature_by_criteria(
     client = MongoClient(mongo_url)
     try:
         filter_doc = {
-            "tenant_id": tenant_id,
             "subscription_id": subscription_id,
             "account": account,
             "region": region,
@@ -612,7 +601,6 @@ def get_instance_feature_by_criteria(
 def get_cluster_feature_by_criteria(
     mongo_url: str,
     *,
-    tenant_id: str,
     region: str,
     account: str,
     cluster: str,
@@ -626,7 +614,6 @@ def get_cluster_feature_by_criteria(
     client = MongoClient(mongo_url)
     try:
         filter_doc = {
-            "tenant_id": tenant_id,
             "account": account,
             "region": region,
             "cluster": cluster,

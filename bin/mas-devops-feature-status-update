@@ -35,7 +35,7 @@ Sub-commands
     Required indexes are created automatically on the first call if they do
     not already exist (idempotent).
 
-    Example — instance-level, ACTIVE:
+    Example — instance-level, ACTIVE (single IP):
       mas-devops-feature-status-update status-update \\
           --region     us-east-2 \\
           --instance-id inst02 \\
@@ -49,27 +49,46 @@ Sub-commands
           --deployment-start 2026-09-11T11:48:42+00:00 \\
           --deployment-end   2026-09-11T11:53:10+00:00
 
-    Example — cluster-level (no --instance-id), ERROR:
+    Example — instance-level, ACTIVE (multiple IPs):
       mas-devops-feature-status-update status-update \\
           --region     us-east-2 \\
+          --instance-id inst02 \\
           --account    fyre-noble10-dev \\
           --cluster    noble10 \\
           --subscription-id sub-id01 \\
           --type       allow-list \\
-          --feature-details '{"ips": ["2405:201:d000:9062::/64"]}' \\
+          --feature-details '{"ips": ["1.2.3.4/32", "2405:201:d000:9062::/64"]}' \\
+          --status     ACTIVE \\
+          --status-details '{"message": "Allow list is active.", "request_configuration": "1.2.3.4/32, 2405:201:d000:9062::/64"}' \\
+          --deployment-start 2026-09-11T11:48:42+00:00 \\
+          --deployment-end   2026-09-11T11:53:10+00:00
+
+    Example — instance-level, ERROR (using --status-details-file to avoid shell quoting issues):
+      cat > /tmp/status-details.json <<'EOF'
+      {
+        "message": "sample error message",
+        "error_code": 401,
+        "error_source": {
+          "gitops_version": "8.6.0",
+          "filename": "cis_ip_allowlist.yml",
+          "log_file": "/var/log/gitops/run-001.log",
+          "stacktrace": "Traceback (most recent call last): ..."
+        },
+        "request_configuration": "2405:201:d000:9060::/64"
+      }
+      EOF
+      mas-devops-feature-status-update status-update \\
+          --region     us-east-2 \\
+          --instance-id inst02 \\
+          --account    fyre-noble10-dev \\
+          --cluster    noble10 \\
+          --subscription-id sub-id01 \\
+          --type       allow-list \\
+          --feature-details '{"ips": ["2405:201:d000:9060::/64"]}' \\
           --status     ERROR \\
-          --status-details '{
-            "message": "sample error message",
-            "error_code": 401,
-            "error_source": {
-              "gitops_version": "8.6.0",
-              "filename": "cis_ip_allowlist.yml",
-              "line_no": 148,
-              "log_file": "/var/log/gitops/run-001.log",
-              "stacktrace": "Traceback (most recent call last): ..."
-            },
-            "request_configuration": "2405:201:d000:9060::/64"
-          }'
+          --status-details-file /tmp/status-details.json \\
+          --deployment-start 2026-09-11T11:48:42+00:00 \\
+          --deployment-end   2026-09-11T11:53:10+00:00
 
   get
     Fetch and pretty-print a feature status entry by ObjectId or by
@@ -161,6 +180,19 @@ def _parse_json_arg(value: str, arg_name: str) -> dict:
         print(f"ERROR: --{arg_name} must be a JSON object (got {type(result).__name__})", file=sys.stderr)
         sys.exit(1)
     return result
+
+
+def _read_file_arg(path: str, arg_name: str) -> str:
+    """Read and return the contents of *path* for use as a CLI argument value.
+
+    Raises SystemExit(1) if the file cannot be read.
+    """
+    try:
+        with open(path) as fh:
+            return fh.read()
+    except OSError as exc:
+        print(f"ERROR: --{arg_name}: cannot read file '{path}': {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 def _parse_isodate(value: Optional[str], arg_name: str) -> Optional[datetime]:
@@ -301,8 +333,8 @@ def cmd_status_update(args) -> int:
     """Upsert a feature status entry into MongoDB.
 
     Collection routing is determined by FEATURE_LEVEL_MAP:
-      INSTANCE_LEVEL → instance_level_config  (--instance-id required)
-      otherwise      → cluster_level_config   (--instance-id must be absent)
+      INSTANCE_LEVEL → instance_level_config  (--instance-id and --subscription-id required)
+      otherwise      → cluster_level_config   (--instance-id and --subscription-id must be absent)
 
     Required indexes are created automatically if they do not already exist.
     """
@@ -330,17 +362,24 @@ def cmd_status_update(args) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
-    # Validate --instance-id consistency with the feature type's level.
+    # Validate --instance-id / --subscription-id consistency with the feature type's level.
     if level == INSTANCE_LEVEL and not args.instance_id:
         print(f"ERROR: --instance-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
+        return 1
+    if level == INSTANCE_LEVEL and not args.subscription_id:
+        print(f"ERROR: --subscription-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
         return 1
     if level != INSTANCE_LEVEL and args.instance_id:
         print(f"ERROR: --instance-id must not be supplied for cluster-level feature type '{args.type}'", file=sys.stderr)
         return 1
 
-    # Parse JSON arguments
+    # Parse JSON arguments — --status-details-file takes precedence over --status-details
     feature_details = _parse_json_arg(args.feature_details, "feature-details")
-    status_details = _parse_json_arg(args.status_details, "status-details")
+    if args.status_details_file:
+        status_details_raw = _read_file_arg(args.status_details_file, "status-details-file")
+        status_details = _parse_json_arg(status_details_raw, "status-details-file")
+    else:
+        status_details = _parse_json_arg(args.status_details, "status-details")
 
     # Type-specific validation
     try:
@@ -462,7 +501,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     identity.add_argument("--account", required=True, help="GitOps account name (e.g. fyre-noble10-dev)")
     identity.add_argument("--cluster", required=True, help="GitOps cluster name (e.g. noble10)")
-    identity.add_argument("--subscription-id", required=True, dest="subscription_id", help="Subscription ID")
+    identity.add_argument(
+        "--subscription-id",
+        required=False,
+        default=None,
+        dest="subscription_id",
+        help="Subscription ID. Required for instance-level feature types; must be omitted for cluster-level types.",
+    )
 
     feature = su.add_argument_group("feature")
     feature.add_argument(
@@ -485,15 +530,30 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR"],
         help="Feature lifecycle status.",
     )
-    status.add_argument(
+    status_details_group = status.add_mutually_exclusive_group(required=True)
+    status_details_group.add_argument(
         "--status-details",
-        required=True,
+        default=None,
         dest="status_details",
         metavar="JSON",
         help=(
             "JSON object describing the outcome. "
-            "ACTIVE: {message, request_configuration}. "
-            "ERROR: {message, error_code, error_source, request_configuration}."
+            "ACTIVE/REQUESTED/IN_PROGRESS: {message, request_configuration}. "
+            "ERROR: {message, error_code, error_source, request_configuration}. "
+            "request_configuration may be a single CIDR or a comma/space-separated list. "
+            "Mutually exclusive with --status-details-file."
+        ),
+    )
+    status_details_group.add_argument(
+        "--status-details-file",
+        default=None,
+        dest="status_details_file",
+        metavar="FILE",
+        help=(
+            "Path to a JSON file containing the status-details object. "
+            "Useful for ERROR payloads whose message or stacktrace contains quotes "
+            "that would break inline shell quoting. "
+            "Mutually exclusive with --status-details."
         ),
     )
 

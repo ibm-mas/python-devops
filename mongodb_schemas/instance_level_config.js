@@ -15,7 +15,7 @@
 //             scaling of cluster and instance data.
 //
 // Document cardinality:
-//   ONE document per (tenant_id × subscription_id × account × region × cluster × instance).
+//   ONE document per (subscription_id × account × region × cluster × instance).
 //
 // instance_level_features item shape (flattened — no nested allow_lists[]):
 //
@@ -67,7 +67,7 @@ db.createCollection("instance_level_config", {
     $jsonSchema: {
       bsonType: "object",
       required: [
-        "_id", "tenant_id", "subscription_id", "account", "region",
+        "_id", "subscription_id", "account", "region",
         "cluster", "instance", "instance_level_features", "created_at", "updated_at"
       ],
       additionalProperties: false,
@@ -79,10 +79,6 @@ db.createCollection("instance_level_config", {
         _id: {
           bsonType: "objectId",
           description: "MongoDB-generated document identifier."
-        },
-        tenant_id: {
-          bsonType: "string",
-          description: "Tenant/customer identifier. All customer-scoped queries MUST filter on this field. This is the multi-tenancy isolation key."
         },
         subscription_id: {
           bsonType: "string",
@@ -259,16 +255,16 @@ db.createCollection("instance_level_config", {
 // ---------------------------------------------------------------------------
 
 // Compound unique index — enforces the one-document-per
-// (tenant × subscription × account × region × cluster × instance) invariant
+// (subscription × account × region × cluster × instance) invariant
 db.instance_level_config.createIndex(
-  { tenant_id: 1, subscription_id: 1, account: 1, region: 1, cluster: 1, instance: 1 },
-  { unique: true, name: "ux_instance_level_config_tenant_sub_account_region_cluster_instance" }
+  { subscription_id: 1, account: 1, region: 1, cluster: 1, instance: 1 },
+  { unique: true, name: "ux_instance_level_config_sub_account_region_cluster_instance" }
 );
 
 // Index for ansible-devops / GitHub webhook upserts — primary lookup path
 db.instance_level_config.createIndex(
-  { tenant_id: 1, subscription_id: 1, account: 1, region: 1, cluster: 1 },
-  { name: "ix_instance_level_config_tenant_sub_account_region_cluster" }
+  { subscription_id: 1, account: 1, region: 1, cluster: 1 },
+  { name: "ix_instance_level_config_sub_account_region_cluster" }
 );
 
 // Multikey index on feature status — supports finding all documents with

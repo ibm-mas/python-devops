@@ -2,7 +2,7 @@
 // Collection: cluster_level_config
 // Database:   feature_dashboard
 // Purpose:    Stores cluster-scoped feature entries. Each document represents
-//             one cluster within a region/account/tenant and holds the list of
+//             one cluster within a region/account and holds the list of
 //             cluster-level features enabled for that cluster (e.g. 'dro').
 //
 //             Split from allowlisting_config: cluster_level_features[] was
@@ -12,7 +12,7 @@
 //             allows targeted index coverage without touching instance data.
 //
 // Document cardinality:
-//   ONE document per (tenant_id × account × region × cluster).
+//   ONE document per (account × region × cluster).
 // =============================================================================
 
 db.createCollection("cluster_level_config", {
@@ -20,7 +20,7 @@ db.createCollection("cluster_level_config", {
     $jsonSchema: {
       bsonType: "object",
       required: [
-        "_id", "tenant_id", "account", "region", "cluster",
+        "_id", "account", "region", "cluster",
         "cluster_level_features", "created_at", "updated_at"
       ],
       additionalProperties: false,
@@ -32,10 +32,6 @@ db.createCollection("cluster_level_config", {
         _id: {
           bsonType: "objectId",
           description: "MongoDB-generated document identifier."
-        },
-        tenant_id: {
-          bsonType: "string",
-          description: "Tenant/customer identifier. All customer-scoped queries MUST filter on this field. This is the multi-tenancy isolation key."
         },
         account: {
           bsonType: "string",
@@ -87,15 +83,15 @@ db.createCollection("cluster_level_config", {
 // ---------------------------------------------------------------------------
 
 // Compound unique index — enforces the one-document-per
-// (tenant × account × region × cluster) invariant
+// (account × region × cluster) invariant
 db.cluster_level_config.createIndex(
-  { tenant_id: 1, account: 1, region: 1, cluster: 1 },
-  { unique: true, name: "ux_cluster_level_config_tenant_account_region_cluster" }
+  { account: 1, region: 1, cluster: 1 },
+  { unique: true, name: "ux_cluster_level_config_account_region_cluster" }
 );
 
-// Index for querying all clusters for a given tenant + account
+// Index for querying all clusters for a given account
 db.cluster_level_config.createIndex(
-  { tenant_id: 1, account: 1 },
-  { name: "ix_cluster_level_config_tenant_account" }
+  { account: 1 },
+  { name: "ix_cluster_level_config_account" }
 );
 

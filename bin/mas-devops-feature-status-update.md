@@ -142,15 +142,15 @@ Required collection indexes (`instance_config_level`, `cluster_config_level`) ar
 
 **Idempotency:** Safe to call multiple times with the same arguments. The underlying `find_one_and_update` with `upsert=True` guarantees that re-running with the same identity key produces the same final document state. `created_at` is set only on the first insert (`$setOnInsert`); subsequent calls update `updated_at` and all mutable fields without creating duplicate documents.
 
-**Identity options** *(all required)*
+**Identity options**
 
-| Flag | Description |
-|------|-------------|
-| `--region` | AWS region (e.g. `us-east-2`) |
-| `--instance-id` | MAS instance ID (e.g. `inst02`) |
-| `--account` | GitOps account name (e.g. `fyre-noble10-dev`) |
-| `--cluster` | GitOps cluster name (e.g. `noble10`) |
-| `--subscription-id` | Subscription ID |
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--region` | Yes | AWS region (e.g. `us-east-2`) |
+| `--instance-id` | Instance-level types | MAS instance ID (e.g. `inst02`). When supplied routes to `instance_level_config`; when omitted routes to `cluster_level_config`. |
+| `--account` | Yes | GitOps account name (e.g. `fyre-noble10-dev`) |
+| `--cluster` | Yes | GitOps cluster name (e.g. `noble10`) |
+| `--subscription-id` | Instance-level types | Subscription ID. Required when `--instance-id` is supplied; must be omitted for cluster-level feature types. |
 
 **Feature options** *(all required)*
 
@@ -164,7 +164,8 @@ Required collection indexes (`instance_config_level`, `cluster_config_level`) ar
 | Flag | Description |
 |------|-------------|
 | `--status` | One of `REQUESTED`, `IN_PROGRESS`, `ACTIVE`, `ERROR` |
-| `--status-details JSON` | JSON object describing the outcome (see schema below) |
+| `--status-details JSON` | JSON object describing the outcome (see schema below). Mutually exclusive with `--status-details-file`. |
+| `--status-details-file FILE` | Path to a JSON file containing the status-details object. Use this for `ERROR` payloads whose `message` or `stacktrace` contains quote characters that would break inline shell interpolation. Mutually exclusive with `--status-details`. |
 
 **Timestamp options** *(all optional, default: current UTC time)*
 
@@ -178,6 +179,8 @@ Required collection indexes (`instance_config_level`, `cluster_config_level`) ar
 The MongoDB connection URI is read from the `DEVOPS_MONGO_URI` environment variable — no connection flags are needed on the command line.
 
 **`--status-details` schema**
+
+`request_configuration` is a free-form string describing what was requested — it may be a single CIDR, a comma-separated list, or a space-separated list. The validator does not enforce format.
 
 *REQUESTED* — pipeline has received the request but processing has not yet started.
 ```json
@@ -195,15 +198,15 @@ The MongoDB connection URI is read from the `DEVOPS_MONGO_URI` environment varia
 }
 ```
 
-*ACTIVE* — deployment completed successfully.
+*ACTIVE* — deployment completed successfully. Multiple IPs may be comma-separated.
 ```json
 {
   "message": "Allow list is active.",
-  "request_configuration": "2405:201:d000:9062::/64"
+  "request_configuration": "1.2.3.4/32, 2405:201:d000:9062::/64"
 }
 ```
 
-*ERROR* — deployment failed.
+*ERROR* — deployment failed. `error_source` fields are all optional except that the object itself is required. Use `--status-details-file` when `message` or `stacktrace` may contain quote characters.
 ```json
 {
   "message": "sample error message",
@@ -211,7 +214,6 @@ The MongoDB connection URI is read from the `DEVOPS_MONGO_URI` environment varia
   "error_source": {
     "gitops_version": "8.6.0",
     "filename": "cis_ip_allowlist.yml",
-    "line_no": 148,
     "log_file": "/var/log/gitops/run-001.log",
     "stacktrace": "Traceback (most recent call last): ..."
   },
@@ -248,7 +250,7 @@ mas-devops-feature-status-update status-update \
     --status-details '{"message": "Allow list deployment in progress.", "request_configuration": "2405:201:d000:9062::/64"}' \
     --deployment-start 2026-09-11T11:48:42+00:00
 
-# ACTIVE status — record successful completion
+# ACTIVE status — single IP
 mas-devops-feature-status-update status-update \
     --region us-east-2 \
     --instance-id inst02 \
@@ -262,7 +264,7 @@ mas-devops-feature-status-update status-update \
     --deployment-start 2026-09-11T11:48:42+00:00 \
     --deployment-end   2026-09-11T11:53:10+00:00
 
-# ERROR status — record a failed deployment
+# ACTIVE status — multiple IPs (request_configuration is comma-separated)
 mas-devops-feature-status-update status-update \
     --region us-east-2 \
     --instance-id inst02 \
@@ -270,20 +272,36 @@ mas-devops-feature-status-update status-update \
     --cluster noble10 \
     --subscription-id sub-id01 \
     --type allow-list \
-    --feature-details '{"ips": ["2405:201:d000:9062::/64"]}' \
+    --feature-details '{"ips": ["1.2.3.4/32", "2405:201:d000:9062::/64"]}' \
+    --status ACTIVE \
+    --status-details '{"message": "Allow list is active.", "request_configuration": "1.2.3.4/32, 2405:201:d000:9062::/64"}' \
+    --deployment-start 2026-09-11T11:48:42+00:00 \
+    --deployment-end   2026-09-11T11:53:10+00:00
+
+# ERROR status — use --status-details-file to avoid shell quoting issues with error text
+cat > /tmp/status-details.json <<'EOF'
+{
+  "message": "sample error message",
+  "error_code": 401,
+  "error_source": {
+    "gitops_version": "8.6.0",
+    "filename": "cis_ip_allowlist.yml",
+    "log_file": "/var/log/gitops/run-001.log",
+    "stacktrace": "Traceback (most recent call last): ..."
+  },
+  "request_configuration": "2405:201:d000:9060::/64"
+}
+EOF
+mas-devops-feature-status-update status-update \
+    --region us-east-2 \
+    --instance-id inst02 \
+    --account fyre-noble10-dev \
+    --cluster noble10 \
+    --subscription-id sub-id01 \
+    --type allow-list \
+    --feature-details '{"ips": ["2405:201:d000:9060::/64"]}' \
     --status ERROR \
-    --status-details '{
-      "message": "sample error message",
-      "error_code": 401,
-      "error_source": {
-        "gitops_version": "8.6.0",
-        "filename": "cis_ip_allowlist.yml",
-        "line_no": 148,
-        "log_file": "/var/log/gitops/run-001.log",
-        "stacktrace": "Traceback (most recent call last): ..."
-      },
-      "request_configuration": "2405:201:d000:9060::/64"
-    }' \
+    --status-details-file /tmp/status-details.json \
     --deployment-start 2026-09-11T11:48:42+00:00 \
     --deployment-end   2026-09-11T11:53:10+00:00
 ```
@@ -414,6 +432,16 @@ db.cluster_level_config.drop()
 db.instance_level_config.drop()
 ```
 
+### Drop collections (removes schema & indexes) with auth
+```
+mongosh "mongodb://mas_devops_user:mas_devops_password@localhost:27017/mas_devops?authSource=mas_devops&tls=false&tlsAllowInvalidCertificates=true" \  # pragma: allowlist secret
+  --eval "
+db.cluster_level_config.drop()
+db.instance_level_config.drop()
+print('collections dropped')
+"
+```
+
 > **Note:** `drop()` removes the collection, all documents, and all indexes. Re-run `init_db.js` to recreate them.
 
 ### Indexes created by `init_db.js`
@@ -501,6 +529,44 @@ See the full sample playbook at [`playbooks/feature-status-update.yml`](../playb
       --feature-details {{ '{"ips": ["2405:201:d000:9062::/64"]}' | quote }}
       --status ACTIVE
       --status-details {{ '{"message": "Allow list is active.", "request_configuration": "2405:201:d000:9062::/64"}' | quote }}
+  register: status_update_result
+  changed_when: "'written successfully' in status_update_result.stdout"
+```
+
+For `ERROR` status, write the payload to a file first to avoid shell quoting problems with error text:
+
+```yaml
+- name: Write ERROR status-details to file
+  ansible.builtin.copy:
+    dest: /tmp/mas-status-details.json
+    content: |
+      {
+        "message": "{{ _error_msg | replace('\\', '\\\\') | replace('"', '\\"') }}",
+        "error_code": {{ _error_code }},
+        "error_source": {
+          "gitops_version": "{{ lookup('env', 'GITOPS_VERSION') | default('', true) }}",
+          "filename": "{{ _error_filename }}",
+          "log_file": "{{ lookup('env', 'JUNIT_OUTPUT_DIR') | default('/var/log/gitops', true) }}/run.log",
+          "stacktrace": "{{ _error_msg | replace('\\', '\\\\') | replace('"', '\\"') }}"
+        },
+        "request_configuration": "{{ _request_configuration }}"
+      }
+
+- name: Upsert feature status (ERROR)
+  ansible.builtin.command:
+    cmd: >-
+      mas-devops-feature-status-update status-update
+      --region {{ mas_region }}
+      --instance-id {{ mas_instance_id }}
+      --account {{ mas_account }}
+      --cluster {{ mas_cluster }}
+      --subscription-id {{ mas_subscription_id }}
+      --type allow-list
+      --feature-details {{ ('{"ips": ' + _normalised_ips | to_json + '}') | quote }}
+      --status ERROR
+      --status-details-file /tmp/mas-status-details.json
+      --deployment-start {{ _deployment_start }}
+      --deployment-end {{ _deployment_end }}
   register: status_update_result
   changed_when: "'written successfully' in status_update_result.stdout"
 ```
