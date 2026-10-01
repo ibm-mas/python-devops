@@ -16,13 +16,13 @@ DevOps MongoDB (mas_devops database).
 Collection routing
 ──────────────────
   --instance-id supplied  →  mas_devops.instance_level_config
-                              One document per (tenant_id × subscription_id ×
+                              One document per (subscription_id ×
                               account × region × cluster × instance).
                               The feature entry is embedded in
                               instance_level_features[].
 
   --instance-id omitted   →  mas_devops.cluster_level_config
-                              One document per (tenant_id × account × region ×
+                              One document per (account × region ×
                               cluster).
                               The feature entry is embedded in
                               cluster_level_features[].
@@ -37,7 +37,6 @@ Sub-commands
 
     Example — instance-level, ACTIVE:
       mas-devops-feature-status-update status-update \\
-          --tenant-id  tenant-abc \\
           --region     us-east-2 \\
           --instance-id inst02 \\
           --account    fyre-noble10-dev \\
@@ -52,7 +51,6 @@ Sub-commands
 
     Example — cluster-level (no --instance-id), ERROR:
       mas-devops-feature-status-update status-update \\
-          --tenant-id  tenant-abc \\
           --region     us-east-2 \\
           --account    fyre-noble10-dev \\
           --cluster    noble10 \\
@@ -75,14 +73,13 @@ Sub-commands
 
   get
     Fetch and pretty-print a feature status entry by ObjectId or by
-    criteria fields (tenant_id, region, account, cluster[, instance_id], type).
+    criteria fields (region, account, cluster[, instance_id], type).
 
     Example — by ObjectId:
       mas-devops-feature-status-update get --id 6ab0e70ee6d3a31faa808547
 
     Example — instance-level by criteria:
       mas-devops-feature-status-update get \\
-          --tenant-id  tenant-abc \\
           --region     us-east-2 \\
           --instance-id inst02 \\
           --account    fyre-noble10-dev \\
@@ -92,7 +89,6 @@ Sub-commands
 
     Example — cluster-level by criteria (no --instance-id):
       mas-devops-feature-status-update get \\
-          --tenant-id  tenant-abc \\
           --region     us-east-2 \\
           --account    fyre-noble10-dev \\
           --cluster    noble10 \\
@@ -226,11 +222,10 @@ def cmd_get(args) -> int:
             doc = get_feature_status_by_id(mongo_url, args.id)
             not_found_msg = f"No document found with ID: {args.id}"
         else:
-            # Criteria mode — tenant_id, region, account, cluster, type are always required.
+            # Criteria mode — region, account, cluster, type are always required.
             missing = [
                 f
                 for f, v in [
-                    ("--tenant-id", args.tenant_id),
                     ("--account", args.account),
                     ("--cluster", args.cluster),
                     ("--type", args.type),
@@ -257,7 +252,6 @@ def cmd_get(args) -> int:
                     return 1
                 doc = get_instance_feature_by_criteria(
                     mongo_url,
-                    tenant_id=args.tenant_id,
                     region=args.region,
                     instance_id=args.instance_id,
                     account=args.account,
@@ -267,7 +261,7 @@ def cmd_get(args) -> int:
                 )
                 not_found_msg = (
                     f"No '{args.type}' feature entry found for "
-                    f"tenant={args.tenant_id} region={args.region} "
+                    f"region={args.region} "
                     f"instance_id={args.instance_id} account={args.account} "
                     f"cluster={args.cluster} subscription_id={args.subscription_id}"
                 )
@@ -277,17 +271,12 @@ def cmd_get(args) -> int:
                     return 1
                 doc = get_cluster_feature_by_criteria(
                     mongo_url,
-                    tenant_id=args.tenant_id,
                     region=args.region,
                     account=args.account,
                     cluster=args.cluster,
                     feature_type=args.type,
                 )
-                not_found_msg = (
-                    f"No '{args.type}' feature entry found for "
-                    f"tenant={args.tenant_id} region={args.region} "
-                    f"account={args.account} cluster={args.cluster}"
-                )
+                not_found_msg = f"No '{args.type}' feature entry found for " f"region={args.region} " f"account={args.account} cluster={args.cluster}"
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -392,7 +381,6 @@ def cmd_status_update(args) -> int:
         if level == INSTANCE_LEVEL:
             doc_id = upsert_instance_feature(
                 mongo_url,
-                tenant_id=args.tenant_id,
                 subscription_id=args.subscription_id,
                 region=args.region,
                 account=args.account,
@@ -410,7 +398,6 @@ def cmd_status_update(args) -> int:
         else:
             doc_id = upsert_cluster_feature(
                 mongo_url,
-                tenant_id=args.tenant_id,
                 region=args.region,
                 account=args.account,
                 cluster=args.cluster,
@@ -465,7 +452,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     identity = su.add_argument_group("identity")
-    identity.add_argument("--tenant-id", required=True, dest="tenant_id", help="Tenant/customer identifier (multi-tenancy isolation key)")
     identity.add_argument("--region", required=True, help="AWS region (e.g. us-east-2)")
     identity.add_argument(
         "--instance-id",
@@ -545,7 +531,6 @@ def build_parser() -> argparse.ArgumentParser:
             "  mas-devops-feature-status-update get --id 6ab0e70ee6d3a31faa808547\n\n"
             "  # instance-level by criteria\n"
             "  mas-devops-feature-status-update get \\\n"
-            "      --tenant-id  tenant-abc \\\n"
             "      --region     us-east-2 \\\n"
             "      --instance-id inst02 \\\n"
             "      --account    fyre-noble10-dev \\\n"
@@ -554,7 +539,6 @@ def build_parser() -> argparse.ArgumentParser:
             "      --type       allow-list\n\n"
             "  # cluster-level by criteria (no --instance-id)\n"
             "  mas-devops-feature-status-update get \\\n"
-            "      --tenant-id  tenant-abc \\\n"
             "      --region     us-east-2 \\\n"
             "      --account    fyre-noble10-dev \\\n"
             "      --cluster    noble10 \\\n"
@@ -575,7 +559,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="AWS region (e.g. us-east-2). Use together with the other criteria flags.",
     )
     get_criteria = get.add_argument_group("criteria (required when --region is used)")
-    get_criteria.add_argument("--tenant-id", dest="tenant_id", default=None, metavar="TENANT_ID", help="Tenant/customer identifier")
     get_criteria.add_argument(
         "--instance-id",
         dest="instance_id",

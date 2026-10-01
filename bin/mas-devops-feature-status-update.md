@@ -376,8 +376,8 @@ The `feature_dashboard` MongoDB database must be initialised before this tool ca
 
 | Collection | Cardinality |
 |---|---|
-| `cluster_level_config` | One document per `tenant_id × account × region × cluster` |
-| `instance_level_config` | One document per `tenant_id × subscription_id × account × region × cluster × instance` |
+| `cluster_level_config` | One document per `account × region × cluster` |
+| `instance_level_config` | One document per `subscription_id × account × region × cluster × instance` |
 
 ### Initialize
 
@@ -422,15 +422,15 @@ db.instance_level_config.drop()
 
 | Index name | Fields | Unique |
 |---|---|---|
-| `ux_cluster_level_config_tenant_account_region_cluster` | `tenant_id, account, region, cluster` | ✓ |
-| `ix_cluster_level_config_tenant_account` | `tenant_id, account` | |
+| `ux_cluster_level_config_account_region_cluster` | `account, region, cluster` | ✓ |
+| `ix_cluster_level_config_account` | `account` | |
 
 **`instance_level_config`**
 
 | Index name | Fields | Unique |
 |---|---|---|
-| `ux_instance_level_config_tenant_sub_account_region_cluster_instance` | `tenant_id, subscription_id, account, region, cluster, instance` | ✓ |
-| `ix_instance_level_config_tenant_sub_account_region_cluster` | `tenant_id, subscription_id, account, region, cluster` | |
+| `ux_instance_level_config_sub_account_region_cluster_instance` | `subscription_id, account, region, cluster, instance` | ✓ |
+| `ix_instance_level_config_sub_account_region_cluster` | `subscription_id, account, region, cluster` | |
 | `ix_instance_level_config_feature_status` | `instance_level_features.status` | |
 | `ix_instance_level_config_error_code` | `instance_level_features.status_details.error_code` (sparse) | |
 
