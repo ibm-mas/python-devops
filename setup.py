@@ -60,6 +60,7 @@ setup(
         "boto3",  # Apache Software License
         "slack_sdk",  # MIT License
         "packaging",  # Apache Software License
+        "cryptography",  # Apache Software License — used by mas.devops.github for GHE App JWT auth
     ],
     extras_require={
         "dev": [
