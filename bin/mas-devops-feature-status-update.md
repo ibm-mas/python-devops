@@ -59,13 +59,11 @@ Connection URL: `mongodb://localhost:27017`
 
 ### Initialize the `mas_devops` database
 
-Once MongoDB is running and `DEVOPS_MONGO_URI` is exported, initialize the schema and indexes:
+No separate step is required. Once MongoDB is running and `DEVOPS_MONGO_URI`
+is exported, the first `status-update` call automatically creates both
+collections (with JSON Schema validators) and all required indexes.
 
-```bash
-./bin/mas-devops-feature-status-update bootstrap
-```
-
-Verify the collections were created:
+Verify the collections were created after the first write:
 
 ```bash
 mongosh "mongodb://localhost:27017/feature_dashboard" --eval "db.getCollectionNames()"
@@ -399,11 +397,9 @@ The `feature_dashboard` MongoDB database must be initialised before this tool ca
 
 ### Initialize
 
-Run the `bootstrap` sub-command (requires `DEVOPS_MONGO_URI` to be set):
-
-```bash
-./bin/mas-devops-feature-status-update bootstrap
-```
+No separate step is required. The first `status-update` call automatically
+creates both collections with strict JSON Schema validators and all required
+indexes. The operation is idempotent — subsequent calls are no-ops.
 
 ### Clear data (keep schema & indexes)
 
@@ -431,9 +427,9 @@ print('collections dropped')
 "
 ```
 
-> **Note:** `drop()` removes the collection, all documents, and all indexes. Re-run `bootstrap` to recreate them.
+> **Note:** `drop()` removes the collection, all documents, and all indexes. They are recreated automatically on the next `status-update` call.
 
-### Indexes created by `bootstrap`
+### Indexes created automatically on first write
 
 **`cluster_level_config`**
 
