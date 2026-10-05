@@ -1,6 +1,17 @@
 # mas-devops-feature-status-update
 
-Writes MAS feature status records to the DevOps MongoDB (`mas_devops.feature_status` collection).
+Writes MAS feature status records to the DevOps MongoDB (`mas_devops` database).
+Routes writes to `instance_level_config` (instance-scoped) or `cluster_level_config`
+(cluster-scoped) depending on whether `--instance-id` is supplied.
+
+## Database behaviour
+
+| Scenario | `mas_devops` database | Collections | Other collections | Data |
+|---|---|---|---|---|
+| `mas_devops` missing | ✅ Created automatically on first write | ✅ Created with validator + indexes | Not touched | N/A — fresh start |
+| `mas_devops` exists | Not modified | Not modified | Not touched | N/A |
+| Collections missing | N/A | ✅ Created with validator + indexes | Not touched | N/A — fresh start |
+| Collections exist | Not modified | Not modified (validator + indexes unchanged) | Not touched | Existing docs updated in-place; `created_at` preserved; unrelated feature entries in array unchanged |
 
 ## Prerequisites
 
@@ -462,23 +473,61 @@ validationAction: "error"   // rejects non-conforming writes outright
 
 ## MongoDB Document Schema
 
-Collection: `mas_devops.feature_status`
+### `mas_devops.instance_level_config`
+
+One document per `(subscription_id × account × region × cluster × instance)`.
+Feature entries are embedded in the `instance_level_features[]` array.
 
 ```json
 {
   "_id": "<ObjectId>",
-  "schema_version": 1,
-  "region": "us-east-2",
-  "instance_id": "inst02",
-  "account": "fyre-noble10-dev",
-  "cluster": "noble10",
   "subscription_id": "sub-id01",
-  "type": "allow-list",
-  "feature_details": { "ips": ["2405:201:d000:9062::/64"] },
-  "status": "ACTIVE",
-  "status_details": { "message": "...", "request_configuration": "..." },
-  "deployment_start": "<ISODate>",
-  "deployment_end": "<ISODate>",
+  "account": "fyre-noble10-dev",
+  "region": "us-east-2",
+  "cluster": "noble10",
+  "instance": "inst02",
+  "instance_level_features": [
+    {
+      "type": "allow-list",
+      "feature_details": { "ips": ["2405:201:d000:9062::/64"] },
+      "status": "ACTIVE",
+      "status_details": { "message": "Allow list is active.", "request_configuration": "2405:201:d000:9062::/64" },
+      "deployment_start": "<ISO-8601>",
+      "deployment_end": "<ISO-8601>",
+      "source": "ansible_devops",
+      "created_at": "<ISODate>",
+      "updated_at": "<ISODate>"
+    }
+  ],
+  "created_at": "<ISODate>",
+  "updated_at": "<ISODate>"
+}
+```
+
+### `mas_devops.cluster_level_config`
+
+One document per `(account × region × cluster)`.
+Feature entries are embedded in the `cluster_level_features[]` array.
+
+```json
+{
+  "_id": "<ObjectId>",
+  "account": "fyre-noble10-dev",
+  "region": "us-east-2",
+  "cluster": "noble10",
+  "cluster_level_features": [
+    {
+      "type": "<feature-type>",
+      "feature_details": {},
+      "status": "ACTIVE",
+      "status_details": {},
+      "deployment_start": "<ISO-8601>",
+      "deployment_end": "<ISO-8601>",
+      "source": "ansible_devops",
+      "created_at": "<ISODate>",
+      "updated_at": "<ISODate>"
+    }
+  ],
   "created_at": "<ISODate>",
   "updated_at": "<ISODate>"
 }
@@ -634,228 +683,243 @@ Every query is a standalone `mongosh` command — replace `mongodb://localhost:2
 
 ---
 
-### By document ID
+### `instance_level_config` queries
+
+#### Fetch a specific instance document (full)
 
 ```bash
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.findOne({ _id: ObjectId("<doc_id>") })'
-```
-
----
-
-### By identity fields
-
-```bash
-# Full identity match (region + instance + account + cluster + type)
 mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.findOne({
-    region:      "us-east-2",
-    instance_id: "inst02",
-    account:     "fyre-noble10-dev",
-    cluster:     "noble10",
-    type:        "allow-list"
+  db.instance_level_config.findOne({
+    subscription_id: "sub-id01",
+    account:         "fyre-noble10-dev",
+    region:          "us-east-2",
+    cluster:         "noble10",
+    instance:        "inst02"
   })'
-
-# All documents for a specific instance
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
-    { account: "fyre-noble10-dev", instance_id: "inst02" }
-  ).sort({ updated_at: -1 }).pretty()'
-
-# All documents for a cluster (all instances within it)
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
-    { account: "fyre-noble10-dev", cluster: "noble10" }
-  ).sort({ updated_at: -1 }).pretty()'
-
-# All documents for an account across all clusters
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
-    { account: "fyre-noble10-dev" }
-  ).sort({ cluster: 1, instance_id: 1 }).pretty()'
-
-# All documents for a region
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
-    { region: "us-east-2" }
-  ).sort({ account: 1, cluster: 1 }).pretty()'
-
-# All documents for a subscription ID
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
-    { subscription_id: "sub-id01" }
-  ).sort({ updated_at: -1 }).pretty()'
 ```
 
----
-
-### By status
+#### Fetch just the feature entries for an instance
 
 ```bash
-# All documents in a specific status
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.find({ status: "ACTIVE" }).pretty()'
-
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.find({ status: "ERROR" }).pretty()'
-
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.find({ status: "IN_PROGRESS" }).pretty()'
-
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.find({ status: "REQUESTED" }).pretty()'
-
-# Multiple statuses at once
 mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
-    { status: { $in: ["REQUESTED", "IN_PROGRESS"] } }
-  ).sort({ updated_at: 1 }).pretty()'
-
-# Count documents grouped by status
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.aggregate([
-    { $group: { _id: "$status", count: { $sum: 1 } } },
-    { $sort:  { count: -1 } }
-  ])'
+  db.instance_level_config.findOne(
+    {
+      subscription_id: "sub-id01",
+      account:  "fyre-noble10-dev",
+      region:   "us-east-2",
+      cluster:  "noble10",
+      instance: "inst02"
+    },
+    { _id: 0, instance_level_features: 1 }
+  )'
 ```
 
----
-
-### By feature type and payload
+#### Fetch a single feature entry for an instance (`$elemMatch`)
 
 ```bash
-# All allow-list documents
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.find({ type: "allow-list" }).pretty()'
-
-# ACTIVE allow-list entries for a specific IP/CIDR
 mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    type:   "allow-list",
-    status: "ACTIVE",
-    "feature_details.ips": "2405:201:d000:9062::/64"
-  }).pretty()'
-
-# Any allow-list document whose IP array contains a given prefix (regex)
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    type: "allow-list",
-    "feature_details.ips": { $regex: "^2405:201:" }
-  }).pretty()'
+  db.instance_level_config.findOne(
+    {
+      subscription_id: "sub-id01",
+      account:  "fyre-noble10-dev",
+      region:   "us-east-2",
+      cluster:  "noble10",
+      instance: "inst02"
+    },
+    { _id: 0, instance_level_features: { $elemMatch: { type: "allow-list" } } }
+  )'
 ```
 
----
-
-### By error details
+#### All instances for an account
 
 ```bash
-# All ERROR documents with a specific HTTP error code
 mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    status: "ERROR",
-    "status_details.error_code": 401
-  }).pretty()'
-
-# ERROR documents mentioning a keyword in the message (case-insensitive)
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    status: "ERROR",
-    "status_details.message": { $regex: "timeout", $options: "i" }
-  }).pretty()'
-
-# ERROR documents from a specific GitOps version
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    status: "ERROR",
-    "status_details.error_source.gitops_version": "8.6.0"
-  }).pretty()'
-```
-
----
-
-### By time
-
-```bash
-# Documents updated in the last 24 hours
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    updated_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-  }).sort({ updated_at: -1 }).pretty()'
-
-# Documents created in a specific date range
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    created_at: {
-      $gte: new Date("2026-09-01T00:00:00Z"),
-      $lte: new Date("2026-09-30T23:59:59Z")
-    }
-  }).sort({ created_at: -1 }).pretty()'
-
-# Deployments that took longer than 5 minutes
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find({
-    deployment_start: { $exists: true },
-    deployment_end:   { $exists: true },
-    $expr: {
-      $gte: [
-        { $dateDiff: {
-            startDate: { $dateFromString: { dateString: "$deployment_start" } },
-            endDate:   { $dateFromString: { dateString: "$deployment_end" } },
-            unit: "minute"
-        }},
-        5
-      ]
-    }
-  }).pretty()'
-
-# Most recently updated documents (last 10)
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.find().sort({ updated_at: -1 }).limit(10).pretty()'
-```
-
----
-
-### Projection — select specific fields only
-
-```bash
-# Identity + status summary (no feature payload)
-mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
+  db.instance_level_config.find(
     { account: "fyre-noble10-dev" },
-    { region: 1, instance_id: 1, cluster: 1, subscription_id: 1,
-      type: 1, status: 1, updated_at: 1, _id: 0 }
-  ).sort({ updated_at: -1 }).pretty()'
+    { _id: 0, region: 1, cluster: 1, instance: 1, subscription_id: 1 }
+  ).sort({ cluster: 1, instance: 1 }).pretty()'
+```
 
-# Status and timestamps only
+#### All instances in a cluster
+
+```bash
 mongosh "mongodb://localhost:27017/mas_devops" --eval '
-  db.feature_status.find(
-    { cluster: "noble10" },
-    { status: 1, deployment_start: 1, deployment_end: 1, updated_at: 1, _id: 0 }
+  db.instance_level_config.find(
+    { account: "fyre-noble10-dev", region: "us-east-2", cluster: "noble10" },
+    { _id: 0, instance: 1, subscription_id: 1 }
   ).pretty()'
 ```
 
----
-
-### Counting and diagnostics
+#### All instances that have an ACTIVE allow-list feature
 
 ```bash
-# Total document count
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.countDocuments()'
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.find(
+    {
+      "instance_level_features": {
+        $elemMatch: { type: "allow-list", status: "ACTIVE" }
+      }
+    },
+    { _id: 0, account: 1, region: 1, cluster: 1, instance: 1 }
+  ).pretty()'
+```
 
-# Count for a specific account + status
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.countDocuments({ account: "fyre-noble10-dev", status: "ACTIVE" })'
+#### All instances with an IN_PROGRESS or REQUESTED feature
 
-# All distinct accounts
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.distinct("account")'
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.find(
+    {
+      "instance_level_features.status": { $in: ["REQUESTED", "IN_PROGRESS"] }
+    },
+    { _id: 0, account: 1, cluster: 1, instance: 1,
+      instance_level_features: {
+        $elemMatch: { status: { $in: ["REQUESTED", "IN_PROGRESS"] } }
+      }
+    }
+  ).sort({ updated_at: 1 }).pretty()'
+```
 
-# All distinct clusters for a region
-mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.distinct("cluster", { region: "us-east-2" })'
+#### All instances with an ERROR feature
 
-# All distinct statuses present
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.find(
+    { "instance_level_features.status": "ERROR" },
+    { _id: 0, account: 1, cluster: 1, instance: 1,
+      instance_level_features: { $elemMatch: { status: "ERROR" } }
+    }
+  ).pretty()'
+```
+
+#### ERROR features with a specific error code
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.find(
+    {
+      "instance_level_features": {
+        $elemMatch: { status: "ERROR", "status_details.error_code": 401 }
+      }
+    },
+    { _id: 0, account: 1, cluster: 1, instance: 1,
+      instance_level_features: {
+        $elemMatch: { status: "ERROR", "status_details.error_code": 401 }
+      }
+    }
+  ).pretty()'
+```
+
+#### Instances whose allow-list contains a specific IP/CIDR
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.find(
+    {
+      "instance_level_features": {
+        $elemMatch: {
+          type: "allow-list",
+          "feature_details.ips": "2405:201:d000:9062::/64"
+        }
+      }
+    },
+    { _id: 0, account: 1, cluster: 1, instance: 1 }
+  ).pretty()'
+```
+
+#### Documents updated in the last 24 hours
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.find(
+    { updated_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+  ).sort({ updated_at: -1 }).pretty()'
+```
+
+#### Most recently updated instance documents (last 10)
+
+```bash
 mongosh "mongodb://localhost:27017/mas_devops" --eval \
-  'db.feature_status.distinct("status")'
+  'db.instance_level_config.find().sort({ updated_at: -1 }).limit(10).pretty()'
+```
+
+#### Count instances per cluster
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.aggregate([
+    { $group: { _id: { account: "$account", region: "$region", cluster: "$cluster" },
+                count: { $sum: 1 } } },
+    { $sort: { "_id.account": 1, "_id.cluster": 1 } }
+  ])'
+```
+
+#### Count feature entries grouped by status (across all instances)
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.instance_level_config.aggregate([
+    { $unwind: "$instance_level_features" },
+    { $group: { _id: "$instance_level_features.status", count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
+  ])'
+```
+
+#### Distinct accounts
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval \
+  'db.instance_level_config.distinct("account")'
+```
+
+#### Distinct clusters for a region
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval \
+  'db.instance_level_config.distinct("cluster", { region: "us-east-2" })'
+```
+
+---
+
+### `cluster_level_config` queries
+
+#### Fetch a specific cluster document
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.cluster_level_config.findOne({
+    account: "fyre-noble10-dev",
+    region:  "us-east-2",
+    cluster: "noble10"
+  })'
+```
+
+#### All clusters for an account
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.cluster_level_config.find(
+    { account: "fyre-noble10-dev" },
+    { _id: 0, region: 1, cluster: 1 }
+  ).sort({ region: 1, cluster: 1 }).pretty()'
+```
+
+#### Clusters that have at least one cluster-level feature
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.cluster_level_config.find(
+    { "cluster_level_features.0": { $exists: true } },
+    { _id: 0, account: 1, region: 1, cluster: 1 }
+  ).pretty()'
+```
+
+#### Count cluster documents per account
+
+```bash
+mongosh "mongodb://localhost:27017/mas_devops" --eval '
+  db.cluster_level_config.aggregate([
+    { $group: { _id: "$account", count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
+  ])'
 ```
