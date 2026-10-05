@@ -32,8 +32,8 @@ Sub-commands
 
   status-update
     Upsert a feature status entry.
-    Required indexes are created automatically on the first call if they do
-    not already exist (idempotent).
+    Collections (with JSON Schema validators) and indexes are created
+    automatically on the first call if they are absent (idempotent).
 
     Example — instance-level, ACTIVE (single IP):
       mas-devops-feature-status-update status-update \\
@@ -128,10 +128,9 @@ Environment variables
 One-time initialisation
 ───────────────────────
   No separate setup step is required.  The first call to status-update
-  automatically creates the required collection indexes if they are absent.
-  For manual initialisation of the database schema and validators, run:
-
-    mongosh "<DEVOPS_MONGO_URI>" mongodb_schemas/init_db.js
+  automatically creates both collections (with JSON Schema validators) and
+  all required indexes if they are absent.  The operation is idempotent —
+  subsequent calls are no-ops when everything already exists.
 """
 
 import argparse

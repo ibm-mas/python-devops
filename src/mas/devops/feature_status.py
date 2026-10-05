@@ -203,10 +203,147 @@ def validate_status_details(feature_type: str, status: str, status_details: dict
 # MongoDB helpers
 # ---------------------------------------------------------------------------
 
+# JSON Schema validators — mirrors the schemas previously in mongodb_schemas/*.js,
+# kept here so no external JS files or mongosh are required for bootstrapping.
+
+_VALIDATOR_CLUSTER = {
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["_id", "account", "region", "cluster", "cluster_level_features", "created_at", "updated_at"],
+        "additionalProperties": False,
+        "properties": {
+            "_id": {"bsonType": "objectId"},
+            "account": {"bsonType": "string"},
+            "region": {"bsonType": "string"},
+            "cluster": {"bsonType": "string"},
+            "cluster_level_features": {"bsonType": "array", "minItems": 0, "items": {"bsonType": "object"}},
+            "created_at": {"bsonType": "date"},
+            "updated_at": {"bsonType": "date"},
+        },
+    }
+}
+
+_VALIDATOR_INSTANCE = {
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "_id",
+            "subscription_id",
+            "account",
+            "region",
+            "cluster",
+            "instance",
+            "instance_level_features",
+            "created_at",
+            "updated_at",
+        ],
+        "additionalProperties": False,
+        "properties": {
+            "_id": {"bsonType": "objectId"},
+            "subscription_id": {"bsonType": "string"},
+            "account": {"bsonType": "string"},
+            "region": {"bsonType": "string"},
+            "cluster": {"bsonType": "string"},
+            "instance": {"bsonType": "string"},
+            "instance_level_features": {
+                "bsonType": "array",
+                "minItems": 0,
+                "items": {
+                    "bsonType": "object",
+                    "required": ["type", "feature_details", "status", "source", "created_at", "updated_at"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "type": {"bsonType": "string", "enum": ["allow-list"]},
+                        "feature_details": {
+                            "bsonType": "object",
+                            "required": ["ips"],
+                            "additionalProperties": False,
+                            "properties": {
+                                "ips": {
+                                    "bsonType": "array",
+                                    "minItems": 1,
+                                    "items": {"bsonType": "string"},
+                                }
+                            },
+                        },
+                        "status": {
+                            "bsonType": "string",
+                            "enum": ["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR"],
+                        },
+                        "status_details": {
+                            "bsonType": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "message": {"bsonType": "string"},
+                                "error_code": {"bsonType": "int"},
+                                "error_source": {
+                                    "bsonType": "object",
+                                    "additionalProperties": False,
+                                    "properties": {
+                                        "gitops_version": {"bsonType": "string"},
+                                        "filename": {"bsonType": "string"},
+                                        "line_no": {"bsonType": "int"},
+                                        "log_file": {"bsonType": "string"},
+                                        "stacktrace": {"bsonType": "string"},
+                                    },
+                                },
+                                "request_configuration": {"bsonType": "string"},
+                            },
+                        },
+                        "deployment_start": {"bsonType": "string"},
+                        "deployment_end": {"bsonType": "string"},
+                        "source": {
+                            "bsonType": "string",
+                            "enum": ["ansible_devops", "github_webhook", "cluster_poll", "admin_ui"],
+                        },
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},
+                    },
+                },
+            },
+            "created_at": {"bsonType": "date"},
+            "updated_at": {"bsonType": "date"},
+        },
+    }
+}
+
+
+def bootstrap_collections(mongo_url: str) -> None:
+    """Create both collections with JSON Schema validators (idempotent).
+
+    Safe to call against a database where the collections already exist —
+    ``CollectionInvalid`` is caught and logged as INFO so repeated calls
+    are no-ops.  Called automatically by ``create_indexes()`` before every
+    write operation.
+    """
+    from pymongo.errors import CollectionInvalid  # type: ignore
+
+    client = MongoClient(mongo_url)
+    try:
+        db = client[DATABASE]
+        for name, validator in (
+            (COLLECTION_CLUSTER, _VALIDATOR_CLUSTER),
+            (COLLECTION_INSTANCE, _VALIDATOR_INSTANCE),
+        ):
+            try:
+                db.create_collection(
+                    name,
+                    validator=validator,
+                    validationLevel="strict",
+                    validationAction="error",
+                )
+                logger.info("Collection '%s' created with JSON Schema validator.", name)
+            except CollectionInvalid:
+                logger.info("Collection '%s' already exists — skipping creation.", name)
+    finally:
+        client.close()
+
 
 def create_indexes(mongo_url: str) -> None:
-    """Create all required indexes on both collections (idempotent)."""
+    """Bootstrap collections (idempotent) then create all required indexes."""
     from pymongo import ASCENDING  # type: ignore
+
+    bootstrap_collections(mongo_url)
 
     client = MongoClient(mongo_url)
     try:

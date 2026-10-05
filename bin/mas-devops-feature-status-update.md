@@ -57,12 +57,12 @@ Connection URL: `mongodb://localhost:27017`
 
 ---
 
-### Initialize the `feature_dashboard` database
+### Initialize the `mas_devops` database
 
-Once MongoDB is running, initialize the schema and indexes from the repository root:
+Once MongoDB is running and `DEVOPS_MONGO_URI` is exported, initialize the schema and indexes:
 
 ```bash
-mongosh "mongodb://localhost:27017/feature_dashboard" mongodb_schemas/init_db.js
+./bin/mas-devops-feature-status-update bootstrap
 ```
 
 Verify the collections were created:
@@ -399,21 +399,10 @@ The `feature_dashboard` MongoDB database must be initialised before this tool ca
 
 ### Initialize
 
-Run `init_db.js` (which loads both schema files) against your MongoDB host:
+Run the `bootstrap` sub-command (requires `DEVOPS_MONGO_URI` to be set):
 
 ```bash
-# mongosh (≥ 1.x, recommended)
-mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/init_db.js
-
-# Legacy mongo shell
-mongo "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/init_db.js
-```
-
-Or initialize each collection individually:
-
-```bash
-mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/cluster_level_config.js
-mongosh "mongodb://<host>:27017/feature_dashboard" mongodb_schemas/instance_level_config.js
+./bin/mas-devops-feature-status-update bootstrap
 ```
 
 ### Clear data (keep schema & indexes)
@@ -442,9 +431,9 @@ print('collections dropped')
 "
 ```
 
-> **Note:** `drop()` removes the collection, all documents, and all indexes. Re-run `init_db.js` to recreate them.
+> **Note:** `drop()` removes the collection, all documents, and all indexes. Re-run `bootstrap` to recreate them.
 
-### Indexes created by `init_db.js`
+### Indexes created by `bootstrap`
 
 **`cluster_level_config`**
 
