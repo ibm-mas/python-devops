@@ -41,6 +41,14 @@ spec:
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
+{%- if storage_class_rwo is defined and storage_class_rwo != "" %}
+    - name: storage_class_rwo
+      value: "{{ storage_class_rwo }}"
+{%- endif %}
+{%- if storage_class_rwx is defined and storage_class_rwx != "" %}
+    - name: storage_class_rwx
+      value: "{{ storage_class_rwx }}"
+{%- endif %}
 {%- if db2_action_system == "install" or db2_action_manage == "install" %}
 
     # Dependencies - Db2 - Actions
