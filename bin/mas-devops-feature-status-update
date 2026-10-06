@@ -526,7 +526,7 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument(
         "--status",
         required=True,
-        choices=["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR"],
+        choices=["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR", "DEACTIVATED"],
         help="Feature lifecycle status.",
     )
     status_details_group = status.add_mutually_exclusive_group(required=True)

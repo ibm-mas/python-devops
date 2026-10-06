@@ -172,7 +172,7 @@ Required collection indexes (`instance_config_level`, `cluster_config_level`) ar
 
 | Flag | Description |
 |------|-------------|
-| `--status` | One of `REQUESTED`, `IN_PROGRESS`, `ACTIVE`, `ERROR` |
+| `--status` | One of `REQUESTED`, `IN_PROGRESS`, `ACTIVE`, `ERROR`, `DEACTIVATED` |
 | `--status-details JSON` | JSON object describing the outcome (see schema below). Mutually exclusive with `--status-details-file`. |
 | `--status-details-file FILE` | Path to a JSON file containing the status-details object. Use this for `ERROR` payloads whose `message` or `stacktrace` contains quote characters that would break inline shell interpolation. Mutually exclusive with `--status-details`. |
 
