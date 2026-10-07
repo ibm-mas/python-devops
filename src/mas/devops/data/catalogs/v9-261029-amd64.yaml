@@ -66,12 +66,12 @@ minio_extras_version: 1.0.0
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.30
+mongo_extras_version_default: 8.0.32
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.30  # Updated
+mongo_extras_version_8: 8.0.32  # Updated
 
 
 # Dependencies - Amlen
@@ -215,6 +215,6 @@ editorial:
     - IBM Maximo Real Estate and Facilities [v9.1.15](https://www.ibm.com/support/pages/node/7288833) and [v9.2.3](https://www.ibm.com/support/pages/node/7289065)
     - IBM Maximo AI Service [v9.1.19](https://www.ibm.com/support/pages/node/7287754) and [v9.2.3](https://www.ibm.com/support/pages/node/7287755)
     - IBM Suite License Service v3.13.2
-    - Mongo: 8.0.30
+    - Mongo: 8.0.32
   known_issues:
     - title: 

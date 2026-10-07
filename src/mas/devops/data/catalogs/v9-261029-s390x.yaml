@@ -41,12 +41,12 @@ tsm_version: 1.7.9              # No Updated
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.30
+mongo_extras_version_default: 8.0.32
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
-mongo_extras_version_8: 8.0.30  # Updated
+mongo_extras_version_8: 8.0.32  # Updated
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
@@ -75,7 +75,7 @@ editorial:
     - IBM Maximo Application Suite Core Platform [v9.0.32](https://www.ibm.com/support/pages/node/7289766), [v9.1.26](https://www.ibm.com/support/pages/node/7289767) and [v9.2.7](https://www.ibm.com/support/pages/node/7289768)
     - IBM Maximo Manage [v9.0.32](https://www.ibm.com/support/pages/node/7289352),[v9.1.25](https://www.ibm.com/support/pages/node/7289351) and [v9.2.4](https://www.ibm.com/support/pages/node/7289350)
     - IBM Suite License Service v3.13
-    - Mongo: 8.0.30
+    - Mongo: 8.0.32
   known_issues:
     - title: 
     
