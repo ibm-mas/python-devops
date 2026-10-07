@@ -1695,68 +1695,6 @@ def launchAiServiceUpgradePipeline(
     return pipelineURL
 
 
-def prepareAiServiceUpgradeSecrets(
-    dynClient: DynamicClient,
-    namespace: str,
-    ibm_entitlement_key: str = None,
-    artifactory_token: str = None,
-    artifactory_username: str = None,
-    registry_secret_name: str = "mas-aiservice-upgrade-secrets",
-) -> None:
-    """
-    Create the registry credentials secret required for the AI Service Upgrade pipeline.
-
-    The aiservice_upgrade Ansible role uses ibm_entitlement_key (ICR image pulls) and
-    optionally artifactory_token / artifactory_username (dev catalog access).
-    Credentials are written into a named OCP Secret so they are never visible as
-    plaintext PipelineRun params.
-
-    Only keys with non-empty values are written to the secret.
-    The secret is skipped entirely if no credentials are provided.
-
-    Parameters:
-        dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The pipeline namespace (aiservice-{instanceId}-pipelines)
-        ibm_entitlement_key (str, optional): IBM entitlement key for ICR image pulls. Defaults to None.
-        artifactory_token (str, optional): Artifactory token for dev catalog access. Defaults to None.
-        artifactory_username (str, optional): Artifactory username for dev catalog access. Defaults to None.
-        registry_secret_name (str, optional): Name of the secret to create. Defaults to "mas-aiservice-upgrade-secrets".
-
-    Returns:
-        None
-    """
-    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
-
-    credentials_data = {}
-
-    if ibm_entitlement_key:
-        credentials_data["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
-
-    if artifactory_token:
-        credentials_data["ARTIFACTORY_TOKEN"] = base64.b64encode(artifactory_token.encode()).decode()
-
-    if artifactory_username:
-        credentials_data["ARTIFACTORY_USERNAME"] = base64.b64encode(artifactory_username.encode()).decode()
-
-    if credentials_data:
-        try:
-            secretsAPI.delete(name=registry_secret_name, namespace=namespace)
-        except NotFoundError:
-            pass
-
-        secretsAPI.create(
-            body={
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "type": "Opaque",
-                "metadata": {"name": registry_secret_name},
-                "data": credentials_data,
-            },
-            namespace=namespace,
-        )
-        logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
-
-
 def prepareInstallRBAC(dynClient: DynamicClient, namespace: str, instanceId: str, installRBACDir: str) -> None:
     """
     Apply the minimal install RBAC bundle for a MAS instance.
