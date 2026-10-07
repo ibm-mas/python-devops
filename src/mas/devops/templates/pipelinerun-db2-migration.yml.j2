@@ -29,15 +29,15 @@ spec:
     - name: db2_migration_namespace
       value: "{{ db2_migration_namespace }}"
     
-    - name: db2_migration_cluster_name
-      value: "{{ db2_migration_cluster_name }}"
+    - name: db2_migration_db2_cluster_name
+      value: "{{ db2_migration_db2_cluster_name }}"
     
     - name: db2_migration_backup_enabled
       value: "{{ db2_migration_backup_enabled }}"
 
-{%- if db2_migration_cleanup_old_cluster is defined and db2_migration_cleanup_old_cluster != "" %}
-    - name: db2_migration_cleanup_old_cluster
-      value: "{{ db2_migration_cleanup_old_cluster }}"
+{%- if db2_migration_cleanup_old_db2_cluster is defined and db2_migration_cleanup_old_db2_cluster != "" %}
+    - name: db2_migration_cleanup_old_db2_cluster
+      value: "{{ db2_migration_cleanup_old_db2_cluster }}"
 {%- endif %}
 
 {%- if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}

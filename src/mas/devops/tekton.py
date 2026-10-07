@@ -1371,7 +1371,7 @@ def launchDb2MigrationPipeline(dynClient: DynamicClient, params: dict) -> str:
         dynClient (DynamicClient): OpenShift Dynamic Client
         params (dict): Migration parameters including:
             - db2_migration_namespace: Target namespace
-            - db2_migration_cluster_name: Cluster to migrate
+            - db2_migration_db2_cluster_name: Db2uCluster name to migrate
             - db2_migration_backup_enabled: Whether to backup
 
     Returns:
