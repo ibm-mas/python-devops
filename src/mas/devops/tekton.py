@@ -297,6 +297,39 @@ def enablePipelinesConsolePlugin(dynClient: DynamicClient) -> bool:
         return False
 
 
+def lookupPipelineStorageClass(dynClient: DynamicClient, instanceId: str) -> tuple[str | None, str | None]:
+    """
+    Look up the storage class and access mode already in use by the config-pvc
+    PersistentVolumeClaim in the instance's pipelines namespace.
+
+    During an upgrade the pipelines namespace already exists (it was created by
+    the original install).
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        instanceId (str): MAS instance ID
+
+    Returns:
+        tuple[str | None, str | None]: (storageClassName, accessMode) read from
+        the existing config-pvc, or (None, None) if the PVC does not exist yet.
+    """
+    namespace = f"mas-{instanceId}-pipelines"
+    try:
+        pvcAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolumeClaim")
+        existingPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+        storageClass = existingPVC.spec.storageClassName or None
+        accessModes = existingPVC.spec.accessModes or []
+        accessMode = accessModes[0] if accessModes else None
+        logger.info(f"Detected existing config-pvc in {namespace}: storageClass='{storageClass}', accessMode='{accessMode}'")
+        return storageClass, accessMode
+    except NotFoundError:
+        logger.debug(f"config-pvc not found in {namespace}, will fall back to storage class detection")
+        return None, None
+    except AttributeError:
+        logger.debug(f"config-pvc response in {namespace} was not a PVC object, will fall back to storage class detection")
+        return None, None
+
+
 def addMissingStorageClassToTektonPVC(dynClient: DynamicClient, namespace: str, pvcName: str, storageClassName: str = None) -> bool:
     """
     OpenShift Pipelines has a problem when there is no default storage class defined in a cluster, this function
@@ -579,6 +612,89 @@ def preparePipelinesNamespace(
 
         # Create config PVC if requested
         if createConfigPVC:
+            try:
+                existingConfigPVC = pvcAPI.get(name="config-pvc", namespace=namespace)
+                existingStorageClass = existingConfigPVC.spec.storageClassName
+
+                if existingStorageClass == storageClass:
+                    # Storage class matches — PVC is correct, skip delete and recreate
+                    logger.info(f"config-pvc already exists with correct storageClassName='{storageClass}', skipping recreate.")
+                else:
+                    # Storage class differs — delete and recreate with the correct one.
+                    # storageClassName is immutable in Kubernetes so the PVC must be deleted first.
+                    logger.info(
+                        f"config-pvc exists with storageClassName='{existingStorageClass}' but upgrade requires " f"'{storageClass}'. Deleting and recreating."
+                    )
+                    pvName = existingConfigPVC.spec.volumeName
+                    pvAPI = dynClient.resources.get(api_version="v1", kind="PersistentVolume")
+
+                    # Force-delete the config-pvc regardless of its current state (Bound, Lost, Terminating).
+                    # Each iteration applies every known unblocking step, then checks if the PVC is gone.
+                    for attempt in range(30):
+                        logger.debug(f"config-pvc force-delete attempt {attempt + 1}/30")
+
+                        # Step 1: clear claimRef on the backing PV so the PVC moves from Bound → Lost.
+                        # Using empty strings (not null) — null is ignored when PVC has a deletionTimestamp.
+                        if pvName:
+                            try:
+                                pvAPI.patch(
+                                    name=pvName,
+                                    body={"spec": {"claimRef": {"name": "", "namespace": "", "uid": "", "resourceVersion": ""}}},
+                                    content_type="application/merge-patch+json",
+                                )
+                            except NotFoundError:
+                                pvName = None  # PV already gone, skip PV steps
+
+                        # Step 2: clear PV finalizers in case the PV itself is stuck Terminating
+                        if pvName:
+                            try:
+                                pvAPI.patch(
+                                    name=pvName,
+                                    body={"metadata": {"finalizers": []}},
+                                    content_type="application/merge-patch+json",
+                                )
+                            except NotFoundError:
+                                pvName = None
+
+                        # Step 3: clear PVC finalizer and issue delete
+                        try:
+                            pvcAPI.patch(
+                                name="config-pvc",
+                                namespace=namespace,
+                                body={"metadata": {"finalizers": []}},
+                                content_type="application/merge-patch+json",
+                            )
+                            pvcAPI.delete(name="config-pvc", namespace=namespace)
+                        except NotFoundError:
+                            logger.info("config-pvc is gone.")
+                            break
+
+                        sleep(3)
+
+                        # Check if gone
+                        try:
+                            pvcAPI.get(name="config-pvc", namespace=namespace)
+                            logger.debug("config-pvc still present, retrying...")
+                        except NotFoundError:
+                            logger.info("config-pvc deletion confirmed.")
+                            break
+
+                    # Clean up the orphaned PV so it does not accumulate across upgrades
+                    if pvName:
+                        try:
+                            pvAPI.patch(
+                                name=pvName,
+                                body={"metadata": {"finalizers": []}},
+                                content_type="application/merge-patch+json",
+                            )
+                            pvAPI.delete(name=pvName)
+                            logger.info(f"Deleted orphaned PV '{pvName}'.")
+                        except NotFoundError:
+                            pass  # already gone
+
+            except NotFoundError:
+                pass  # PVC does not exist yet, will be created fresh below
+
             logger.info("Creating config PVC")
             template = env.get_template("pipelines-pvc.yml.j2")
             renderedTemplate = template.render(
@@ -983,14 +1099,32 @@ def prepareUpdateSecrets(
         namespaceAPI = dynClient.resources.get(api_version="v1", kind="Namespace")
         namespaceAPI.get(name=namespace)
     except NotFoundError:
-        logger.warning(f"Namespace {namespace} does not exist, skipping slack secret creation")
+        logger.warning(f"Namespace {namespace} does not exist, skipping secret creation")
         return
 
-    # Only create secret if both slack_token and slack_channel are provided
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    # Always create pipeline-db2-license secret — required by the PipelineRun workspace
+    # binding regardless of whether a license file was provided or Slack is configured
+    try:
+        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
+    except NotFoundError:
+        pass
+
+    if db2LicenseFile is None:
+        db2LicenseFile = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": "Opaque",
+            "metadata": {"name": "pipeline-db2-license"},
+        }
+    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
+    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
+
+    # Only create mas-devops-slack secret if both slack_token and slack_channel are provided
     if not slack_token or not slack_channel:
         logger.debug("Slack token or channel not provided, skipping slack secret creation")
-
-    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+        return
 
     # Delete existing secret if it exists
     try:
@@ -1017,21 +1151,6 @@ def prepareUpdateSecrets(
 
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
-
-    try:
-        secretsAPI.delete(name="pipeline-db2-license", namespace=namespace)
-    except NotFoundError:
-        pass
-
-    if db2LicenseFile is None:
-        db2LicenseFile = {
-            "apiVersion": "v1",
-            "kind": "Secret",
-            "type": "Opaque",
-            "metadata": {"name": "pipeline-db2-license"},
-        }
-    secretsAPI.create(body=db2LicenseFile, namespace=namespace)
-    logger.info(f"Created pipeline-db2-license secret in namespace {namespace}")
 
 
 def testCLI() -> None:
@@ -1094,7 +1213,7 @@ def launchUpgradePipeline(
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,
@@ -1148,7 +1267,7 @@ def launchUninstallPipeline(
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,
@@ -1188,7 +1307,7 @@ def launchPipelineRun(dynClient: DynamicClient, namespace: str, templateName: st
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,
@@ -1343,7 +1462,7 @@ def launchAiServiceUpgradePipeline(
     pipelineRun = yaml.safe_load(renderedTemplate)
     applyResource(
         dynClient=dynClient,
-        apiVersion="tekton.dev/v1beta1",
+        apiVersion="tekton.dev/v1",
         kind="PipelineRun",
         body=pipelineRun,
         namespace=namespace,

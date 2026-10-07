@@ -88,9 +88,15 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
     for storageClass in storageClasses:
         if storageClass.metadata.name in ["ibmc-block-gold", "ibmc-file-gold-gid"]:
             result.provider = "ibmc"
-            result.providerName = "IBMCloud ROKS"
+            result.providerName = "IBMCloud ROKS Classic"
             result.rwo = "ibmc-block-gold"
             result.rwx = "ibmc-file-gold-gid"
+            break
+        elif storageClass.metadata.name in ["ibmc-vpc-block-10iops-tier", "ibmc-vpc-file-1000-iops"]:
+            result.provider = "ibmc-vpc"
+            result.providerName = "IBMCloud ROKS VPC"
+            result.rwo = "ibmc-vpc-block-10iops-tier"
+            result.rwx = "ibmc-vpc-file-1000-iops"
             break
         elif storageClass.metadata.name in [
             "ocs-storagecluster-ceph-rbd",

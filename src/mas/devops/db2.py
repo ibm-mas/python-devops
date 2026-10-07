@@ -189,6 +189,10 @@ def cr_pod_v_matches(cr_k: str, cr_v: str, pod_v: str) -> bool:
         # db2 appends something like "/NODE0000/LOGSTREAM0000/" to the cr_v in these cases
         return pod_v.startswith(cr_v)
 
+    # special case for ENCRLIB — DB2 resolves the symlink and stores the full absolute path, so just check if the library name is present
+    if cr_k == "ENCRLIB":
+        return cr_v in pod_v
+
     # Look for e.g. 8192 AUTOMATIC -> AUTOMATIC(8192)
     matches = re.search(r"(\d+)\s*AUTOMATIC", cr_v, re.IGNORECASE)
     if matches is not None:

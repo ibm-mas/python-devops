@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
 {%- if mas_instance_id is defined and mas_instance_id != "" %}
@@ -13,7 +13,8 @@ spec:
   pipelineRef:
     name: mas-install
 
-  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  taskRunTemplate:
+    serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   timeouts:
     pipeline: "0"
 
@@ -116,7 +117,7 @@ spec:
       value: "{{ db2_type }}"
     - name: db2_timezone
       value: "{{ db2_timezone }}"
-  {%- if db2_action_facilities == "install" %}      
+  {%- if db2_action_facilities == "install" %}
     - name: db2_facilities_timezone
       value: "{{ db2_facilities_timezone }}"
   {%- endif %}
@@ -411,6 +412,14 @@ spec:
       value: "{{ override_edge_certs }}"
     - name: cis_proxy
       value: "{{ cis_proxy }}"
+    - name: cis_waf
+      value: "{{ cis_waf }}"
+    - name: delete_wildcards
+      value: "{{ delete_wildcards }}"
+    - name: update_dns_entries
+      value: "{{ update_dns_entries }}"
+    - name: cis_entries_to_add
+      value: "{{ cis_entries_to_add }}"
   {%- endif %}
 {%- endif %}
 {%- if aws_access_key_id is defined and aws_access_key_id != "" %}
@@ -572,6 +581,10 @@ spec:
 {%- if mas_issuer_kind is defined and mas_issuer_kind != "" %}
     - name: mas_issuer_kind
       value: "{{ mas_issuer_kind }}"
+{%- endif %}
+{%- if mas_le_email is defined and mas_le_email != "" %}
+    - name: mas_le_email
+      value: "{{ mas_le_email }}"
 {%- endif %}
 
     # MAS Workspace
@@ -925,6 +938,10 @@ spec:
     - name: tenant_scheduling_cfg_file
       value: "{{ tenant_scheduling_config_file }}"
 {%- endif %}
+{%- if tenant_operator_config_file is defined and tenant_operator_config_file != "" %}
+    - name: tenant_operator_cfg_file
+      value: "{{ tenant_operator_config_file }}"
+{%- endif %}
 
 {%- if rsl_ca_crt is defined and rsl_ca_crt != "" %}
     # RSL - CA Certificate
@@ -1002,6 +1019,36 @@ spec:
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
     - name: aiservice_certificate_issuer
       value: "{{ aiservice_certificate_issuer }}"
+{%- endif %}
+
+    # AI Service - DNS
+    # -------------------------------------------------------------------------
+{%- if aiservice_domain is defined and aiservice_domain != "" %}
+    - name: aiservice_domain
+      value: "{{ aiservice_domain }}"
+{%- endif %}
+
+    # AI Service - Database Configuration
+    # -------------------------------------------------------------------------
+{%- if install_db2 is defined %}
+    - name: install_db2
+      value: "{{ install_db2 }}"
+{%- endif %}
+{%- if aiservice_db_jdbc_url is defined and aiservice_db_jdbc_url != "" %}
+    - name: aiservice_db_jdbc_url
+      value: "{{ aiservice_db_jdbc_url }}"
+{%- endif %}
+{%- if aiservice_db_username is defined and aiservice_db_username != "" %}
+    - name: aiservice_db_username
+      value: "{{ aiservice_db_username }}"
+{%- endif %}
+{%- if aiservice_db_password is defined and aiservice_db_password != "" %}
+    - name: aiservice_db_password
+      value: "{{ aiservice_db_password }}"
+{%- endif %}
+{%- if aiservice_db_ca_cert is defined and aiservice_db_ca_cert != "" %}
+    - name: aiservice_db_ca_cert
+      value: "{{ aiservice_db_ca_cert }}"
 {%- endif %}
 
 {%- endif %}

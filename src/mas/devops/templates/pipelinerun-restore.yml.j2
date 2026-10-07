@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
   name: "{{ mas_instance_id }}-restore-{{ restore_version }}-{{ timestamp }}"
@@ -8,7 +8,8 @@ metadata:
 spec:
   pipelineRef:
     name: mas-restore
-  serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
+  taskRunTemplate:
+    serviceAccountName: "{{ service_account_name | default('pipeline', True) }}"
   timeouts:
     pipeline: "0"
   workspaces:
