@@ -1383,7 +1383,7 @@ def launchDb2MigrationPipeline(dynClient: DynamicClient, params: dict) -> str:
     namespace = "mas-pipelines"
     timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-db2-migration", params)
 
-    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/db2-migration-{timestamp}"
+    pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1~PipelineRun/db2-migration-{timestamp}"
     return pipelineURL
 
 
