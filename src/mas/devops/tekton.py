@@ -1186,6 +1186,63 @@ def testCLI() -> None:
     # fi
 
 
+def prepareUpgradeSecrets(
+    dynClient: DynamicClient,
+    namespace: str,
+    ibm_entitlement_key: str = None,
+    artifactory_token: str = None,
+    artifactory_username: str = None,
+) -> None:
+    """Create or update the registry credentials secret for MAS upgrade pipelines.
+
+    Creates a secret named 'mas-secrets' in the specified namespace containing the
+    IBM entitlement key and Artifactory credentials used by Tekton task steps
+    via the task_registry_secret_name parameter.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client.
+        namespace (str): The pipelines namespace (format: mas-{instance_id}-pipelines).
+        ibm_entitlement_key (str, optional): IBM Entitled Registry pull key. Defaults to None.
+        artifactory_token (str, optional): Artifactory API token. Defaults to None.
+        artifactory_username (str, optional): Artifactory username. Defaults to None.
+
+    Returns:
+        None
+
+    Raises:
+        NotFoundError: If the secret cannot be created in the namespace.
+    """
+    import base64
+
+    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
+
+    secret_name = "mas-secrets"
+
+    # Delete existing secret if it exists
+    try:
+        secretsAPI.delete(name=secret_name, namespace=namespace)
+    except NotFoundError:
+        pass
+
+    secret_data = {}
+    if ibm_entitlement_key:
+        secret_data["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
+    if artifactory_token:
+        secret_data["ARTIFACTORY_TOKEN"] = base64.b64encode(artifactory_token.encode()).decode()
+    if artifactory_username:
+        secret_data["ARTIFACTORY_USERNAME"] = base64.b64encode(artifactory_username.encode()).decode()
+
+    secret_body = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "type": "Opaque",
+        "metadata": {"name": secret_name},
+        "data": secret_data,
+    }
+    secretsAPI.create(body=secret_body, namespace=namespace)
+    logger.info(f"Created {secret_name} secret in namespace {namespace}")
+
+
 def launchUpgradePipeline(
     dynClient: DynamicClient,
     instanceId: str,
