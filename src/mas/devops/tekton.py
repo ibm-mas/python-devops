@@ -843,30 +843,17 @@ def prepareAiServicePipelinesNamespace(
         logger.info(f"Storage class {storageClass} uses volumeBindingMode={volumeBindingMode}, skipping PVC bind wait")
 
 
-def prepareRestoreSecrets(
-    dynClient: DynamicClient,
-    namespace: str,
-    restoreConfigs: dict = None,
-    ibm_entitlement_key: str = None,
-    artifactory_token: str = None,
-    artifactory_username: str = None,
-    registry_secret_name: str = "mas-restore-secrets",
-):
+def prepareRestoreSecrets(dynClient: DynamicClient, namespace: str, restoreConfigs: dict = None):
     """
     Create or update secret required for MAS Restore pipeline.
 
-    Creates secrets in the specified namespace:
+    Creates secret in the specified namespace:
         - pipeline-restore-configs
-        - {registry_secret_name} (only when credentials are provided)
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to create secrets in
         restoreConfigs (dict, optional): configuration data for restore. Defaults to None (empty secret).
-        ibm_entitlement_key (str, optional): IBM entitlement key for registry access. Defaults to None.
-        artifactory_token (str, optional): Artifactory token for dev catalog access. Defaults to None.
-        artifactory_username (str, optional): Artifactory username for dev catalog access. Defaults to None.
-        registry_secret_name (str, optional): Name of the per-pipeline registry credentials secret. Defaults to "mas-restore-secrets".
 
     Returns:
         None
@@ -893,37 +880,6 @@ def prepareRestoreSecrets(
         }
     secretsAPI.create(body=restoreConfigs, namespace=namespace)
 
-    # 2. Secret/{registry_secret_name}
-    # -------------------------------------------------------------------------
-    credentials_data = {}
-
-    if ibm_entitlement_key:
-        credentials_data["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
-
-    if artifactory_token:
-        credentials_data["ARTIFACTORY_TOKEN"] = base64.b64encode(artifactory_token.encode()).decode()
-
-    if artifactory_username:
-        credentials_data["ARTIFACTORY_USERNAME"] = base64.b64encode(artifactory_username.encode()).decode()
-
-    if credentials_data:
-        try:
-            secretsAPI.delete(name=registry_secret_name, namespace=namespace)
-        except NotFoundError:
-            pass
-
-        secretsAPI.create(
-            body={
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "type": "Opaque",
-                "metadata": {"name": registry_secret_name},
-                "data": credentials_data,
-            },
-            namespace=namespace,
-        )
-        logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
-
 
 def prepareInstallSecrets(
     dynClient: DynamicClient,
@@ -937,18 +893,13 @@ def prepareInstallSecrets(
     aiserviceConfig: str = None,
     db2LicenseFile: dict | None = None,
     facilitiesProperties: dict | None = None,
-    ibm_entitlement_key: str = None,
-    artifactory_token: str = None,
-    artifactory_username: str = None,
-    registry_secret_name: str = None,
 ) -> None:
     """
     Create or update secrets required for MAS installation pipelines.
 
-    Creates secrets in the specified namespace: mas-devops-slack, {registry_secret_name},
-    pipeline-additional-configs, pipeline-sls-entitlement, pipeline-certificates,
-    pipeline-pod-templates, pipeline-aiservice-config, pipeline-db2-license, and
-    pipeline-facilities-properties.
+    Creates secrets in the specified namespace: mas-devops-slack, pipeline-additional-configs,
+    pipeline-sls-entitlement, pipeline-certificates, pipeline-pod-templates, pipeline-aiservice-config,
+    pipeline-db2-license, and pipeline-facilities-properties.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -962,9 +913,6 @@ def prepareInstallSecrets(
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
         aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
         facilitiesProperties (dict, optional): Facilities properties file content. Defaults to None (empty secret).
-        ibm_entitlement_key (str, optional): IBM entitlement key for registry access. Defaults to None.
-        artifactory_token (str, optional): Artifactory token for dev catalog access. Defaults to None.
-        artifactory_username (str, optional): Artifactory username for dev catalog access. Defaults to None.
 
     Returns:
         None
@@ -1010,46 +958,6 @@ def prepareInstallSecrets(
         }
         secretsAPI.create(body=mas_devops_secret, namespace=namespace)
         logger.info(f"Created mas-devops-slack secret with MAS_INSTANCE_ID={instance_id} in namespace {namespace}")
-
-    # 1. Secret/{registry_secret_name}
-    # -------------------------------------------------------------------------
-    # Per-pipeline secret holding registry credentials sourced from secret instead of pipeline params.
-    # Only created when at least one credential is provided — all keys are optional.
-    # Secret name is derived from namespace prefix if not explicitly provided:
-    #   mas-{id}-pipelines       → mas-install-secrets
-    #   aiservice-{id}-pipelines → mas-aiservice-install-secrets
-    if instance_id:
-        if registry_secret_name is None:
-            registry_secret_name = "mas-aiservice-install-secrets" if namespace.startswith("aiservice-") else "mas-install-secrets"
-
-        credentials_data = {}
-
-        if ibm_entitlement_key:
-            credentials_data["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
-
-        if artifactory_token:
-            credentials_data["ARTIFACTORY_TOKEN"] = base64.b64encode(artifactory_token.encode()).decode()
-
-        if artifactory_username:
-            credentials_data["ARTIFACTORY_USERNAME"] = base64.b64encode(artifactory_username.encode()).decode()
-
-        if credentials_data:
-            try:
-                secretsAPI.delete(name=registry_secret_name, namespace=namespace)
-            except NotFoundError:
-                pass
-
-            secretsAPI.create(
-                body={
-                    "apiVersion": "v1",
-                    "kind": "Secret",
-                    "type": "Opaque",
-                    "metadata": {"name": registry_secret_name},
-                    "data": credentials_data,
-                },
-                namespace=namespace,
-            )
-            logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
 
     # 1. Secret/pipeline-additional-configs
     # -------------------------------------------------------------------------
@@ -1166,24 +1074,17 @@ def prepareUpdateSecrets(
     slack_token: str = None,
     slack_channel: str = None,
     db2LicenseFile: dict | None = None,
-    artifactory_token: str = None,
-    artifactory_username: str = None,
-    registry_secret_name: str = "mas-update-secrets",
 ) -> None:
     """
     Create or update mas-devops-slack secret in mas-pipelines namespace for update pipeline.
 
     Creates the slack secret in mas-pipelines namespace if it exists and slack credentials are provided.
-    Also creates {registry_secret_name} secret if artifactory credentials are provided.
 
     Parameters:
         dynClient (DynamicClient): OpenShift Dynamic Client
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
         db2LicenseFile (dict, optional): Db2 license file content. Defaults to None (empty secret).
-        artifactory_token (str, optional): Artifactory token for dev catalog access. Defaults to None.
-        artifactory_username (str, optional): Artifactory username for dev catalog access. Defaults to None.
-        registry_secret_name (str, optional): Name of the per-pipeline registry credentials secret. Defaults to "mas-update-secrets".
 
     Returns:
         None
@@ -1250,95 +1151,6 @@ def prepareUpdateSecrets(
 
     secretsAPI.create(body=mas_devops_secret, namespace=namespace)
     logger.info(f"Created mas-devops-slack secret in namespace {namespace}")
-
-    # Create {registry_secret_name} if artifactory credentials are provided
-    # Note: update pipeline does not use ibm_entitlement_key (skipped via skip_entitlement_key_flag)
-    credentials_data = {}
-
-    if artifactory_token:
-        credentials_data["ARTIFACTORY_TOKEN"] = base64.b64encode(artifactory_token.encode()).decode()
-
-    if artifactory_username:
-        credentials_data["ARTIFACTORY_USERNAME"] = base64.b64encode(artifactory_username.encode()).decode()
-
-    if credentials_data:
-        try:
-            secretsAPI.delete(name=registry_secret_name, namespace=namespace)
-        except NotFoundError:
-            pass
-
-        secretsAPI.create(
-            body={
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "type": "Opaque",
-                "metadata": {"name": registry_secret_name},
-                "data": credentials_data,
-            },
-            namespace=namespace,
-        )
-        logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
-
-
-def prepareUpgradeSecrets(
-    dynClient: DynamicClient,
-    namespace: str,
-    ibm_entitlement_key: str = None,
-    artifactory_token: str = None,
-    artifactory_username: str = None,
-    registry_secret_name: str = "mas-upgrade-secrets",
-) -> None:
-    """
-    Create the registry credentials secret required for the MAS Upgrade pipeline.
-
-    Upgrade tasks pull images from ICR (ibm_entitlement_key) and optionally from
-    Artifactory (artifactory_token / artifactory_username).  Credentials are written
-    into a named OCP Secret so they are never visible as plaintext PipelineRun params.
-
-    Only keys with non-empty values are written to the secret.
-    The secret is skipped entirely if no credentials are provided.
-
-    Parameters:
-        dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The pipeline namespace (mas-{instanceId}-pipelines)
-        ibm_entitlement_key (str, optional): IBM entitlement key for ICR image pulls. Defaults to None.
-        artifactory_token (str, optional): Artifactory token for dev catalog access. Defaults to None.
-        artifactory_username (str, optional): Artifactory username for dev catalog access. Defaults to None.
-        registry_secret_name (str, optional): Name of the secret to create. Defaults to "mas-upgrade-secrets".
-
-    Returns:
-        None
-    """
-    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
-
-    credentials_data = {}
-
-    if ibm_entitlement_key:
-        credentials_data["IBM_ENTITLEMENT_KEY"] = base64.b64encode(ibm_entitlement_key.encode()).decode()
-
-    if artifactory_token:
-        credentials_data["ARTIFACTORY_TOKEN"] = base64.b64encode(artifactory_token.encode()).decode()
-
-    if artifactory_username:
-        credentials_data["ARTIFACTORY_USERNAME"] = base64.b64encode(artifactory_username.encode()).decode()
-
-    if credentials_data:
-        try:
-            secretsAPI.delete(name=registry_secret_name, namespace=namespace)
-        except NotFoundError:
-            pass
-
-        secretsAPI.create(
-            body={
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "type": "Opaque",
-                "metadata": {"name": registry_secret_name},
-                "data": credentials_data,
-            },
-            namespace=namespace,
-        )
-        logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
 
 
 def testCLI() -> None:
@@ -1606,63 +1418,6 @@ def launchUpdatePipeline(dynClient: DynamicClient, params: dict) -> str:
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-pipelines/tekton.dev~v1beta1~PipelineRun/mas-update-{timestamp}"
     return pipelineURL
-
-
-def prepareBackupSecrets(
-    dynClient: DynamicClient,
-    namespace: str,
-    artifactory_token: str = None,
-    artifactory_username: str = None,
-    registry_secret_name: str = "mas-backup-secrets",
-) -> None:
-    """
-    Create the registry credentials secret required for the MAS Backup pipeline.
-
-    Backup tasks do not use ibm_entitlement_key (no image pulls from ICR), but may
-    use Artifactory credentials to upload backup archives to an Artifactory repository.
-    Credentials are written into a named OCP Secret so they are never visible as
-    plaintext PipelineRun params.
-
-    Only keys with non-empty values are written to the secret.
-    The secret is skipped entirely if no credentials are provided.
-
-    Parameters:
-        dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The pipeline namespace (mas-{instanceId}-pipelines)
-        artifactory_token (str, optional): Artifactory token for archive upload. Defaults to None.
-        artifactory_username (str, optional): Artifactory username for archive upload. Defaults to None.
-        registry_secret_name (str, optional): Name of the secret to create. Defaults to "mas-backup-secrets".
-
-    Returns:
-        None
-    """
-    secretsAPI = dynClient.resources.get(api_version="v1", kind="Secret")
-
-    credentials_data = {}
-
-    if artifactory_token:
-        credentials_data["ARTIFACTORY_TOKEN"] = base64.b64encode(artifactory_token.encode()).decode()
-
-    if artifactory_username:
-        credentials_data["ARTIFACTORY_USERNAME"] = base64.b64encode(artifactory_username.encode()).decode()
-
-    if credentials_data:
-        try:
-            secretsAPI.delete(name=registry_secret_name, namespace=namespace)
-        except NotFoundError:
-            pass
-
-        secretsAPI.create(
-            body={
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "type": "Opaque",
-                "metadata": {"name": registry_secret_name},
-                "data": credentials_data,
-            },
-            namespace=namespace,
-        )
-        logger.info(f"Created {registry_secret_name} secret in namespace {namespace}")
 
 
 def launchBackupPipeline(dynClient: DynamicClient, params: dict) -> str:
