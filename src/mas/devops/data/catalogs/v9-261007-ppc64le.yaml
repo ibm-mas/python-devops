@@ -72,5 +72,5 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - Security fix available for CVE-2026-105052 (Path Traversal, CVSS 7.5) Details: https://www.ibm.com/support/pages/node/7289766
+    - Security fix available for CVE-2026-105052 (Path Traversal, CVSS 7.5) [Security-Bulletin](https://www.ibm.com/support/pages/node/7290791)
     - IBM Maximo Application Suite Core Platform [v9.0.33], [v9.1.27] and [v9.2.8]
