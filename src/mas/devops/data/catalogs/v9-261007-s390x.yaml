@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:a599cfc5bc10d971642dc0ec2cf7f5dbce9bc3366ba8834729a70479b89e7597
+catalog_digest: sha256:0654a9b9cc9b1304b3314dbde457548bfae322c4f2f962971212a15cb2bce7de
 
 ocp_compatibility:
 - "4.18"
@@ -18,7 +18,7 @@ ocp_compatibility:
 # -----------------------------------------------------------------------------
 db2u_version: 7.7.1+20260729.095150.20860        # Operator version 120105.0.1 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
-db2_channel_default: v120105.0             # No Updated      # Default Channel version for db2u-operator
+db2_channel_default: v120105.0             # No Update      # Default Channel version for db2u-operator
 
 
 # Dependencies - UDS
@@ -30,13 +30,13 @@ uds_extras_version: 1.5.0                    # No Update
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.2             # Updated
+sls_version: 3.13.2             # No Update
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.9              # No Updated
+tsm_version: 1.7.9              # No Update
 
 
 # Dependencies - MongoDB
@@ -46,22 +46,22 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
-mongo_extras_version_8: 8.0.30  # Updated
+mongo_extras_version_8: 8.0.30  # No Update
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.7                          # Updated
+  9.2.x: 9.2.8                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.26                         # Updated
-  9.0.x: 9.0.32                         # Updated
+  9.1.x: 9.1.27                         # Updated
+  9.0.x: 9.0.33                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x: 9.2.4                          # Updated
+  9.2.x: 9.2.4                          # No Update
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.25                         # Updated
-  9.0.x: 9.0.32                         # Updated
+  9.1.x: 9.1.25                         # No Update
+  9.0.x: 9.0.32                         # No Update
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
@@ -72,10 +72,7 @@ editorial:
   whats_new:
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.32](https://www.ibm.com/support/pages/node/7289766), [v9.1.26](https://www.ibm.com/support/pages/node/7289767) and [v9.2.7](https://www.ibm.com/support/pages/node/7289768)
-    - IBM Maximo Manage [v9.0.32](https://www.ibm.com/support/pages/node/7289352),[v9.1.25](https://www.ibm.com/support/pages/node/7289351) and [v9.2.4](https://www.ibm.com/support/pages/node/7289350)
-    - IBM Suite License Service v3.13
-    - 'Mongo: 8.0.30'
+    - IBM Maximo Application Suite Core Platform [v9.0.33], [v9.1.27] and [v9.2.8]
   known_issues:
     - title: During an upgrade from MVI 9.0.x to 9.1.x, the vision-auth pod may fail to start due to an SSL hostname verification error when connecting to Valkey. Restart the Valkey and Auth deployments in the MVI namespace to resolve the issue.
     
