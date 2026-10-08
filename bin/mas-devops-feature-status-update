@@ -1,0 +1,656 @@
+#!/usr/bin/env python3
+
+# *****************************************************************************
+# Copyright (c) 2025 IBM Corporation and other Contributors.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+#
+# *****************************************************************************
+"""
+mas-devops-feature-status-update — Write MAS feature status records to the
+DevOps MongoDB (mas_devops database).
+
+Collection routing
+──────────────────
+  --instance-id supplied  →  mas_devops.instance_level_config
+                              One document per (subscription_id ×
+                              account × region × cluster × instance).
+                              The feature entry is embedded in
+                              instance_level_features[].
+
+  --instance-id omitted   →  mas_devops.cluster_level_config
+                              One document per (account × region ×
+                              cluster).
+                              The feature entry is embedded in
+                              cluster_level_features[].
+
+Sub-commands
+────────────
+
+  status-update
+    Upsert a feature status entry.
+    Collections (with JSON Schema validators) and indexes are created
+    automatically on the first call if they are absent (idempotent).
+
+    Example — instance-level, ACTIVE (single IP):
+      mas-devops-feature-status-update status-update \\
+          --region     us-east-2 \\
+          --instance-id inst02 \\
+          --account    fyre-noble10-dev \\
+          --cluster    noble10 \\
+          --subscription-id sub-id01 \\
+          --type       allow-list \\
+          --feature-details '{"ips": ["2405:201:d000:9062::/64"]}' \\
+          --status     ACTIVE \\
+          --status-details '{"message": "Allow list is active.", "request_configuration": "2405:201:d000:9062::/64"}' \\
+          --deployment-start 2026-09-11T11:48:42+00:00 \\
+          --deployment-end   2026-09-11T11:53:10+00:00
+
+    Example — instance-level, ACTIVE (multiple IPs):
+      mas-devops-feature-status-update status-update \\
+          --region     us-east-2 \\
+          --instance-id inst02 \\
+          --account    fyre-noble10-dev \\
+          --cluster    noble10 \\
+          --subscription-id sub-id01 \\
+          --type       allow-list \\
+          --feature-details '{"ips": ["1.2.3.4/32", "2405:201:d000:9062::/64"]}' \\
+          --status     ACTIVE \\
+          --status-details '{"message": "Allow list is active.", "request_configuration": "1.2.3.4/32, 2405:201:d000:9062::/64"}' \\
+          --deployment-start 2026-09-11T11:48:42+00:00 \\
+          --deployment-end   2026-09-11T11:53:10+00:00
+
+    Example — instance-level, ERROR (using --status-details-file to avoid shell quoting issues):
+      cat > /tmp/status-details.json <<'EOF'
+      {
+        "message": "sample error message",
+        "error_code": 401,
+        "error_source": {
+          "gitops_version": "8.6.0",
+          "filename": "cis_ip_allowlist.yml",
+          "log_file": "/var/log/gitops/run-001.log",
+          "stacktrace": "Traceback (most recent call last): ..."
+        },
+        "request_configuration": "2405:201:d000:9060::/64"
+      }
+      EOF
+      mas-devops-feature-status-update status-update \\
+          --region     us-east-2 \\
+          --instance-id inst02 \\
+          --account    fyre-noble10-dev \\
+          --cluster    noble10 \\
+          --subscription-id sub-id01 \\
+          --type       allow-list \\
+          --feature-details '{"ips": ["2405:201:d000:9060::/64"]}' \\
+          --status     ERROR \\
+          --status-details-file /tmp/status-details.json \\
+          --deployment-start 2026-09-11T11:48:42+00:00 \\
+          --deployment-end   2026-09-11T11:53:10+00:00
+
+  get
+    Fetch and pretty-print a feature status entry by ObjectId or by
+    criteria fields (region, account, cluster[, instance_id], type).
+
+    Example — by ObjectId:
+      mas-devops-feature-status-update get --id 6ab0e70ee6d3a31faa808547
+
+    Example — instance-level by criteria:
+      mas-devops-feature-status-update get \\
+          --region     us-east-2 \\
+          --instance-id inst02 \\
+          --account    fyre-noble10-dev \\
+          --cluster    noble10 \\
+          --subscription-id sub-id01 \\
+          --type       allow-list
+
+    Example — cluster-level by criteria (no --instance-id):
+      mas-devops-feature-status-update get \\
+          --region     us-east-2 \\
+          --account    fyre-noble10-dev \\
+          --cluster    noble10 \\
+          --type       allow-list
+
+Environment variables
+─────────────────────
+  DEVOPS_MONGO_URI  (required) Full MongoDB connection URI. All options — including
+                    TLS settings — are passed as query parameters in the URI and are
+                    handled directly by pymongo.
+
+  With TLS enabled (production):
+    export DEVOPS_MONGO_URI="mongodb://user:pass@host1:port1,host2:port2/admin?tls=true" # pragma: allowlist secret
+
+  With TLS disabled or self-signed certs (local / dev):
+    export DEVOPS_MONGO_URI="mongodb://user:pass@localhost:27017/admin?tls=false&tlsAllowInvalidCertificates=true" # pragma: allowlist secret
+
+One-time initialisation
+───────────────────────
+  No separate setup step is required.  The first call to status-update
+  automatically creates both collections (with JSON Schema validators) and
+  all required indexes if they are absent.  The operation is idempotent —
+  subsequent calls are no-ops when everything already exists.
+"""
+
+import argparse
+import json
+import logging
+import os
+import sys
+from datetime import datetime, timezone
+from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Env-var name used to supply the MongoDB connection URI
+# ---------------------------------------------------------------------------
+
+_ENV_DEVOPS_MONGO_URI = "DEVOPS_MONGO_URI"
+
+
+# ---------------------------------------------------------------------------
+# Argument-parsing helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_json_relaxed(raw: str) -> dict:
+    """Parse a JSON string, accepting bare keys and single quotes (shell-friendly)."""
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        import re
+
+        relaxed = re.sub(r"'([^']*)'", r'"\1"', raw)
+        relaxed = re.sub(r"([{,\[]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:", r'\1"\2":', relaxed)
+        relaxed = re.sub(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:", r'\1"\2":', relaxed)
+        try:
+            return json.loads(relaxed)
+        except json.JSONDecodeError:
+            raise ValueError(f"Could not parse value as JSON.\n" f"  Input : {raw!r}\n" f'  Hint  : use double-quoted keys, e.g. {{"url": "mongodb://..."}}')
+
+
+def _parse_json_arg(value: str, arg_name: str) -> dict:
+    try:
+        result = _parse_json_relaxed(value)
+    except ValueError as exc:
+        print(f"ERROR: --{arg_name}: {exc}", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(result, dict):
+        print(f"ERROR: --{arg_name} must be a JSON object (got {type(result).__name__})", file=sys.stderr)
+        sys.exit(1)
+    return result
+
+
+def _read_file_arg(path: str, arg_name: str) -> str:
+    """Read and return the contents of *path* for use as a CLI argument value.
+
+    Raises SystemExit(1) if the file cannot be read.
+    """
+    try:
+        with open(path) as fh:
+            return fh.read()
+    except OSError as exc:
+        print(f"ERROR: --{arg_name}: cannot read file '{path}': {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _parse_isodate(value: Optional[str], arg_name: str) -> Optional[datetime]:
+    """Parse an ISO-8601 datetime, stripping MongoDB ISODate() wrappers."""
+    if value is None:
+        return None
+    import re
+
+    m = re.match(r"ISODate\(['\"](.+?)['\"]\)", value.strip())
+    if m:
+        value = m.group(1)
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except ValueError:
+        print(f"ERROR: --{arg_name} must be an ISO-8601 datetime string, got: {value!r}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _resolve_db() -> str:
+    """Return the MongoDB connection URI from the DEVOPS_MONGO_URI environment variable.
+
+    Raises SystemExit(1) if the variable is unset or empty.
+    """
+    uri = os.getenv(_ENV_DEVOPS_MONGO_URI, "")
+    if not uri:
+        print(
+            f"ERROR: {_ENV_DEVOPS_MONGO_URI} environment variable is required.\n"
+            f"  Set it to a full MongoDB connection URI, e.g.:\n"
+            f'    export {_ENV_DEVOPS_MONGO_URI}="mongodb://user:pass@localhost:27017/admin'  # pragma: allowlist secret
+            f'?tls=false&tlsAllowInvalidCertificates=true"',
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return uri
+
+
+# ---------------------------------------------------------------------------
+# Sub-command: get
+# ---------------------------------------------------------------------------
+
+
+def cmd_get(args) -> int:
+    """Fetch and pretty-print a feature status entry by ObjectId or by criteria fields."""
+    from mas.devops.feature_status import (
+        INSTANCE_LEVEL,
+        get_cluster_feature_by_criteria,
+        get_feature_level,
+        get_feature_status_by_id,
+        get_instance_feature_by_criteria,
+    )
+
+    mongo_url = _resolve_db()
+
+    try:
+        if args.id:
+            doc = get_feature_status_by_id(mongo_url, args.id)
+            not_found_msg = f"No document found with ID: {args.id}"
+        else:
+            # Criteria mode — region, account, cluster, type are always required.
+            missing = [
+                f
+                for f, v in [
+                    ("--account", args.account),
+                    ("--cluster", args.cluster),
+                    ("--type", args.type),
+                ]
+                if v is None
+            ]
+            if missing:
+                print(f"ERROR: the following arguments are required when using --region: {', '.join(missing)}", file=sys.stderr)
+                return 1
+
+            # Resolve collection routing from the feature type map.
+            try:
+                level = get_feature_level(args.type)
+            except ValueError as exc:
+                print(f"ERROR: {exc}", file=sys.stderr)
+                return 1
+
+            if level == INSTANCE_LEVEL:
+                if not args.instance_id:
+                    print(f"ERROR: --instance-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
+                    return 1
+                if not args.subscription_id:
+                    print("ERROR: --subscription-id is required for instance-level feature types", file=sys.stderr)
+                    return 1
+                doc = get_instance_feature_by_criteria(
+                    mongo_url,
+                    region=args.region,
+                    instance_id=args.instance_id,
+                    account=args.account,
+                    cluster=args.cluster,
+                    subscription_id=args.subscription_id,
+                    feature_type=args.type,
+                )
+                not_found_msg = (
+                    f"No '{args.type}' feature entry found for "
+                    f"region={args.region} "
+                    f"instance_id={args.instance_id} account={args.account} "
+                    f"cluster={args.cluster} subscription_id={args.subscription_id}"
+                )
+            else:
+                if args.instance_id:
+                    print(f"ERROR: --instance-id must not be supplied for cluster-level feature type '{args.type}'", file=sys.stderr)
+                    return 1
+                doc = get_cluster_feature_by_criteria(
+                    mongo_url,
+                    region=args.region,
+                    account=args.account,
+                    cluster=args.cluster,
+                    feature_type=args.type,
+                )
+                not_found_msg = f"No '{args.type}' feature entry found for " f"region={args.region} " f"account={args.account} cluster={args.cluster}"
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"ERROR: Could not connect to MongoDB: {exc}", file=sys.stderr)
+        return 1
+
+    if doc is None:
+        print(not_found_msg, file=sys.stderr)
+        return 1
+
+    print(json.dumps(doc, indent=2, default=str))
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Sub-command: status-update
+# ---------------------------------------------------------------------------
+
+
+def cmd_status_update(args) -> int:
+    """Upsert a feature status entry into MongoDB.
+
+    Collection routing is determined by FEATURE_LEVEL_MAP:
+      INSTANCE_LEVEL → instance_level_config  (--instance-id and --subscription-id required)
+      otherwise      → cluster_level_config   (--instance-id and --subscription-id must be absent)
+
+    Required indexes are created automatically if they do not already exist.
+    """
+    from mas.devops.feature_status import (
+        INSTANCE_LEVEL,
+        VALID_STATUSES,
+        _redact_url,
+        create_indexes,
+        get_feature_level,
+        upsert_cluster_feature,
+        upsert_instance_feature,
+        validate_feature_details,
+        validate_status_details,
+    )
+
+    # Validate status enum
+    if args.status not in VALID_STATUSES:
+        print(f"ERROR: --status must be one of {sorted(VALID_STATUSES)}, got '{args.status}'", file=sys.stderr)
+        return 1
+
+    # Resolve collection routing from the feature type map (fail fast before any I/O).
+    try:
+        level = get_feature_level(args.type)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    # Validate --instance-id / --subscription-id consistency with the feature type's level.
+    if level == INSTANCE_LEVEL and not args.instance_id:
+        print(f"ERROR: --instance-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
+        return 1
+    if level == INSTANCE_LEVEL and not args.subscription_id:
+        print(f"ERROR: --subscription-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
+        return 1
+    if level != INSTANCE_LEVEL and args.instance_id:
+        print(f"ERROR: --instance-id must not be supplied for cluster-level feature type '{args.type}'", file=sys.stderr)
+        return 1
+
+    # Parse JSON arguments — --status-details-file takes precedence over --status-details
+    feature_details = _parse_json_arg(args.feature_details, "feature-details")
+    if args.status_details_file:
+        status_details_raw = _read_file_arg(args.status_details_file, "status-details-file")
+        status_details = _parse_json_arg(status_details_raw, "status-details-file")
+    else:
+        status_details = _parse_json_arg(args.status_details, "status-details")
+
+    # Type-specific validation
+    try:
+        validate_feature_details(args.type, feature_details)
+        validate_status_details(args.type, args.status, status_details)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    # Parse datetime arguments
+    deployment_start = _parse_isodate(args.deployment_start, "deployment-start")
+    deployment_end = _parse_isodate(args.deployment_end, "deployment-end")
+    created_at = _parse_isodate(args.created_at, "created-at")
+    updated_at = _parse_isodate(args.updated_at, "updated-at")
+
+    # Resolve DB URI from environment
+    mongo_url = _resolve_db()
+
+    # Build the console label from the resolved level.
+    if level == INSTANCE_LEVEL:
+        collection_label = "instance_level_config"
+        target_label = f"account={args.account} cluster={args.cluster} " f"instance={args.instance_id} type={args.type} status={args.status}"
+    else:
+        collection_label = "cluster_level_config"
+        target_label = f"account={args.account} cluster={args.cluster} " f"type={args.type} status={args.status}"
+
+    print(f"Writing feature status to mas_devops.{collection_label}: {target_label}")
+    print(f"  MongoDB: {_redact_url(mongo_url)}")
+
+    # Ensure required indexes exist on both collections (idempotent — no-op when already present).
+    try:
+        create_indexes(mongo_url)
+    except Exception as exc:
+        print(f"ERROR: Could not initialise collection indexes: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        if level == INSTANCE_LEVEL:
+            doc_id = upsert_instance_feature(
+                mongo_url,
+                subscription_id=args.subscription_id,
+                region=args.region,
+                account=args.account,
+                cluster=args.cluster,
+                instance=args.instance_id,
+                feature_type=args.type,
+                feature_details=feature_details,
+                status=args.status,
+                status_details=status_details,
+                deployment_start=deployment_start,
+                deployment_end=deployment_end,
+                created_at=created_at,
+                updated_at=updated_at,
+            )
+        else:
+            doc_id = upsert_cluster_feature(
+                mongo_url,
+                region=args.region,
+                account=args.account,
+                cluster=args.cluster,
+                feature_type=args.type,
+                feature_details=feature_details,
+                status=args.status,
+                status_details=status_details,
+                deployment_start=deployment_start,
+                deployment_end=deployment_end,
+                created_at=created_at,
+                updated_at=updated_at,
+            )
+        print(f"Feature status written successfully. Document ID: {doc_id}")
+        return 0
+    except ValueError as exc:
+        print(f"ERROR: Validation failed — {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"ERROR: Failed to write feature status to MongoDB: {exc}", file=sys.stderr)
+        return 1
+
+
+# ---------------------------------------------------------------------------
+# Argument parser
+# ---------------------------------------------------------------------------
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="mas-devops-feature-status-update",
+        description="Write MAS feature status records to the DevOps MongoDB (mas_devops).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--log-level",
+        required=False,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="WARNING",
+        help="Python logging level (default: WARNING)",
+    )
+
+    subparsers = parser.add_subparsers(dest="command", metavar="<command>")
+    subparsers.required = True
+
+    # ── status-update ─────────────────────────────────────────────────────────
+    su = subparsers.add_parser(
+        "status-update",
+        help=(
+            "Upsert a feature status entry. " "Routes to instance_level_config when --instance-id is supplied, " "or cluster_level_config when it is omitted."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    identity = su.add_argument_group("identity")
+    identity.add_argument("--region", required=True, help="AWS region (e.g. us-east-2)")
+    identity.add_argument(
+        "--instance-id",
+        required=False,
+        default=None,
+        dest="instance_id",
+        help=("MAS instance ID (e.g. inst02). " "When supplied, writes to instance_level_config. " "When omitted, writes to cluster_level_config."),
+    )
+    identity.add_argument("--account", required=True, help="GitOps account name (e.g. fyre-noble10-dev)")
+    identity.add_argument("--cluster", required=True, help="GitOps cluster name (e.g. noble10)")
+    identity.add_argument(
+        "--subscription-id",
+        required=False,
+        default=None,
+        dest="subscription_id",
+        help="Subscription ID. Required for instance-level feature types; must be omitted for cluster-level types.",
+    )
+
+    feature = su.add_argument_group("feature")
+    feature.add_argument(
+        "--type",
+        required=True,
+        help="Feature type (e.g. allow-list). Drives feature_details validation.",
+    )
+    feature.add_argument(
+        "--feature-details",
+        required=True,
+        dest="feature_details",
+        metavar="JSON",
+        help="JSON object with type-specific fields. allow-list requires 'ips'.",
+    )
+
+    status = su.add_argument_group("status")
+    status.add_argument(
+        "--status",
+        required=True,
+        choices=["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR", "DEACTIVATED"],
+        help="Feature lifecycle status.",
+    )
+    status_details_group = status.add_mutually_exclusive_group(required=True)
+    status_details_group.add_argument(
+        "--status-details",
+        default=None,
+        dest="status_details",
+        metavar="JSON",
+        help=(
+            "JSON object describing the outcome. "
+            "ACTIVE/REQUESTED/IN_PROGRESS: {message, request_configuration}. "
+            "ERROR: {message, error_code, error_source, request_configuration}. "
+            "request_configuration may be a single CIDR or a comma/space-separated list. "
+            "Mutually exclusive with --status-details-file."
+        ),
+    )
+    status_details_group.add_argument(
+        "--status-details-file",
+        default=None,
+        dest="status_details_file",
+        metavar="FILE",
+        help=(
+            "Path to a JSON file containing the status-details object. "
+            "Useful for ERROR payloads whose message or stacktrace contains quotes "
+            "that would break inline shell quoting. "
+            "Mutually exclusive with --status-details."
+        ),
+    )
+
+    timestamps = su.add_argument_group("timestamps (all optional, default: now)")
+    timestamps.add_argument("--deployment-start", required=False, default=None, dest="deployment_start", metavar="ISO-8601")
+    timestamps.add_argument("--deployment-end", required=False, default=None, dest="deployment_end", metavar="ISO-8601")
+    timestamps.add_argument(
+        "--created-at",
+        required=False,
+        default=None,
+        dest="created_at",
+        metavar="ISO-8601",
+        help=(
+            "Timestamp recorded as the entry's creation time. "
+            "Only applied when the feature entry does not yet exist; "
+            "ignored on updates to preserve the original value."
+        ),
+    )
+    timestamps.add_argument("--updated-at", required=False, default=None, dest="updated_at", metavar="ISO-8601")
+
+    # ── get ───────────────────────────────────────────────────────────────────
+    get = subparsers.add_parser(
+        "get",
+        help="Fetch and print a feature status entry by ObjectId or by criteria fields.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=(
+            "Retrieve a feature status entry using either its ObjectId (--id) or a\n"
+            "combination of criteria fields.\n\n"
+            "When --instance-id is supplied the lookup targets instance_level_config\n"
+            "and returns the matching entry from instance_level_features[].\n"
+            "When --instance-id is omitted the lookup targets cluster_level_config\n"
+            "and returns the matching entry from cluster_level_features[].\n\n"
+            "Examples:\n"
+            "  # by ObjectId\n"
+            "  mas-devops-feature-status-update get --id 6ab0e70ee6d3a31faa808547\n\n"
+            "  # instance-level by criteria\n"
+            "  mas-devops-feature-status-update get \\\n"
+            "      --region     us-east-2 \\\n"
+            "      --instance-id inst02 \\\n"
+            "      --account    fyre-noble10-dev \\\n"
+            "      --cluster    noble10 \\\n"
+            "      --subscription-id sub-id01 \\\n"
+            "      --type       allow-list\n\n"
+            "  # cluster-level by criteria (no --instance-id)\n"
+            "  mas-devops-feature-status-update get \\\n"
+            "      --region     us-east-2 \\\n"
+            "      --account    fyre-noble10-dev \\\n"
+            "      --cluster    noble10 \\\n"
+            "      --type       allow-list"
+        ),
+    )
+    get_lookup = get.add_mutually_exclusive_group(required=True)
+    get_lookup.add_argument(
+        "--id",
+        default=None,
+        metavar="OBJECT_ID",
+        help="24-character hex ObjectId of the document (e.g. 6ab0e70ee6d3a31faa808547).",
+    )
+    get_lookup.add_argument(
+        "--region",
+        default=None,
+        metavar="REGION",
+        help="AWS region (e.g. us-east-2). Use together with the other criteria flags.",
+    )
+    get_criteria = get.add_argument_group("criteria (required when --region is used)")
+    get_criteria.add_argument(
+        "--instance-id",
+        dest="instance_id",
+        default=None,
+        metavar="INSTANCE_ID",
+        help="MAS instance ID. When supplied routes to instance_level_config; when omitted routes to cluster_level_config.",
+    )
+    get_criteria.add_argument("--account", default=None, metavar="ACCOUNT", help="GitOps account name (e.g. fyre-noble10-dev)")
+    get_criteria.add_argument("--cluster", default=None, metavar="CLUSTER", help="GitOps cluster name (e.g. noble10)")
+    get_criteria.add_argument(
+        "--subscription-id", dest="subscription_id", default=None, metavar="SUBSCRIPTION_ID", help="Subscription ID (required when --instance-id is used)"
+    )
+    get_criteria.add_argument("--type", default=None, metavar="TYPE", help="Feature type (e.g. allow-list)")
+
+    return parser
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    parser = build_parser()
+    args = parser.parse_args()
+
+    log_level = getattr(logging, args.log_level)
+    logging.basicConfig(format="%(levelname)s %(name)s: %(message)s")
+    logging.getLogger("mas.devops.feature_status").setLevel(log_level)
+
+    if args.command == "status-update":
+        sys.exit(cmd_status_update(args))
+    elif args.command == "get":
+        sys.exit(cmd_get(args))
+    else:
+        parser.print_help()
+        sys.exit(1)
