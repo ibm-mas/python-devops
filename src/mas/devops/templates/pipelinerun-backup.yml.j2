@@ -17,11 +17,6 @@ spec:
       persistentVolumeClaim:
         claimName: backup-pvc
   params:
-    # Registry Credentials Secret
-    # -------------------------------------------------------------------------
-    - name: pipeline_registry_secret_name
-      value: "mas-backup-secrets"
-
     # Common Parameters
     - name: image_pull_policy
       value: IfNotPresent
@@ -77,6 +72,16 @@ spec:
     {% if cert_manager_provider is defined and cert_manager_provider != "" %}
     - name: cert_manager_provider
       value: "{{ cert_manager_provider }}"
+    {% endif %}
+
+    # Development Build Support
+    {% if artifactory_username is defined and artifactory_username != "" %}
+    - name: artifactory_username
+      value: "{{ artifactory_username }}"
+    {% endif %}
+    {% if artifactory_token is defined and artifactory_token != "" %}
+    - name: artifactory_token
+      value: "{{ artifactory_token }}"
     {% endif %}
 
     # Upload Configuration
