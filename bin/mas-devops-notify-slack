@@ -390,11 +390,11 @@ def notifyPipelineComplete(
     if rc == 0:
         emoji = "🎉"
         status = "Completed Successfully"
-        additionalInfo = "\nAll tasks completed successfully"
+        additionalInfo = "\n<!here> All tasks completed successfully"
     else:
         emoji = "💥"
         status = "Failed"
-        additionalInfo = f"\nPipeline failed with return code: `{rc}`"
+        additionalInfo = f"\n<!here> Pipeline failed with return code: `{rc}`"
 
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
