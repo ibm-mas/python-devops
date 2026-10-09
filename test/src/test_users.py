@@ -2530,3 +2530,71 @@ def test_create_initial_users_for_saas(user_utils):
     }
 
     user_utils.await_mas_application_availability.assert_has_calls([call("manage"), call("iot")])
+
+
+def _setup_post_9_1_user_utils(user_utils, user_id, mas_workspace_application_ids):
+    """Helper: wire up mocks for a post-9.1 create_initial_user_for_saas call."""
+    resource_id = f"_{user_id}_resource_id"
+    user_utils.get_or_create_user = MagicMock(return_value=(resource_id, {}))
+    user_utils.link_user_to_local_idp = MagicMock()
+    user_utils.get_mas_applications_in_workspace = MagicMock(return_value=list(map(lambda x: {"id": x}, mas_workspace_application_ids)))
+    user_utils.await_mas_application_availability = MagicMock()
+    user_utils.set_user_application_permission = MagicMock()
+    user_utils.check_user_sync = MagicMock()
+    manage_api_key = "manage_api_key"  # pragma: allowlist secret
+    user_utils.create_or_get_manage_api_key_for_user = MagicMock(return_value=manage_api_key)
+    user_utils.add_user_to_manage_group = MagicMock()
+    user_utils.set_user_group_reassignment_auth = MagicMock()
+    return resource_id, manage_api_key
+
+
+def test_create_initial_user_for_saas_post_9_1_manage_primary(user_utils):
+    """Post-9.1 PRIMARY user: reassignment fires when workspace contains 'manage'."""
+    if Version(user_utils.mas_version) < Version("9.1"):
+        pytest.skip("post-9.1 only")
+
+    user_id = "primaryuser"
+    resource_id, manage_api_key = _setup_post_9_1_user_utils(user_utils, user_id, ["manage", "iot"])
+    groupreassign = [{"groupname": "USERMANAGEMENT"}]
+
+    user_utils.create_initial_user_for_saas(
+        {"email": f"{user_id}@acme.com", "given_name": "Primary", "family_name": "User", "id": user_id},
+        "PRIMARY",
+        groupreassign,
+    )
+
+    user_utils.set_user_group_reassignment_auth.assert_called_once_with(user_id, resource_id, groupreassign, manage_api_key)
+
+
+def test_create_initial_user_for_saas_post_9_1_facilities_primary(user_utils):
+    """Post-9.1 PRIMARY user: reassignment fires when workspace contains 'facilities' (no 'manage')."""
+    if Version(user_utils.mas_version) < Version("9.1"):
+        pytest.skip("post-9.1 only")
+
+    user_id = "primaryuser"
+    resource_id, manage_api_key = _setup_post_9_1_user_utils(user_utils, user_id, ["facilities", "iot"])
+    groupreassign = [{"groupname": "USERMANAGEMENT"}]
+
+    user_utils.create_initial_user_for_saas(
+        {"email": f"{user_id}@acme.com", "given_name": "Primary", "family_name": "User", "id": user_id},
+        "PRIMARY",
+        groupreassign,
+    )
+
+    user_utils.set_user_group_reassignment_auth.assert_called_once_with(user_id, resource_id, groupreassign, manage_api_key)
+
+
+def test_create_initial_user_for_saas_post_9_1_facilities_secondary(user_utils):
+    """Post-9.1 SECONDARY user: reassignment is NOT called even when workspace contains 'facilities'."""
+    if Version(user_utils.mas_version) < Version("9.1"):
+        pytest.skip("post-9.1 only")
+
+    user_id = "secondaryuser"
+    _setup_post_9_1_user_utils(user_utils, user_id, ["facilities", "iot"])
+
+    user_utils.create_initial_user_for_saas(
+        {"email": f"{user_id}@acme.com", "given_name": "Secondary", "family_name": "User", "id": user_id},
+        "SECONDARY",
+    )
+
+    user_utils.set_user_group_reassignment_auth.assert_not_called()
