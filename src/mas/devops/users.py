@@ -1712,7 +1712,7 @@ class MASUserUtils:
             resource_id=resource_id,
         )
 
-        if len(manage_security_groups) > 0 and "manage" in self.mas_workspace_application_ids:
+        if len(manage_security_groups) > 0 and ("manage" in self.mas_workspace_application_ids or "facilities" in self.mas_workspace_application_ids):
             if user_type == "PRIMARY" and groupreassign is not None:
                 if resource_id and mxintadm_manage_api_key:
                     self.set_user_group_reassignment_auth(user_id, resource_id, groupreassign, mxintadm_manage_api_key)
