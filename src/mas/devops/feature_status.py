@@ -477,7 +477,7 @@ def _instance_parent_filter(
     cluster: str,
     instance: str,
 ) -> dict:
-    """Build the query filter for an instance_level_config parent document.
+    """Build the query filter for an instance_level_config parent document
 
     When subscription_id is not supplied the filter matches documents that have no
     subscription_id field ($exists operators are not copied into upserted documents).
