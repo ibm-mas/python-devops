@@ -229,7 +229,6 @@ _VALIDATOR_INSTANCE = {
         "bsonType": "object",
         "required": [
             "_id",
-            "subscription_id",
             "account",
             "region",
             "cluster",
@@ -335,7 +334,8 @@ def bootstrap_collections(mongo_url: str) -> None:
                 )
                 logger.info("Collection '%s' created with JSON Schema validator.", name)
             except CollectionInvalid:
-                logger.info("Collection '%s' already exists — skipping creation.", name)
+                logger.info("Collection '%s' already exists — refreshing JSON Schema validator.", name)
+                db.command("collMod", name, validator=validator, validationLevel="strict", validationAction="error")
     finally:
         client.close()
 
@@ -453,10 +453,45 @@ def _build_feature_entry(
 # ---------------------------------------------------------------------------
 
 
+def _instance_parent_fields(
+    subscription_id: Optional[str],
+    account: str,
+    region: str,
+    cluster: str,
+    instance: str,
+) -> dict:
+    """Build the identifying fields of an instance_level_config parent document.
+
+    subscription_id is omitted when not supplied.
+    """
+    fields = {"account": account, "region": region, "cluster": cluster, "instance": instance}
+    if subscription_id:
+        fields["subscription_id"] = subscription_id
+    return fields
+
+
+def _instance_parent_filter(
+    subscription_id: Optional[str],
+    account: str,
+    region: str,
+    cluster: str,
+    instance: str,
+) -> dict:
+    """Build the query filter for an instance_level_config parent document.
+
+    When subscription_id is not supplied the filter matches documents that have no
+    subscription_id field ($exists operators are not copied into upserted documents).
+    """
+    fields = _instance_parent_fields(subscription_id, account, region, cluster, instance)
+    if not subscription_id:
+        fields["subscription_id"] = {"$exists": False}
+    return fields
+
+
 def upsert_instance_feature(
     mongo_url: str,
     *,
-    subscription_id: str,
+    subscription_id: Optional[str] = None,
     region: str,
     account: str,
     cluster: str,
@@ -473,7 +508,7 @@ def upsert_instance_feature(
     """Upsert a feature entry inside instance_level_config.
 
     The parent document is identified by
-    (subscription_id, account, region, cluster, instance).
+    (subscription_id, account, region, cluster, instance); subscription_id is optional.
     If a feature entry with the same *type* already exists it is updated
     in-place via a single atomic find_one_and_update with arrayFilters;
     otherwise the entry is appended (with parent upsert if needed).
@@ -489,13 +524,8 @@ def upsert_instance_feature(
     now = datetime.now(timezone.utc)
     entry = _build_feature_entry(feature_type, feature_details, status, status_details, deployment_start, deployment_end, now, created_at, updated_at)
 
-    parent_filter = {
-        "subscription_id": subscription_id,
-        "account": account,
-        "region": region,
-        "cluster": cluster,
-        "instance": instance,
-    }
+    parent_filter = _instance_parent_filter(subscription_id, account, region, cluster, instance)
+    parent_fields = _instance_parent_fields(subscription_id, account, region, cluster, instance)
 
     client = MongoClient(mongo_url)
     try:
@@ -529,7 +559,7 @@ def upsert_instance_feature(
                 parent_filter,
                 {
                     "$setOnInsert": {
-                        **parent_filter,
+                        **parent_fields,
                         "created_at": created_at or now,
                     },
                     "$push": {"instance_level_features": entry},
@@ -708,7 +738,7 @@ def get_instance_feature_by_criteria(
     instance_id: str,
     account: str,
     cluster: str,
-    subscription_id: str,
+    subscription_id: Optional[str] = None,
     feature_type: str,
 ) -> Optional[dict]:
     """Fetch the feature entry for *feature_type* from instance_level_config.
@@ -718,13 +748,7 @@ def get_instance_feature_by_criteria(
     """
     client = MongoClient(mongo_url)
     try:
-        filter_doc = {
-            "subscription_id": subscription_id,
-            "account": account,
-            "region": region,
-            "cluster": cluster,
-            "instance": instance_id,
-        }
+        filter_doc = _instance_parent_filter(subscription_id, account, region, cluster, instance_id)
         doc = client[DATABASE][COLLECTION_INSTANCE].find_one(filter_doc)
         if doc is None:
             return None

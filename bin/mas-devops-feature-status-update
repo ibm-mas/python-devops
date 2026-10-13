@@ -278,9 +278,6 @@ def cmd_get(args) -> int:
                 if not args.instance_id:
                     print(f"ERROR: --instance-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
                     return 1
-                if not args.subscription_id:
-                    print("ERROR: --subscription-id is required for instance-level feature types", file=sys.stderr)
-                    return 1
                 doc = get_instance_feature_by_criteria(
                     mongo_url,
                     region=args.region,
@@ -294,7 +291,7 @@ def cmd_get(args) -> int:
                     f"No '{args.type}' feature entry found for "
                     f"region={args.region} "
                     f"instance_id={args.instance_id} account={args.account} "
-                    f"cluster={args.cluster} subscription_id={args.subscription_id}"
+                    f"cluster={args.cluster}" + (f" subscription_id={args.subscription_id}" if args.subscription_id else "")
                 )
             else:
                 if args.instance_id:
@@ -332,7 +329,7 @@ def cmd_status_update(args) -> int:
     """Upsert a feature status entry into MongoDB.
 
     Collection routing is determined by FEATURE_LEVEL_MAP:
-      INSTANCE_LEVEL → instance_level_config  (--instance-id and --subscription-id required)
+      INSTANCE_LEVEL → instance_level_config  (--instance-id required, --subscription-id optional)
       otherwise      → cluster_level_config   (--instance-id and --subscription-id must be absent)
 
     Required indexes are created automatically if they do not already exist.
@@ -364,9 +361,6 @@ def cmd_status_update(args) -> int:
     # Validate --instance-id / --subscription-id consistency with the feature type's level.
     if level == INSTANCE_LEVEL and not args.instance_id:
         print(f"ERROR: --instance-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
-        return 1
-    if level == INSTANCE_LEVEL and not args.subscription_id:
-        print(f"ERROR: --subscription-id is required for instance-level feature type '{args.type}'", file=sys.stderr)
         return 1
     if level != INSTANCE_LEVEL and args.instance_id:
         print(f"ERROR: --instance-id must not be supplied for cluster-level feature type '{args.type}'", file=sys.stderr)
@@ -505,7 +499,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=False,
         default=None,
         dest="subscription_id",
-        help="Subscription ID. Required for instance-level feature types; must be omitted for cluster-level types.",
+        help="Subscription ID. Optional for instance-level feature types; ignored for cluster-level types.",
     )
 
     feature = su.add_argument_group("feature")
@@ -628,7 +622,7 @@ def build_parser() -> argparse.ArgumentParser:
     get_criteria.add_argument("--account", default=None, metavar="ACCOUNT", help="GitOps account name (e.g. fyre-noble10-dev)")
     get_criteria.add_argument("--cluster", default=None, metavar="CLUSTER", help="GitOps cluster name (e.g. noble10)")
     get_criteria.add_argument(
-        "--subscription-id", dest="subscription_id", default=None, metavar="SUBSCRIPTION_ID", help="Subscription ID (required when --instance-id is used)"
+        "--subscription-id", dest="subscription_id", default=None, metavar="SUBSCRIPTION_ID", help="Subscription ID (optional; instance-level lookups only)"
     )
     get_criteria.add_argument("--type", default=None, metavar="TYPE", help="Feature type (e.g. allow-list)")
 

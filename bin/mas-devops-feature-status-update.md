@@ -159,7 +159,7 @@ Required collection indexes (`instance_config_level`, `cluster_config_level`) ar
 | `--instance-id` | Instance-level types | MAS instance ID (e.g. `inst02`). When supplied routes to `instance_level_config`; when omitted routes to `cluster_level_config`. |
 | `--account` | Yes | GitOps account name (e.g. `fyre-noble10-dev`) |
 | `--cluster` | Yes | GitOps cluster name (e.g. `noble10`) |
-| `--subscription-id` | Instance-level types | Subscription ID. Required when `--instance-id` is supplied; must be omitted for cluster-level feature types. |
+| `--subscription-id` | No | Subscription ID. Optional for instance-level types; when omitted, the record is stored without a `subscription_id` field. Not used for cluster-level feature types. |
 
 **Feature options** *(all required)*
 
@@ -337,7 +337,7 @@ Two mutually exclusive lookup modes are supported — exactly one must be provid
 | `--instance-id INSTANCE_ID` | Yes (criteria mode) | MAS instance ID (e.g. `inst02`) |
 | `--account ACCOUNT` | Yes (criteria mode) | GitOps account name (e.g. `fyre-noble10-dev`) |
 | `--cluster CLUSTER` | Yes (criteria mode) | GitOps cluster name (e.g. `noble10`) |
-| `--subscription-id SUBSCRIPTION_ID` | Yes (criteria mode) | Subscription ID |
+| `--subscription-id SUBSCRIPTION_ID` | No | Subscription ID. When omitted, matches instance records stored without a `subscription_id` |
 | `--type TYPE` | Yes (criteria mode) | Feature type (e.g. `allow-list`) |
 
 The MongoDB connection URI is read from `DEVOPS_MONGO_URI` — no connection flags are needed.
@@ -404,7 +404,7 @@ The `feature_dashboard` MongoDB database must be initialised before this tool ca
 | Collection | Cardinality |
 |---|---|
 | `cluster_level_config` | One document per `account × region × cluster` |
-| `instance_level_config` | One document per `subscription_id × account × region × cluster × instance` |
+| `instance_level_config` | One document per `[subscription_id ×] account × region × cluster × instance` (`subscription_id` optional) |
 
 ### Initialize
 
@@ -475,7 +475,8 @@ validationAction: "error"   // rejects non-conforming writes outright
 
 ### `mas_devops.instance_level_config`
 
-One document per `(subscription_id × account × region × cluster × instance)`.
+One document per `([subscription_id ×] account × region × cluster × instance)`.
+`subscription_id` is optional and is omitted from the document when `--subscription-id` is not supplied.
 Feature entries are embedded in the `instance_level_features[]` array.
 
 ```json
