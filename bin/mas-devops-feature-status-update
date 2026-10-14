@@ -337,7 +337,6 @@ def cmd_status_update(args) -> int:
     from mas.devops.feature_status import (
         INSTANCE_LEVEL,
         VALID_STATUSES,
-        _redact_url,
         create_indexes,
         get_feature_level,
         upsert_cluster_feature,
@@ -400,7 +399,6 @@ def cmd_status_update(args) -> int:
         target_label = f"account={args.account} cluster={args.cluster} " f"type={args.type} status={args.status}"
 
     print(f"Writing feature status to mas_devops.{collection_label}: {target_label}")
-    print(f"  MongoDB: {_redact_url(mongo_url)}")
 
     # Ensure required indexes exist on both collections (idempotent — no-op when already present).
     try:

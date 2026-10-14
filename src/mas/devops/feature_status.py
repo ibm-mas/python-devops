@@ -172,6 +172,7 @@ def validate_feature_details(feature_type: str, feature_details: dict) -> None:
 _STATUS_DETAILS_REQUIRED_FIELDS: dict[str, dict[str, set[str]]] = {
     "allow-list": {
         "ACTIVE": {"message", "request_configuration"},
+        "DEACTIVATED": {"message", "request_configuration"},
         "ERROR": {"message", "error_code", "error_source", "request_configuration"},
     }
 }
@@ -261,14 +262,14 @@ _VALIDATOR_INSTANCE = {
                             "properties": {
                                 "ips": {
                                     "bsonType": "array",
-                                    "minItems": 1,
+                                    "minItems": 0,  # 0 allows empty list for DEACTIVATED status
                                     "items": {"bsonType": "string"},
                                 }
                             },
                         },
                         "status": {
                             "bsonType": "string",
-                            "enum": ["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR"],
+                            "enum": ["REQUESTED", "IN_PROGRESS", "ACTIVE", "ERROR", "DEACTIVATED"],
                         },
                         "status_details": {
                             "bsonType": "object",
