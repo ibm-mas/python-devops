@@ -11,7 +11,7 @@
 # *****************************************************************************
 """
 mas-devops-feature-status-update — Write MAS feature status records to the
-DevOps MongoDB (mas_devops database)
+DevOps MongoDB (mas_devops database).
 
 Collection routing
 ──────────────────
