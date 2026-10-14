@@ -12,9 +12,10 @@ import pytest
 from kubernetes import dynamic
 from kubernetes import config
 from kubernetes.client import api_client
-from kubernetes.dynamic.resource import ResourceInstance
 
-from mas.devops import mas
+# from kubernetes.dynamic.resource import ResourceInstance
+
+# from mas.devops import mas
 
 pytestmark = pytest.mark.openshift
 

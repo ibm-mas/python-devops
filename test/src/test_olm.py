@@ -13,7 +13,7 @@ from kubernetes import dynamic
 from kubernetes import config
 from kubernetes.client import api_client
 
-from mas.devops import olm, ocp
+# from mas.devops import olm, ocp
 
 pytestmark = pytest.mark.openshift
 
