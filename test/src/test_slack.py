@@ -18,7 +18,7 @@ from mas.devops.slack import SlackUtil
 # Import functions from the notify-slack script
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../bin"))
 script_path = os.path.join(os.path.dirname(__file__), "../../bin/mas-devops-notify-slack")
-notify_slack = SourceFileLoader("notify_slack", script_path).load_module()
+notify_slack = SourceFileLoader("notify_slack", script_path).exec_module()
 
 
 def testSendMessage():
