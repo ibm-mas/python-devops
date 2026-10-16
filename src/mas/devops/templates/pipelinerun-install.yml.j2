@@ -339,6 +339,10 @@ spec:
       value: "{{ cos_apikey }}"
     - name: cos_bucket_name
       value: "{{ cos_bucket_name }}"
+{%- if cos_region is defined and cos_region != "" %}
+    - name: cos_region
+      value: "{{ cos_region }}"
+{%- endif %}
 {%- endif %}
 
     # MAS Catalog
