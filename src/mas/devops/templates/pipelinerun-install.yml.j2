@@ -697,6 +697,47 @@ spec:
     - name: mas_manage_attachment_configuration_mode
       value: "{{ mas_manage_attachment_configuration_mode }}"
   {%- endif %}
+  {%- if mas_manage_default_s3_region is defined and mas_manage_default_s3_region != "" %}
+
+    # Manage - Default S3 Region (spec.defaultRegion)
+    # -------------------------------------------------------------------------
+    - name: mas_manage_default_s3_region
+      value: "{{ mas_manage_default_s3_region }}"
+  {%- endif %}
+  {%- if mas_manage_attachments_accesskey is defined and mas_manage_attachments_accesskey != "" %}
+
+    # Manage - Attachment Provider S3 credentials
+    # -------------------------------------------------------------------------
+    - name: mas_manage_attachments_accesskey
+      value: "{{ mas_manage_attachments_accesskey }}"
+    - name: mas_manage_attachments_secret_access_key
+      value: "{{ mas_manage_attachments_secret_access_key }}"
+    - name: mas_manage_attachments_bucket
+      value: "{{ mas_manage_attachments_bucket }}"
+    - name: mas_manage_attachments_region
+      value: "{{ mas_manage_attachments_region }}"
+    {%- if mas_manage_attachments_s3url is defined and mas_manage_attachments_s3url != "" %}
+    - name: mas_manage_attachments_s3url
+      value: "{{ mas_manage_attachments_s3url }}"
+    {%- endif %}
+    {%- if mas_manage_attachments_secret_name is defined and mas_manage_attachments_secret_name != "" %}
+    - name: mas_manage_attachments_secret_name
+      value: "{{ mas_manage_attachments_secret_name }}"
+    {%- endif %}
+  {%- endif %}
+  {%- if mas_app_settings_customization_archive_s3_access_key is defined and mas_app_settings_customization_archive_s3_access_key != "" %}
+
+    # Manage - Customization Archive S3 credentials (useS3 block)
+    # -------------------------------------------------------------------------
+    - name: mas_app_settings_customization_archive_s3_access_key
+      value: "{{ mas_app_settings_customization_archive_s3_access_key }}"
+    - name: mas_app_settings_customization_archive_s3_secret_access_key
+      value: "{{ mas_app_settings_customization_archive_s3_secret_access_key }}"
+    {%- if mas_app_settings_customization_archive_s3_secret_name is defined and mas_app_settings_customization_archive_s3_secret_name != "" %}
+    - name: mas_app_settings_customization_archive_s3_secret_name
+      value: "{{ mas_app_settings_customization_archive_s3_secret_name }}"
+    {%- endif %}
+  {%- endif %}
   {%- if mas_app_settings_tablespace is defined and mas_app_settings_tablespace != "" %}
     - name: mas_app_settings_tablespace
       value: "{{ mas_app_settings_tablespace }}"
