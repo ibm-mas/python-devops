@@ -338,6 +338,7 @@ def notifyPipelineComplete(
     instanceId: str | None = None,
     pipelineName: str | None = None,
     namespace: str | None = None,
+    notifyUserId: str | None = None,
 ) -> bool:
     """Send Slack notification about pipeline completion to all channels and cleanup ConfigMap."""
     # Exit early if no channels provided
@@ -395,6 +396,9 @@ def notifyPipelineComplete(
         emoji = "💥"
         status = "Failed"
         additionalInfo = f"\nPipeline failed with return code: `{rc}`"
+        # Tag the on-call user if provided
+        if notifyUserId:
+            additionalInfo += f"\n<@{notifyUserId}> please investigate"
 
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
@@ -430,6 +434,9 @@ if __name__ == "__main__":
 
     # Parse comma-separated channel list
     channelList = [ch.strip() for ch in SLACK_CHANNEL.split(",")]
+
+    # Optional: Slack user ID to tag on failure (set via SLACK_USER env var)
+    SLACK_USER = os.getenv("SLACK_USER", "") or None
 
     # Initialize the properties we need
     parser = argparse.ArgumentParser()
@@ -471,4 +478,4 @@ if __name__ == "__main__":
             namespace,
         )
     elif args.action == "pipeline-complete":
-        notifyPipelineComplete(channelList, args.rc, args.instance_id, args.pipeline_name, namespace)
+        notifyPipelineComplete(channelList, args.rc, args.instance_id, args.pipeline_name, namespace, SLACK_USER)
