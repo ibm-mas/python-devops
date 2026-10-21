@@ -95,13 +95,13 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.2             # Updated
+sls_version: 3.13.3             # Updated
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.9              # No Updated
+tsm_version: 1.7.10              # Updatedd
 
 
 # Dependencies - Data Dictionary
