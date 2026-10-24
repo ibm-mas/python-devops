@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:2af2640315932a380573a86b2122e32c7640dfd95dbb6b0f92bf877a56c3e79f
+catalog_digest: sha256:49967377b2c665f1b902575f170a122c37f629b7f7dc5689d3647148fbb1f20a
 
 ocp_compatibility:
 - "4.18"
@@ -122,10 +122,10 @@ redis_extras_version: 2.1.40             # No Update
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.8                          # Updated
+  9.2.x: 9.2.9                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
   9.1.x: 9.1.27                         # Updated
-  9.0.x: 9.0.33                         # Updated
+  9.0.x: 9.0.34                         # Updated
   8.10.x: 8.10.37                       # No Update
   8.11.x: 8.11.34                       # No Update
 mas_assist_version:
@@ -146,10 +146,10 @@ mas_iot_version:
   8.10.x: 8.7.33                        # No Update
   8.11.x: 8.8.30                        # No Update
 mas_manage_version:
-  9.2.x: 9.2.4                          # Updated
+  9.2.x: 9.2.5                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.25                         # Updated
-  9.0.x: 9.0.32                         # Updated
+  9.1.x: 9.1.26                         # Updated
+  9.0.x: 9.0.33                         # Updated
   8.10.x: 8.6.38                        # No Update
   8.11.x: 8.7.32                        # No Update
 mas_monitor_version:
@@ -176,8 +176,8 @@ mas_predict_version:
 mas_visualinspection_version:
   9.2.x: 9.2.3                          # Updated
   9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.21                         # Updated
-  9.0.x: 9.0.24                         # Updated
+  9.1.x: 9.1.22                         # Updated
+  9.0.x: 9.0.25                         # Updated
   8.10.x: 8.8.4                         # No Update
   8.11.x: 8.9.21                        # No Update
 mas_facilities_version:
