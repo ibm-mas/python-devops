@@ -51,15 +51,15 @@ mongo_extras_version_8: 8.0.32  # Updated
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
+  9.3.x-feature: 9.3.0-pre.stable.42567 # Updated
   9.2.x: 9.2.9                          # Updated
-  9.2.x-feature: 9.2.0                  # No Update
   9.1.x: 9.1.27                         # Updated
   9.0.x: 9.0.34                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
+  9.3.x-feature: 9.3.0-pre.stable.42796 # Updated
   9.2.x: 9.2.5                          # Updated
-  9.2.x-feature: 9.2.0                  # No Update
   9.1.x: 9.1.26                         # Updated
   9.0.x: 9.0.33                         # Updated
   8.10.x: ""                            # Not Supported
