@@ -788,3 +788,48 @@ def test_notifyPipelineStart_update_pipeline_multiple_channels(mock_update, mock
     assert update_call_args["channel_count"] == "2"
     # Verify namespace is mas-pipelines (not mas-None-pipelines)
     assert mock_create.call_args[0][0] == "mas-pipelines"
+
+
+# Tests for SLACK_USER default (U093XV71WAE)
+@patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "postMessageBlocks")
+@patch.object(SlackUtil, "deleteThreadConfigMap")
+def test_notifyPipelineComplete_failure_with_notify_user_id(mock_delete, mock_post, mock_get):
+    """Test notifyPipelineComplete tags notifyUserId in message when pipeline fails"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineComplete(
+        ["#test-channel"], 1, "test-instance", "Install", notifyUserId="U093XV71WAE"
+    )
+
+    assert result is True
+    mock_post.assert_called_once()
+    # Verify the message blocks contain the user mention
+    call_blocks = mock_post.call_args[0][1]
+    section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
+    assert any("<@U093XV71WAE>" in t for t in section_texts), "Expected <@U093XV71WAE> mention in failure message"
+    mock_delete.assert_called_once()
+
+
+def test_slack_user_default_env_var():
+    """Test that SLACK_USER defaults to U093XV71WAE when env var is not set"""
+    with patch.dict(os.environ, {}, clear=False):
+        # Remove SLACK_USER if present
+        os.environ.pop("SLACK_USER", None)
+        slackUser = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
+        assert slackUser == "U093XV71WAE"
+
+
+def test_slack_user_env_var_override():
+    """Test that SLACK_USER env var overrides the default"""
+    with patch.dict(os.environ, {"SLACK_USER": "U000OVERRIDE"}):
+        slackUser = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
+        assert slackUser == "U000OVERRIDE"

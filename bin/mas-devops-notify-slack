@@ -435,8 +435,8 @@ if __name__ == "__main__":
     # Parse comma-separated channel list
     channelList = [ch.strip() for ch in SLACK_CHANNEL.split(",")]
 
-    # Optional: Slack user ID to tag on failure (set via SLACK_USER env var)
-    SLACK_USER = os.getenv("SLACK_USER", "") or None
+    # Optional: Slack user ID to tag on failure (set via SLACK_USER env var, defaults to U093XV71WAE)
+    SLACK_USER = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
 
     # Initialize the properties we need
     parser = argparse.ArgumentParser()
