@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:694ad3678a80a04e77f2627fcce17910bd55542c8303f36654d7d400a2f21a90
+catalog_digest: sha256:648f368a72da7b954ffa60d86df2e86a9da99454310d6dda9d2f0a282397091f
 
 ocp_compatibility:
 - "4.18"
@@ -107,7 +107,7 @@ tsm_version: 1.7.10              # Updatedd
 # Dependencies - Data Dictionary
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
-dd_version: 1.1.23              # No Update
+dd_version: 1.1.24              # Updated
 
 # Dependencies - Opendata hub
 # -----------------------------------------------------------------------------
