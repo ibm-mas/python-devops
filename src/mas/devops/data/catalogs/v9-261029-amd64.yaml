@@ -48,7 +48,7 @@ elasticsearch_version: 1.1.2667
 
 # Dependencies - Db2u
 # -----------------------------------------------------------------------------
-db2u_version: 7.7.2+20260911.193805.21315        # Operator version 120105.0.2 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_version: 7.7.3+20261012.155106.21621        # Operator version 120105.0.3 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 db2u_extras_version: 1.0.6                       
 db2u_filter: db2
 
