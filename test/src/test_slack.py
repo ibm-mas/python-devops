@@ -806,9 +806,7 @@ def test_notifyPipelineComplete_failure_with_notify_user_id(mock_delete, mock_po
     mock_response.data = {"ok": True}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyPipelineComplete(
-        ["#test-channel"], 1, "test-instance", "Install", notifyUserId="U093XV71WAE"
-    )
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install", notifyUserId="U093XV71WAE")
 
     assert result is True
     mock_post.assert_called_once()
