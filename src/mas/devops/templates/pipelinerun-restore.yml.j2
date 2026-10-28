@@ -232,6 +232,10 @@ spec:
     - name: manage_db_storage_class_rwx
       value: "{{ manage_db_storage_class_rwx }}"
     {% endif %}
+    {% if manage_db2_dbname is defined and manage_db2_dbname != "" %}
+    - name: manage_db2_dbname
+      value: "{{ manage_db2_dbname }}"
+    {% endif %}
 
     # Facilities Application Restore Configuration
     {% if restore_facilities_app is defined and restore_facilities_app != "" %}
@@ -277,4 +281,8 @@ spec:
     {% if facilities_db_storage_class_rwx is defined and facilities_db_storage_class_rwx != "" %}
     - name: facilities_db_storage_class_rwx
       value: "{{ facilities_db_storage_class_rwx }}"
+    {% endif %}
+    {% if facilities_db2_dbname is defined and facilities_db2_dbname != "" %}
+    - name: facilities_db2_dbname
+      value: "{{ facilities_db2_dbname }}"
     {% endif %}
