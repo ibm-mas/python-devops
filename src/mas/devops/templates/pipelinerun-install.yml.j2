@@ -1014,6 +1014,19 @@ spec:
     - name: aiservice_watsonxai_on_prem
       value: "{{ aiservice_watsonxai_on_prem }}"
 
+    # AI Service - LLM Provider (e.g. Google GEAP, OpenAI)
+    # -------------------------------------------------------------------------
+    - name: aiservice_llm_provider
+      value: "{{ aiservice_llm_provider | default('') }}"
+    - name: aiservice_llm_model_id
+      value: "{{ aiservice_llm_model_id | default('') }}"
+    - name: aiservice_llm_client_id
+      value: "{{ aiservice_llm_client_id | default('') }}"
+    - name: aiservice_llm_client_secret
+      value: "{{ aiservice_llm_client_secret | default('') }}"
+    - name: aiservice_llm_refresh_token
+      value: "{{ aiservice_llm_refresh_token | default('') }}"
+
     # AI Service - Certificate Issuer
     # -------------------------------------------------------------------------
 {%- if aiservice_certificate_issuer is defined and aiservice_certificate_issuer != "" %}
