@@ -41,12 +41,12 @@ tsm_version: 1.7.10              # Updatedd
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
-mongo_extras_version_default: 8.0.32
+mongo_extras_version_default: 8.0.30
 mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.12
-mongo_extras_version_8: 8.0.32  # Updated
+mongo_extras_version_8: 8.0.30  # No Update
 
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
