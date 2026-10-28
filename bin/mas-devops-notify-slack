@@ -396,9 +396,9 @@ def notifyPipelineComplete(
         emoji = "💥"
         status = "Failed"
         additionalInfo = f"\nPipeline failed with return code: `{rc}`"
-        # Tag the on-call user if provided
+        # Tag the user only if SLACK_USER was explicitly set
         if notifyUserId:
-            additionalInfo += f"\n<@{notifyUserId}> please investigate"
+            additionalInfo += f"\nAn issue occurred during MAS installation, causing the pipeline to fail. <@{notifyUserId}>, please investigate the failure."
 
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
@@ -435,8 +435,8 @@ if __name__ == "__main__":
     # Parse comma-separated channel list
     channelList = [ch.strip() for ch in SLACK_CHANNEL.split(",")]
 
-    # Optional: Slack user ID to tag on failure (set via SLACK_USER env var, defaults to U093XV71WAE)
-    SLACK_USER = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
+    # Optional: Slack user ID to tag on failure - only used if SLACK_USER is explicitly exported
+    SLACK_USER = os.getenv("SLACK_USER", "") or None
 
     # Initialize the properties we need
     parser = argparse.ArgumentParser()
