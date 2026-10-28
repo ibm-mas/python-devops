@@ -790,12 +790,15 @@ def test_notifyPipelineStart_update_pipeline_multiple_channels(mock_update, mock
     assert mock_create.call_args[0][0] == "mas-pipelines"
 
 
-# Tests for SLACK_USER default (U093XV71WAE)
+# Tests for SLACK_USER / notifyUserId behaviour
+# -------------------------------------------------------------------------
+
+
 @patch.object(SlackUtil, "getThreadConfigMap")
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "deleteThreadConfigMap")
 def test_notifyPipelineComplete_failure_with_notify_user_id(mock_delete, mock_post, mock_get):
-    """Test notifyPipelineComplete tags notifyUserId in message when pipeline fails"""
+    """Pipeline failure WITH notifyUserId → message must contain <@UID> and the custom text"""
     mock_get.return_value = {
         "instanceId": "test-instance",
         "channel_0": "C123",
@@ -806,28 +809,78 @@ def test_notifyPipelineComplete_failure_with_notify_user_id(mock_delete, mock_po
     mock_response.data = {"ok": True}
     mock_post.return_value = mock_response
 
-    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install", notifyUserId="U093XV71WAE")
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install", notifyUserId="U012AB3CD")
 
     assert result is True
     mock_post.assert_called_once()
-    # Verify the message blocks contain the user mention
     call_blocks = mock_post.call_args[0][1]
     section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
-    assert any("<@U093XV71WAE>" in t for t in section_texts), "Expected <@U093XV71WAE> mention in failure message"
+    assert any("<@U012AB3CD>" in t for t in section_texts), "Expected <@U012AB3CD> mention in failure message"
+    assert any("An issue occurred during MAS installation" in t for t in section_texts), "Expected custom failure text"
     mock_delete.assert_called_once()
 
 
-def test_slack_user_default_env_var():
-    """Test that SLACK_USER defaults to U093XV71WAE when env var is not set"""
+@patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "postMessageBlocks")
+@patch.object(SlackUtil, "deleteThreadConfigMap")
+def test_notifyPipelineComplete_failure_without_notify_user_id(mock_delete, mock_post, mock_get):
+    """Pipeline failure WITHOUT notifyUserId → no user mention, no custom text, still posts"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install")
+
+    assert result is True
+    mock_post.assert_called_once()
+    call_blocks = mock_post.call_args[0][1]
+    section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
+    assert not any("<@" in t for t in section_texts), "No user mention expected when notifyUserId is not set"
+    assert not any("An issue occurred during MAS installation" in t for t in section_texts)
+    mock_delete.assert_called_once()
+
+
+@patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "postMessageBlocks")
+@patch.object(SlackUtil, "deleteThreadConfigMap")
+def test_notifyPipelineComplete_success_does_not_tag_user(mock_delete, mock_post, mock_get):
+    """Pipeline success with notifyUserId set → user must NOT be tagged on success"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 0, "test-instance", "Install", notifyUserId="U012AB3CD")
+
+    assert result is True
+    mock_post.assert_called_once()
+    call_blocks = mock_post.call_args[0][1]
+    section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
+    assert not any("<@U012AB3CD>" in t for t in section_texts), "User must NOT be tagged on successful pipeline"
+    mock_delete.assert_called_once()
+
+
+def test_slack_user_env_var_not_set_resolves_to_none():
+    """SLACK_USER not exported → resolves to None, no user is tagged"""
     with patch.dict(os.environ, {}, clear=False):
-        # Remove SLACK_USER if present
         os.environ.pop("SLACK_USER", None)
-        slackUser = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
-        assert slackUser == "U093XV71WAE"
+        slack_user = os.getenv("SLACK_USER", "") or None
+        assert slack_user is None, "SLACK_USER should be None when env var is not set"
 
 
-def test_slack_user_env_var_override():
-    """Test that SLACK_USER env var overrides the default"""
-    with patch.dict(os.environ, {"SLACK_USER": "U000OVERRIDE"}):
-        slackUser = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
-        assert slackUser == "U000OVERRIDE"
+def test_slack_user_env_var_set_resolves_to_value():
+    """SLACK_USER exported in mas.env → resolves to the provided user ID"""
+    with patch.dict(os.environ, {"SLACK_USER": "U012AB3CD"}):
+        slack_user = os.getenv("SLACK_USER", "") or None
+        assert slack_user == "U012AB3CD", "SLACK_USER should equal the exported value"
