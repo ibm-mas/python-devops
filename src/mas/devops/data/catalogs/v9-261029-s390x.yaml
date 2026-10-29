@@ -70,12 +70,20 @@ mas_manage_version:
 # ------------------------------------------------------------------------------
 editorial:
   whats_new:
+  - title: New October Feature Channel
+    details:
+    - IBM Maximo Application Suite Core Platform [v9.3-October Feature Channel]()
+    - IBM Maximo Manage [v9.3-October Feature Channel](https://www.ibm.com/support/pages/node/7293290)
+
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.32](https://www.ibm.com/support/pages/node/7289766), [v9.1.26](https://www.ibm.com/support/pages/node/7289767) and [v9.2.7](https://www.ibm.com/support/pages/node/7289768)
-    - IBM Maximo Manage [v9.0.32](https://www.ibm.com/support/pages/node/7289352),[v9.1.25](https://www.ibm.com/support/pages/node/7289351) and [v9.2.4](https://www.ibm.com/support/pages/node/7289350)
-    - IBM Suite License Service v3.13
-    - Mongo: 8.0.32
+    - IBM Maximo Application Suite Core Platform [v9.0.34](https://www.ibm.com/support/pages/node/7294035), [v9.1.28](https://www.ibm.com/support/pages/node/7294036) and [v9.2.9](https://www.ibm.com/support/pages/node/7294037)
+    - IBM Maximo Manage [v9.0.33](https://www.ibm.com/support/pages/node/7294062),[v9.1.26](https://www.ibm.com/support/pages/node/7294060) and [v9.2.5](https://www.ibm.com/support/pages/node/7294059)
+    - IBM Suite License Service v3.13.3
+    - IBM Suite Truststore Manager v1.7.10
+    - 'Mongo: 8.0.32'
+    - 'CP4D: 5.4.0'
+    - 'db2u: v120105.0.3'
   known_issues:
     - title: 
     
