@@ -140,6 +140,10 @@ spec:
     - name: manage_db2_instance_name
       value: "{{ manage_db2_instance_name }}"
     {% endif %}
+    {% if manage_db2_dbname is defined and manage_db2_dbname != "" %}
+    - name: manage_db2_dbname
+      value: "{{ manage_db2_dbname }}"
+    {% endif %}
     {% if manage_db2_backup_type is defined and manage_db2_backup_type != "" %}
     - name: manage_db2_backup_type
       value: "{{ manage_db2_backup_type }}"
@@ -191,6 +195,10 @@ spec:
     {% if facilities_db2_instance_name is defined and facilities_db2_instance_name != "" %}
     - name: facilities_db2_instance_name
       value: "{{ facilities_db2_instance_name }}"
+    {% endif %}
+    {% if facilities_db2_dbname is defined and facilities_db2_dbname != "" %}
+    - name: facilities_db2_dbname
+      value: "{{ facilities_db2_dbname }}"
     {% endif %}
     {% if facilities_db2_backup_type is defined and facilities_db2_backup_type != "" %}
     - name: facilities_db2_backup_type
