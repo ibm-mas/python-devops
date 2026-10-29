@@ -409,7 +409,7 @@ def notifyPipelineComplete(
         threadId = threadInfo.get(f"threadId_{idx}")
 
         if channelId and threadId:
-            response = SlackUtil.postMessageBlocks(channelId, message, threadId)
+            response = SlackUtil.postMessageBlocks(channelId, message, threadId, replyBroadcast=(rc != 0))
             if not response.data.get("ok", False):
                 allSuccess = False
         else:
