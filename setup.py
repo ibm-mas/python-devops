@@ -60,6 +60,8 @@ setup(
         "boto3",  # Apache Software License
         "slack_sdk",  # MIT License
         "packaging",  # Apache Software License
+        "pymongo",  # Apache Software License
+        "cryptography",  # Apache Software License — used by mas.devops.github for GHE App JWT auth
     ],
     extras_require={
         "dev": [
@@ -93,5 +95,6 @@ setup(
         "bin/mas-devops-saas-job-cleaner",
         "bin/mas-devops-notify-slack",
         "bin/mas-devops-apply-preinstall-rbac-for-saas",
+        "bin/mas-devops-feature-status-update",
     ],
 )
