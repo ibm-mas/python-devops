@@ -23,9 +23,6 @@ spec:
 
     # DB2 Migration Parameters
     # -------------------------------------------------------------------------
-    - name: db2_action
-      value: "migrate"
-    
     - name: db2_migration_namespace
       value: "{{ db2_migration_namespace }}"
     
@@ -38,11 +35,6 @@ spec:
 {%- if db2_migration_cleanup_old_db2_cluster is defined and db2_migration_cleanup_old_db2_cluster != "" %}
     - name: db2_migration_cleanup_old_db2_cluster
       value: "{{ db2_migration_cleanup_old_db2_cluster }}"
-{%- endif %}
-
-{%- if ibm_entitlement_key is defined and ibm_entitlement_key != "" %}
-    - name: ibm_entitlement_key
-      value: "{{ ibm_entitlement_key }}"
 {%- endif %}
 
   workspaces:
