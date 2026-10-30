@@ -585,6 +585,29 @@ def test_notifyPipelineComplete_failure(mock_delete, mock_post, mock_get):
 
 
 @patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "postMessageBlocks")
+@patch.object(SlackUtil, "deleteThreadConfigMap")
+def test_notifyPipelineComplete_failure_broadcasts(mock_delete, mock_post, mock_get):
+    """Test notifyPipelineComplete broadcasts the thread reply to the channel on pipeline failure"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install")
+
+    assert result is True
+    mock_post.assert_called_once()
+    # Verify replyBroadcast=True on failure
+    assert mock_post.call_args[1].get("replyBroadcast") is True
+
+
+@patch.object(SlackUtil, "getThreadConfigMap")
 def test_notifyPipelineComplete_no_thread_info(mock_get):
     """Test notifyPipelineComplete returns False when no thread info found"""
     mock_get.return_value = None
