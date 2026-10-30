@@ -50,8 +50,8 @@ class SlackUtilMeta(type):
                 return cls._client
 
     def postMessageBlocks(
-                cls, channelList: str | list[str], messageBlocks: list, threadId: str = None, replyBroadcast: bool = False
-            ) -> SlackResponse | list[SlackResponse]:
+        cls, channelList: str | list[str], messageBlocks: list, threadId: str = None, replyBroadcast: bool = False
+    ) -> SlackResponse | list[SlackResponse]:
         """
         Post a message with block formatting to one or more Slack channels.
 
