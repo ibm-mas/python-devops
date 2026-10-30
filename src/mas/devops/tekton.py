@@ -934,6 +934,7 @@ def prepareInstallSecrets(
     podTemplates: str = None,
     slack_token: str = None,
     slack_channel: str = None,
+    slack_notify_on_fail: str = None,
     aiserviceConfig: str = None,
     db2LicenseFile: dict | None = None,
     facilitiesProperties: dict | None = None,
@@ -960,6 +961,7 @@ def prepareInstallSecrets(
         podTemplates (str, optional): Pod template data. Defaults to None (empty secret).
         slack_token (str, optional): Slack bot token for notifications. Defaults to None.
         slack_channel (str, optional): Slack channel ID for notifications. Defaults to None.
+        slack_notify_on_fail (str, optional): Slack user ID to tag on pipeline failure. Defaults to None.
         aiserviceConfig (str, optional): AI Service tenant config data. Defaults to None (empty secret).
         facilitiesProperties (dict, optional): Facilities properties file content. Defaults to None (empty secret).
         ibm_entitlement_key (str, optional): IBM entitlement key for registry access. Defaults to None.
@@ -1000,6 +1002,10 @@ def prepareInstallSecrets(
         # Add slack_channel if provided
         if slack_channel:
             secret_data["SLACK_CHANNEL"] = base64.b64encode(slack_channel.encode()).decode()
+
+        # Add slack_notify_on_fail (SLACK_USER) if provided
+        if slack_notify_on_fail:
+            secret_data["SLACK_USER"] = base64.b64encode(slack_notify_on_fail.encode()).decode()
 
         mas_devops_secret = {
             "apiVersion": "v1",
