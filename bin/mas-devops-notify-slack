@@ -236,6 +236,7 @@ def notifyAnsibleComplete(
     instanceId: str | None = None,
     pipelineName: str | None = None,
     namespace: str | None = None,
+    notifyUserId: str | None = None,
 ) -> bool:
     """Send Slack notification about Ansible task completion status to all channels."""
     # Exit early if no channels provided
@@ -310,7 +311,10 @@ def notifyAnsibleComplete(
         # Build the completion message
         taskMessage = [SlackUtil.buildSection(f"{emoji} *{taskName}* - {status}{durationText}")]
         if rc != 0:
-            taskMessage.append(SlackUtil.buildSection(f"Return Code: `{rc}`\nCheck logs for details"))
+            errorDetails = f"Return Code: `{rc}`\nCheck logs for details"
+            if notifyUserId:
+                errorDetails += f"\nAn issue occurred during MAS installation, causing the task to fail. <@{notifyUserId}>, please investigate the failure."
+            taskMessage.append(SlackUtil.buildSection(errorDetails))
 
         # If we have the original message timestamp, update it; otherwise post new message
         if taskMessageTs:
@@ -396,9 +400,6 @@ def notifyPipelineComplete(
         emoji = "💥"
         status = "Failed"
         additionalInfo = f"\nPipeline failed with return code: `{rc}`"
-        # Tag the user only if SLACK_USER was explicitly set
-        if notifyUserId:
-            additionalInfo += f"\nAn issue occurred during MAS installation, causing the pipeline to fail. <@{notifyUserId}>, please investigate the failure."
 
     message = [
         SlackUtil.buildHeader(f"{emoji} MAS {pipelineName} Pipeline {status}"),
@@ -476,6 +477,7 @@ if __name__ == "__main__":
             args.instance_id,
             args.pipeline_name,
             namespace,
+            SLACK_USER,
         )
     elif args.action == "pipeline-complete":
-        notifyPipelineComplete(channelList, args.rc, args.instance_id, args.pipeline_name, namespace, SLACK_USER)
+        notifyPipelineComplete(channelList, args.rc, args.instance_id, args.pipeline_name, namespace)

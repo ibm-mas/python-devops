@@ -795,36 +795,104 @@ def test_notifyPipelineStart_update_pipeline_multiple_channels(mock_update, mock
 
 
 @patch.object(SlackUtil, "getThreadConfigMap")
-@patch.object(SlackUtil, "postMessageBlocks")
-@patch.object(SlackUtil, "deleteThreadConfigMap")
-def test_notifyPipelineComplete_failure_with_notify_user_id(mock_delete, mock_post, mock_get):
-    """Pipeline failure WITH notifyUserId → message must contain <@UID> and the custom text"""
+@patch.object(SlackUtil, "updateMessageBlocks")
+def test_notifyAnsibleComplete_failure_with_notify_user_id(mock_update, mock_get):
+    """Task failure WITH notifyUserId → message must contain <@UID> and the custom failure text"""
     mock_get.return_value = {
         "instanceId": "test-instance",
         "channel_0": "C123",
         "threadId_0": "1234567890.123456",
+        "task_install-mas_0": "1234567890.123457",
         "channel_count": "1",
     }
     mock_response = Mock()
     mock_response.data = {"ok": True}
-    mock_post.return_value = mock_response
+    mock_update.return_value = mock_response
 
-    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install", notifyUserId="U012AB3CD")
+    result = notify_slack.notifyAnsibleComplete(
+        ["#test-channel"],
+        1,
+        "install-mas",
+        "test-instance",
+        "Install",
+        notifyUserId="U012AB3CD",
+    )
 
     assert result is True
-    mock_post.assert_called_once()
-    call_blocks = mock_post.call_args[0][1]
+    mock_update.assert_called_once()
+    call_blocks = mock_update.call_args[0][2]
     section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
-    assert any("<@U012AB3CD>" in t for t in section_texts), "Expected <@U012AB3CD> mention in failure message"
+    assert any("<@U012AB3CD>" in t for t in section_texts), "Expected <@U012AB3CD> mention in task failure message"
     assert any("An issue occurred during MAS installation" in t for t in section_texts), "Expected custom failure text"
-    mock_delete.assert_called_once()
+
+
+@patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "updateMessageBlocks")
+def test_notifyAnsibleComplete_failure_without_notify_user_id(mock_update, mock_get):
+    """Task failure WITHOUT notifyUserId → no user mention, no custom text"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "task_install-mas_0": "1234567890.123457",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_update.return_value = mock_response
+
+    result = notify_slack.notifyAnsibleComplete(
+        ["#test-channel"],
+        1,
+        "install-mas",
+        "test-instance",
+        "Install",
+    )
+
+    assert result is True
+    mock_update.assert_called_once()
+    call_blocks = mock_update.call_args[0][2]
+    section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
+    assert not any("<@" in t for t in section_texts), "No user mention expected when notifyUserId is not set"
+    assert not any("An issue occurred during MAS installation" in t for t in section_texts)
+
+
+@patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "updateMessageBlocks")
+def test_notifyAnsibleComplete_success_does_not_tag_user(mock_update, mock_get):
+    """Task success with notifyUserId set → user must NOT be tagged on success"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "task_install-mas_0": "1234567890.123457",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_update.return_value = mock_response
+
+    result = notify_slack.notifyAnsibleComplete(
+        ["#test-channel"],
+        0,
+        "install-mas",
+        "test-instance",
+        "Install",
+        notifyUserId="U012AB3CD",
+    )
+
+    assert result is True
+    mock_update.assert_called_once()
+    call_blocks = mock_update.call_args[0][2]
+    section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
+    assert not any("<@U012AB3CD>" in t for t in section_texts), "User must NOT be tagged on successful task"
 
 
 @patch.object(SlackUtil, "getThreadConfigMap")
 @patch.object(SlackUtil, "postMessageBlocks")
 @patch.object(SlackUtil, "deleteThreadConfigMap")
-def test_notifyPipelineComplete_failure_without_notify_user_id(mock_delete, mock_post, mock_get):
-    """Pipeline failure WITHOUT notifyUserId → no user mention, no custom text, still posts"""
+def test_notifyPipelineComplete_failure_does_not_tag_user(mock_delete, mock_post, mock_get):
+    """Pipeline failure → no user mention, message only reports pipeline return code"""
     mock_get.return_value = {
         "instanceId": "test-instance",
         "channel_0": "C123",
@@ -841,33 +909,7 @@ def test_notifyPipelineComplete_failure_without_notify_user_id(mock_delete, mock
     mock_post.assert_called_once()
     call_blocks = mock_post.call_args[0][1]
     section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
-    assert not any("<@" in t for t in section_texts), "No user mention expected when notifyUserId is not set"
-    assert not any("An issue occurred during MAS installation" in t for t in section_texts)
-    mock_delete.assert_called_once()
-
-
-@patch.object(SlackUtil, "getThreadConfigMap")
-@patch.object(SlackUtil, "postMessageBlocks")
-@patch.object(SlackUtil, "deleteThreadConfigMap")
-def test_notifyPipelineComplete_success_does_not_tag_user(mock_delete, mock_post, mock_get):
-    """Pipeline success with notifyUserId set → user must NOT be tagged on success"""
-    mock_get.return_value = {
-        "instanceId": "test-instance",
-        "channel_0": "C123",
-        "threadId_0": "1234567890.123456",
-        "channel_count": "1",
-    }
-    mock_response = Mock()
-    mock_response.data = {"ok": True}
-    mock_post.return_value = mock_response
-
-    result = notify_slack.notifyPipelineComplete(["#test-channel"], 0, "test-instance", "Install", notifyUserId="U012AB3CD")
-
-    assert result is True
-    mock_post.assert_called_once()
-    call_blocks = mock_post.call_args[0][1]
-    section_texts = [b["text"]["text"] for b in call_blocks if b.get("type") == "section"]
-    assert not any("<@U012AB3CD>" in t for t in section_texts), "User must NOT be tagged on successful pipeline"
+    assert not any("<@" in t for t in section_texts), "No user mention expected on pipeline completion"
     mock_delete.assert_called_once()
 
 

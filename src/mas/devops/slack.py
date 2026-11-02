@@ -284,6 +284,7 @@ class SlackUtilMeta(type):
         Returns:
             dict: Slack block kit divider element
         """
+        return {"type": "divider"}
 
     def createThreadConfigMap(cls, namespace: str, instanceId: str, pipelineRunName: str) -> bool:
         """
@@ -431,7 +432,6 @@ class SlackUtilMeta(type):
         except Exception as e:
             logger.error(f"Failed to delete ConfigMap: {e}")
             return False
-        return {"type": "divider"}
 
 
 class SlackUtil(metaclass=SlackUtilMeta):
