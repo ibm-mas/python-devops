@@ -49,7 +49,9 @@ class SlackUtilMeta(type):
                 cls._client = WebClient(token=SLACK_TOKEN)
                 return cls._client
 
-    def postMessageBlocks(cls, channelList: str | list[str], messageBlocks: list, threadId: str = None) -> SlackResponse | list[SlackResponse]:
+    def postMessageBlocks(
+        cls, channelList: str | list[str], messageBlocks: list, threadId: str = None, replyBroadcast: bool = False
+    ) -> SlackResponse | list[SlackResponse]:
         """
         Post a message with block formatting to one or more Slack channels.
 
@@ -57,6 +59,7 @@ class SlackUtilMeta(type):
             channelList (str | list[str]): Single channel ID/name or list of channel IDs/names
             messageBlocks (list): List of Slack block kit elements defining the message structure
             threadId (str, optional): Thread timestamp to post as a reply. Defaults to None.
+            replyBroadcast (bool, optional): Whether to also broadcast a thread reply to the channel. Only applies when threadId is set. Defaults to False.
 
         Returns:
             SlackResponse | list[SlackResponse]: Single response if one channel, list of responses if multiple channels
@@ -88,6 +91,7 @@ class SlackUtilMeta(type):
                     response = cls.client.chat_postMessage(
                         channel=channel,
                         thread_ts=threadId,
+                        reply_broadcast=replyBroadcast,
                         blocks=messageBlocks,
                         text="Summary text unavailable",
                         mrkdwn=True,
@@ -201,7 +205,7 @@ class SlackUtilMeta(type):
 
         return f"https://{domain}.slack.com/archives/{channelId}/p{messageTimestamp.replace('.', '')}"
 
-    def updateMessageBlocks(cls, channelName: str, threadId: str, messageBlocks: list) -> SlackResponse:
+    def updateMessageBlocks(cls, channelName: str, threadId: str, messageBlocks: list, replyBroadcast: bool = False) -> SlackResponse:
         """
         Update an existing Slack message with new block content.
 
@@ -209,6 +213,7 @@ class SlackUtilMeta(type):
             channelName (str): The channel ID or name containing the message
             threadId (str): The timestamp of the message to update
             messageBlocks (list): List of Slack block kit elements for the updated message
+            replyBroadcast (bool, optional): Whether to also broadcast the updated message to the channel. Defaults to False.
 
         Returns:
             SlackResponse: Response from the Slack API
@@ -220,6 +225,7 @@ class SlackUtilMeta(type):
         response = cls.client.chat_update(
             channel=channelName,
             ts=threadId,
+            reply_broadcast=replyBroadcast,
             blocks=messageBlocks,
             mrkdwn=True,
             parse="none",
