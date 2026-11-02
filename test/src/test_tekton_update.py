@@ -13,7 +13,7 @@ from unittest.mock import patch, mock_open, MagicMock
 import yaml
 from kubernetes.dynamic.exceptions import ApiException
 
-from mas.devops.tekton import updateTektonDefinitions
+from mas.devops.tekton import updateTektonDefinitions, launchUpdatePipeline
 
 
 class TestUpdateTektonDefinitions:
@@ -206,3 +206,38 @@ class TestUpdateTektonDefinitions:
             )
 
         assert "Failed to apply Tekton resource" in str(exc_info.value)
+
+
+class TestLaunchUpdatePipelineDb2uKind:
+    """Test suite for the db2u_kind parameter rendered by tekton.launchUpdatePipeline()."""
+
+    @staticmethod
+    def _launch(extra_params):
+        params = {
+            "mas_catalog_version": "v9-260902-amd64",
+            "db2_namespace": "db2u",
+            "db2_channel": "v120105.0",
+            "db2_v12_upgrade": "true",
+        }
+        params.update(extra_params)
+        with patch("mas.devops.tekton.applyResource") as mock_apply, patch("mas.devops.tekton.getConsoleURL", return_value="https://console"):
+            launchUpdatePipeline(dynClient=MagicMock(), params=params)
+        body = mock_apply.call_args.kwargs["body"]
+        return {p["name"]: p["value"] for p in body["spec"]["params"]}
+
+    @pytest.mark.parametrize("kind", ["db2uinstance", "db2ucluster"])
+    def test_db2u_kind_is_passed_to_pipelinerun(self, kind):
+        """db2u_kind is rendered into the PipelineRun params when provided."""
+        assert self._launch({"db2u_kind": kind})["db2u_kind"] == kind
+
+    def test_db2u_kind_omitted_when_not_provided(self):
+        """db2u_kind is not rendered when it is not provided, preserving existing behaviour."""
+        assert "db2u_kind" not in self._launch({})
+
+    def test_db2u_kind_omitted_when_empty(self):
+        """db2u_kind is not rendered when it is an empty string."""
+        assert "db2u_kind" not in self._launch({"db2u_kind": ""})
+
+    def test_db2u_kind_omitted_without_db2_namespace(self):
+        """db2u_kind is only rendered as part of the Db2 update block."""
+        assert "db2u_kind" not in self._launch({"db2_namespace": "", "db2u_kind": "db2uinstance"})

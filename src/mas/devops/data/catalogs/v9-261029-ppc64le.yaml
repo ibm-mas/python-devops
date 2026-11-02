@@ -5,7 +5,7 @@
 # catalog itself, but not everything in the catalog supports this yet (including MAS)
 # so we need to use the CASE bundle mirror process still.
 
-catalog_digest: sha256:8af133cee39b24859085a04834566f17a0d07560fbe381454e2ca3a688153cce
+catalog_digest: sha256:241938fbfbc3065d6bca09aa5591b602dc06b4c2b1fae3a5be4a4915ea3e3138
 
 ocp_compatibility:
 - "4.18"
@@ -16,7 +16,7 @@ ocp_compatibility:
 
 # Dependencies - Db2u
 # -----------------------------------------------------------------------------
-db2u_version: 7.7.2+20260911.193805.21315        # Operator version 120105.0.2 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
+db2u_version: 7.7.3+20261012.155106.21621        # Operator version 120105.0.3 (https://github.com/IBM/cloud-pak/tree/master/repo/case/ibm-db2uoperator)
 
 db2_channel_default: v120105.0                # No Updated   # Default Channel version for db2u-operator
 
@@ -51,17 +51,17 @@ mongo_extras_version_8: 8.0.32  # Updated
 # Maximo Application Suite
 # -----------------------------------------------------------------------------
 mas_core_version:
-  9.2.x: 9.2.8                          # Updated
-  9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.27                         # Updated
-  9.0.x: 9.0.33                         # Updated
+  9.3.x-feature: 9.3.0-pre.stable.42567 # Updated
+  9.2.x: 9.2.9                          # Updated
+  9.1.x: 9.1.28                         # Updated
+  9.0.x: 9.0.34                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 mas_manage_version:
-  9.2.x: 9.2.4                          # Updated
-  9.2.x-feature: 9.2.0                  # No Update
-  9.1.x: 9.1.25                         # Updated
-  9.0.x: 9.0.32                         # Updated
+  9.3.x-feature: 9.3.0-pre.stable.42796 # Updated
+  9.2.x: 9.2.5                          # Updated
+  9.1.x: 9.1.26                         # Updated
+  9.0.x: 9.0.33                         # Updated
   8.10.x: ""                            # Not Supported
   8.11.x: ""                            # Not Supported
 
@@ -70,11 +70,19 @@ mas_manage_version:
 # ------------------------------------------------------------------------------
 editorial:
   whats_new:
+  - title: New October Feature Channel
+    details:
+    - IBM Maximo Application Suite Core Platform [v9.3-October Feature Channel](https://www.ibm.com/support/pages/node/7294633)
+    - IBM Maximo Manage [v9.3-October Feature Channel](https://www.ibm.com/support/pages/node/7293290)
+
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.32](https://www.ibm.com/support/pages/node/7289766), [v9.1.26](https://www.ibm.com/support/pages/node/7289767) and [v9.2.7](https://www.ibm.com/support/pages/node/7289768)
-    - IBM Maximo Manage [v9.0.32](https://www.ibm.com/support/pages/node/7289352),[v9.1.25](https://www.ibm.com/support/pages/node/7289351) and [v9.2.4](https://www.ibm.com/support/pages/node/7289350)
-    - IBM Suite License Service v3.13.2
-    - Mongo: 8.0.32
+    - IBM Maximo Application Suite Core Platform [v9.0.34](https://www.ibm.com/support/pages/node/7294035), [v9.1.28](https://www.ibm.com/support/pages/node/7294036) and [v9.2.9](https://www.ibm.com/support/pages/node/7294037)
+    - IBM Maximo Manage [v9.0.33](https://www.ibm.com/support/pages/node/7294062),[v9.1.26](https://www.ibm.com/support/pages/node/7294060) and [v9.2.5](https://www.ibm.com/support/pages/node/7294059)
+    - IBM Suite License Service v3.13.3
+    - IBM Suite Truststore Manager v1.7.10
+    - 'Mongo: 8.0.32'
+    - 'CP4D: 5.4.0'
+    - 'db2u: v120105.0.3'
   known_issues:
     - title: 
