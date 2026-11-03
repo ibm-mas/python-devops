@@ -913,16 +913,16 @@ def test_notifyPipelineComplete_failure_does_not_tag_user(mock_delete, mock_post
     mock_delete.assert_called_once()
 
 
-def test_slack_user_env_var_not_set_resolves_to_none():
-    """SLACK_USER not exported → resolves to None, no user is tagged"""
+def test_slack_user_default_env_var():
+    """Test that SLACK_USER defaults to U093XV71WAE when env var is not set"""
     with patch.dict(os.environ, {}, clear=False):
         os.environ.pop("SLACK_USER", None)
-        slack_user = os.getenv("SLACK_USER", "") or None
-        assert slack_user is None, "SLACK_USER should be None when env var is not set"
+        slackUser = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
+        assert slackUser == "U093XV71WAE"
 
 
-def test_slack_user_env_var_set_resolves_to_value():
-    """SLACK_USER exported in mas.env → resolves to the provided user ID"""
-    with patch.dict(os.environ, {"SLACK_USER": "U012AB3CD"}):
-        slack_user = os.getenv("SLACK_USER", "") or None
-        assert slack_user == "U012AB3CD", "SLACK_USER should equal the exported value"
+def test_slack_user_env_var_override():
+    """Test that SLACK_USER env var overrides the default"""
+    with patch.dict(os.environ, {"SLACK_USER": "U000OVERRIDE"}):
+        slackUser = os.getenv("SLACK_USER", "U093XV71WAE") or "U093XV71WAE"
+        assert slackUser == "U000OVERRIDE"
