@@ -1,4 +1,4 @@
-# Notify Slack
+ # Notify Slack
 
 The `mas-devops-notify-slack` tool sends notifications to Slack channels for cluster provisioning events.
 
