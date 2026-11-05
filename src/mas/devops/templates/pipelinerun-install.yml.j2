@@ -827,6 +827,10 @@ spec:
     - name: configure_aiassistant
       value: "{{ configure_aiassistant }}"
 {%- endif %}
+{%- if launchfvt_manage_ai is defined and launchfvt_manage_ai != "" %}
+    - name: launchfvt_manage_ai
+      value: "{{ launchfvt_manage_ai }}"
+{%- endif %}
 
     - name: environment_type
       value: "{{ environment_type }}"
