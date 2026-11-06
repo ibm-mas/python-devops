@@ -77,12 +77,7 @@ editorial:
 
   - title: '**Security updates and bug fixes**'
     details:
-    - IBM Maximo Application Suite Core Platform [v9.0.34](https://www.ibm.com/support/pages/node/7294035), [v9.1.28](https://www.ibm.com/support/pages/node/7294036) and [v9.2.9](https://www.ibm.com/support/pages/node/7294037)
-    - IBM Maximo Manage [v9.0.33](https://www.ibm.com/support/pages/node/7294062),[v9.1.26](https://www.ibm.com/support/pages/node/7294060) and [v9.2.5](https://www.ibm.com/support/pages/node/7294059)
-    - IBM Suite License Service v3.13.3
-    - IBM Suite Truststore Manager v1.7.10
-    - 'Mongo: 8.0.32'
-    - 'CP4D: 5.4.0'
-    - 'db2u: v120105.0.3'
+    - IBM Maximo Application Suite Core Platform [v9.0.35](https://www.ibm.com/support/pages/node/7295667), [v9.1.29](https://www.ibm.com/support/pages/node/7295668) and [v9.2.10](https://www.ibm.com/support/pages/node/7295669)
+    - IBM Maximo Manage [v9.0.34](https://www.ibm.com/support/pages/node/7295698),[v9.1.27](https://www.ibm.com/support/pages/node/7295697) and [v9.2.6](https://www.ibm.com/support/pages/node/7295695)
   known_issues:
     - title: 
