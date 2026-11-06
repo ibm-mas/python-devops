@@ -16,7 +16,7 @@ ocp_compatibility:
 
 # Dependencies - Cloud Pak for Data
 # -----------------------------------------------------------------------------
-cpd_product_version_default: 5.4.0              # No Updated
+cpd_product_version_default: 5.4.0              # No Update
 
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ db2u_version: 7.7.3+20261012.155106.21621        # Operator version 120105.0.3 (
 db2u_extras_version: 1.0.6                       
 db2u_filter: db2
 
-db2_channel_default: v120105.0               # No Updated    # Default Channel version for db2u-operator
+db2_channel_default: v120105.0               # No Update    # Default Channel version for db2u-operator
 
 
 # Dependencies - CouchDb
@@ -73,12 +73,12 @@ mongo_extras_version_4: 4.4.21
 mongo_extras_version_5: 5.0.23
 mongo_extras_version_6: 6.0.12
 mongo_extras_version_7: 7.0.23
-mongo_extras_version_8: 8.0.32  # Updated
+mongo_extras_version_8: 8.0.32  # No Update
 
 
 # Dependencies - Amlen
 # -----------------------------------------------------------------------------
-amlen_extras_version: 1.1.6              # Update
+amlen_extras_version: 1.1.6              # No Update
 
 
 # Dependencies - UDS
@@ -95,19 +95,19 @@ appconnect_version: 6.2.0                    # Operator version 6.2.0 # sticking
 # Dependencies - Suite License Service
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-sls/releases
-sls_version: 3.13.3             # Updated
+sls_version: 3.13.3             # No Update
 
 
 # Dependencies - Truststore Manager
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-truststore-mgr/releases
-tsm_version: 1.7.10              # Updatedd
+tsm_version: 1.7.10              # No Update
 
 
 # Dependencies - Data Dictionary
 # -----------------------------------------------------------------------------
 # https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
-dd_version: 1.1.24              # Updated
+dd_version: 1.1.24              # No Update
 
 # Dependencies - Opendata hub
 # -----------------------------------------------------------------------------
