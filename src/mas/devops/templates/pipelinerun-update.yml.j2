@@ -55,6 +55,10 @@ spec:
 {%- endif %}
     - name: db2_channel
       value: "{{ db2_channel }}"
+{%- if db2u_kind is defined and db2u_kind != "" %}
+    - name: db2u_kind
+      value: "{{ db2u_kind }}"
+{%- endif %}
 {%- endif %}
 {%- if mongodb_namespace is defined and mongodb_namespace != "" %}
 
