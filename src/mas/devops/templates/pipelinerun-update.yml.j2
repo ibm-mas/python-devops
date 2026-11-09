@@ -162,6 +162,14 @@ spec:
     - name: aiservice_instance_ids
       value: "{{ aiservice_instance_ids }}"
 {%- endif %}
+
+{%- if aiservice_s3_migration_instance_ids is defined and aiservice_s3_migration_instance_ids != "" %}
+
+    # AI Service Migration (MinIO to Ceph)
+    # -------------------------------------------------------------------------
+    - name: aiservice_s3_migration_instance_ids
+      value: "{{ aiservice_s3_migration_instance_ids }}"
+{%- endif %}
   workspaces:
     # The generated configuration files
     # -------------------------------------------------------------------------
