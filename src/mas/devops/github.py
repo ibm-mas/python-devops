@@ -146,7 +146,9 @@ def createCheckRun(name: str, repoSlug: str, commitSha: str, detailsUrl: str = "
     return checkRunId
 
 
-def updateCheckRun(checkRunId: int, repoSlug: str, conclusion: str, detailsUrl: str = "", outputTitle: str = "", outputSummary: str = "") -> None:
+def updateCheckRun(
+    checkRunId: int, repoSlug: str, conclusion: str, detailsUrl: str = "", outputTitle: str = "", outputSummary: str = "", outputText: str = ""
+) -> None:
     """Complete an existing GitHub Check Run with the given conclusion."""
     org = repoSlug.split("/")[0]
     appToken = _getInstallationToken(org)
@@ -156,6 +158,8 @@ def updateCheckRun(checkRunId: int, repoSlug: str, conclusion: str, detailsUrl: 
         payload["details_url"] = detailsUrl
     if outputTitle and outputSummary:
         payload["output"] = {"title": outputTitle, "summary": outputSummary}
+        if outputText:
+            payload["output"]["text"] = outputText
     _apiRequest("PATCH", f"{_GITHUB_API_BASE}/repos/{repoSlug}/check-runs/{checkRunId}", appToken, payload)
     logger.debug("Updated check run id=%s conclusion=%s", checkRunId, conclusion)
 
