@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -5369,8 +5369,8 @@ when it does not exist and patching it when it already exists.</p>
 <a id="mas.devops.ocp.listInstances--source--__codelineno-0-634" name="mas.devops.ocp.listInstances--source--__codelineno-0-634"></a>    <span class="n">instances</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()[</span><span class="s2">"items"</span><span class="p">]</span>
 <a id="mas.devops.ocp.listInstances--source--__codelineno-0-635" name="mas.devops.ocp.listInstances--source--__codelineno-0-635"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">instances</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
 <a id="mas.devops.ocp.listInstances--source--__codelineno-0-636" name="mas.devops.ocp.listInstances--source--__codelineno-0-636"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"There are </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">instances</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2"> instances installed on this cluster:"</span><span class="p">)</span>
-<a id="mas.devops.ocp.listInstances--source--__codelineno-0-637" name="mas.devops.ocp.listInstances--source--__codelineno-0-637"></a>    <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">instances</span><span class="p">:</span>
-<a id="mas.devops.ocp.listInstances--source--__codelineno-0-638" name="mas.devops.ocp.listInstances--source--__codelineno-0-638"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">" * </span><span class="si">{</span><span class="n">instance</span><span class="p">[</span><span class="s1">'metadata'</span><span class="p">][</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2"> v</span><span class="si">{</span><span class="n">instance</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'status'</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'versions'</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'reconciled'</span><span class="p">,</span><span class="w"> </span><span class="s1">'N/A'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="mas.devops.ocp.listInstances--source--__codelineno-0-637" name="mas.devops.ocp.listInstances--source--__codelineno-0-637"></a>        <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">instances</span><span class="p">:</span>
+<a id="mas.devops.ocp.listInstances--source--__codelineno-0-638" name="mas.devops.ocp.listInstances--source--__codelineno-0-638"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">" * </span><span class="si">{</span><span class="n">instance</span><span class="p">[</span><span class="s1">'metadata'</span><span class="p">][</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2"> v</span><span class="si">{</span><span class="n">instance</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'status'</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'versions'</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'reconciled'</span><span class="p">,</span><span class="w"> </span><span class="s1">'N/A'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="mas.devops.ocp.listInstances--source--__codelineno-0-639" name="mas.devops.ocp.listInstances--source--__codelineno-0-639"></a>    <span class="k">else</span><span class="p">:</span>
 <a id="mas.devops.ocp.listInstances--source--__codelineno-0-640" name="mas.devops.ocp.listInstances--source--__codelineno-0-640"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"There are no </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2"> instances installed on this cluster"</span><span class="p">)</span>
 <a id="mas.devops.ocp.listInstances--source--__codelineno-0-641" name="mas.devops.ocp.listInstances--source--__codelineno-0-641"></a>    <span class="k">return</span> <span class="n">instances</span>
@@ -6206,7 +6206,7 @@ which is required for path-based routing mode in MAS.</p>
                 <code>ingressControllerName</code>
             </td>
             <td>
-                  <code><span title="optional">optional</span></code>
+                  <code>optional</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6517,7 +6517,7 @@ which is required for path-based routing mode in MAS.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
