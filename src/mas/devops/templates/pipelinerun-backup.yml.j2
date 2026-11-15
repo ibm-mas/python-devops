@@ -17,6 +17,11 @@ spec:
       persistentVolumeClaim:
         claimName: backup-pvc
   params:
+    # Registry Credentials Secret
+    # -------------------------------------------------------------------------
+    - name: pipeline_registry_secret_name
+      value: "mas-backup-secrets"
+
     # Common Parameters
     - name: image_pull_policy
       value: IfNotPresent
@@ -72,16 +77,6 @@ spec:
     {% if cert_manager_provider is defined and cert_manager_provider != "" %}
     - name: cert_manager_provider
       value: "{{ cert_manager_provider }}"
-    {% endif %}
-
-    # Development Build Support
-    {% if artifactory_username is defined and artifactory_username != "" %}
-    - name: artifactory_username
-      value: "{{ artifactory_username }}"
-    {% endif %}
-    {% if artifactory_token is defined and artifactory_token != "" %}
-    - name: artifactory_token
-      value: "{{ artifactory_token }}"
     {% endif %}
 
     # Upload Configuration
@@ -145,6 +140,10 @@ spec:
     - name: manage_db2_instance_name
       value: "{{ manage_db2_instance_name }}"
     {% endif %}
+    {% if manage_db2_dbname is defined and manage_db2_dbname != "" %}
+    - name: manage_db2_dbname
+      value: "{{ manage_db2_dbname }}"
+    {% endif %}
     {% if manage_db2_backup_type is defined and manage_db2_backup_type != "" %}
     - name: manage_db2_backup_type
       value: "{{ manage_db2_backup_type }}"
@@ -196,6 +195,10 @@ spec:
     {% if facilities_db2_instance_name is defined and facilities_db2_instance_name != "" %}
     - name: facilities_db2_instance_name
       value: "{{ facilities_db2_instance_name }}"
+    {% endif %}
+    {% if facilities_db2_dbname is defined and facilities_db2_dbname != "" %}
+    - name: facilities_db2_dbname
+      value: "{{ facilities_db2_dbname }}"
     {% endif %}
     {% if facilities_db2_backup_type is defined and facilities_db2_backup_type != "" %}
     - name: facilities_db2_backup_type

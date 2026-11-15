@@ -16,7 +16,7 @@ ocp_versions:
 
   "4.21":
     ga_date: "February 3, 2026"
-    sstandard_support: "August 3, 2027"
+    standard_support: "August 3, 2027"
     extended_support: "N/A"
 
   "4.20":

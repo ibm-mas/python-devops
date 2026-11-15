@@ -32,7 +32,7 @@ def test_list_catalogs():
 def test_get_newest_catalog_tag():
     catalogTag = getNewestCatalogTag("amd64")
     # Reminder: update this test when adding a new catalog each month!
-    assert catalogTag == "v9-260827-amd64"
+    assert catalogTag == "v9-261105-amd64"
 
 
 def test_get_newest_catalog_tag_fail():
@@ -46,3 +46,36 @@ def test_get_newest_catalog_tag_fail():
 def test_get_catalog_fail():
     with pytest.raises(NoSuchCatalogError, match="Catalog nonexistent-catalog is unknown"):
         getCatalog("nonexistent-catalog")
+
+
+@pytest.fixture
+def fakeCatalogsDir(tmp_path, monkeypatch):
+    """Create a temporary catalogs directory containing published, unpublished and legacy (no property) catalogs."""
+    catalogsDir = tmp_path / "catalogs"
+    catalogsDir.mkdir()
+
+    (catalogsDir / "v9-260101-amd64.yaml").write_text("catalog_digest: sha256:published\ncatalog_published: true\n")
+    (catalogsDir / "v9-260201-amd64.yaml").write_text("catalog_digest: sha256:unpublished\ncatalog_published: false\n")
+    # A catalog without the catalog_published property is treated as published
+    (catalogsDir / "v9-260301-amd64.yaml").write_text("catalog_digest: sha256:legacy\n")
+
+    # The helper functions resolve the catalogs directory relative to this module's __file__
+    monkeypatch.setattr("mas.devops.data.__file__", str(tmp_path / "__init__.py"))
+    return catalogsDir
+
+
+def test_unpublished_catalog_excluded_by_default(fakeCatalogsDir):
+    assert listCatalogTags("amd64") == ["v9-260101-amd64", "v9-260301-amd64"]
+    assert getNewestCatalogTag("amd64") == "v9-260301-amd64"
+    with pytest.raises(NoSuchCatalogError, match="Catalog v9-260201-amd64 is not published"):
+        getCatalog("v9-260201-amd64")
+
+
+def test_unpublished_catalog_included_on_request(fakeCatalogsDir):
+    assert listCatalogTags("amd64", includeUnpublished=True) == [
+        "v9-260101-amd64",
+        "v9-260201-amd64",
+        "v9-260301-amd64",
+    ]
+    assert getNewestCatalogTag("amd64", includeUnpublished=True) == "v9-260301-amd64"
+    assert getCatalog("v9-260201-amd64", includeUnpublished=True)["catalog_digest"] == "sha256:unpublished"
