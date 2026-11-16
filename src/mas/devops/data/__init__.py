@@ -13,6 +13,10 @@ IBM Operator Catalog data management module.
 This module provides functions to access and query IBM Operator Catalog definitions
 stored as YAML files. Catalogs contain operator version information and are organized
 by version tag and architecture.
+
+Pre-release catalog definitions can be included in the catalogs directory by setting
+catalog_published to false in their metadata. These are excluded from all functions
+by default, and can be accessed via the includeUnpublished parameter.
 """
 
 import yaml
@@ -24,7 +28,7 @@ class NoSuchCatalogError(Exception):
     pass
 
 
-def getCatalog(name: str) -> dict:
+def getCatalog(name: str, includeUnpublished: bool = False) -> dict:
     """
     Load a specific IBM Operator Catalog definition by name.
 
@@ -33,12 +37,16 @@ def getCatalog(name: str) -> dict:
 
     Args:
         name (str): The catalog name/tag (e.g., "v9-241205-amd64", "v8-240528-amd64").
+        includeUnpublished (bool, optional): Whether to allow access to pre-release
+                     catalogs (those with catalog_published set to false).
+                     Defaults to False.
 
     Returns:
         dict: The catalog definition dictionary containing operator versions and metadata.
 
     Raises:
-        NoSuchCatalogError: If the specified catalog does not exist.
+        NoSuchCatalogError: If the specified catalog does not exist, or if it exists
+                            but is not published and includeUnpublished is False.
     """
     moduleFile = path.abspath(__file__)
     modulePath = path.dirname(moduleFile)
@@ -49,19 +57,29 @@ def getCatalog(name: str) -> dict:
         raise NoSuchCatalogError(f"Catalog {name} is unknown: {pathToCatalog} does not exist")
 
     with open(pathToCatalog) as stream:
-        return yaml.safe_load(stream)
+        catalog = yaml.safe_load(stream)
+
+    if not includeUnpublished and not catalog.get("catalog_published", True):
+        raise NoSuchCatalogError(f"Catalog {name} is not published (set includeUnpublished = True to access pre-release catalogs)")
+
+    return catalog
 
 
-def listCatalogTags(arch="amd64") -> list[str]:
+def listCatalogTags(arch="amd64", includeUnpublished=False) -> list[str]:
     """
     List all available IBM Operator Catalog tags for a specific architecture.
 
     This function scans the catalogs directory and returns a sorted list of all
-    catalog tags matching the specified architecture.
+    catalog tags matching the specified architecture. Pre-release catalogs
+    (those with catalog_published set to false) are excluded unless explicitly
+    requested.
 
     Args:
         arch (str, optional): The target architecture (e.g., "amd64", "s390x", "ppc64le").
                              Defaults to "amd64".
+        includeUnpublished (bool, optional): Whether to include pre-release catalogs
+                             (those with catalog_published set to false).
+                             Defaults to False.
 
     Returns:
         list: Sorted list of catalog tag strings (e.g., ["v8-240528-amd64", "v9-241205-amd64"]).
@@ -72,20 +90,29 @@ def listCatalogTags(arch="amd64") -> list[str]:
     yamlFiles = glob(path.join(modulePath, "catalogs", f"*-{arch}.yaml"))
     result = []
     for yamlFile in sorted(yamlFiles):
+        if not includeUnpublished:
+            with open(yamlFile) as stream:
+                catalogDef = yaml.safe_load(stream)
+            if not catalogDef.get("catalog_published", True):
+                continue
         result.append(path.basename(yamlFile).replace(".yaml", ""))
     return result
 
 
-def getNewestCatalogTag(arch="amd64") -> str:
+def getNewestCatalogTag(arch="amd64", includeUnpublished=False) -> str:
     """
     Get the most recent IBM Operator Catalog tag for a specific architecture.
 
     This function returns the newest (last in sorted order) catalog tag available
-    for the specified architecture.
+    for the specified architecture. Pre-release catalogs (those with catalog_published
+    set to false) are excluded unless explicitly requested.
 
     Args:
         arch (str, optional): The target architecture (e.g., "amd64", "s390x", "ppc64le").
                              Defaults to "amd64".
+        includeUnpublished (bool, optional): Whether to include pre-release catalogs
+                             (those with catalog_published set to false).
+                             Defaults to False.
 
     Returns:
         str: The newest catalog tag (e.g., "v9-241205-amd64").
@@ -93,7 +120,7 @@ def getNewestCatalogTag(arch="amd64") -> str:
     Raises:
         NoSuchCatalogError: If no catalogs are found for the specified architecture.
     """
-    catalogs = listCatalogTags(arch)
+    catalogs = listCatalogTags(arch, includeUnpublished)
     if len(catalogs) == 0:
         raise NoSuchCatalogError(f"There are no known catalogs for the {arch} platform")
     else:
@@ -166,7 +193,7 @@ def listOCPVersions() -> list:
     return sorted(ocpVersions.keys(), key=lambda v: [int(x) for x in v.split(".")])
 
 
-def getCatalogEditorial(catalogTag: str) -> dict | None:
+def getCatalogEditorial(catalogTag: str, includeUnpublished: bool = False) -> dict | None:
     """
     Get editorial content (What's New and Known Issues) for a specific catalog.
 
@@ -175,12 +202,15 @@ def getCatalogEditorial(catalogTag: str) -> dict | None:
 
     Args:
         catalogTag (str): The catalog tag (e.g., "v9-251231-amd64").
+        includeUnpublished (bool, optional): Whether to allow access to pre-release
+                      catalogs (those with catalog_published set to false).
+                      Defaults to False.
 
     Returns:
         dict: Dictionary with 'whats_new' and 'known_issues' keys containing
               structured lists. Returns None if catalog doesn't exist
               or has no editorial content.
     """
-    catalog = getCatalog(catalogTag)
+    catalog = getCatalog(catalogTag, includeUnpublished)
 
     return catalog.get("editorial")

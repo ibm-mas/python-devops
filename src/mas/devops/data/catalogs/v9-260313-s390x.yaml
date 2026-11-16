@@ -6,6 +6,7 @@
 # so we need to use the CASE bundle mirror process still.
 
 catalog_digest: sha256:6fbd933bf20acb2b93e7dcbf97a470cd61ece22a0560ba197e014255223f8c7d
+catalog_published: true
 
 ocp_compatibility:
 - "4.16"
