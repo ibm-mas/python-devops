@@ -2,6 +2,7 @@
 # IBM Maximo Operator Catalog v240227
 # -----------------------------------------------------------------------------
 catalog_digest: sha256:8a2f2226b4aa47d42ccb564083d2a6e365fc4b116fb9a82ea83e269383a1efa1
+catalog_published: true
 
 # Dependencies
 # -----------------------------------------------------------------------------

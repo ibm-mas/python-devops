@@ -454,6 +454,8 @@ def test_notifyAnsibleComplete_failure(mock_update, mock_get):
     # Verify failure message includes return code
     call_args = mock_update.call_args[0][2]
     assert len(call_args) == 2  # Should have 2 blocks for failure (status + error details)
+    # Verify replyBroadcast=True on failure
+    assert mock_update.call_args[1].get("replyBroadcast") is True
 
 
 @patch.object(SlackUtil, "getThreadConfigMap")
@@ -474,6 +476,28 @@ def test_notifyAnsibleComplete_no_start_message(mock_post, mock_get):
 
     assert result is True
     mock_post.assert_called_once()
+
+
+@patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "postMessageBlocks")
+def test_notifyAnsibleComplete_no_start_message_failure_broadcasts(mock_post, mock_get):
+    """Test notifyAnsibleComplete broadcasts when posting fallback message on failure"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyAnsibleComplete(["#test-channel"], 1, "install-mas", "test-instance", "Install")
+
+    assert result is True
+    mock_post.assert_called_once()
+    # Verify replyBroadcast=True on failure fallback
+    assert mock_post.call_args[1].get("replyBroadcast") is True
 
 
 # This test is removed because None instanceId is now valid for update pipeline
@@ -558,6 +582,29 @@ def test_notifyPipelineComplete_failure(mock_delete, mock_post, mock_get):
 
     assert result is True
     mock_delete.assert_called_once()
+
+
+@patch.object(SlackUtil, "getThreadConfigMap")
+@patch.object(SlackUtil, "postMessageBlocks")
+@patch.object(SlackUtil, "deleteThreadConfigMap")
+def test_notifyPipelineComplete_failure_broadcasts(mock_delete, mock_post, mock_get):
+    """Test notifyPipelineComplete broadcasts the thread reply to the channel on pipeline failure"""
+    mock_get.return_value = {
+        "instanceId": "test-instance",
+        "channel_0": "C123",
+        "threadId_0": "1234567890.123456",
+        "channel_count": "1",
+    }
+    mock_response = Mock()
+    mock_response.data = {"ok": True}
+    mock_post.return_value = mock_response
+
+    result = notify_slack.notifyPipelineComplete(["#test-channel"], 1, "test-instance", "Install")
+
+    assert result is True
+    mock_post.assert_called_once()
+    # Verify replyBroadcast=True on failure
+    assert mock_post.call_args[1].get("replyBroadcast") is True
 
 
 @patch.object(SlackUtil, "getThreadConfigMap")
