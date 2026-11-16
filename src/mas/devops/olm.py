@@ -8,10 +8,17 @@
 #
 # *****************************************************************************
 
+"""
+Operator Lifecycle Manager (OLM) utilities.
+
+Provides functions to create and manage operator subscriptions and install
+plans, including support for manual install plan approval workflows.
+"""
+
 import logging
-from time import sleep
+from time import sleep, time
 from os import path
-from typing import Optional
+from typing import Callable, Optional, Union
 
 from jinja2 import Environment, FileSystemLoader
 from kubernetes.dynamic import DynamicClient
@@ -25,6 +32,16 @@ logger = logging.getLogger(__name__)
 
 
 class OLMException(Exception):
+    pass
+
+
+class OLMTimeoutError(OLMException):
+    """Raised when a wait-style OLM function exceeds its configured timeout.
+
+    Subclass of OLMException so that existing `except OLMException` handlers
+    continue to catch timeout failures.
+    """
+
     pass
 
 
@@ -131,6 +148,424 @@ def getSubscription(dynClient: DynamicClient, namespace: str, packageName: str):
     return subscriptions.items[0]
 
 
+def getSubscriptionApprovalMode(dynClient: DynamicClient, namespace: str) -> Optional[str]:
+    """Get the effective install plan approval mode for a namespace.
+
+    Although installPlanApproval is stored on each Subscription, this library treats
+    approval mode as a namespace property: InstallPlans are namespace-scoped and the
+    pause/awareness semantics built on top of this function are namespace-oriented.
+    All Subscriptions in the namespace must therefore use the same mode. Note that
+    OLM itself does not enforce this, and will automatically create dependency
+    Subscriptions (which may default to Automatic) in the same namespace.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to inspect
+
+    Returns:
+        str: The namespace's approval mode ("Automatic" or "Manual"), or None when
+            the namespace contains no Subscriptions
+
+    Raises:
+        OLMException: If the namespace contains Subscriptions with a mix of
+            approval modes
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    try:
+        subscriptions = subscriptionsAPI.get(namespace=namespace)
+    except NotFoundError:
+        return None
+
+    modes = {}
+    for subscription in subscriptions.items:
+        mode = getattr(subscription.spec, "installPlanApproval", None) or "Automatic"
+        modes.setdefault(mode, []).append(subscription.metadata.name)
+
+    if len(modes) == 0:
+        logger.debug(f"No subscriptions found in namespace {namespace}")
+        return None
+    elif len(modes) > 1:
+        conflicts = ", ".join(f"{name} ({mode})" for mode, names in modes.items() for name in names)
+        raise OLMException(
+            f"Mixed install plan approval modes in namespace {namespace}: {conflicts}. " "All subscriptions in a namespace must use the same approval mode"
+        )
+
+    return next(iter(modes))
+
+
+def _describePendingInstallPlan(installPlanResource, subscriptions: list) -> dict:
+    """Build the normalized approval info dict for a pending InstallPlan.
+
+    The owning Subscription is resolved via ownerReferences first, falling back to
+    the OLM label (operators.coreos.com/<package>.<namespace>) that InstallPlans
+    inherit from their Subscription.
+
+    Args:
+        installPlanResource (InstallPlan): The InstallPlan resource to describe
+        subscriptions (list): Subscription resources in the same namespace, used to
+            resolve the owning Subscription
+
+    Returns:
+        dict: Approval info with keys installPlan, namespace, subscription, package,
+            csvNames, currentCSV, targetCSV and created
+    """
+    namespace = installPlanResource.metadata.namespace
+    subscriptionResource = None
+
+    # Resolve the owning Subscription via ownerReferences first
+    for ownerRef in getattr(installPlanResource.metadata, "ownerReferences", None) or []:
+        if ownerRef.kind == "Subscription":
+            for subscription in subscriptions:
+                if subscription.metadata.name == ownerRef.name:
+                    subscriptionResource = subscription
+                    break
+            if subscriptionResource is not None:
+                break
+
+    # Fall back to the OLM label that InstallPlans inherit from their Subscription
+    packageName = None
+    if subscriptionResource is None:
+        labels = getattr(installPlanResource.metadata, "labels", None) or {}
+        for labelKey in labels:
+            if labelKey.startswith("operators.coreos.com/"):
+                suffix = labelKey.split("/", 1)[1]
+                if suffix.endswith(f".{namespace}") and len(suffix) > len(namespace) + 1:
+                    packageName = suffix[: -(len(namespace) + 1)]
+                break
+
+        if packageName is not None:
+            for subscription in subscriptions:
+                if getattr(subscription.spec, "name", None) == packageName:
+                    subscriptionResource = subscription
+                    break
+
+    if subscriptionResource is not None:
+        packageName = getattr(subscriptionResource.spec, "name", None)
+        subscriptionName = subscriptionResource.metadata.name
+        currentCSV = getattr(subscriptionResource.status, "installedCSV", None)
+    else:
+        subscriptionName = None
+        currentCSV = None
+
+    csvNames = list(getattr(installPlanResource.spec, "clusterServiceVersionNames", None) or [])
+    created = getattr(installPlanResource.metadata, "creationTimestamp", None)
+
+    return {
+        "installPlan": installPlanResource.metadata.name,
+        "namespace": namespace,
+        "subscription": subscriptionName,
+        "package": packageName,
+        "csvNames": csvNames,
+        "currentCSV": currentCSV,
+        "targetCSV": csvNames[-1] if csvNames else None,
+        "created": str(created) if created is not None else None,
+    }
+
+
+def getPendingInstallPlans(dynClient: DynamicClient, namespace: Optional[str] = None) -> list:
+    """List InstallPlans awaiting approval.
+
+    InstallPlans in phase RequiresApproval are returned as normalized approval info
+    dicts, enriched with the owning Subscription resolved via ownerReferences or the
+    OLM label. This is the data source for approval guidance interfaces.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str, optional): Restrict the search to a single namespace. When
+            None, all namespaces are searched. Defaults to None.
+
+    Returns:
+        list: Approval info dicts as produced by the internal describe helper; empty
+            list when nothing is awaiting approval
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
+
+    if namespace is not None:
+        installPlanResources = installPlanAPI.get(namespace=namespace)
+    else:
+        installPlanResources = installPlanAPI.get()
+
+    # Cache the Subscription list per namespace so each namespace is queried at most once
+    subscriptionsByNamespace = {}
+
+    pendingApprovals = []
+    for installPlanResource in installPlanResources.items:
+        if getattr(installPlanResource.status, "phase", None) != "RequiresApproval":
+            continue
+
+        installPlanNamespace = installPlanResource.metadata.namespace
+        if installPlanNamespace not in subscriptionsByNamespace:
+            try:
+                subscriptionList = subscriptionsAPI.get(namespace=installPlanNamespace)
+                subscriptionsByNamespace[installPlanNamespace] = list(subscriptionList.items)
+            except NotFoundError:
+                subscriptionsByNamespace[installPlanNamespace] = []
+
+        pendingApprovals.append(_describePendingInstallPlan(installPlanResource, subscriptionsByNamespace[installPlanNamespace]))
+
+    return pendingApprovals
+
+
+def getPendingInstallPlan(dynClient: DynamicClient, namespace: str, packageName: str) -> Optional[dict]:
+    """Get the InstallPlan awaiting approval for a subscription.
+
+    Searches for an InstallPlan in phase RequiresApproval belonging to the
+    Subscription for packageName, using the OLM label selector first and falling
+    back to subscription ownership of all InstallPlans in the namespace.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to search in
+        packageName (str): Name of the operator package
+
+    Returns:
+        dict: Approval info for the pending InstallPlan, or None when the
+            Subscription does not exist or has no InstallPlan awaiting approval
+    """
+    subscriptionResource = getSubscription(dynClient, namespace, packageName)
+    if subscriptionResource is None:
+        return None
+
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
+    labelSelector = f"operators.coreos.com/{packageName}.{namespace}"
+
+    # Look for a pending InstallPlan via the label inherited from the Subscription first
+    installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
+    for installPlanResource in installPlanResources.items:
+        if getattr(installPlanResource.status, "phase", None) == "RequiresApproval":
+            return _describePendingInstallPlan(installPlanResource, [subscriptionResource])
+
+    # Fall back to searching all InstallPlans in the namespace for one owned by the Subscription
+    allInstallPlans = installPlanAPI.get(namespace=namespace)
+    for installPlanResource in allInstallPlans.items:
+        ownerRefs = getattr(installPlanResource.metadata, "ownerReferences", None) or []
+        isOwnedBySubscription = any(ref.kind == "Subscription" and ref.name == subscriptionResource.metadata.name for ref in ownerRefs)
+        if isOwnedBySubscription and getattr(installPlanResource.status, "phase", None) == "RequiresApproval":
+            return _describePendingInstallPlan(installPlanResource, [subscriptionResource])
+
+    return None
+
+
+def approveInstallPlan(dynClient: DynamicClient, namespace: str, installPlanName: str):
+    """Approve an InstallPlan.
+
+    Patches spec.approved to true using a merge patch. The operation is
+    idempotent: an InstallPlan that is already approved or already Complete is
+    left untouched.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace containing the InstallPlan
+        installPlanName (str): Name of the InstallPlan to approve
+
+    Returns:
+        InstallPlan: The approved (or already-approved) InstallPlan resource
+
+    Raises:
+        OLMException: If the InstallPlan has failed and can no longer be approved
+        NotFoundError: If the InstallPlan does not exist
+    """
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
+    installPlanResource = installPlanAPI.get(name=installPlanName, namespace=namespace)
+    installPlanPhase = getattr(installPlanResource.status, "phase", None)
+
+    if getattr(installPlanResource.spec, "approved", False) or installPlanPhase == "Complete":
+        logger.info(f"InstallPlan {installPlanName} in {namespace} is already approved (phase: {installPlanPhase})")
+        return installPlanResource
+
+    if installPlanPhase == "Failed":
+        conditions = getattr(installPlanResource.status, "conditions", None) or []
+        raise OLMException(f"InstallPlan {installPlanName} in {namespace} has failed and cannot be approved: {conditions}")
+
+    logger.info(f"Approving InstallPlan {installPlanName} in {namespace}")
+    installPlanResource.spec.approved = True
+    return installPlanAPI.patch(
+        body=installPlanResource,
+        name=installPlanName,
+        namespace=namespace,
+        content_type="application/merge-patch+json",
+    )
+
+
+def waitForInstallPlanComplete(
+    dynClient: DynamicClient,
+    namespace: str,
+    installPlanName: str,
+    timeout: Optional[int] = None,
+    pollInterval: int = 30,
+):
+    """Wait for an InstallPlan to reach phase Complete.
+
+    Polls the InstallPlan until its phase is Complete. An InstallPlan awaiting
+    approval (phase RequiresApproval) is waited on as well, on the expectation
+    that it will be approved out-of-band.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace containing the InstallPlan
+        installPlanName (str): Name of the InstallPlan to wait for
+        timeout (int, optional): Maximum seconds to wait before raising
+            OLMTimeoutError. None waits indefinitely. Defaults to None.
+        pollInterval (int, optional): Seconds between polls. Defaults to 30.
+
+    Returns:
+        InstallPlan: The InstallPlan resource once its phase is Complete
+
+    Raises:
+        OLMException: If the InstallPlan phase is Failed
+        OLMTimeoutError: If the timeout expires before the phase is Complete
+        NotFoundError: If the InstallPlan does not exist
+    """
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
+    startTime = time()
+
+    while True:
+        installPlanResource = installPlanAPI.get(name=installPlanName, namespace=namespace)
+        installPlanPhase = getattr(installPlanResource.status, "phase", None)
+
+        if installPlanPhase == "Complete":
+            logger.debug(f"InstallPlan {installPlanName} in {namespace} is complete")
+            return installPlanResource
+
+        if installPlanPhase == "Failed":
+            conditions = getattr(installPlanResource.status, "conditions", None) or []
+            raise OLMException(f"InstallPlan {installPlanName} in {namespace} has failed: {conditions}")
+
+        if installPlanPhase == "RequiresApproval":
+            logger.debug(f"InstallPlan {installPlanName} in {namespace} is awaiting approval")
+
+        if timeout is not None and (time() - startTime) >= timeout:
+            raise OLMTimeoutError(f"Timed out waiting for InstallPlan {installPlanName} in {namespace} to complete (phase: {installPlanPhase})")
+
+        sleep(pollInterval)
+
+
+def waitForSubscriptionStable(
+    dynClient: DynamicClient,
+    namespace: str,
+    packageName: str,
+    timeout: Optional[int] = None,
+    pollInterval: int = 30,
+    targetCSV: Optional[str] = None,
+):
+    """Wait for a Subscription to reach a stable state.
+
+    Polls the Subscription until its state is AtLatestKnown, or until it is
+    UpgradePending with the installed CSV matching targetCSV (the state reached
+    after a Manual-approval install to a specific CSV, when newer versions
+    remain unapproved).
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace containing the Subscription
+        packageName (str): Name of the operator package
+        timeout (int, optional): Maximum seconds to wait before raising
+            OLMTimeoutError. None waits indefinitely. Defaults to None.
+        pollInterval (int, optional): Seconds between polls. Defaults to 30.
+        targetCSV (str, optional): When set, an UpgradePending state with
+            installedCSV equal to this value is also considered stable. Defaults to None.
+
+    Returns:
+        Subscription: The Subscription resource once it is stable
+
+    Raises:
+        OLMException: If no Subscription exists for packageName in the namespace
+        OLMTimeoutError: If the timeout expires before the Subscription is stable
+    """
+    subscriptionResource = getSubscription(dynClient, namespace, packageName)
+    if subscriptionResource is None:
+        raise OLMException(f"No subscription found for {packageName} in {namespace}")
+
+    name = subscriptionResource.metadata.name
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    startTime = time()
+
+    while True:
+        subscriptionResource = subscriptionsAPI.get(name=name, namespace=namespace)
+        state = getattr(subscriptionResource.status, "state", None)
+
+        if state == "AtLatestKnown":
+            logger.debug(f"Subscription {name} in {namespace} reached state: {state}")
+            return subscriptionResource
+
+        if targetCSV is not None and state == "UpgradePending":
+            installedCSV = getattr(subscriptionResource.status, "installedCSV", None)
+            if installedCSV == targetCSV:
+                logger.debug(f"Subscription {name} in {namespace} reached state: {state} with installedCSV: {installedCSV}")
+                return subscriptionResource
+
+        if timeout is not None and (time() - startTime) >= timeout:
+            raise OLMTimeoutError(f"Timed out waiting for Subscription {name} in {namespace} to become stable (state: {state})")
+
+        sleep(pollInterval)
+
+
+def _validateNamespaceApprovalConsistency(
+    dynClient: DynamicClient,
+    namespace: str,
+    packageName: str,
+    installPlanApproval: str,
+) -> None:
+    """Validate that setting an approval mode will not create a mixed namespace.
+
+    Lists the Subscriptions in the namespace (excluding the one being applied for
+    packageName) and raises when any of them uses a different approval mode.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to validate
+        packageName (str): Package of the Subscription being applied, which is
+            excluded from the check
+        installPlanApproval (str): The approval mode about to be applied
+
+    Raises:
+        OLMException: If another Subscription in the namespace uses a different
+            approval mode
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    try:
+        subscriptions = subscriptionsAPI.get(namespace=namespace)
+    except NotFoundError:
+        return
+
+    conflicting = []
+    for subscription in subscriptions.items:
+        # The Subscription being applied is matched by package name (spec.name) or resource name
+        if getattr(subscription.spec, "name", None) == packageName or subscription.metadata.name == packageName:
+            continue
+        mode = getattr(subscription.spec, "installPlanApproval", None) or "Automatic"
+        if mode != installPlanApproval:
+            conflicting.append(f"{subscription.metadata.name} ({mode})")
+
+    if conflicting:
+        raise OLMException(
+            f"Unable to set installPlanApproval to '{installPlanApproval}' for {packageName} in {namespace}: "
+            f"other subscriptions in the namespace use a different approval mode ({', '.join(conflicting)}). "
+            "All subscriptions in a namespace must use the same approval mode"
+        )
+
+
+def _shouldReleaseForApproval(onApprovalRequired, approvalInfo: dict) -> bool:
+    """Decide whether applySubscription should stop waiting and return a pending approval.
+
+    For the "return" mode this is always true. For a callable, the callable is
+    invoked with the approval info and a return value of False releases the
+    caller from the wait; any other return value continues waiting.
+
+    Args:
+        onApprovalRequired (Union[str, Callable]): The approval handling mode or callback
+        approvalInfo (dict): Approval info for the InstallPlan awaiting approval
+
+    Returns:
+        bool: True when the caller should be released from the wait with the
+            pending approval info
+    """
+    if callable(onApprovalRequired):
+        return onApprovalRequired(approvalInfo) is False
+    return True
+
+
 def applySubscription(
     dynClient: DynamicClient,
     namespace: str,
@@ -142,18 +577,32 @@ def applySubscription(
     installMode: str = "OwnNamespace",
     installPlanApproval: Optional[str] = None,
     startingCSV: Optional[str] = None,
+    autoApproveInitialInstall: Optional[bool] = None,
+    onApprovalRequired: Union[str, Callable] = "wait",
+    pollInterval: int = 30,
 ):
-    """
-    Create or update an operator subscription in a namespace.
+    """Create or update an operator subscription in a namespace.
 
     Automatically detects default channel and catalog source from PackageManifest if not provided.
     Ensures an OperatorGroup exists before creating the subscription.
 
     When installPlanApproval is set to "Manual" and a startingCSV is specified, this function will
-    automatically approve the InstallPlan for the first-time installation to move to that startingCSV.
-    Subsequent upgrades will still require manual approval.
+    by default automatically approve the InstallPlan for the first-time installation to move to
+    that startingCSV. Subsequent upgrades will still require manual approval. This legacy behavior
+    can be disabled with autoApproveInitialInstall=False.
 
-    Parameters:
+    The onApprovalRequired parameter controls what happens when an InstallPlan is awaiting
+    approval and this function is not auto-approving it: "wait" (default) polls until the
+    approval is given out-of-band, "return" immediately returns the pending approval info, and
+    a callable is invoked with the approval info (returning False from the callable has the
+    same effect as "return"). When released via "return" or a callable returning False, the
+    function returns a (subscription, approvalInfo) tuple instead of just the subscription.
+
+    When onApprovalRequired is not "wait" or autoApproveInitialInstall is set, the function
+    also validates that the requested approval mode is consistent with the other Subscriptions
+    in the namespace, raising OLMException on a mix.
+
+    Args:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to create the subscription in
         packageName (str): Name of the operator package (e.g., "ibm-mas-operator")
@@ -164,18 +613,53 @@ def applySubscription(
         installMode (str, optional): Install mode for the OperatorGroup. Defaults to "OwnNamespace".
         installPlanApproval (str, optional): Install plan approval mode ("Automatic" or "Manual"). Defaults to None.
         startingCSV (str, optional): The specific CSV version to install. When combined with Manual approval,
-            the first InstallPlan to this CSV will be automatically approved. Required when installPlanApproval is "Manual". Defaults to None.
+            the first InstallPlan to this CSV will be automatically approved unless disabled via
+            autoApproveInitialInstall. Defaults to None.
+        autoApproveInitialInstall (bool, optional): Whether to auto-approve the initial InstallPlan to
+            startingCSV under Manual approval. None preserves the legacy behavior (auto-approve when
+            Manual and startingCSV are set), True forces it on, False disables it. Only valid when
+            installPlanApproval is "Manual". Defaults to None.
+        onApprovalRequired (Union[str, Callable], optional): Controls handling of InstallPlans awaiting
+            approval: "wait" polls until approved out-of-band, "return" returns the pending approval
+            info, a callable receives the approval info and releases the caller when it returns False.
+            Defaults to "wait".
+        pollInterval (int, optional): Seconds between polls while waiting. Defaults to 30.
 
     Returns:
-        Subscription: The created or updated subscription resource
+        Subscription: The created or updated subscription resource, or a
+            (Subscription, dict) tuple when released from waiting via the "return"
+            approval mode or a callable returning False
 
     Raises:
-        OLMException: If the package is not available in any catalog, or if installPlanApproval is "Manual" without a startingCSV
+        OLMException: If the package is not available in any catalog, if installPlanApproval is
+            "Manual" without a startingCSV (unless new-style approval handling is opted in to),
+            if autoApproveInitialInstall is used without Manual approval, if onApprovalRequired
+            is invalid, or if the namespace would end up with mixed approval modes
         NotFoundError: If resources cannot be created
     """
-    # Validate that startingCSV is provided when installPlanApproval is Manual
-    if installPlanApproval == "Manual" and startingCSV is None:
+    # Validate the new-style approval handling parameters
+    if autoApproveInitialInstall is not None and installPlanApproval != "Manual":
+        raise OLMException("autoApproveInitialInstall is only valid when installPlanApproval is 'Manual'")
+    if onApprovalRequired != "wait" and onApprovalRequired != "return" and not callable(onApprovalRequired):
+        raise OLMException("onApprovalRequired must be 'wait', 'return', or a callable")
+
+    # Legacy validation, retained for backward compatibility: Manual approval requires a
+    # startingCSV unless the caller has opted in to the new-style approval handling
+    newStyleApprovalHandling = autoApproveInitialInstall is not None or onApprovalRequired != "wait"
+    if installPlanApproval == "Manual" and startingCSV is None and not newStyleApprovalHandling:
         raise OLMException("When installPlanApproval is 'Manual', a startingCSV must be provided")
+
+    # By default (None) the initial InstallPlan to startingCSV is auto-approved when
+    # installPlanApproval is "Manual" and a startingCSV is provided (legacy behavior)
+    autoApproveInitial = autoApproveInitialInstall is not False
+
+    # Fail fast when the requested approval mode would leave the namespace with a mix of
+    # Manual and Automatic subscriptions. Only enforced for new-style callers so that
+    # legacy behavior (including namespaces where OLM has auto-created dependency
+    # subscriptions with a different mode) is unchanged.
+    if installPlanApproval is not None and newStyleApprovalHandling:
+        _validateNamespaceApprovalConsistency(dynClient, namespace, packageName, installPlanApproval)
+
     if catalogSourceNamespace is None:
         catalogSourceNamespace = "openshift-marketplace"
 
@@ -261,7 +745,7 @@ def applySubscription(
     installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
     while len(installPlanResources.items) == 0:
         installPlanResources = installPlanAPI.get(label_selector=labelSelector, namespace=namespace)
-        sleep(30)
+        sleep(pollInterval)
 
     if len(installPlanResources.items) == 0:
         raise OLMException(f"Found 0 InstallPlans for {packageName}")
@@ -325,31 +809,36 @@ def applySubscription(
 
         while installPlanPhase != "Complete":
             installPlanResource = installPlanAPI.get(name=installPlanName, namespace=namespace)
-            installPlanPhase = installPlanResource.status.phase
+            installPlanPhase = getattr(installPlanResource.status, "phase", None)
 
             # If InstallPlan requires approval and this is the first installation to startingCSV
-            if installPlanPhase == "RequiresApproval" and not approved_manual_install:
-                # Check if this is the first installation by verifying the CSV matches startingCSV
-                if startingCSV is not None:
-                    csvName = getattr(installPlanResource.spec, "clusterServiceVersionNames", [])
-                    if csvName and startingCSV in csvName:
-                        logger.info(f"Approving InstallPlan {installPlanName} for first-time installation to {startingCSV}")
-                        # Patch the InstallPlan to approve it
-                        installPlanResource.spec.approved = True
-                        installPlanAPI.patch(
-                            body=installPlanResource,
-                            name=installPlanName,
-                            namespace=namespace,
-                            content_type="application/merge-patch+json",
-                        )
-                        approved_manual_install = True
-                        logger.info(f"InstallPlan {installPlanName} approved successfully")
-                    else:
-                        logger.debug(f"InstallPlan CSV {csvName} does not match startingCSV {startingCSV}, waiting for manual approval")
+            if installPlanPhase == "RequiresApproval":
+                csvNames = list(getattr(installPlanResource.spec, "clusterServiceVersionNames", None) or [])
+                if (
+                    installPlanApproval == "Manual"
+                    and startingCSV is not None
+                    and autoApproveInitial
+                    and not approved_manual_install
+                    and startingCSV in csvNames
+                ):
+                    logger.info(f"Approving InstallPlan {installPlanName} for first-time installation to {startingCSV}")
+                    approveInstallPlan(dynClient, namespace, installPlanName)
+                    approved_manual_install = True
+                elif onApprovalRequired != "wait":
+                    # The caller has opted in to being released from the wait while an
+                    # approval is outstanding
+                    subscriptionResource = subscriptionsAPI.get(name=name, namespace=namespace)
+                    approvalInfo = _describePendingInstallPlan(installPlanResource, [subscriptionResource])
+                    if _shouldReleaseForApproval(onApprovalRequired, approvalInfo):
+                        logger.info(f"InstallPlan {installPlanName} in {namespace} is awaiting approval")
+                        return subscriptionResource, approvalInfo
                 else:
-                    logger.debug(f"No startingCSV specified, InstallPlan {installPlanName} requires manual approval")
+                    if startingCSV is not None:
+                        logger.debug(f"InstallPlan CSV {csvNames} does not match startingCSV {startingCSV}, waiting for manual approval")
+                    else:
+                        logger.debug(f"No startingCSV specified, InstallPlan {installPlanName} requires manual approval")
 
-            sleep(30)
+            sleep(pollInterval)
 
     # Wait for Subscription to complete
     logger.debug(f"Waiting for Subscription {name} in {namespace}")
@@ -363,19 +852,28 @@ def applySubscription(
         if state == "AtLatestKnown":
             logger.debug(f"Subscription {name} in {namespace} reached state: {state}")
             return subscriptionResource
-        elif state == "UpgradePending" and installPlanApproval == "Manual" and startingCSV is not None:
+        elif state == "UpgradePending" and installPlanApproval == "Manual":
             # Verify the installed CSV matches the startingCSV
             installedCSV = getattr(subscriptionResource.status, "installedCSV", None)
-            if installedCSV == startingCSV:
+            if startingCSV is not None and installedCSV == startingCSV:
                 logger.debug(f"Subscription {name} in {namespace} reached state: {state} with installedCSV: {installedCSV}")
                 return subscriptionResource
-            else:
+
+            # The Subscription is blocked on an upgrade that has not been approved
+            if onApprovalRequired != "wait":
+                approvalInfo = getPendingInstallPlan(dynClient, namespace, packageName)
+                if approvalInfo is not None and _shouldReleaseForApproval(onApprovalRequired, approvalInfo):
+                    logger.info(f"Subscription {name} in {namespace} is awaiting approval of an upgrade")
+                    return subscriptionResource, approvalInfo
+                elif approvalInfo is None:
+                    logger.warning(f"Subscription {name} in {namespace} is in state {state} but no pending InstallPlan could be resolved, continuing to wait")
+            elif startingCSV is not None:
                 logger.debug(
                     f"Subscription {name} in {namespace} state is {state} but installedCSV ({installedCSV}) does not match startingCSV ({startingCSV}), retrying..."
                 )
 
         logger.debug(f"Subscription {name} in {namespace} not ready yet (state = {state}), retrying...")
-        sleep(30)
+        sleep(pollInterval)
 
 
 def deleteSubscription(dynClient: DynamicClient, namespace: str, packageName: str) -> None:

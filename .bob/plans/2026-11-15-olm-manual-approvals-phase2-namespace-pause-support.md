@@ -61,7 +61,9 @@ Builds directly on the Phase 1 primitives (`getPendingInstallPlans`, `approveIns
   ```python
   {
       "namespace": "mas-inst1-manage",
-      "manualSubscriptions": ["ibm-mas-manage"],        # subscriptions with Manual mode
+      # Namespace-scoped approval mode (see Phase 1): all subscriptions in the
+      # namespace must share the mode; a mix raises. Unset spec counts as Automatic.
+      "approvalMode": "Manual",                          # "Manual" | "Automatic" | None (no subscriptions),        # subscriptions with Manual mode
       "pendingApprovals": [                              # InstallPlans in RequiresApproval
           {
               "installPlan": "install-plan-abc",
@@ -77,7 +79,10 @@ Builds directly on the Phase 1 primitives (`getPendingInstallPlans`, `approveIns
   }
   ```
   Decide: plain dict (recommended, Jinja2/JSON friendly) vs dataclass; whether `blocking`
-  should be a derived helper or a field.
+  should be a derived helper or a field; whether to also surface the per-subscription mode
+  breakdown for diagnostics — the namespace-scoped accessor from Phase 1 raises on a mix,
+  so this status function must decide between raising and reporting a mixed namespace as a
+  structured problem state.
 - [ ] **`onPending` callback contract** for `waitForNamespaceApprovals`: invoked once when an
   approval first appears, or on every poll? Receives the full status dict? Can it abort the
   wait (returning False)?
@@ -103,7 +108,9 @@ Builds directly on the Phase 1 primitives (`getPendingInstallPlans`, `approveIns
 - [ ] **1.1** `getNamespaceApprovalStatus(dynClient, namespace) -> dict`
   - Single round-trip per resource type (list subscriptions in namespace, list InstallPlans
     in namespace); join in memory.
-  - Subscriptions with `spec.installPlanApproval == "Manual"` → `manualSubscriptions`.
+  - Namespace approval mode via Phase 1's namespace-scoped
+    `getSubscriptionApprovalMode(dynClient, namespace)` → `approvalMode`
+    (per the decision on how a mixed namespace is surfaced here).
   - InstallPlans in `RequiresApproval` → `pendingApprovals` (enriched as per Phase 1
     `getPendingInstallPlans`, plus `currentCSV` from the owning subscription's
     `status.installedCSV`).
