@@ -82,63 +82,27 @@ def getDefaultStorageClasses(dynClient: DynamicClient) -> SimpleNamespace:
     """
     result = SimpleNamespace(provider=None, providerName=None, rwo=None, rwx=None)
 
-    # Iterate through storage classes until we find one that we recognize
-    # We make an assumption that if one of the paired classes if available, both will be
-    storageClasses = getStorageClasses(dynClient)
-    for storageClass in storageClasses:
-        if storageClass.metadata.name in ["ibmc-block-gold", "ibmc-file-gold-gid"]:
-            result.provider = "ibmc"
-            result.providerName = "IBMCloud ROKS Classic"
-            result.rwo = "ibmc-block-gold"
-            result.rwx = "ibmc-file-gold-gid"
-            break
-        elif storageClass.metadata.name in ["ibmc-vpc-block-10iops-tier", "ibmc-vpc-file-1000-iops"]:
-            result.provider = "ibmc-vpc"
-            result.providerName = "IBMCloud ROKS VPC"
-            result.rwo = "ibmc-vpc-block-10iops-tier"
-            result.rwx = "ibmc-vpc-file-1000-iops"
-            break
-        elif storageClass.metadata.name in [
-            "ocs-storagecluster-ceph-rbd",
-            "ocs-storagecluster-cephfs",
-        ]:
-            result.provider = "ocs"
-            result.providerName = "OpenShift Container Storage"
-            result.rwo = "ocs-storagecluster-ceph-rbd"
-            result.rwx = "ocs-storagecluster-cephfs"
-            break
-        elif storageClass.metadata.name in [
-            "ocs-external-storagecluster-ceph-rbd",
-            "ocs-external-storagecluster-cephfs",
-        ]:
-            result.provider = "ocs-external"
-            result.providerName = "OpenShift Container Storage (External)"
-            result.rwo = "ocs-external-storagecluster-ceph-rbd"
-            result.rwx = "ocs-external-storagecluster-cephfs"
-            break
-        elif storageClass.metadata.name == "longhorn":
-            result.provider = "longhorn"
-            result.providerName = "Longhorn"
-            result.rwo = "longhorn"
-            result.rwx = "longhorn"
-            break
-        elif storageClass.metadata.name == "nfs-client":
-            result.provider = "nfs"
-            result.providerName = "NFS Client"
-            result.rwo = "nfs-client"
-            result.rwx = "nfs-client"
-            break
-        elif storageClass.metadata.name in ["managed-premium", "azurefiles-premium"]:
-            result.provider = "azure"
-            result.providerName = "Azure Managed"
-            result.rwo = "managed-premium"
-            result.rwx = "azurefiles-premium"
-            break
-        elif storageClass.metadata.name in ["gp3-csi", "efs"]:
-            result.provider = "aws"
-            result.providerName = "AWS GP3"
-            result.rwo = "gp3-csi"
-            result.rwx = "efs"
+    # (provider, providerName, rwo, rwx) in order of precedence
+    knownProviders = [
+        ("ibmc", "IBMCloud ROKS Classic", "ibmc-block-gold", "ibmc-file-gold-gid"),
+        ("ibmc-vpc", "IBMCloud ROKS VPC", "ibmc-vpc-block-10iops-tier", "ibmc-vpc-file-1000-iops"),
+        ("ocs", "OpenShift Container Storage", "ocs-storagecluster-ceph-rbd", "ocs-storagecluster-cephfs"),
+        ("ocs-external", "OpenShift Container Storage (External)", "ocs-external-storagecluster-ceph-rbd", "ocs-external-storagecluster-cephfs"),
+        ("longhorn", "Longhorn", "longhorn", "longhorn"),
+        ("nfs", "NFS Client", "nfs-client", "nfs-client"),
+        ("azure", "Azure Managed", "managed-premium", "azurefiles-premium"),
+        ("aws", "AWS GP3", "gp3-csi", "efs"),
+    ]
+
+    # A provider is only recognised when both of its storage classes exist in the cluster, e.g. gp3-csi is
+    # present on every AWS cluster but efs is only present if the EFS CSI driver has been configured
+    availableNames = {storageClass.metadata.name for storageClass in getStorageClasses(dynClient)}
+    for provider, providerName, rwo, rwx in knownProviders:
+        if rwo in availableNames and rwx in availableNames:
+            result.provider = provider
+            result.providerName = providerName
+            result.rwo = rwo
+            result.rwx = rwx
             break
     logger.debug(f"Default storage class: {result}")
     return result
