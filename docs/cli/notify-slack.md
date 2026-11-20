@@ -103,6 +103,71 @@ mas-devops-notify-slack \
     --rc 1
 ```
 
+## Webhook Notifications
+
+The `deployment-update` and `webhook` actions post a colored message to a Slack incoming webhook. Neither requires `SLACK_TOKEN` or `SLACK_CHANNEL`.
+
+Common options:
+
+- `--webhook-url`: Webhook URL (defaults to the `SLACK_WEBHOOK_URL` environment variable)
+- `--color`: `green` (default), `red` or `blue`
+
+### Deployment Update (`--action deployment-update`)
+
+Posts a standard deployment update message. Only the values are supplied, the title, field labels and link layout come from a built-in template.
+
+```bash
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/XXX/YYY/ZZZ"
+
+mas-devops-notify-slack \
+    --action deployment-update \
+    --instance-id acme-pr1 \
+    --domain acme.prod1.com \
+    --deployed-by "<@U0CJLARN3PF>" \
+    --channel 9.1.x \
+    --console-url https://console.example.com \
+    --argocd-url https://argo.example.com \
+    --state "Db Update Started" \
+    --color green
+```
+
+All of the following are required:
+
+- `--instance-id`: Instance ID, also used as the tenant name in the title
+- `--domain`: Instance domain
+- `--deployed-by`: Who deployed, Slack mentions such as `<@U0CJLARN3PF>` are supported
+- `--channel`: Release channel (e.g., `9.1.x`)
+- `--console-url`: Console URL, shown as a clickable link
+- `--argocd-url`: ArgoCD URL, shown as a clickable link
+- `--state`: Deployment state (e.g., `Db Update Started`)
+
+The message is rendered as:
+
+- Title: `Deployment update for tenant “<instance-id>”: <state>`
+- Fields: Instance ID, Domain, Deployed by, Channel
+- Links: Console and ArgoCD URLs
+
+The same message can be sent from Python with `SlackUtil.postDeploymentUpdate(...)`.
+
+### Custom Message (`--action webhook`)
+
+Posts a fully custom message when the deployment template does not fit.
+
+```bash
+mas-devops-notify-slack \
+    --action webhook \
+    --title "*Deployment update for tenant Acme: Db Update Started*" \
+    --field "Instance ID=acme-pr1" \
+    --field "Domain=acme.prod1.com" \
+    --field "Channel=9.1.x" \
+    --details "*Console:* <https://console.example.com>" \
+    --color green
+```
+
+- `--title`: Title text (required, supports Slack mrkdwn)
+- `--field KEY=VALUE`: Field displayed as `*KEY:* VALUE`, can be repeated
+- `--details`: Additional mrkdwn text displayed below the fields
+
 ## Slack Bot Setup
 
 ### Creating a Slack Bot
