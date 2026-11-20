@@ -157,6 +157,10 @@ spec:
     - name: odh_to_rhoai_migration
       value: "{{ odh_to_rhoai_migration }}"
 {%- endif %}
+{%- if rhoai_channel is defined and rhoai_channel != "" %}
+    - name: rhoai_channel
+      value: "{{ rhoai_channel }}"
+{%- endif %}
 
 {%- if aiservice_instance_ids is defined and aiservice_instance_ids != "" %}
     - name: aiservice_instance_ids

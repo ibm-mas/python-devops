@@ -110,10 +110,11 @@ tsm_version: 1.7.10              # No Update
 # https://github.ibm.com/maximoappsuite/ibm-data-dictionary/releases
 dd_version: 1.1.24              # No Update
 
-# Dependencies - Opendata hub
+# Dependencies - AI Service Data Science Platform
 # -----------------------------------------------------------------------------
-# https://github.com/opendatahub-io/opendatahub-operator/releases
-odh_version: 2.32.0
+# Red Hat OpenShift AI v3 (installed from the rhoai_channel defined in
+# ansible-devops: ibm/mas_devops/roles/aiservice_rhoai/defaults/main.yml)
+aiservice_platform: rhoai-v3
 
 # Extra Images for Redis (Collaborate)
 # ------------------------------------------------------------------------------
