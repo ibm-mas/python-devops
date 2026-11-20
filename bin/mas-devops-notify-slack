@@ -421,7 +421,70 @@ def notifyPipelineComplete(
     return allSuccess
 
 
+def notifyWebhook(
+    webhookUrl: str,
+    title: str,
+    fieldArgs: list[str] | None = None,
+    details: str | None = None,
+    color: str = "green",
+) -> bool:
+    """Post a message to a Slack incoming webhook, fields are given as KEY=VALUE strings."""
+    fields = {}
+    for fieldArg in fieldArgs or []:
+        key, sep, value = fieldArg.partition("=")
+        if sep == "":
+            print(f"Invalid --field '{fieldArg}', expected KEY=VALUE")
+            sys.exit(1)
+        fields[key] = value
+    return SlackUtil.postWebhookMessage(webhookUrl, title, fields, details, color)
+
+
 if __name__ == "__main__":
+    # Webhook actions do not use SLACK_TOKEN/SLACK_CHANNEL, handle them first
+    if "webhook" in sys.argv or "deployment-update" in sys.argv:
+        webhookParser = argparse.ArgumentParser()
+        webhookParser.add_argument("--action", required=True, choices=["webhook", "deployment-update"])
+        webhookParser.add_argument("--webhook-url", default=os.getenv("SLACK_WEBHOOK_URL"))
+        webhookParser.add_argument("--title")
+        webhookParser.add_argument("--field", action="append", default=[], help="KEY=VALUE, can be repeated")
+        webhookParser.add_argument("--details", default=None)
+        webhookParser.add_argument("--color", choices=["green", "red", "blue"], default="green")
+        webhookParser.add_argument("--instance-id")
+        webhookParser.add_argument("--domain")
+        webhookParser.add_argument("--deployed-by")
+        webhookParser.add_argument("--channel")
+        webhookParser.add_argument("--console-url")
+        webhookParser.add_argument("--argocd-url")
+        webhookParser.add_argument("--state")
+        webhookArgs = webhookParser.parse_args()
+        if not webhookArgs.webhook_url:
+            print("--webhook-url or SLACK_WEBHOOK_URL env var must be set")
+            sys.exit(1)
+
+        if webhookArgs.action == "deployment-update":
+            required = ["instance_id", "domain", "deployed_by", "channel", "console_url", "argocd_url", "state"]
+            missing = [f"--{name.replace('_', '-')}" for name in required if not getattr(webhookArgs, name)]
+            if missing:
+                print(f"Missing required options for deployment-update: {', '.join(missing)}")
+                sys.exit(1)
+            ok = SlackUtil.postDeploymentUpdate(
+                webhookArgs.webhook_url,
+                webhookArgs.instance_id,
+                webhookArgs.domain,
+                webhookArgs.deployed_by,
+                webhookArgs.channel,
+                webhookArgs.console_url,
+                webhookArgs.argocd_url,
+                webhookArgs.state,
+                webhookArgs.color,
+            )
+        else:
+            if not webhookArgs.title:
+                print("--title is required for the webhook action")
+                sys.exit(1)
+            ok = notifyWebhook(webhookArgs.webhook_url, webhookArgs.title, webhookArgs.field, webhookArgs.details, webhookArgs.color)
+        sys.exit(0 if ok else 1)
+
     # If SLACK_TOKEN or SLACK_CHANNEL env vars are not set then silently exit taking no action
     SLACK_TOKEN = os.getenv("SLACK_TOKEN", "")
     SLACK_CHANNEL = os.getenv("SLACK_CHANNEL", "")

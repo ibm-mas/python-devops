@@ -12,12 +12,19 @@
 
 import os
 from slack_sdk import WebClient
+from slack_sdk.webhook import WebhookClient
 from slack_sdk.web.slack_response import SlackResponse
 from kubernetes import client, config
 from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
+
+WEBHOOK_COLORS = {
+    "green": "#2EB67D",
+    "red": "#E01E5A",
+    "blue": "#36C5F0",
+}
 
 
 class SlackUtilMeta(type):
@@ -174,6 +181,104 @@ class SlackUtilMeta(type):
             responses.append(response)
 
         return responses if len(responses) > 1 else responses[0]
+
+    def postWebhookMessage(
+        cls,
+        webhookUrl: str,
+        title: str,
+        fields: dict[str, str] | None = None,
+        details: str | None = None,
+        color: str = "green",
+    ) -> bool:
+        """Post a colored attachment message to a Slack incoming webhook.
+
+        The message consists of a title section, an optional section of key/value fields
+        (rendered as "*key:* value"), and an optional free-form details section. The
+        attachment color bar is selected from a fixed set of supported colors.
+
+        Args:
+            webhookUrl (str): Slack incoming webhook URL
+            title (str): Title text (supports mrkdwn formatting)
+            fields (dict[str, str], optional): Key/value pairs to display in the fields section. Defaults to None.
+            details (str, optional): Additional mrkdwn text displayed below the fields. Defaults to None.
+            color (str, optional): Attachment color, one of "green", "red" or "blue". Defaults to "green".
+
+        Returns:
+            bool: True if Slack accepted the message, False otherwise
+
+        Raises:
+            ValueError: If color is not one of the supported colors
+        """
+        if color not in WEBHOOK_COLORS:
+            raise ValueError(f"Unsupported color '{color}', must be one of: {', '.join(WEBHOOK_COLORS)}")
+
+        blocks = [cls.buildSection(title)]
+        if fields:
+            blocks.append(
+                {
+                    "type": "section",
+                    "fields": [{"type": "mrkdwn", "text": f"*{key}:* {value}"} for key, value in fields.items()],
+                }
+            )
+        if details:
+            blocks.append(cls.buildSection(details))
+
+        logger.debug(f"Posting {len(blocks)} block message to Slack webhook")
+        response = WebhookClient(webhookUrl).send(
+            attachments=[{"color": WEBHOOK_COLORS[color], "fallback": title, "blocks": blocks}],
+        )
+        if response.status_code != 200:
+            logger.warning(f"Failed to call Slack webhook: {response.status_code} {response.body}")
+            return False
+        return True
+
+    def postDeploymentUpdate(
+        cls,
+        webhookUrl: str,
+        instanceId: str,
+        domain: str,
+        deployedBy: str,
+        channel: str,
+        consoleUrl: str,
+        argocdUrl: str,
+        state: str,
+        color: str = "green",
+    ) -> bool:
+        """Post a standard deployment update message to a Slack incoming webhook.
+
+        Fills the deployment update template with the supplied values: a title containing the
+        instance ID (as the tenant) and state, a fields section (instance ID, domain, deployed by, channel) and a
+        details section with links to the console and ArgoCD.
+
+        Args:
+            webhookUrl (str): Slack incoming webhook URL
+            instanceId (str): Instance ID, e.g. "acme-pr1"
+            domain (str): Instance domain, e.g. "acme.prod1.com"
+            deployedBy (str): Who deployed, Slack mention syntax such as "<@U0CJLARN3PF>" is supported
+            channel (str): Release channel, e.g. "9.1.x"
+            consoleUrl (str): URL of the console
+            argocdUrl (str): URL of ArgoCD
+            state (str): Deployment state, e.g. "Db Update Started"
+            color (str, optional): Attachment color, one of "green", "red" or "blue". Defaults to "green".
+
+        Returns:
+            bool: True if Slack accepted the message, False otherwise
+
+        Raises:
+            ValueError: If color is not one of the supported colors
+        """
+        return cls.postWebhookMessage(
+            webhookUrl,
+            f"*Deployment update for tenant “{instanceId}”: {state}*",
+            {
+                "Instance ID": instanceId,
+                "Domain": domain,
+                "Deployed by": deployedBy,
+                "Channel": channel,
+            },
+            f"*Console:* <{consoleUrl}>\n\n*ArgoCD:* <{argocdUrl}>",
+            color,
+        )
 
     def createMessagePermalink(
         cls,

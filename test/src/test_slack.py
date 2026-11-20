@@ -837,3 +837,76 @@ def test_notifyPipelineStart_update_pipeline_multiple_channels(mock_update, mock
     assert update_call_args["channel_count"] == "2"
     # Verify namespace is mas-pipelines (not mas-None-pipelines)
     assert mock_create.call_args[0][0] == "mas-pipelines"
+
+
+# Tests for postWebhookMessage / notifyWebhook
+@pytest.mark.parametrize("color,hexCode", [("green", "#2EB67D"), ("red", "#E01E5A"), ("blue", "#36C5F0")])
+@patch("mas.devops.slack.WebhookClient")
+def test_postWebhookMessage_colors(mock_client, color, hexCode):
+    """Test postWebhookMessage builds the attachment with the requested color"""
+    mock_client.return_value.send.return_value = Mock(status_code=200)
+
+    result = SlackUtil.postWebhookMessage(
+        "https://hooks.slack.com/services/TEST",
+        "*Deployment update*",
+        {"Instance ID": "acme-pr1", "Channel": "9.1.x"},
+        "*Console:* <https://console|link>",
+        color,
+    )
+
+    assert result is True
+    mock_client.assert_called_once_with("https://hooks.slack.com/services/TEST")
+    attachment = mock_client.return_value.send.call_args.kwargs["attachments"][0]
+    assert attachment["color"] == hexCode
+    assert len(attachment["blocks"]) == 3
+    assert attachment["blocks"][1]["fields"][0] == {"type": "mrkdwn", "text": "*Instance ID:* acme-pr1"}
+
+
+@patch("mas.devops.slack.WebhookClient")
+def test_postWebhookMessage_title_only(mock_client):
+    """Test postWebhookMessage omits optional sections when not provided"""
+    mock_client.return_value.send.return_value = Mock(status_code=200)
+    SlackUtil.postWebhookMessage("https://hooks.slack.com/services/TEST", "title")
+    attachment = mock_client.return_value.send.call_args.kwargs["attachments"][0]
+    assert len(attachment["blocks"]) == 1
+
+
+@patch("mas.devops.slack.WebhookClient")
+def test_postWebhookMessage_failure(mock_client):
+    """Test postWebhookMessage returns False on a non-200 response"""
+    mock_client.return_value.send.return_value = Mock(status_code=404, body="no_service")
+    assert SlackUtil.postWebhookMessage("https://hooks.slack.com/services/TEST", "title") is False
+
+
+def test_postWebhookMessage_invalid_color():
+    """Test postWebhookMessage rejects unsupported colors"""
+    with pytest.raises(ValueError):
+        SlackUtil.postWebhookMessage("https://hooks.slack.com/services/TEST", "title", color="pink")
+
+
+@patch.object(SlackUtil, "postWebhookMessage", return_value=True)
+def test_notifyWebhook_parses_fields(mock_post):
+    """Test notifyWebhook converts KEY=VALUE args to a dict"""
+    assert notify_slack.notifyWebhook("url", "title", ["A=1", "B=x=y"], "d", "red") is True
+    mock_post.assert_called_once_with("url", "title", {"A": "1", "B": "x=y"}, "d", "red")
+
+
+def test_notifyWebhook_invalid_field():
+    """Test notifyWebhook exits on a field without '='"""
+    with pytest.raises(SystemExit) as exc_info:
+        notify_slack.notifyWebhook("url", "title", ["bad"])
+    assert exc_info.value.code == 1
+
+
+@patch.object(SlackUtil, "postWebhookMessage", return_value=True)
+def test_postDeploymentUpdate(mock_post):
+    """Test postDeploymentUpdate fills the deployment template"""
+    result = SlackUtil.postDeploymentUpdate(
+        "url", "acme-pr1", "acme.prod1.com", "<@U0CJLARN3PF>", "9.1.x", "https://console", "https://argo", "Db Update Started", "blue"
+    )
+    assert result is True
+    url, title, fields, details, color = mock_post.call_args[0]
+    assert title == "*Deployment update for tenant “acme-pr1”: Db Update Started*"
+    assert fields == {"Instance ID": "acme-pr1", "Domain": "acme.prod1.com", "Deployed by": "<@U0CJLARN3PF>", "Channel": "9.1.x"}
+    assert details == "*Console:* <https://console>\n\n*ArgoCD:* <https://argo>"
+    assert color == "blue"
