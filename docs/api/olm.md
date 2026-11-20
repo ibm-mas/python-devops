@@ -34,8 +34,10 @@ if isApprovalRequired(dynClient, "mas-inst1-manage"):
 
 A namespace whose subscriptions mix approval modes is reported with `approvalMode: "Mixed"`
 rather than raised — OLM auto-creates dependency subscriptions that can legitimately
-introduce a mix. Use `getSubscriptionApprovalMode` when a strict single-mode accessor
-(which raises on a mix) is wanted instead.
+introduce a mix. For waiting semantics a Mixed namespace behaves the same as Manual:
+InstallPlans in `RequiresApproval` gate processing regardless of which subscription
+generated them. `getSubscriptionApprovalMode` reports the same `"Mixed"` value for a
+mixed namespace (with a warning logged).
 
 ### Return-and-resume
 

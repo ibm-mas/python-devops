@@ -154,21 +154,22 @@ def getSubscriptionApprovalMode(dynClient: DynamicClient, namespace: str) -> Opt
     Although installPlanApproval is stored on each Subscription, this library treats
     approval mode as a namespace property: InstallPlans are namespace-scoped and the
     pause/awareness semantics built on top of this function are namespace-oriented.
-    All Subscriptions in the namespace must therefore use the same mode. Note that
-    OLM itself does not enforce this, and will automatically create dependency
-    Subscriptions (which may default to Automatic) in the same namespace.
+    Note that OLM itself does not enforce this, and will automatically create
+    dependency Subscriptions (which may default to Automatic) in the same namespace.
+
+    A namespace whose Subscriptions use a mix of approval modes is reported as
+    "Mixed": OLM permits per-Subscription modes and auto-creates dependency
+    Subscriptions that can legitimately introduce a mix. For waiting semantics a
+    Mixed namespace behaves the same as Manual -- InstallPlans in RequiresApproval
+    gate processing regardless of which Subscription generated them.
 
     Args:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to inspect
 
     Returns:
-        str: The namespace's approval mode ("Automatic" or "Manual"), or None when
-            the namespace contains no Subscriptions
-
-    Raises:
-        OLMException: If the namespace contains Subscriptions with a mix of
-            approval modes
+        str: The namespace's approval mode ("Automatic", "Manual" or "Mixed"), or
+            None when the namespace contains no Subscriptions
     """
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
     try:
@@ -186,9 +187,8 @@ def getSubscriptionApprovalMode(dynClient: DynamicClient, namespace: str) -> Opt
         return None
     elif len(modes) > 1:
         conflicts = ", ".join(f"{name} ({mode})" for mode, names in modes.items() for name in names)
-        raise OLMException(
-            f"Mixed install plan approval modes in namespace {namespace}: {conflicts}. " "All subscriptions in a namespace must use the same approval mode"
-        )
+        logger.warning(f"Mixed install plan approval modes in namespace {namespace}: {conflicts}")
+        return "Mixed"
 
     return next(iter(modes))
 
@@ -510,8 +510,8 @@ def getNamespaceApprovalStatus(dynClient: DynamicClient, namespace: str) -> dict
     processing. A namespace whose Subscriptions use a mix of approval modes is
     reported with approvalMode "Mixed" rather than raised: OLM permits
     per-Subscription modes and auto-creates dependency Subscriptions that can
-    legitimately introduce a mix. Callers wanting a strict single-mode accessor
-    can use getSubscriptionApprovalMode, which raises on a mix.
+    legitimately introduce a mix. For waiting semantics a Mixed namespace
+    behaves the same as Manual.
 
     Args:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -651,21 +651,21 @@ def _validateNamespaceApprovalConsistency(
     packageName: str,
     installPlanApproval: str,
 ) -> None:
-    """Validate that setting an approval mode will not create a mixed namespace.
+    """Warn when setting an approval mode will create a mixed namespace.
 
     Lists the Subscriptions in the namespace (excluding the one being applied for
-    packageName) and raises when any of them uses a different approval mode.
+    packageName) and logs a warning when any of them uses a different approval
+    mode. A mixed namespace is valid -- OLM auto-creates dependency Subscriptions
+    that can legitimately introduce a mix -- and behaves the same as Manual for
+    waiting semantics (InstallPlans in RequiresApproval gate processing regardless
+    of which Subscription generated them), so this is informational only.
 
     Args:
         dynClient (DynamicClient): OpenShift Dynamic Client
-        namespace (str): The namespace to validate
+        namespace (str): The namespace to check
         packageName (str): Package of the Subscription being applied, which is
             excluded from the check
         installPlanApproval (str): The approval mode about to be applied
-
-    Raises:
-        OLMException: If another Subscription in the namespace uses a different
-            approval mode
     """
     subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
     try:
@@ -683,10 +683,9 @@ def _validateNamespaceApprovalConsistency(
             conflicting.append(f"{subscription.metadata.name} ({mode})")
 
     if conflicting:
-        raise OLMException(
-            f"Unable to set installPlanApproval to '{installPlanApproval}' for {packageName} in {namespace}: "
-            f"other subscriptions in the namespace use a different approval mode ({', '.join(conflicting)}). "
-            "All subscriptions in a namespace must use the same approval mode"
+        logger.warning(
+            f"Setting installPlanApproval to '{installPlanApproval}' for {packageName} in {namespace} will leave the namespace with a mix of "
+            f"approval modes ({', '.join(conflicting)}). A mixed namespace is valid and behaves the same as Manual for waiting semantics"
         )
 
 
@@ -743,8 +742,10 @@ def applySubscription(
     function returns a (subscription, approvalInfo) tuple instead of just the subscription.
 
     When onApprovalRequired is not "wait" or autoApproveInitialInstall is set, the function
-    also validates that the requested approval mode is consistent with the other Subscriptions
-    in the namespace, raising OLMException on a mix.
+    also checks the namespace for Subscriptions using a different approval mode and logs a
+    warning when one is found. A mixed namespace is valid -- OLM auto-creates dependency
+    Subscriptions that can introduce a mix -- and behaves the same as Manual for waiting
+    semantics, so this is informational only.
 
     Args:
         dynClient (DynamicClient): OpenShift Dynamic Client
@@ -777,8 +778,8 @@ def applySubscription(
     Raises:
         OLMException: If the package is not available in any catalog, if installPlanApproval is
             "Manual" without a startingCSV (unless new-style approval handling is opted in to),
-            if autoApproveInitialInstall is used without Manual approval, if onApprovalRequired
-            is invalid, or if the namespace would end up with mixed approval modes
+            if autoApproveInitialInstall is used without Manual approval, or if onApprovalRequired
+            is invalid
         NotFoundError: If resources cannot be created
     """
     # Validate the new-style approval handling parameters
@@ -797,10 +798,10 @@ def applySubscription(
     # installPlanApproval is "Manual" and a startingCSV is provided (legacy behavior)
     autoApproveInitial = autoApproveInitialInstall is not False
 
-    # Fail fast when the requested approval mode would leave the namespace with a mix of
-    # Manual and Automatic subscriptions. Only enforced for new-style callers so that
-    # legacy behavior (including namespaces where OLM has auto-created dependency
-    # subscriptions with a different mode) is unchanged.
+    # Warn when the requested approval mode differs from other Subscriptions in the
+    # namespace. Mixed namespaces are valid (OLM auto-creates dependency Subscriptions
+    # with a different mode) and behave the same as Manual for waiting semantics, so
+    # this is informational only.
     if installPlanApproval is not None and newStyleApprovalHandling:
         _validateNamespaceApprovalConsistency(dynClient, namespace, packageName, installPlanApproval)
 

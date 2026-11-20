@@ -21,6 +21,8 @@ follow test_olm_installplan_selection.py.
 
 from contextlib import contextmanager
 
+import logging
+
 import pytest
 from unittest.mock import Mock, patch
 
@@ -221,18 +223,18 @@ class TestGetSubscriptionApprovalMode:
 
         assert getSubscriptionApprovalMode(client, "test-namespace") == "Manual"
 
-    def test_mixed_modes_raise_naming_conflicting_subscriptions(self):
+    def test_mixed_modes_reported_as_mixed(self, caplog):
         manual = makeSubscription("manual-operator", "test-namespace", "manual-operator", approval="Manual")
         automatic = makeSubscription("automatic-operator", "test-namespace", "automatic-operator", approval=None)
         client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[manual, automatic]), makeGetHandler())
 
-        with pytest.raises(OLMException) as excinfo:
-            getSubscriptionApprovalMode(client, "test-namespace")
+        with caplog.at_level(logging.WARNING, logger="mas.devops.olm"):
+            mode = getSubscriptionApprovalMode(client, "test-namespace")
 
-        message = str(excinfo.value)
-        assert "Mixed install plan approval modes" in message
-        assert "manual-operator" in message
-        assert "automatic-operator" in message
+        assert mode == "Mixed"
+        assert "Mixed install plan approval modes" in caplog.text
+        assert "manual-operator" in caplog.text
+        assert "automatic-operator" in caplog.text
 
     def test_empty_namespace_returns_none(self):
         client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[]), makeGetHandler())
@@ -579,22 +581,45 @@ class TestApplySubscriptionValidation:
                 autoApproveInitialInstall=True,
             )
 
-    def test_namespace_mode_conflict_raises_for_new_style_callers(self):
-        # A different subscription in the namespace uses the default Automatic
-        # mode: applying a Manual subscription must fail fast
+    def test_mixed_namespace_tolerated_by_new_style_callers(self, caplog):
+        # A dependency subscription in the namespace uses the default Automatic
+        # mode: applying a Manual subscription must proceed with a warning, not
+        # fail -- OLM auto-creates such subscriptions in real Manual namespaces
+        # (for example ibm-truststore-mgr alongside ibm-sls)
         other = makeSubscription("other-operator", "test-namespace", "other-operator", approval=None)
-        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[other]), makeGetHandler())
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", approval="Manual", state="UpgradePending", installedCSV="test-operator.v1.0.0"
+        )
+        pendingPlan = makeInstallPlan(
+            "install-plan-1",
+            "test-namespace",
+            ["test-operator.v1.0.0"],
+            "RequiresApproval",
+            labels={"operators.coreos.com/test-operator.test-namespace": ""},
+            ownerRefs=[makeOwnerRef("Subscription", "test-operator")],
+        )
+        client, _, installPlanAPI = buildDynClient(
+            makeGetHandler(labelResponse=[subscription], nameResponse=subscription, namespaceResponse=[other]),
+            makeGetHandler(labelResponse=[pendingPlan], nameResponse=pendingPlan),
+        )
 
-        with pytest.raises(OLMException, match="different approval mode"):
-            applySubscription(
-                client,
-                "test-namespace",
-                "test-operator",
-                packageChannel="stable",
-                catalogSource="test-catalog",
-                installPlanApproval="Manual",
-                onApprovalRequired="return",
-            )
+        with applySubscriptionIsolation():
+            with caplog.at_level(logging.WARNING, logger="mas.devops.olm"):
+                result = applySubscription(
+                    client,
+                    "test-namespace",
+                    "test-operator",
+                    packageChannel="stable",
+                    catalogSource="test-catalog",
+                    installPlanApproval="Manual",
+                    onApprovalRequired="return",
+                )
+
+        assert isinstance(result, tuple)
+        assert result[1]["installPlan"] == "install-plan-1"
+        installPlanAPI.patch.assert_not_called()
+        assert "mix of approval modes" in caplog.text
+        assert "other-operator" in caplog.text
 
 
 class TestApplySubscriptionApprovalHandling:
@@ -673,7 +698,7 @@ class TestApplySubscriptionApprovalHandling:
         assert result[1]["installPlan"] == "install-plan-1"
         installPlanAPI.patch.assert_not_called()
 
-    def test_own_subscription_excluded_from_consistency_check(self):
+    def test_own_subscription_excluded_from_consistency_check(self, caplog):
         # The namespace listing contains only the subscription being applied
         # (in a different mode): it must be excluded from the consistency check
         own = makeSubscription("test-operator", "test-namespace", "test-operator", approval=None)
@@ -694,17 +719,21 @@ class TestApplySubscriptionApprovalHandling:
         )
 
         with applySubscriptionIsolation():
-            result = applySubscription(
-                client,
-                "test-namespace",
-                "test-operator",
-                packageChannel="stable",
-                catalogSource="test-catalog",
-                installPlanApproval="Manual",
-                onApprovalRequired="return",
-            )
+            with caplog.at_level(logging.WARNING, logger="mas.devops.olm"):
+                result = applySubscription(
+                    client,
+                    "test-namespace",
+                    "test-operator",
+                    packageChannel="stable",
+                    catalogSource="test-catalog",
+                    installPlanApproval="Manual",
+                    onApprovalRequired="return",
+                )
 
         assert isinstance(result, tuple)
+        # The only other subscription in the namespace is the one being applied,
+        # so no mixed-mode warning may be logged
+        assert "mix of approval modes" not in caplog.text
 
     def test_callback_release_invokes_callback_with_approval_info(self):
         subscription = makeSubscription(
