@@ -501,6 +501,150 @@ def waitForSubscriptionStable(
         sleep(pollInterval)
 
 
+def getNamespaceApprovalStatus(dynClient: DynamicClient, namespace: str) -> dict:
+    """Get the manual approval status of a namespace.
+
+    Non-blocking snapshot intended as a gate check at the start of a processing
+    step: reports the namespace's effective approval mode, the InstallPlans
+    currently awaiting approval, and whether any of them gates further
+    processing. A namespace whose Subscriptions use a mix of approval modes is
+    reported with approvalMode "Mixed" rather than raised: OLM permits
+    per-Subscription modes and auto-creates dependency Subscriptions that can
+    legitimately introduce a mix. Callers wanting a strict single-mode accessor
+    can use getSubscriptionApprovalMode, which raises on a mix.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to inspect
+
+    Returns:
+        dict: Namespace approval status with keys namespace (str), approvalMode
+            ("Manual", "Automatic", "Mixed", or None when the namespace has no
+            Subscriptions), pendingApprovals (list of approval info dicts as
+            produced by getPendingInstallPlans) and blocking (bool, True when
+            any InstallPlan is awaiting approval)
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
+
+    try:
+        subscriptions = list(subscriptionsAPI.get(namespace=namespace).items)
+    except NotFoundError:
+        subscriptions = []
+    try:
+        installPlanResources = list(installPlanAPI.get(namespace=namespace).items)
+    except NotFoundError:
+        installPlanResources = []
+
+    modes = {getattr(subscription.spec, "installPlanApproval", None) or "Automatic" for subscription in subscriptions}
+    if len(modes) == 0:
+        approvalMode = None
+    elif len(modes) == 1:
+        approvalMode = next(iter(modes))
+    else:
+        approvalMode = "Mixed"
+
+    pendingApprovals = [
+        _describePendingInstallPlan(installPlanResource, subscriptions)
+        for installPlanResource in installPlanResources
+        if getattr(installPlanResource.status, "phase", None) == "RequiresApproval"
+    ]
+
+    return {
+        "namespace": namespace,
+        "approvalMode": approvalMode,
+        "pendingApprovals": pendingApprovals,
+        "blocking": len(pendingApprovals) > 0,
+    }
+
+
+def isApprovalRequired(dynClient: DynamicClient, namespace: str) -> bool:
+    """Check whether any InstallPlan in a namespace is awaiting approval.
+
+    The cheapest possible gate check for automation that only needs a yes/no
+    answer: a single InstallPlan list per call. Callers that also need to know
+    what is awaiting approval should use getNamespaceApprovalStatus instead.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to check
+
+    Returns:
+        bool: True when any InstallPlan in the namespace is in phase
+            RequiresApproval
+    """
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
+    try:
+        installPlanResources = installPlanAPI.get(namespace=namespace)
+    except NotFoundError:
+        return False
+    return any(getattr(installPlanResource.status, "phase", None) == "RequiresApproval" for installPlanResource in installPlanResources.items)
+
+
+def waitForNamespaceApprovals(
+    dynClient: DynamicClient,
+    namespace: str,
+    timeout: Optional[int] = None,
+    pollInterval: int = 30,
+    onPending: Optional[Callable] = None,
+) -> dict:
+    """Wait until a namespace has no InstallPlans awaiting approval.
+
+    Polls getNamespaceApprovalStatus until nothing is blocking. This is
+    explicitly the blocking variant of the approval interaction: a None
+    timeout waits indefinitely, which is only appropriate when the caller has
+    decided an in-process wait is acceptable (for example an attended
+    rollout) — pass a bounded timeout otherwise.
+
+    While approvals are pending, onPending (when supplied) is invoked on every
+    poll with the current status dict and the 1-based poll number; returning
+    False from onPending aborts the wait and the current, still-blocking
+    status is returned. This is the hook point for caller-owned notifications.
+
+    There is no special result or exception for "still awaiting approval": the
+    blocking field of the returned status tells the caller whether the
+    approvals were completed, and how to handle each situation is the caller's
+    decision.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to wait on
+        timeout (int, optional): Maximum seconds to wait before raising
+            OLMTimeoutError. None waits indefinitely. Defaults to None.
+        pollInterval (int, optional): Seconds between polls. Defaults to 30.
+        onPending (Callable, optional): Callback invoked as
+            onPending(status, pollCount) on every poll while approvals are
+            pending; returning False aborts the wait. Defaults to None.
+
+    Returns:
+        dict: The final namespace approval status (see
+            getNamespaceApprovalStatus); when onPending aborted the wait this
+            is the still-blocking status at the point of the abort
+
+    Raises:
+        OLMTimeoutError: If the timeout expires before the namespace has no
+            InstallPlans awaiting approval
+    """
+    startTime = time()
+    pollCount = 0
+
+    while True:
+        status = getNamespaceApprovalStatus(dynClient, namespace)
+        if not status["blocking"]:
+            return status
+
+        pollCount += 1
+        logger.debug(f"Namespace {namespace} has {len(status['pendingApprovals'])} install plans awaiting approval (poll {pollCount})")
+        if onPending is not None and onPending(status, pollCount) is False:
+            logger.info(f"Wait for approvals in namespace {namespace} aborted by the onPending callback (poll {pollCount})")
+            return status
+
+        if timeout is not None and (time() - startTime) >= timeout:
+            raise OLMTimeoutError(f"Timed out waiting for approvals in namespace {namespace} ({len(status['pendingApprovals'])} install plans still pending)")
+
+        sleep(pollInterval)
+
+
 def _validateNamespaceApprovalConsistency(
     dynClient: DynamicClient,
     namespace: str,

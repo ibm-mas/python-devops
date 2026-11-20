@@ -9,7 +9,8 @@
 # *****************************************************************************
 
 """
-Unit tests for the OLM manual approval primitives and approval handling modes.
+Unit tests for the OLM manual approval primitives, approval handling modes and
+namespace-level approval status.
 
 These tests mock up the DynamicClient and its resource APIs rather than use
 real resources: the code under test is polling loops around Kubernetes
@@ -28,10 +29,13 @@ from mas.devops.olm import (
     OLMTimeoutError,
     approveInstallPlan,
     applySubscription,
+    getNamespaceApprovalStatus,
     getPendingInstallPlan,
     getPendingInstallPlans,
     getSubscriptionApprovalMode,
+    isApprovalRequired,
     waitForInstallPlanComplete,
+    waitForNamespaceApprovals,
     waitForSubscriptionStable,
 )
 
@@ -874,6 +878,259 @@ class TestApplySubscriptionApprovalHandling:
         installPlanAPI.patch.assert_called_once()
         _, kwargs = installPlanAPI.patch.call_args
         assert kwargs["content_type"] == "application/merge-patch+json"
+
+
+class TestGetNamespaceApprovalStatus:
+    """Tests for getNamespaceApprovalStatus."""
+
+    def test_empty_namespace(self):
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[]), makeGetHandler(namespaceResponse=[]))
+
+        assert getNamespaceApprovalStatus(client, "test-namespace") == {
+            "namespace": "test-namespace",
+            "approvalMode": None,
+            "pendingApprovals": [],
+            "blocking": False,
+        }
+
+    def test_manual_subscription_without_pending_plan(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", approval="Manual", state="AtLatestKnown", installedCSV="test-operator.v1.0.0"
+        )
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(namespaceResponse=[]))
+
+        status = getNamespaceApprovalStatus(client, "test-namespace")
+
+        assert status == {
+            "namespace": "test-namespace",
+            "approvalMode": "Manual",
+            "pendingApprovals": [],
+            "blocking": False,
+        }
+
+    def test_pending_approvals_enriched_and_blocking(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", approval="Manual", state="UpgradePending", installedCSV="test-operator.v1.0.0"
+        )
+        pending = makeInstallPlan(
+            "install-plan-pending",
+            "test-namespace",
+            ["test-operator.v1.0.0", "test-operator.v2.0.0"],
+            "RequiresApproval",
+            ownerRefs=[makeOwnerRef("Subscription", "test-operator")],
+        )
+        complete = makeInstallPlan("install-plan-complete", "test-namespace", ["test-operator.v0.9.0"], "Complete")
+        installing = makeInstallPlan("install-plan-installing", "test-namespace", ["test-operator.v3.0.0"], "Installing")
+
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[pending, complete, installing]),
+        )
+
+        status = getNamespaceApprovalStatus(client, "test-namespace")
+
+        assert status == {
+            "namespace": "test-namespace",
+            "approvalMode": "Manual",
+            "pendingApprovals": [
+                {
+                    "installPlan": "install-plan-pending",
+                    "namespace": "test-namespace",
+                    "subscription": "test-operator",
+                    "package": "test-operator",
+                    "csvNames": ["test-operator.v1.0.0", "test-operator.v2.0.0"],
+                    "currentCSV": "test-operator.v1.0.0",
+                    "targetCSV": "test-operator.v2.0.0",
+                    "created": "2026-11-15T10:00:00Z",
+                }
+            ],
+            "blocking": True,
+        }
+
+    def test_pending_approval_resolved_via_label_fallback(self):
+        subscription = makeSubscription("test-operator-sub", "test-namespace", "test-operator", approval="Manual", installedCSV="test-operator.v1.0.0")
+        pending = makeInstallPlan(
+            "install-plan-pending",
+            "test-namespace",
+            ["test-operator.v2.0.0"],
+            "RequiresApproval",
+            labels={"operators.coreos.com/test-operator.test-namespace": ""},
+        )
+
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[pending]),
+        )
+
+        status = getNamespaceApprovalStatus(client, "test-namespace")
+
+        assert status["pendingApprovals"][0]["subscription"] == "test-operator-sub"
+        assert status["pendingApprovals"][0]["package"] == "test-operator"
+        assert status["blocking"] is True
+
+    def test_mixed_modes_reported_not_raised(self):
+        # OLM auto-creates dependency subscriptions that can legitimately mix
+        # modes in one namespace: the status function reports the mix instead
+        # of raising (getSubscriptionApprovalMode remains the strict accessor)
+        manual = makeSubscription("manual-operator", "test-namespace", "manual-operator", approval="Manual")
+        automatic = makeSubscription("automatic-operator", "test-namespace", "automatic-operator", approval=None)
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[manual, automatic]), makeGetHandler(namespaceResponse=[]))
+
+        status = getNamespaceApprovalStatus(client, "test-namespace")
+
+        assert status["approvalMode"] == "Mixed"
+        assert status["blocking"] is False
+
+    def test_pending_approvals_share_the_apply_subscription_release_contract(self):
+        # The pendingApprovals entries must be the same shape as the approval
+        # info dicts applySubscription returns in its release path (Phase 1's
+        # test_point_a_release_returns_subscription_and_approval_info pins the
+        # same keys on that side)
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", approval="Manual", installedCSV="test-operator.v1.0.0")
+        pending = makeInstallPlan(
+            "install-plan-pending",
+            "test-namespace",
+            ["test-operator.v2.0.0"],
+            "RequiresApproval",
+            ownerRefs=[makeOwnerRef("Subscription", "test-operator")],
+        )
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[pending]),
+        )
+
+        status = getNamespaceApprovalStatus(client, "test-namespace")
+
+        assert set(status["pendingApprovals"][0]) == {
+            "installPlan",
+            "namespace",
+            "subscription",
+            "package",
+            "csvNames",
+            "currentCSV",
+            "targetCSV",
+            "created",
+        }
+
+
+class TestIsApprovalRequired:
+    """Tests for isApprovalRequired."""
+
+    def test_true_when_any_plan_requires_approval(self):
+        pending = makeInstallPlan("install-plan-pending", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval")
+        complete = makeInstallPlan("install-plan-complete", "test-namespace", ["test-operator.v1.0.0"], "Complete")
+        client, _, _ = buildDynClient(makeGetHandler(), makeGetHandler(namespaceResponse=[complete, pending]))
+
+        assert isApprovalRequired(client, "test-namespace") is True
+
+    def test_false_when_nothing_requires_approval(self):
+        complete = makeInstallPlan("install-plan-complete", "test-namespace", ["test-operator.v1.0.0"], "Complete")
+        installing = makeInstallPlan("install-plan-installing", "test-namespace", ["test-operator.v2.0.0"], "Installing")
+        client, _, _ = buildDynClient(makeGetHandler(), makeGetHandler(namespaceResponse=[complete, installing]))
+
+        assert isApprovalRequired(client, "test-namespace") is False
+
+    def test_false_when_no_install_plans(self):
+        client, _, _ = buildDynClient(makeGetHandler(), makeGetHandler(namespaceResponse=[]))
+
+        assert isApprovalRequired(client, "test-namespace") is False
+
+
+class TestWaitForNamespaceApprovals:
+    """Tests for waitForNamespaceApprovals."""
+
+    def test_returns_immediately_when_nothing_pending(self):
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", approval="Manual", state="AtLatestKnown")
+        onPending = Mock()
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[]),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            status = waitForNamespaceApprovals(client, "test-namespace", timeout=60, onPending=onPending)
+
+        assert status["blocking"] is False
+        onPending.assert_not_called()
+
+    def test_returns_when_approval_resolved_out_of_band(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", approval="Manual", state="UpgradePending", installedCSV="test-operator.v1.0.0"
+        )
+        pending = makeInstallPlan(
+            "install-plan-pending", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
+        )
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=ResponseSequence([[pending], []])),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            status = waitForNamespaceApprovals(client, "test-namespace", timeout=60)
+
+        assert status["blocking"] is False
+        assert status["pendingApprovals"] == []
+
+    def test_on_pending_invoked_every_poll_with_status_and_counter(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", approval="Manual", state="UpgradePending", installedCSV="test-operator.v1.0.0"
+        )
+        pending = makeInstallPlan(
+            "install-plan-pending", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
+        )
+        onPending = Mock(return_value=None)
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=ResponseSequence([[pending], [pending], []])),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            status = waitForNamespaceApprovals(client, "test-namespace", timeout=60, onPending=onPending)
+
+        assert status["blocking"] is False
+        assert onPending.call_count == 2
+        firstStatus, firstCount = onPending.call_args_list[0][0]
+        secondStatus, secondCount = onPending.call_args_list[1][0]
+        assert firstCount == 1
+        assert secondCount == 2
+        assert firstStatus["blocking"] is True
+        assert firstStatus["pendingApprovals"][0]["installPlan"] == "install-plan-pending"
+
+    def test_on_pending_returning_false_aborts_with_blocking_status(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", approval="Manual", state="UpgradePending", installedCSV="test-operator.v1.0.0"
+        )
+        pending = makeInstallPlan(
+            "install-plan-pending", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
+        )
+        onPending = Mock(return_value=False)
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[pending]),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            status = waitForNamespaceApprovals(client, "test-namespace", timeout=60, onPending=onPending)
+
+        assert status["blocking"] is True
+        assert status["pendingApprovals"][0]["installPlan"] == "install-plan-pending"
+        onPending.assert_called_once()
+
+    def test_raises_olm_timeout_error_on_expiry(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", approval="Manual", state="UpgradePending", installedCSV="test-operator.v1.0.0"
+        )
+        pending = makeInstallPlan(
+            "install-plan-pending", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
+        )
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[pending]),
+        )
+
+        with patch("mas.devops.olm.sleep"), patch("mas.devops.olm.time", side_effect=[0, 500]):
+            with pytest.raises(OLMTimeoutError):
+                waitForNamespaceApprovals(client, "test-namespace", timeout=300)
 
 
 # Made with Bob
