@@ -54,7 +54,7 @@ db2u_extras_version: 1.0.6
 db2u_filter: db2
 
 db2_channel_default: v120105.0               # No Update    # Default Channel version for db2u-operator
-
+db2u_kind_default: db2uinstance
 
 # Dependencies - CouchDb
 # -----------------------------------------------------------------------------
