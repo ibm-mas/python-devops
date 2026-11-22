@@ -31,6 +31,7 @@ from mas.devops.olm import (
     OLMTimeoutError,
     approveInstallPlan,
     applySubscription,
+    getClusterApprovalMode,
     getNamespaceApprovalStatus,
     getPendingInstallPlan,
     getPendingInstallPlans,
@@ -240,6 +241,86 @@ class TestGetSubscriptionApprovalMode:
         client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[]), makeGetHandler())
 
         assert getSubscriptionApprovalMode(client, "test-namespace") is None
+
+
+class TestGetClusterApprovalMode:
+    """Tests for getClusterApprovalMode (cluster-wide / prefix-scoped aggregation)."""
+
+    def test_all_automatic_cluster(self):
+        """Every subscription Automatic (unset installPlanApproval defaults to Automatic)."""
+        subscriptions = [
+            makeSubscription("sub1", "ns1", "pkg1", approval=None),
+            makeSubscription("sub2", "ns2", "pkg2", approval="Automatic"),
+        ]
+        client, _, _ = buildDynClient(makeGetHandler(allResponse=subscriptions), makeGetHandler())
+
+        status = getClusterApprovalMode(client)
+
+        assert status["approvalMode"] == "Automatic"
+        assert status["counts"] == {"Automatic": 2}
+        assert status["subscriptions"] == 2
+        assert status["namespaces"] == ["ns1", "ns2"]
+
+    def test_all_manual_cluster(self):
+        subscriptions = [
+            makeSubscription("sub1", "ns1", "pkg1", approval="Manual"),
+            makeSubscription("sub2", "ns2", "pkg2", approval="Manual"),
+        ]
+        client, _, _ = buildDynClient(makeGetHandler(allResponse=subscriptions), makeGetHandler())
+
+        status = getClusterApprovalMode(client)
+
+        assert status["approvalMode"] == "Manual"
+        assert status["counts"] == {"Manual": 2}
+
+    def test_mixed_cluster_reported_with_counts(self):
+        """Both modes present aggregates to Mixed with per-mode counts."""
+        subscriptions = [
+            makeSubscription("sub1", "ns1", "pkg1", approval=None),
+            makeSubscription("sub2", "ns1", "pkg2", approval="Manual"),
+            makeSubscription("sub3", "ns2", "pkg3", approval="Manual"),
+        ]
+        client, _, _ = buildDynClient(makeGetHandler(allResponse=subscriptions), makeGetHandler())
+
+        status = getClusterApprovalMode(client)
+
+        assert status["approvalMode"] == "Mixed"
+        assert status["counts"] == {"Automatic": 1, "Manual": 2}
+        assert status["subscriptions"] == 3
+
+    def test_namespace_prefix_restricts_the_scope(self):
+        """With a prefix only matching namespaces are inspected; the rest are ignored."""
+        subscriptions = [
+            makeSubscription("core", "mas-inst1-core", "ibm-mas", approval="Manual"),
+            makeSubscription("app", "mas-inst1-manage", "ibm-mas-manage", approval=None),
+            makeSubscription("dep", "ibm-sls", "ibm-sls", approval="Manual"),
+        ]
+        client, _, _ = buildDynClient(makeGetHandler(allResponse=subscriptions), makeGetHandler())
+
+        status = getClusterApprovalMode(client, namespacePrefix="mas-inst1-")
+
+        assert status["approvalMode"] == "Mixed"
+        assert status["counts"] == {"Automatic": 1, "Manual": 1}
+        assert status["subscriptions"] == 2
+        assert status["namespaces"] == ["mas-inst1-core", "mas-inst1-manage"]
+
+    def test_no_subscriptions_in_scope_returns_none(self):
+        """A prefix matching nothing reports approvalMode None (nothing in scope)."""
+        subscriptions = [makeSubscription("dep", "ibm-sls", "ibm-sls", approval="Manual")]
+        client, _, _ = buildDynClient(makeGetHandler(allResponse=subscriptions), makeGetHandler())
+
+        assert getClusterApprovalMode(client)["approvalMode"] == "Manual"
+        assert getClusterApprovalMode(client, namespacePrefix="mas-inst1-")["approvalMode"] is None
+
+    def test_empty_cluster_returns_none(self):
+        client, _, _ = buildDynClient(makeGetHandler(allResponse=[]), makeGetHandler())
+
+        status = getClusterApprovalMode(client)
+
+        assert status["approvalMode"] is None
+        assert status["counts"] == {}
+        assert status["namespaces"] == []
+        assert status["subscriptions"] == 0
 
 
 class TestGetPendingInstallPlans:

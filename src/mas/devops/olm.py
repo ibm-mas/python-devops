@@ -193,6 +193,62 @@ def getSubscriptionApprovalMode(dynClient: DynamicClient, namespace: str) -> Opt
     return next(iter(modes))
 
 
+def getClusterApprovalMode(dynClient: DynamicClient, namespacePrefix: Optional[str] = None) -> dict:
+    """Aggregate the effective install plan approval mode across a scope.
+
+    The approval mode was chosen at install time and is a property of the
+    cluster, so commands that re-apply or roll subscriptions (update, upgrade)
+    detect it rather than ask for it. This function aggregates the effective
+    mode (spec.installPlanApproval, unset = "Automatic") of every Subscription
+    in scope: cluster-wide when no prefix is given (the update blast radius),
+    or restricted to namespaces whose name starts with namespacePrefix (the
+    upgrade blast radius, e.g. "mas-inst1-").
+
+    A scope containing both modes is reported as "Mixed": consistent with the
+    namespace-level semantics, Mixed behaves the same as Manual for waiting
+    purposes (the caller decides how to act on the aggregate).
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespacePrefix (str, optional): Restrict the scope to namespaces whose
+            name starts with this prefix. None inspects the whole cluster.
+            Defaults to None.
+
+    Returns:
+        dict: Cluster approval status with keys approvalMode ("Automatic",
+            "Manual", "Mixed", or None when no Subscriptions are in scope),
+            counts (dict mapping each mode found to the number of
+            Subscriptions using it), namespaces (sorted list of the namespaces
+            inspected) and subscriptions (int, total Subscriptions in scope)
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    subscriptions = list(subscriptionsAPI.get().items)
+
+    if namespacePrefix is not None:
+        subscriptions = [subscription for subscription in subscriptions if subscription.metadata.namespace.startswith(namespacePrefix)]
+
+    modes = {}
+    namespaces = set()
+    for subscription in subscriptions:
+        mode = getattr(subscription.spec, "installPlanApproval", None) or "Automatic"
+        modes.setdefault(mode, []).append(subscription.metadata.name)
+        namespaces.add(subscription.metadata.namespace)
+
+    if len(modes) == 0:
+        approvalMode = None
+    elif len(modes) == 1:
+        approvalMode = next(iter(modes))
+    else:
+        approvalMode = "Mixed"
+
+    return {
+        "approvalMode": approvalMode,
+        "counts": {mode: len(names) for mode, names in modes.items()},
+        "namespaces": sorted(namespaces),
+        "subscriptions": len(subscriptions),
+    }
+
+
 def _describePendingInstallPlan(installPlanResource, subscriptions: list) -> dict:
     """Build the normalized approval info dict for a pending InstallPlan.
 

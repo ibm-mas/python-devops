@@ -11,7 +11,9 @@
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
 import yaml
+from jinja2 import Environment, FileSystemLoader
 from kubernetes.dynamic.exceptions import ApiException
+from os import path
 
 from mas.devops.tekton import updateTektonDefinitions, launchUpdatePipeline
 
@@ -241,3 +243,85 @@ class TestLaunchUpdatePipelineDb2uKind:
     def test_db2u_kind_omitted_without_db2_namespace(self):
         """db2u_kind is only rendered as part of the Db2 update block."""
         assert "db2u_kind" not in self._launch({"db2_namespace": "", "db2u_kind": "db2uinstance"})
+
+
+class TestPipelineRunOlmApprovalParams:
+    """Test suite for the OLM approval params rendered into the install, update and upgrade PipelineRuns.
+
+    The params are conditionally emitted: present when set, omitted when unset
+    or empty (in which case the pipeline's own defaults apply). The update
+    path is additionally exercised through launchUpdatePipeline() to prove the
+    params survive the **params passthrough.
+    """
+
+    TEMPLATE_DIR = path.join(path.abspath(path.dirname(__file__)), "..", "..", "src", "mas", "devops", "templates")
+
+    @staticmethod
+    def _render(templateName, extraParams):
+        env = Environment(loader=FileSystemLoader(searchpath=TestPipelineRunOlmApprovalParams.TEMPLATE_DIR))
+        template = env.get_template(templateName)
+        rendered = template.render(**extraParams)
+        return {p["name"]: p["value"] for p in yaml.safe_load(rendered)["spec"]["params"]}
+
+    @pytest.mark.parametrize(
+        "template,baseParams",
+        [
+            ("pipelinerun-install.yml.j2", {"mas_instance_id": "inst1", "aiservice_instance_id": ""}),
+            ("pipelinerun-update.yml.j2", {"mas_catalog_version": "v9-260902-amd64"}),
+            ("pipelinerun-upgrade.yml.j2", {"mas_instance_id": "inst1", "mas_channel": "9.2.x"}),
+        ],
+    )
+    def test_olm_params_emitted_when_set(self, template, baseParams):
+        """olm_approval_mode and olm_approval_timeout are rendered when provided."""
+        params = self._render(template, {**baseParams, "olm_approval_mode": "Manual", "olm_approval_timeout": "300"})
+        assert params["olm_approval_mode"] == "Manual"
+        assert params["olm_approval_timeout"] == "300"
+
+    @pytest.mark.parametrize(
+        "template,baseParams",
+        [
+            ("pipelinerun-install.yml.j2", {"mas_instance_id": "inst1", "aiservice_instance_id": ""}),
+            ("pipelinerun-update.yml.j2", {"mas_catalog_version": "v9-260902-amd64"}),
+            ("pipelinerun-upgrade.yml.j2", {"mas_instance_id": "inst1", "mas_channel": "9.2.x"}),
+        ],
+    )
+    def test_olm_params_omitted_when_unset(self, template, baseParams):
+        """Neither param is rendered when not provided, preserving existing behaviour."""
+        params = self._render(template, baseParams)
+        assert "olm_approval_mode" not in params
+        assert "olm_approval_timeout" not in params
+
+    @pytest.mark.parametrize(
+        "template,baseParams",
+        [
+            ("pipelinerun-install.yml.j2", {"mas_instance_id": "inst1", "aiservice_instance_id": ""}),
+            ("pipelinerun-update.yml.j2", {"mas_catalog_version": "v9-260902-amd64"}),
+            ("pipelinerun-upgrade.yml.j2", {"mas_instance_id": "inst1", "mas_channel": "9.2.x"}),
+        ],
+    )
+    def test_olm_params_omitted_when_empty(self, template, baseParams):
+        """An empty string is treated as unset, matching the other optional params."""
+        params = self._render(template, {**baseParams, "olm_approval_mode": "", "olm_approval_timeout": ""})
+        assert "olm_approval_mode" not in params
+        assert "olm_approval_timeout" not in params
+
+    @staticmethod
+    def _launchUpdate(extraParams):
+        params = {"mas_catalog_version": "v9-260902-amd64"}
+        params.update(extraParams)
+        with patch("mas.devops.tekton.applyResource") as mock_apply, patch("mas.devops.tekton.getConsoleURL", return_value="https://console"):
+            launchUpdatePipeline(dynClient=MagicMock(), params=params)
+        body = mock_apply.call_args.kwargs["body"]
+        return {p["name"]: p["value"] for p in body["spec"]["params"]}
+
+    def test_update_pipelinerun_carries_olm_params(self):
+        """The olm params pass through launchUpdatePipeline's **params into the PipelineRun."""
+        params = self._launchUpdate({"olm_approval_mode": "Manual", "olm_approval_timeout": "600"})
+        assert params["olm_approval_mode"] == "Manual"
+        assert params["olm_approval_timeout"] == "600"
+
+    def test_update_pipelinerun_omits_unset_olm_params(self):
+        """launchUpdatePipeline without the olm params renders a PipelineRun without them."""
+        params = self._launchUpdate({})
+        assert "olm_approval_mode" not in params
+        assert "olm_approval_timeout" not in params
