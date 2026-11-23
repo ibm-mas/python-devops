@@ -14,6 +14,10 @@ from requests.auth import HTTPBasicAuth
 logger = logging.getLogger(__name__)
 
 
+class EntitlementKeySSLError(requests.exceptions.RequestException):
+    """Raised when an SSL error prevents validating the IBM entitlement key (key status unknown)."""
+
+
 def isVersionBefore(_compare_to_version, _current_version):
     """
     Check if the current version is before (older than) the comparison version.
@@ -95,10 +99,12 @@ def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/cor
         timeout (int, optional): Request timeout in seconds. Defaults to 30.
 
     Returns:
-        bool: True if key is valid and grants access to the repository, False otherwise.
+        bool: True if key is valid and grants access to the repository, False if confirmed invalid.
 
     Raises:
-        requests.exceptions.RequestException: If network request fails.
+        EntitlementKeySSLError: If an SSL error prevented validation (key status unknown),
+            e.g. a corporate proxy using a self-signed certificate.
+        requests.exceptions.RequestException: If any other network failure prevented validation.
     """
     try:
         registry_url = f"https://cp.icr.io/v2/{repository}/tags/list"
@@ -166,6 +172,9 @@ def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/cor
             logger.error(f"Unexpected response (HTTP {response.status_code})")
             return False
 
+    except requests.exceptions.SSLError as e:
+        logger.error(f"SSL certificate verification failed — could not reach cp.icr.io: {e}")
+        raise EntitlementKeySSLError(str(e)) from e
     except requests.exceptions.RequestException as e:
         logger.error(f"Request failed: {e}")
         raise
