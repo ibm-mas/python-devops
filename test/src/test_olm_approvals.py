@@ -36,9 +36,12 @@ from mas.devops.olm import (
     getPendingInstallPlan,
     getPendingInstallPlans,
     getSubscriptionApprovalMode,
+    getSubscriptionInstallPlanRefs,
     isApprovalRequired,
     waitForInstallPlanComplete,
     waitForNamespaceApprovals,
+    waitForSubscriptionInstallPlans,
+    waitForSubscriptionResolution,
     waitForSubscriptionStable,
 )
 
@@ -79,7 +82,7 @@ class ResponseSequence:
         return self._responses[0]
 
 
-def makeSubscription(name, namespace, package, approval=None, state=None, installedCSV=None):
+def makeSubscription(name, namespace, package, approval=None, state=None, installedCSV=None, installPlanRef=None, installPlanGeneration=None, currentCSV=None):
     """Build a mock Subscription with every attribute the code reads set explicitly.
 
     Mock auto-attributes are truthy, so attributes the implementation reads via
@@ -94,6 +97,14 @@ def makeSubscription(name, namespace, package, approval=None, state=None, instal
     subscription.spec.installPlanApproval = approval
     subscription.status.state = state
     subscription.status.installedCSV = installedCSV
+    subscription.status.installPlanGeneration = installPlanGeneration
+    subscription.status.currentCSV = currentCSV
+    if installPlanRef is None:
+        subscription.status.installPlanRef = None
+    else:
+        ref = Mock()
+        ref.name = installPlanRef
+        subscription.status.installPlanRef = ref
     return subscription
 
 
@@ -622,6 +633,198 @@ class TestWaitForSubscriptionStable:
 
         with pytest.raises(OLMException, match="No subscription found"):
             waitForSubscriptionStable(client, "test-namespace", "test-operator")
+
+
+class TestGetSubscriptionInstallPlanRefs:
+    """Tests for getSubscriptionInstallPlanRefs."""
+
+    def test_maps_names_to_ref_names(self):
+        fresh = makeSubscription("fresh-operator", "test-namespace", "fresh-operator")
+        settled = makeSubscription("settled-operator", "test-namespace", "settled-operator", installPlanRef="install-plan-1")
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[fresh, settled]), makeGetHandler())
+
+        assert getSubscriptionInstallPlanRefs(client, "test-namespace") == {
+            "fresh-operator": None,
+            "settled-operator": "install-plan-1",
+        }
+
+    def test_empty_namespace_returns_empty_map(self):
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[]), makeGetHandler())
+
+        assert getSubscriptionInstallPlanRefs(client, "test-namespace") == {}
+
+
+class TestWaitForSubscriptionInstallPlans:
+    """Tests for waitForSubscriptionInstallPlans."""
+
+    def test_returns_immediately_when_all_refs_present(self):
+        settled = makeSubscription("test-operator", "test-namespace", "test-operator", installPlanRef="install-plan-1")
+        client, subscriptionAPI, _ = buildDynClient(makeGetHandler(namespaceResponse=[settled]), makeGetHandler())
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            waitForSubscriptionInstallPlans(client, "test-namespace", timeout=60, pollInterval=1)
+
+        mockSleep.assert_not_called()
+        assert subscriptionAPI.get.call_count == 1
+
+    def test_waits_until_refs_appear(self):
+        fresh = makeSubscription("test-operator", "test-namespace", "test-operator")
+        settled = makeSubscription("test-operator", "test-namespace", "test-operator", installPlanRef="install-plan-1")
+        client, subscriptionAPI, _ = buildDynClient(
+            # Each pop of the sequence is the full listing for that poll
+            # (fresh on the first poll, settled from the second on)
+            makeGetHandler(namespaceResponse=ResponseSequence([[fresh], [settled]])),
+            makeGetHandler(),
+        )
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            waitForSubscriptionInstallPlans(client, "test-namespace", timeout=60, pollInterval=1)
+
+        assert subscriptionAPI.get.call_count == 2
+        mockSleep.assert_called_once()
+
+    def test_raises_olm_timeout_error_naming_unresolved_subscriptions(self):
+        fresh = makeSubscription("test-operator", "test-namespace", "test-operator")
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[fresh]), makeGetHandler())
+
+        with patch("mas.devops.olm.sleep"), patch("mas.devops.olm.time", side_effect=[0, 700]):
+            with pytest.raises(OLMTimeoutError) as excinfo:
+                waitForSubscriptionInstallPlans(client, "test-namespace", timeout=600, pollInterval=1)
+
+        message = str(excinfo.value)
+        assert "still without an installPlanRef: test-operator" in message
+        assert "oc get subscription -n test-namespace" in message
+
+
+class TestWaitForSubscriptionResolution:
+    """Tests for waitForSubscriptionResolution."""
+
+    def test_settles_after_quiet_polls(self):
+        settled = makeSubscription(
+            "test-operator",
+            "test-namespace",
+            "test-operator",
+            state="AtLatestKnown",
+            installPlanRef="install-plan-1",
+            installPlanGeneration=3,
+        )
+        client, subscriptionAPI, _ = buildDynClient(makeGetHandler(namespaceResponse=[settled]), makeGetHandler())
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            waitForSubscriptionResolution(client, "test-namespace", timeout=60, pollInterval=1, quietPolls=4)
+
+        # Four identical snapshots conclude the settle
+        assert subscriptionAPI.get.call_count == 4
+        assert mockSleep.call_count == 3
+
+    def test_keeps_polling_while_statuses_churn(self):
+        calls = []
+
+        def churningThenStableHandler(*args, **kwargs):
+            if "namespace" in kwargs:
+                generation = len(calls)
+                calls.append(1)
+                # The first two polls churn (OLM resolving a channel change:
+                # installPlanGeneration bumps and the ref is replaced), then
+                # the status is stable
+                if generation < 2:
+                    subscription = makeSubscription(
+                        "test-operator",
+                        "test-namespace",
+                        "test-operator",
+                        state="UpgradePending",
+                        installPlanRef=f"install-plan-{generation}",
+                        installPlanGeneration=generation,
+                    )
+                else:
+                    subscription = makeSubscription(
+                        "test-operator",
+                        "test-namespace",
+                        "test-operator",
+                        state="UpgradePending",
+                        installPlanRef="install-plan-final",
+                        installPlanGeneration=2,
+                    )
+                return ResourceList([subscription])
+            return ResourceList([])
+
+        client, subscriptionAPI, _ = buildDynClient(churningThenStableHandler, makeGetHandler())
+
+        with patch("mas.devops.olm.sleep"):
+            waitForSubscriptionResolution(client, "test-namespace", timeout=60, pollInterval=1, quietPolls=4)
+
+        # 2 churning polls + 4 identical polls
+        assert subscriptionAPI.get.call_count == 6
+
+    def test_timeout_mid_churn_is_not_fatal(self, caplog):
+        calls = []
+
+        def perpetualChurnHandler(*args, **kwargs):
+            if "namespace" in kwargs:
+                generation = len(calls)
+                calls.append(1)
+                subscription = makeSubscription(
+                    "test-operator",
+                    "test-namespace",
+                    "test-operator",
+                    state="Installing",
+                    installPlanGeneration=generation,
+                )
+                return ResourceList([subscription])
+            return ResourceList([])
+
+        client, _, _ = buildDynClient(perpetualChurnHandler, makeGetHandler())
+
+        with patch("mas.devops.olm.sleep"), patch("mas.devops.olm.time", side_effect=[0, 700]):
+            with caplog.at_level(logging.WARNING, logger="mas.devops.olm"):
+                result = waitForSubscriptionResolution(client, "test-namespace", timeout=600, pollInterval=1, quietPolls=4)
+
+        # A still-churning cluster proceeds with whatever is visible rather
+        # than failing: "nothing more is coming" cannot be disproved
+        assert result is not None
+        assert "was still changing after 600s" in caplog.text
+
+    def test_cluster_wide_scope_lists_all_namespaces(self):
+        settled = makeSubscription("test-operator", "other-namespace", "test-operator", state="AtLatestKnown")
+        client, subscriptionAPI, _ = buildDynClient(makeGetHandler(allResponse=[settled]), makeGetHandler())
+
+        with patch("mas.devops.olm.sleep"):
+            waitForSubscriptionResolution(client, namespace=None, timeout=60, pollInterval=1, quietPolls=2)
+
+        # The kwargs-free listing is the cluster-wide query
+        assert all("namespace" not in call.kwargs for call in subscriptionAPI.get.call_args_list)
+
+    def test_ignores_fields_that_churn_for_unrelated_reasons(self):
+        """catalogHealth-style noise is not part of the resolution fingerprint.
+
+        Simulated by returning the same resolution fingerprint on every poll
+        from a fresh (thus attribute-different) Subscription object: only the
+        fingerprinted fields may influence stability.
+        """
+        snapshots = [
+            makeSubscription(
+                "test-operator",
+                "test-namespace",
+                "test-operator",
+                state="AtLatestKnown",
+                installPlanRef="install-plan-1",
+                installPlanGeneration=3,
+                installedCSV="csv-1",
+                currentCSV="csv-1",
+            )
+            for _ in range(2)
+        ]
+        client, subscriptionAPI, _ = buildDynClient(
+            # Each poll returns a fresh Subscription object with the same
+            # fingerprinted field values (one listing per sequence pop)
+            makeGetHandler(namespaceResponse=ResponseSequence([[snapshots[0]], [snapshots[1]]])),
+            makeGetHandler(),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            waitForSubscriptionResolution(client, "test-namespace", timeout=60, pollInterval=1, quietPolls=2)
+
+        assert subscriptionAPI.get.call_count == 2
 
 
 class TestApplySubscriptionValidation:

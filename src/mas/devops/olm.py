@@ -701,6 +701,194 @@ def waitForNamespaceApprovals(
         sleep(pollInterval)
 
 
+# How long to wait for OLM to generate the InstallPlans for just-created
+# Subscriptions before giving up (seconds). A failure ceiling for unhealthy
+# clusters, not a delay paid by healthy runs: OLM normally resolves a new
+# Subscription within seconds.
+INSTALL_PLAN_GENERATION_TIMEOUT = 600
+
+# How long to wait for Subscription statuses to settle before concluding that
+# no change is coming (seconds), and how many consecutive identical status
+# snapshots count as settled
+SUBSCRIPTION_RESOLUTION_TIMEOUT = 600
+SUBSCRIPTION_RESOLUTION_QUIET_POLLS = 4
+
+
+def getSubscriptionInstallPlanRefs(dynClient: DynamicClient, namespace: str) -> dict:
+    """Map each Subscription's name in a namespace to its status.installPlanRef.
+
+    The cheap snapshot behind the generation race fix: a Subscription with no
+    installPlanRef has not had an InstallPlan generated for it yet (OLM
+    resolves a just-created Subscription within seconds), while a settled
+    Subscription keeps its ref indefinitely -- OLM replaces the ref, never
+    clears it, when a later update generates a new plan.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to inspect
+
+    Returns:
+        dict: Subscription name -> installPlanRef name (None when the
+            Subscription has no InstallPlan yet)
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    try:
+        subscriptions = list(subscriptionsAPI.get(namespace=namespace).items)
+    except NotFoundError:
+        return {}
+
+    return {subscription.metadata.name: getattr(getattr(subscription.status, "installPlanRef", None), "name", None) for subscription in subscriptions}
+
+
+def waitForSubscriptionInstallPlans(
+    dynClient: DynamicClient,
+    namespace: str,
+    timeout: int = INSTALL_PLAN_GENERATION_TIMEOUT,
+    pollInterval: int = 15,
+):
+    """Wait for OLM to generate the InstallPlans for a namespace's Subscriptions.
+
+    A just-created Subscription has no status.installPlanRef until OLM's
+    catalog operator resolves it and generates its first InstallPlan --
+    normally a matter of seconds. An approval gate that snapshots the
+    namespace inside that window sees no InstallPlans at all and must not
+    conclude that nothing is awaiting approval; this wait closes that race by
+    blocking until every Subscription in the namespace has an installPlanRef.
+
+    A settled Subscription already has one, so this only ever waits on
+    genuinely fresh Subscriptions (see getSubscriptionInstallPlanRefs).
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str): The namespace to wait in
+        timeout (int, optional): Maximum seconds to wait before raising
+            OLMTimeoutError. Defaults to 600.
+        pollInterval (int, optional): Seconds between polls. Defaults to 15.
+
+    Raises:
+        OLMTimeoutError: If the timeout expires with Subscriptions still
+            missing an installPlanRef -- OLM cannot or has not resolved them;
+            check the Subscription status conditions and the health of the
+            catalog and operator-lifecycle-manager
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    startTime = time()
+
+    while True:
+        try:
+            subscriptions = list(subscriptionsAPI.get(namespace=namespace).items)
+        except NotFoundError:
+            subscriptions = []
+
+        unresolved = [subscription.metadata.name for subscription in subscriptions if getattr(subscription.status, "installPlanRef", None) is None]
+        if not unresolved:
+            return
+
+        logger.debug(f"Waiting for OLM to generate InstallPlans for {len(unresolved)} Subscription(s) in {namespace}: {', '.join(unresolved)}")
+        if (time() - startTime) >= timeout:
+            raise OLMTimeoutError(
+                f"Timed out after {timeout}s waiting for OLM to generate InstallPlans in {namespace}; "
+                f"Subscription(s) still without an installPlanRef: {', '.join(unresolved)}. "
+                f"Check the status conditions of 'oc get subscription -n {namespace}' and the health of the "
+                "catalog and operator-lifecycle-manager pods"
+            )
+
+        sleep(pollInterval)
+
+
+def _subscriptionResolutionFingerprint(subscription) -> tuple:
+    """The Subscription status fields that change when OLM resolves an update.
+
+    Everything is stringified so snapshots of subscriptions in mixed states
+    (for example a None state against an UpgradePending one) remain sortable
+    and comparable. Fields that churn for unrelated reasons (catalogHealth
+    most notably) are deliberately not part of the fingerprint.
+    """
+    status = getattr(subscription, "status", None)
+    return (
+        str(subscription.metadata.namespace),
+        str(subscription.metadata.name),
+        str(getattr(status, "state", None)),
+        str(getattr(getattr(status, "installPlanRef", None), "name", None)),
+        str(getattr(status, "installedCSV", None)),
+        str(getattr(status, "installPlanGeneration", None)),
+        str(getattr(status, "currentCSV", None)),
+    )
+
+
+def waitForSubscriptionResolution(
+    dynClient: DynamicClient,
+    namespace: Optional[str] = None,
+    timeout: int = SUBSCRIPTION_RESOLUTION_TIMEOUT,
+    pollInterval: int = 15,
+    quietPolls: int = SUBSCRIPTION_RESOLUTION_QUIET_POLLS,
+):
+    """Wait for Subscription statuses to settle.
+
+    Polls the Subscriptions in scope (one namespace, or the whole cluster when
+    namespace is None) until their resolution status -- state, installPlanRef,
+    installedCSV, installPlanGeneration and currentCSV -- has been identical
+    for quietPolls consecutive snapshots. OLM re-resolves Subscriptions within
+    seconds of a catalog update or a Subscription spec change, so a period of
+    quiet is evidence that nothing new is coming: an update that is coming
+    churns these fields (a pending upgrade under Manual approval flips state
+    to UpgradePending and installs a new installPlanRef), while no update
+    leaves them untouched.
+
+    This is the settle signal for approval gates that must distinguish "no
+    InstallPlan is pending yet" from "no InstallPlan is coming" -- a
+    distinction a single snapshot cannot make.
+
+    The timeout is deliberately not fatal: expiring mid-churn logs a warning
+    and returns, because "nothing more is coming" is a legitimate outcome the
+    poll cannot disprove, and the caller proceeds with whatever is visible.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        namespace (str, optional): Restrict the settle poll to one namespace.
+            None polls every Subscription in the cluster. Defaults to None.
+        timeout (int, optional): Maximum seconds to wait before returning.
+            Defaults to 600.
+        pollInterval (int, optional): Seconds between polls. Defaults to 15.
+        quietPolls (int, optional): Consecutive identical snapshots that
+            conclude the settle. Defaults to 4 (~1 minute).
+
+    Returns:
+        list: The final per-Subscription resolution fingerprints, sorted
+    """
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    startTime = time()
+    stablePolls = 0
+    previous = None
+    scope = "cluster-wide" if namespace is None else f"namespace {namespace}"
+
+    while True:
+        try:
+            if namespace is None:
+                subscriptions = list(subscriptionsAPI.get().items)
+            else:
+                subscriptions = list(subscriptionsAPI.get(namespace=namespace).items)
+        except NotFoundError:
+            return []
+
+        fingerprints = sorted(_subscriptionResolutionFingerprint(subscription) for subscription in subscriptions)
+        if fingerprints == previous:
+            stablePolls += 1
+        else:
+            stablePolls = 1
+            previous = fingerprints
+
+        if stablePolls >= quietPolls:
+            logger.debug(f"Subscription status {scope} has been stable for {stablePolls} polls")
+            return fingerprints
+
+        if (time() - startTime) >= timeout:
+            logger.warning(f"Subscription status {scope} was still changing after {timeout}s; " "continuing with whatever InstallPlans are currently pending")
+            return fingerprints
+
+        sleep(pollInterval)
+
+
 def _validateNamespaceApprovalConsistency(
     dynClient: DynamicClient,
     namespace: str,
