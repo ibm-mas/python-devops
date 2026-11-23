@@ -65,6 +65,7 @@ couchdb_version: 1.0.13  # Operator version 2.2.1 (1.0.13) sticking with 1.0.13
 # -----------------------------------------------------------------------------
 minio_version: RELEASE.2025-06-13T11-33-47Z
 minio_extras_version: 1.0.0
+aiservice_s3_provider_default: ceph
 
 # Dependencies - MongoDB
 # -----------------------------------------------------------------------------
