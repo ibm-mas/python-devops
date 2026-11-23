@@ -2,6 +2,7 @@
 # IBM Maximo Operator Catalog 241107
 # -----------------------------------------------------------------------------
 catalog_digest: sha256:30fa9a90569273e7f323b7b673385f3843f06df332c2ed061aaa2ff7aa189a71
+catalog_published: true
 
 uds_version: 2.0.12                          # Operator version 2.0.12 # sticking to 2.0.12 version # Please do Not Change
 sls_version: 3.10.1 # Updated                # Operator version 3.10.0 (https://github.ibm.com/maximoappsuite/ibm-sls/releases)
