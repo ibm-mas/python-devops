@@ -314,13 +314,13 @@ def notifyAnsibleComplete(
 
         # If we have the original message timestamp, update it; otherwise post new message
         if taskMessageTs:
-            response = SlackUtil.updateMessageBlocks(channelId, taskMessageTs, taskMessage)
+            response = SlackUtil.updateMessageBlocks(channelId, taskMessageTs, taskMessage, replyBroadcast=(rc != 0))
             if not response.data.get("ok", False):
                 allSuccess = False
         else:
             # Fallback: post new message if task start message wasn't tracked
             print(f"No start message found for task {taskName} in channel {idx}, posting new completion message")
-            response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId)
+            response = SlackUtil.postMessageBlocks(channelId, taskMessage, threadId, replyBroadcast=(rc != 0))
             if not response.data.get("ok", False):
                 allSuccess = False
 
@@ -409,7 +409,7 @@ def notifyPipelineComplete(
         threadId = threadInfo.get(f"threadId_{idx}")
 
         if channelId and threadId:
-            response = SlackUtil.postMessageBlocks(channelId, message, threadId)
+            response = SlackUtil.postMessageBlocks(channelId, message, threadId, replyBroadcast=(rc != 0))
             if not response.data.get("ok", False):
                 allSuccess = False
         else:

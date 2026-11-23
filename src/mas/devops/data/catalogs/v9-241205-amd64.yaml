@@ -6,6 +6,7 @@
 # so we need to use the CASE bundle mirror process still.
 
 catalog_digest: sha256:55227c26c1ba527289d9b017ba623ed501857bf6762cf07d46423cac837d4767
+catalog_published: true
 
 # Dependencies
 # -----------------------------------------------------------------------------
