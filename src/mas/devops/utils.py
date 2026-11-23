@@ -14,6 +14,10 @@ from requests.auth import HTTPBasicAuth
 logger = logging.getLogger(__name__)
 
 
+class EntitlementKeySSLError(requests.exceptions.RequestException):
+    """Raised when an SSL error prevents validating the IBM entitlement key (key status unknown)."""
+
+
 def isVersionBefore(_compare_to_version, _current_version):
     """
     Check if the current version is before (older than) the comparison version.
@@ -82,7 +86,7 @@ def isVersionEqualOrAfter(_compare_to_version, _current_version):
     return current_version.compare(compareToVersion) >= 0
 
 
-def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/coreapi", timeout: int = 30):
+def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/coreapi", timeout: int = 30) -> bool:
     """Validate IBM entitlement key against cp.icr.io registry.
 
     This function validates an IBM entitlement key by attempting to obtain
@@ -95,9 +99,12 @@ def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/cor
         timeout (int, optional): Request timeout in seconds. Defaults to 30.
 
     Returns:
-        True if key is valid and grants access to the repository.
-        False if authentication failed (key is wrong).
-        None if a network or SSL error prevented validation (key status unknown).
+        bool: True if key is valid and grants access to the repository, False if confirmed invalid.
+
+    Raises:
+        EntitlementKeySSLError: If an SSL error prevented validation (key status unknown),
+            e.g. a corporate proxy using a self-signed certificate.
+        requests.exceptions.RequestException: If any other network failure prevented validation.
     """
     try:
         registry_url = f"https://cp.icr.io/v2/{repository}/tags/list"
@@ -167,7 +174,7 @@ def validateIBMEntitlementKey(entitlementKey: str, repository: str = "cp/mas/cor
 
     except requests.exceptions.SSLError as e:
         logger.error(f"SSL certificate verification failed — could not reach cp.icr.io: {e}")
-        return None
+        raise EntitlementKeySSLError(str(e)) from e
     except requests.exceptions.RequestException as e:
         logger.error(f"Request failed: {e}")
         raise
