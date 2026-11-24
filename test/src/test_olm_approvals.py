@@ -31,19 +31,21 @@ from mas.devops.olm import (
     OLMTimeoutError,
     approveInstallPlan,
     applySubscription,
+    getChannelHeadCSV,
     getClusterApprovalMode,
     getNamespaceApprovalStatus,
+    getNamespaceConvergenceStatus,
     getPendingInstallPlan,
     getPendingInstallPlans,
     getSubscriptionApprovalMode,
-    getSubscriptionInstallPlanRefs,
     isApprovalRequired,
     waitForInstallPlanComplete,
     waitForNamespaceApprovals,
-    waitForSubscriptionInstallPlans,
+    waitForSubscriptionConvergence,
     waitForSubscriptionResolution,
     waitForSubscriptionStable,
 )
+from kubernetes.dynamic.exceptions import NotFoundError
 
 SUBSCRIPTION_YAML = """
 apiVersion: operators.coreos.com/v1alpha1
@@ -82,7 +84,20 @@ class ResponseSequence:
         return self._responses[0]
 
 
-def makeSubscription(name, namespace, package, approval=None, state=None, installedCSV=None, installPlanRef=None, installPlanGeneration=None, currentCSV=None):
+def makeSubscription(
+    name,
+    namespace,
+    package,
+    approval=None,
+    state=None,
+    installedCSV=None,
+    installPlanRef=None,
+    installPlanGeneration=None,
+    currentCSV=None,
+    channel=None,
+    sourceNamespace=None,
+    conditions=None,
+):
     """Build a mock Subscription with every attribute the code reads set explicitly.
 
     Mock auto-attributes are truthy, so attributes the implementation reads via
@@ -95,10 +110,13 @@ def makeSubscription(name, namespace, package, approval=None, state=None, instal
     subscription.metadata.namespace = namespace
     subscription.spec.name = package
     subscription.spec.installPlanApproval = approval
+    subscription.spec.channel = channel
+    subscription.spec.sourceNamespace = sourceNamespace
     subscription.status.state = state
     subscription.status.installedCSV = installedCSV
     subscription.status.installPlanGeneration = installPlanGeneration
     subscription.status.currentCSV = currentCSV
+    subscription.status.conditions = conditions
     if installPlanRef is None:
         subscription.status.installPlanRef = None
     else:
@@ -106,6 +124,45 @@ def makeSubscription(name, namespace, package, approval=None, state=None, instal
         ref.name = installPlanRef
         subscription.status.installPlanRef = ref
     return subscription
+
+
+def _notFoundError():
+    """A NotFoundError constructible without a real API error.
+
+    DynamicApiError's constructor reads .status/.reason/.body off its
+    argument, so a Mock (whose auto-attributes supply them) is the cheapest
+    stand-in for a real API error.
+    """
+    return NotFoundError(Mock())
+
+
+def makeCondition(conditionType, status, message=None):
+    """Build a mock status condition with just .type, .status and .message."""
+    condition = Mock()
+    condition.type = conditionType
+    condition.status = status
+    condition.message = message
+    return condition
+
+
+def makePackageManifest(name, channels=None, catalogSource="test-catalog", defaultChannel="stable"):
+    """Build a mock PackageManifest with every attribute the code reads set explicitly.
+
+    channels is a dict of channel name -> currentCSV; the channel entries are
+    built in insertion order.
+    """
+    manifest = Mock()
+    manifest.metadata.name = name
+    manifest.status.catalogSource = catalogSource
+    manifest.status.defaultChannel = defaultChannel
+    channelEntries = []
+    for channelName, currentCSV in (channels or {}).items():
+        entry = Mock()
+        entry.name = channelName
+        entry.currentCSV = currentCSV
+        channelEntries.append(entry)
+    manifest.status.channels = channelEntries
+    return manifest
 
 
 def makeOwnerRef(kind, name):
@@ -157,13 +214,18 @@ def makeGetHandler(labelResponse=None, nameResponse=None, namespaceResponse=None
     and kwargs-free (all namespaces) queries return ResourceList(allResponse).
     Each response may be a static value (None defaults to an empty list, or a
     truthy Mock for name queries) or a ResponseSequence for stateful responses.
+    A name query response that is an Exception instance is raised instead of
+    returned (used to simulate NotFoundError on PackageManifest lookups).
     """
 
     def handler(*args, **kwargs):
         if "label_selector" in kwargs:
             return ResourceList(_resolve(labelResponse, []))
         if "name" in kwargs:
-            return _resolve(nameResponse, Mock())
+            result = _resolve(nameResponse, Mock())
+            if isinstance(result, Exception):
+                raise result
+            return result
         if "namespace" in kwargs:
             return ResourceList(_resolve(namespaceResponse, []))
         return ResourceList(_resolve(allResponse, []))
@@ -171,23 +233,31 @@ def makeGetHandler(labelResponse=None, nameResponse=None, namespaceResponse=None
     return handler
 
 
-def buildDynClient(subscriptionHandler, installPlanHandler):
-    """Build a mock DynamicClient mapping Subscription and InstallPlan kinds to mock APIs.
+def buildDynClient(subscriptionHandler, installPlanHandler, packageManifestHandler=None):
+    """Build a mock DynamicClient mapping Subscription, InstallPlan and PackageManifest kinds to mock APIs.
 
     Returns:
         tuple: (client, subscriptionAPI, installPlanAPI) where the APIs are
-            Mocks whose get side effects are the supplied handlers
+            Mocks whose get side effects are the supplied handlers. The
+            PackageManifest API defaults to a handler answering name queries
+            with NotFoundError (no manifest) unless one is supplied
     """
     client = Mock()
     subscriptionAPI = Mock()
     subscriptionAPI.get.side_effect = subscriptionHandler
     installPlanAPI = Mock()
     installPlanAPI.get.side_effect = installPlanHandler
+    packageManifestAPI = Mock()
+    if packageManifestHandler is not None:
+        packageManifestAPI.get.side_effect = packageManifestHandler
+    else:
+        packageManifestAPI.get.side_effect = makeGetHandler(nameResponse=_notFoundError())
 
     def resourcesGet(**kwargs):
         apis = {
             ("operators.coreos.com/v1alpha1", "Subscription"): subscriptionAPI,
             ("operators.coreos.com/v1alpha1", "InstallPlan"): installPlanAPI,
+            ("packages.operators.coreos.com/v1", "PackageManifest"): packageManifestAPI,
         }
         return apis.get((kwargs.get("api_version"), kwargs.get("kind")), Mock())
 
@@ -635,65 +705,279 @@ class TestWaitForSubscriptionStable:
             waitForSubscriptionStable(client, "test-namespace", "test-operator")
 
 
-class TestGetSubscriptionInstallPlanRefs:
-    """Tests for getSubscriptionInstallPlanRefs."""
+class TestGetChannelHeadCSV:
+    """Tests for getChannelHeadCSV."""
 
-    def test_maps_names_to_ref_names(self):
-        fresh = makeSubscription("fresh-operator", "test-namespace", "fresh-operator")
-        settled = makeSubscription("settled-operator", "test-namespace", "settled-operator", installPlanRef="install-plan-1")
-        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[fresh, settled]), makeGetHandler())
+    def test_returns_the_channel_current_csv(self):
+        manifest = makePackageManifest("test-operator", channels={"stable": "test-operator.v2.0.0", "v1": "test-operator.v1.9.0"})
+        client, _, _ = buildDynClient(makeGetHandler(), makeGetHandler(), makeGetHandler(nameResponse=manifest))
 
-        assert getSubscriptionInstallPlanRefs(client, "test-namespace") == {
-            "fresh-operator": None,
-            "settled-operator": "install-plan-1",
-        }
+        assert getChannelHeadCSV(client, "test-operator", "stable") == "test-operator.v2.0.0"
+        assert getChannelHeadCSV(client, "test-operator", "v1") == "test-operator.v1.9.0"
 
-    def test_empty_namespace_returns_empty_map(self):
-        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[]), makeGetHandler())
+    def test_missing_manifest_returns_none(self):
+        client, _, _ = buildDynClient(makeGetHandler(), makeGetHandler(), makeGetHandler(nameResponse=_notFoundError()))
 
-        assert getSubscriptionInstallPlanRefs(client, "test-namespace") == {}
+        assert getChannelHeadCSV(client, "test-operator", "stable") is None
+
+    def test_missing_channel_returns_none(self):
+        manifest = makePackageManifest("test-operator", channels={"stable": "test-operator.v2.0.0"})
+        client, _, _ = buildDynClient(makeGetHandler(), makeGetHandler(), makeGetHandler(nameResponse=manifest))
+
+        assert getChannelHeadCSV(client, "test-operator", "beta") is None
 
 
-class TestWaitForSubscriptionInstallPlans:
-    """Tests for waitForSubscriptionInstallPlans."""
+class TestGetNamespaceConvergenceStatus:
+    """Tests for getNamespaceConvergenceStatus."""
 
-    def test_returns_immediately_when_all_refs_present(self):
-        settled = makeSubscription("test-operator", "test-namespace", "test-operator", installPlanRef="install-plan-1")
-        client, subscriptionAPI, _ = buildDynClient(makeGetHandler(namespaceResponse=[settled]), makeGetHandler())
+    def _manifestHandler(self, channels):
+        return makeGetHandler(nameResponse=makePackageManifest("test-operator", channels=channels))
 
-        with patch("mas.devops.olm.sleep") as mockSleep:
-            waitForSubscriptionInstallPlans(client, "test-namespace", timeout=60, pollInterval=1)
+    def test_converged_namespace(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", state="AtLatestKnown", installedCSV="test-operator.v2.0.0", channel="stable"
+        )
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler({"stable": "test-operator.v2.0.0"})
+        )
 
-        mockSleep.assert_not_called()
-        assert subscriptionAPI.get.call_count == 1
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
 
-    def test_waits_until_refs_appear(self):
-        fresh = makeSubscription("test-operator", "test-namespace", "test-operator")
-        settled = makeSubscription("test-operator", "test-namespace", "test-operator", installPlanRef="install-plan-1")
+        assert status["converged"] is True
+        assert status["blocking"] is False
+        assert len(status["subscriptions"]) == 1
+        entry = status["subscriptions"][0]
+        assert entry["converged"] is True
+        assert entry["skipped"] is False
+        assert entry["targetCSV"] == "test-operator.v2.0.0"
+        assert entry["installedCSV"] == "test-operator.v2.0.0"
+        assert entry["resolutionError"] is None
+
+    def test_subscription_behind_channel_head(self):
+        subscription = makeSubscription(
+            "test-operator", "test-namespace", "test-operator", state="UpgradePending", installedCSV="test-operator.v1.9.0", channel="stable"
+        )
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler({"stable": "test-operator.v2.0.0"})
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["converged"] is False
+        assert status["subscriptions"][0]["converged"] is False
+
+    def test_fresh_subscription_with_no_installed_csv_is_unconverged(self):
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable")
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler({"stable": "test-operator.v2.0.0"})
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["converged"] is False
+        assert status["subscriptions"][0]["installedCSV"] is None
+
+    def test_missing_manifest_skips_instead_of_blocking(self, caplog):
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable")
+        # No manifest handler: the default answers name queries with NotFoundError
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[subscription]), makeGetHandler())
+
+        with caplog.at_level(logging.WARNING, logger="mas.devops.olm"):
+            status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["converged"] is True
+        entry = status["subscriptions"][0]
+        assert entry["skipped"] is True
+        assert entry["converged"] is None
+        assert "no PackageManifest for package 'test-operator'" in entry["skipReason"]
+        assert "Cannot determine the channel head" in caplog.text
+
+    def test_missing_channel_skips_instead_of_blocking(self):
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="beta")
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler({"stable": "test-operator.v2.0.0"})
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["converged"] is True
+        assert status["subscriptions"][0]["skipped"] is True
+
+    def test_resolution_failed_condition_is_surfaced(self):
+        conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", conditions=conditions)
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler({"stable": "test-operator.v2.0.0"})
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["subscriptions"][0]["resolutionError"] == "constraints not satisfiable"
+
+    def test_resolution_failed_condition_ignored_when_not_true(self):
+        conditions = [makeCondition("ResolutionFailed", "False")]
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", conditions=conditions)
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler({"stable": "test-operator.v2.0.0"})
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["subscriptions"][0]["resolutionError"] is None
+
+    def test_failed_install_plan_of_unconverged_subscription_is_listed(self):
+        subscription = makeSubscription(
+            "test-operator",
+            "test-namespace",
+            "test-operator",
+            state="UpgradePending",
+            installedCSV="test-operator.v1.9.0",
+            installPlanRef="install-plan-1",
+            channel="stable",
+        )
+        failedPlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "Failed")
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[failedPlan]),
+            self._manifestHandler({"stable": "test-operator.v2.0.0"}),
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["failedInstallPlans"] == ["install-plan-1"]
+
+    def test_pending_approval_info_is_included_unchanged(self):
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable")
+        pendingPlan = makeInstallPlan(
+            "install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
+        )
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[pendingPlan]),
+            self._manifestHandler({"stable": "test-operator.v2.0.0"}),
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["blocking"] is True
+        assert status["pendingApprovals"][0]["installPlan"] == "install-plan-1"
+
+
+class TestWaitForSubscriptionConvergence:
+    """Tests for waitForSubscriptionConvergence."""
+
+    def _manifestHandler(self, channels={"stable": "test-operator.v2.0.0"}):
+        return makeGetHandler(nameResponse=makePackageManifest("test-operator", channels=channels))
+
+    def _convergedSubscription(self):
+        return makeSubscription(
+            "test-operator", "test-namespace", "test-operator", state="AtLatestKnown", installedCSV="test-operator.v2.0.0", channel="stable"
+        )
+
+    def _unconvergedSubscription(self):
+        return makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable")
+
+    def test_returns_immediately_when_already_converged(self):
         client, subscriptionAPI, _ = buildDynClient(
-            # Each pop of the sequence is the full listing for that poll
-            # (fresh on the first poll, settled from the second on)
-            makeGetHandler(namespaceResponse=ResponseSequence([[fresh], [settled]])),
-            makeGetHandler(),
+            makeGetHandler(namespaceResponse=[self._convergedSubscription()]), makeGetHandler(), self._manifestHandler()
         )
 
         with patch("mas.devops.olm.sleep") as mockSleep:
-            waitForSubscriptionInstallPlans(client, "test-namespace", timeout=60, pollInterval=1)
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=60, pollInterval=1)
+
+        mockSleep.assert_not_called()
+        assert subscriptionAPI.get.call_count == 1
+        assert status["converged"] is True
+
+    def test_waits_until_subscription_reaches_channel_head(self):
+        client, subscriptionAPI, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=ResponseSequence([[self._unconvergedSubscription()], [self._convergedSubscription()]])),
+            makeGetHandler(),
+            self._manifestHandler(),
+        )
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=60, pollInterval=1)
 
         assert subscriptionAPI.get.call_count == 2
         mockSleep.assert_called_once()
+        assert status["converged"] is True
 
-    def test_raises_olm_timeout_error_naming_unresolved_subscriptions(self):
-        fresh = makeSubscription("test-operator", "test-namespace", "test-operator")
-        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[fresh]), makeGetHandler())
+    def test_timeout_names_unconverged_subscriptions(self):
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[self._unconvergedSubscription()]), makeGetHandler(), self._manifestHandler())
 
         with patch("mas.devops.olm.sleep"), patch("mas.devops.olm.time", side_effect=[0, 700]):
             with pytest.raises(OLMTimeoutError) as excinfo:
-                waitForSubscriptionInstallPlans(client, "test-namespace", timeout=600, pollInterval=1)
+                waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
 
         message = str(excinfo.value)
-        assert "still without an installPlanRef: test-operator" in message
-        assert "oc get subscription -n test-namespace" in message
+        assert "test-operator: (not installed) -> test-operator.v2.0.0" in message
+
+    def test_resolution_failed_fails_fast(self):
+        conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", conditions=conditions)
+        client, subscriptionAPI, _ = buildDynClient(makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler())
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            with pytest.raises(OLMException, match="failed to resolve: constraints not satisfiable"):
+                waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
+
+        # Fail fast: one snapshot, no polling
+        mockSleep.assert_not_called()
+        assert subscriptionAPI.get.call_count == 1
+
+    def test_failed_install_plan_fails_fast(self):
+        subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", installPlanRef="install-plan-1")
+        failedPlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "Failed")
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(namespaceResponse=[failedPlan]), self._manifestHandler())
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            with pytest.raises(OLMException, match="have Failed in namespace test-namespace"):
+                waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
+
+        mockSleep.assert_not_called()
+
+    def test_skipped_subscriptions_do_not_block(self):
+        # No manifest handler: the subscription cannot resolve a target and is skipped
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[self._unconvergedSubscription()]), makeGetHandler())
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=60, pollInterval=1)
+
+        mockSleep.assert_not_called()
+        assert status["converged"] is True
+        assert status["subscriptions"][0]["skipped"] is True
+
+    def test_on_pending_invoked_once_per_poll(self):
+        client, _, _ = buildDynClient(
+            makeGetHandler(
+                namespaceResponse=ResponseSequence([[self._unconvergedSubscription()], [self._unconvergedSubscription()], [self._convergedSubscription()]])
+            ),
+            makeGetHandler(),
+            self._manifestHandler(),
+        )
+        calls = []
+
+        def onPending(status, pollCount):
+            calls.append(pollCount)
+            return True
+
+        with patch("mas.devops.olm.sleep"):
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=60, pollInterval=1, onPending=onPending)
+
+        # Invoked with the 1-based poll number on every unconverged poll; the
+        # converged poll that ends the wait does not invoke it
+        assert calls == [1, 2]
+        assert status["converged"] is True
+
+    def test_on_pending_returning_false_aborts(self):
+        client, _, _ = buildDynClient(makeGetHandler(namespaceResponse=[self._unconvergedSubscription()]), makeGetHandler(), self._manifestHandler())
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=60, pollInterval=1, onPending=lambda status, pollCount: False)
+
+        mockSleep.assert_not_called()
+        assert status["converged"] is False
 
 
 class TestWaitForSubscriptionResolution:

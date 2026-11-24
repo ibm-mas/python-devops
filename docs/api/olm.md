@@ -77,6 +77,36 @@ decision.
     operator whose upgrade is awaiting approval will never become ready, so
     wait-for-approval first, then wait-for-ready.
 
+### Subscription convergence
+
+`waitForSubscriptionConvergence` is the deterministic target-state wait behind the
+collection's approval gate. Each Subscription's target is the `currentCSV` of its channel
+in the operator's PackageManifest (`getChannelHeadCSV`); the wait returns once every
+Subscription in the namespace has `status.installedCSV` equal to its target — which covers
+install plans not yet generated, awaiting approval, and still installing alike, in both
+approval modes:
+
+```python
+from mas.devops.olm import waitForSubscriptionConvergence
+
+def notify(status, pollCount):
+    # status["pendingApprovals"] are the human-facing notices under Manual
+    # approval; status["subscriptions"] lists per-Subscription progress as
+    # installedCSV -> targetCSV. Return False to abort the wait.
+    ...
+
+status = waitForSubscriptionConvergence(dynClient, "mas-inst1-core", timeout=7200, onPending=notify)
+```
+
+`getNamespaceConvergenceStatus` is the non-blocking snapshot behind it: the approval
+status above extended with `subscriptions` (per-Subscription dicts with `name`, `package`,
+`channel`, `state`, `installedCSV`, `targetCSV`, `installPlanRef`, `converged` — `None`
+when skipped, `skipped`, `skipReason`, `resolutionError`), `failedInstallPlans` and
+`converged`. Subscriptions with no derivable target (no PackageManifest, or the channel is
+absent from it) are skipped with a warning and never block. Subscriptions with an active
+`ResolutionFailed` condition, or referencing a Failed InstallPlan, fail the wait
+immediately with `OLMException` in both modes rather than burning the timeout.
+
 ## API Reference
 
 ::: mas.devops.olm

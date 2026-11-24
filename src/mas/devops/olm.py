@@ -78,6 +78,50 @@ def getPackageManifest(
     return manifestResource
 
 
+def _channelHeadFromManifest(manifest, channel: Optional[str]) -> Optional[str]:
+    """The currentCSV of one channel entry in a PackageManifest.
+
+    Shared by getChannelHeadCSV (one-off lookups) and the convergence
+    snapshot (poll loop, via the cached manifest fetch). Returns None when
+    the manifest is absent or does not carry the named channel.
+    """
+    if manifest is None:
+        return None
+    for channelEntry in getattr(manifest.status, "channels", None) or []:
+        if getattr(channelEntry, "name", None) == channel:
+            return getattr(channelEntry, "currentCSV", None)
+    return None
+
+
+def getChannelHeadCSV(
+    dynClient: DynamicClient,
+    packageName: str,
+    channel: str,
+    catalogSourceNamespace: str = "openshift-marketplace",
+) -> Optional[str]:
+    """
+    Get the head CSV of a channel from an operator's PackageManifest.
+
+    The channel head is the deterministic target a Subscription on that
+    channel converges to: OLM resolves the Subscription against the catalog
+    and promotes status.installedCSV to this CSV once the corresponding
+    InstallPlan has been approved (by a human under Manual approval, or by
+    OLM itself under Automatic) and has completed.
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        packageName (str): Name of the operator package (e.g., "ibm-mas-operator")
+        channel (str): The channel to resolve (e.g., "8.x")
+        catalogSourceNamespace (str, optional): Namespace containing the catalog source. Defaults to "openshift-marketplace".
+
+    Returns:
+        str: The currentCSV of the channel (e.g., "ibm-mas-operator.v9.0.0"),
+            or None when the PackageManifest or the channel entry is absent
+    """
+    manifest = getPackageManifest(dynClient, packageName, catalogSourceNamespace)
+    return _channelHeadFromManifest(manifest, channel)
+
+
 def ensureOperatorGroupExists(
     dynClient: DynamicClient,
     env: Environment,
@@ -557,6 +601,53 @@ def waitForSubscriptionStable(
         sleep(pollInterval)
 
 
+def _listSubscriptions(dynClient: DynamicClient, namespace: str) -> list:
+    """List the Subscriptions in a namespace (empty when it does not exist)."""
+    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
+    try:
+        return list(subscriptionsAPI.get(namespace=namespace).items)
+    except NotFoundError:
+        return []
+
+
+def _listInstallPlans(dynClient: DynamicClient, namespace: str) -> list:
+    """List the InstallPlans in a namespace (empty when it does not exist)."""
+    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
+    try:
+        return list(installPlanAPI.get(namespace=namespace).items)
+    except NotFoundError:
+        return []
+
+
+def _namespaceApprovalStatus(namespace: str, subscriptions: list, installPlanResources: list) -> dict:
+    """Compute the namespace approval status from already-fetched resources.
+
+    The pure computation behind getNamespaceApprovalStatus, shared with
+    getNamespaceConvergenceStatus so one snapshot costs one Subscription list
+    and one InstallPlan list.
+    """
+    modes = {getattr(subscription.spec, "installPlanApproval", None) or "Automatic" for subscription in subscriptions}
+    if len(modes) == 0:
+        approvalMode = None
+    elif len(modes) == 1:
+        approvalMode = next(iter(modes))
+    else:
+        approvalMode = "Mixed"
+
+    pendingApprovals = [
+        _describePendingInstallPlan(installPlanResource, subscriptions)
+        for installPlanResource in installPlanResources
+        if getattr(installPlanResource.status, "phase", None) == "RequiresApproval"
+    ]
+
+    return {
+        "namespace": namespace,
+        "approvalMode": approvalMode,
+        "pendingApprovals": pendingApprovals,
+        "blocking": len(pendingApprovals) > 0,
+    }
+
+
 def getNamespaceApprovalStatus(dynClient: DynamicClient, namespace: str) -> dict:
     """Get the manual approval status of a namespace.
 
@@ -580,38 +671,7 @@ def getNamespaceApprovalStatus(dynClient: DynamicClient, namespace: str) -> dict
             produced by getPendingInstallPlans) and blocking (bool, True when
             any InstallPlan is awaiting approval)
     """
-    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
-    installPlanAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="InstallPlan")
-
-    try:
-        subscriptions = list(subscriptionsAPI.get(namespace=namespace).items)
-    except NotFoundError:
-        subscriptions = []
-    try:
-        installPlanResources = list(installPlanAPI.get(namespace=namespace).items)
-    except NotFoundError:
-        installPlanResources = []
-
-    modes = {getattr(subscription.spec, "installPlanApproval", None) or "Automatic" for subscription in subscriptions}
-    if len(modes) == 0:
-        approvalMode = None
-    elif len(modes) == 1:
-        approvalMode = next(iter(modes))
-    else:
-        approvalMode = "Mixed"
-
-    pendingApprovals = [
-        _describePendingInstallPlan(installPlanResource, subscriptions)
-        for installPlanResource in installPlanResources
-        if getattr(installPlanResource.status, "phase", None) == "RequiresApproval"
-    ]
-
-    return {
-        "namespace": namespace,
-        "approvalMode": approvalMode,
-        "pendingApprovals": pendingApprovals,
-        "blocking": len(pendingApprovals) > 0,
-    }
+    return _namespaceApprovalStatus(namespace, _listSubscriptions(dynClient, namespace), _listInstallPlans(dynClient, namespace))
 
 
 def isApprovalRequired(dynClient: DynamicClient, namespace: str) -> bool:
@@ -701,12 +761,6 @@ def waitForNamespaceApprovals(
         sleep(pollInterval)
 
 
-# How long to wait for OLM to generate the InstallPlans for just-created
-# Subscriptions before giving up (seconds). A failure ceiling for unhealthy
-# clusters, not a delay paid by healthy runs: OLM normally resolves a new
-# Subscription within seconds.
-INSTALL_PLAN_GENERATION_TIMEOUT = 600
-
 # How long to wait for Subscription statuses to settle before concluding that
 # no change is coming (seconds), and how many consecutive identical status
 # snapshots count as settled
@@ -714,84 +768,247 @@ SUBSCRIPTION_RESOLUTION_TIMEOUT = 600
 SUBSCRIPTION_RESOLUTION_QUIET_POLLS = 4
 
 
-def getSubscriptionInstallPlanRefs(dynClient: DynamicClient, namespace: str) -> dict:
-    """Map each Subscription's name in a namespace to its status.installPlanRef.
+def _getCachedPackageManifest(dynClient: DynamicClient, packageName: str, catalogSourceNamespace: str, manifestCache: dict):
+    """Fetch a PackageManifest once per (package, catalog namespace) per snapshot.
 
-    The cheap snapshot behind the generation race fix: a Subscription with no
-    installPlanRef has not had an InstallPlan generated for it yet (OLM
-    resolves a just-created Subscription within seconds), while a settled
-    Subscription keeps its ref indefinitely -- OLM replaces the ref, never
-    clears it, when a later update generates a new plan.
+    The poll loop resolves the channel head of every Subscription in a
+    namespace on every poll; this cache keeps that at one manifest GET per
+    package per poll. Deliberately quiet (no info logging): unlike the
+    one-off getPackageManifest, this runs in a loop for hours under Manual
+    approval.
+    """
+    cacheKey = (packageName, catalogSourceNamespace)
+    if cacheKey not in manifestCache:
+        packagemanifestAPI = dynClient.resources.get(api_version="packages.operators.coreos.com/v1", kind="PackageManifest")
+        try:
+            manifestCache[cacheKey] = packagemanifestAPI.get(name=packageName, namespace=catalogSourceNamespace)
+        except NotFoundError:
+            manifestCache[cacheKey] = None
+    return manifestCache[cacheKey]
+
+
+def _subscriptionChannelHead(dynClient: DynamicClient, subscription, manifestCache: dict) -> "tuple[Optional[str], Optional[str]]":
+    """Resolve one Subscription's convergence target (the channel head CSV).
+
+    The package, channel and catalog namespace come from the Subscription's
+    own spec, so the target is derived from the same catalog the Subscription
+    resolves against.
+
+    Returns:
+        tuple: (targetCSV, skipReason) -- targetCSV is None with skipReason
+            set when no target can be derived (no PackageManifest for the
+            package, or the channel is absent from it)
+    """
+    packageName = getattr(subscription.spec, "name", None)
+    channel = getattr(subscription.spec, "channel", None)
+    sourceNamespace = getattr(subscription.spec, "sourceNamespace", None) or "openshift-marketplace"
+
+    if not packageName or not channel:
+        return None, "Subscription has no package name or channel to resolve a target from"
+
+    manifest = _getCachedPackageManifest(dynClient, packageName, sourceNamespace, manifestCache)
+    if manifest is None:
+        return None, f"no PackageManifest for package '{packageName}' in {sourceNamespace} (catalog removed or not yet available)"
+
+    targetCSV = _channelHeadFromManifest(manifest, channel)
+    if targetCSV is None:
+        return None, f"channel '{channel}' not found in the PackageManifest for package '{packageName}'"
+    return targetCSV, None
+
+
+def _subscriptionResolutionError(subscription) -> Optional[str]:
+    """The message of a Subscription's ResolutionFailed condition, when active.
+
+    A Subscription that cannot resolve (bad channel, missing dependency,
+    catalog problem) will never converge; waiting for it only burns the
+    timeout. This is the fail-fast signal for that case.
+    """
+    conditions = getattr(getattr(subscription, "status", None), "conditions", None) or []
+    for condition in conditions:
+        if getattr(condition, "type", None) == "ResolutionFailed" and str(getattr(condition, "status", None)).lower() == "true":
+            return getattr(condition, "message", None) or "resolution failed"
+    return None
+
+
+def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> dict:
+    """Get the convergence status of every Subscription in a namespace.
+
+    Non-blocking snapshot. Each Subscription's target is the currentCSV of
+    its channel in the operator's PackageManifest (see getChannelHeadCSV);
+    the Subscription has converged when its status.installedCSV equals that
+    target. InstallPlans are namespace-scoped, so every Subscription in the
+    namespace is considered: just because the Subscription a role created
+    has converged does not mean a sibling's plan is not still pending.
+
+    Subscriptions with no derivable target (no PackageManifest, or the
+    channel is absent from it) are skipped with a warning and never block:
+    nothing can be approved for them, and a removed catalog must not wedge
+    installs. Note the ordering interaction with resolution errors: a missing
+    manifest is itself a resolution failure, so it is treated as a skip,
+    while a manifest present alongside a ResolutionFailed condition is a
+    hard error surfaced via the resolutionError field.
+
+    The namespace approval status (approvalMode, pendingApprovals, blocking)
+    is included unchanged -- the pending InstallPlans are the human-facing
+    notices during the convergence wait, not the wait condition.
 
     Args:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to inspect
 
     Returns:
-        dict: Subscription name -> installPlanRef name (None when the
-            Subscription has no InstallPlan yet)
+        dict: The namespace approval status (see getNamespaceApprovalStatus)
+            extended with subscriptions (list of per-Subscription dicts with
+            name, package, channel, state, installedCSV, targetCSV,
+            installPlanRef, converged (bool, or None when skipped), skipped,
+            skipReason and resolutionError), failedInstallPlans (names of
+            Failed-phase InstallPlans referenced by non-converged
+            Subscriptions) and converged (bool, True when every non-skipped
+            Subscription's installedCSV equals its channel head)
     """
-    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
-    try:
-        subscriptions = list(subscriptionsAPI.get(namespace=namespace).items)
-    except NotFoundError:
-        return {}
+    subscriptions = _listSubscriptions(dynClient, namespace)
+    installPlanResources = _listInstallPlans(dynClient, namespace)
+    installPlansByName = {installPlan.metadata.name: installPlan for installPlan in installPlanResources}
+    status = _namespaceApprovalStatus(namespace, subscriptions, installPlanResources)
 
-    return {subscription.metadata.name: getattr(getattr(subscription.status, "installPlanRef", None), "name", None) for subscription in subscriptions}
+    manifestCache = {}
+    subscriptionStatuses = []
+    failedInstallPlans = []
+
+    for subscription in subscriptions:
+        targetCSV, skipReason = _subscriptionChannelHead(dynClient, subscription, manifestCache)
+        if skipReason is not None:
+            logger.warning(
+                f"Cannot determine the channel head for Subscription {subscription.metadata.name} in {namespace}: {skipReason}; "
+                "treating it as converged for approval purposes"
+            )
+
+        installedCSV = getattr(subscription.status, "installedCSV", None)
+        installPlanRefName = getattr(getattr(subscription.status, "installPlanRef", None), "name", None)
+        converged = None if skipReason is not None else (installedCSV == targetCSV)
+
+        if converged is False and installPlanRefName is not None:
+            referencedPlan = installPlansByName.get(installPlanRefName)
+            if referencedPlan is not None and getattr(referencedPlan.status, "phase", None) == "Failed":
+                failedInstallPlans.append(installPlanRefName)
+
+        subscriptionStatuses.append(
+            {
+                "name": subscription.metadata.name,
+                "package": getattr(subscription.spec, "name", None),
+                "channel": getattr(subscription.spec, "channel", None),
+                "state": getattr(subscription.status, "state", None),
+                "installedCSV": installedCSV,
+                "targetCSV": targetCSV,
+                "installPlanRef": installPlanRefName,
+                "converged": converged,
+                "skipped": skipReason is not None,
+                "skipReason": skipReason,
+                # A missing manifest is itself a resolution failure: the skip
+                # wins and suppresses the error, so a removed catalog warns
+                # rather than fails the wait
+                "resolutionError": None if skipReason is not None else _subscriptionResolutionError(subscription),
+            }
+        )
+
+    status["subscriptions"] = subscriptionStatuses
+    status["failedInstallPlans"] = failedInstallPlans
+    status["converged"] = all(entry["converged"] is not False for entry in subscriptionStatuses)
+    return status
 
 
-def waitForSubscriptionInstallPlans(
+def _formatConvergenceTimeoutMessage(namespace: str, status: dict, timeout: int) -> str:
+    """The actionable per-Subscription breakdown for a convergence timeout."""
+    lines = [f"Timed out after {timeout}s waiting for Subscriptions in {namespace} to reach their channel head:"]
+    for entry in status["subscriptions"]:
+        if entry["converged"] is False:
+            lines.append(f"  {entry['name']}: {entry['installedCSV'] or '(not installed)'} -> {entry['targetCSV']} (state: {entry['state']})")
+        elif entry["skipped"]:
+            lines.append(f"  {entry['name']}: skipped ({entry['skipReason']})")
+    return "\n".join(lines)
+
+
+def waitForSubscriptionConvergence(
     dynClient: DynamicClient,
     namespace: str,
-    timeout: int = INSTALL_PLAN_GENERATION_TIMEOUT,
-    pollInterval: int = 15,
-):
-    """Wait for OLM to generate the InstallPlans for a namespace's Subscriptions.
+    timeout: Optional[int] = None,
+    pollInterval: int = 30,
+    onPending: Optional[Callable] = None,
+) -> dict:
+    """Wait until every Subscription in a namespace has reached its channel head.
 
-    A just-created Subscription has no status.installPlanRef until OLM's
-    catalog operator resolves it and generates its first InstallPlan --
-    normally a matter of seconds. An approval gate that snapshots the
-    namespace inside that window sees no InstallPlans at all and must not
-    conclude that nothing is awaiting approval; this wait closes that race by
-    blocking until every Subscription in the namespace has an installPlanRef.
+    The deterministic replacement for timing-window waits: the target state
+    (each Subscription's channel head, from the PackageManifest) is known up
+    front, so there is no window in which a just-created or just-patched
+    Subscription can be mistaken for a settled one -- a Subscription that has
+    not converged is simply not done, whether its InstallPlan has not been
+    generated yet, is awaiting approval, or is still installing.
 
-    A settled Subscription already has one, so this only ever waits on
-    genuinely fresh Subscriptions (see getSubscriptionInstallPlanRefs).
+    Fails fast, in both approval modes, on Subscriptions that can never
+    converge: an active ResolutionFailed condition, or a Failed InstallPlan
+    referenced by a non-converged Subscription, raises OLMException
+    immediately rather than burning the timeout.
+
+    While Subscriptions are unconverged, onPending (when supplied) is invoked
+    on every poll with the current status dict and the 1-based poll number;
+    returning False from onPending aborts the wait and the current,
+    non-converged status is returned. This is the hook point for
+    caller-owned notifications (manual approval notices, status lines).
 
     Args:
         dynClient (DynamicClient): OpenShift Dynamic Client
         namespace (str): The namespace to wait in
         timeout (int, optional): Maximum seconds to wait before raising
-            OLMTimeoutError. Defaults to 600.
-        pollInterval (int, optional): Seconds between polls. Defaults to 15.
+            OLMTimeoutError. None waits indefinitely. Defaults to None.
+        pollInterval (int, optional): Seconds between polls. Defaults to 30.
+        onPending (Callable, optional): Callback invoked as
+            onPending(status, pollCount) on every poll while Subscriptions
+            are unconverged; returning False aborts the wait. Defaults to
+            None.
+
+    Returns:
+        dict: The final namespace convergence status (see
+            getNamespaceConvergenceStatus); when onPending aborted the wait
+            this is the still-non-converged status at the point of the abort
 
     Raises:
+        OLMException: When a Subscription has an active ResolutionFailed
+            condition or a referenced InstallPlan has Failed
         OLMTimeoutError: If the timeout expires with Subscriptions still
-            missing an installPlanRef -- OLM cannot or has not resolved them;
-            check the Subscription status conditions and the health of the
-            catalog and operator-lifecycle-manager
+            unconverged (the message lists each one as
+            name: installedCSV -> targetCSV)
     """
-    subscriptionsAPI = dynClient.resources.get(api_version="operators.coreos.com/v1alpha1", kind="Subscription")
     startTime = time()
+    pollCount = 0
 
     while True:
-        try:
-            subscriptions = list(subscriptionsAPI.get(namespace=namespace).items)
-        except NotFoundError:
-            subscriptions = []
+        status = getNamespaceConvergenceStatus(dynClient, namespace)
 
-        unresolved = [subscription.metadata.name for subscription in subscriptions if getattr(subscription.status, "installPlanRef", None) is None]
-        if not unresolved:
-            return
-
-        logger.debug(f"Waiting for OLM to generate InstallPlans for {len(unresolved)} Subscription(s) in {namespace}: {', '.join(unresolved)}")
-        if (time() - startTime) >= timeout:
-            raise OLMTimeoutError(
-                f"Timed out after {timeout}s waiting for OLM to generate InstallPlans in {namespace}; "
-                f"Subscription(s) still without an installPlanRef: {', '.join(unresolved)}. "
-                f"Check the status conditions of 'oc get subscription -n {namespace}' and the health of the "
-                "catalog and operator-lifecycle-manager pods"
+        for entry in status["subscriptions"]:
+            if entry["resolutionError"]:
+                raise OLMException(
+                    f"Subscription {entry['name']} in {namespace} failed to resolve: {entry['resolutionError']}. "
+                    f"Check 'oc get subscription {entry['name']} -n {namespace} -o yaml' and the health of the "
+                    "catalog and operator-lifecycle-manager pods"
+                )
+        if status["failedInstallPlans"]:
+            raise OLMException(
+                f"InstallPlan(s) {', '.join(status['failedInstallPlans'])} have Failed in namespace {namespace}; "
+                f"check with 'oc describe installplan <name> -n {namespace}'"
             )
+
+        if status["converged"]:
+            return status
+
+        pollCount += 1
+        unconverged = [entry["name"] for entry in status["subscriptions"] if entry["converged"] is False]
+        logger.debug(f"Waiting for {len(unconverged)} Subscription(s) to reach their channel head in {namespace}: {', '.join(unconverged)} (poll {pollCount})")
+        if onPending is not None and onPending(status, pollCount) is False:
+            logger.info(f"Wait for Subscription convergence in namespace {namespace} aborted by the onPending callback (poll {pollCount})")
+            return status
+
+        if timeout is not None and (time() - startTime) >= timeout:
+            raise OLMTimeoutError(_formatConvergenceTimeoutMessage(namespace, status, timeout))
 
         sleep(pollInterval)
 
