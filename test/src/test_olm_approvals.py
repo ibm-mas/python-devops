@@ -926,6 +926,38 @@ class TestWaitForSubscriptionConvergence:
         mockSleep.assert_not_called()
         assert subscriptionAPI.get.call_count == 1
 
+    def test_transient_resolution_error_with_pending_plan_keeps_waiting(self):
+        """A ResolutionFailed condition on a Subscription with its own pending install plan is a transition state, not a breakage.
+
+        While an upgrade install plan awaits (manual) approval OLM's resolver
+        reports "constraints not satisfiable ... clusterserviceversion X
+        exists and is not referenced by a subscription" -- the old CSV is
+        installed, the Subscription now requires the new one, and the
+        transition cannot be satisfied until the plan is approved and
+        applied. Failing fast on that would abort the wait the gate exists
+        to perform; it must keep waiting until the plan resolves the
+        transition (the deadline still bounds a genuinely wedged state).
+        """
+        conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable: clusterserviceversion test-operator.v1.0.0 exists and is not referenced by a subscription")]
+        transient = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", conditions=conditions)
+        pendingPlan = makeInstallPlan(
+            "install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
+        )
+        client, subscriptionAPI, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=ResponseSequence([[transient], [self._convergedSubscription()]])),
+            makeGetHandler(namespaceResponse=ResponseSequence([[pendingPlan], []])),
+            self._manifestHandler(),
+        )
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
+
+        # The transient condition did not fail the wait: it polled until the
+        # (approved) subscription reached its channel head
+        mockSleep.assert_called_once()
+        assert subscriptionAPI.get.call_count == 2
+        assert status["converged"] is True
+
     def test_failed_install_plan_fails_fast(self):
         subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", installPlanRef="install-plan-1")
         failedPlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "Failed")

@@ -945,9 +945,11 @@ def waitForSubscriptionConvergence(
     generated yet, is awaiting approval, or is still installing.
 
     Fails fast, in both approval modes, on Subscriptions that can never
-    converge: an active ResolutionFailed condition, or a Failed InstallPlan
-    referenced by a non-converged Subscription, raises OLMException
-    immediately rather than burning the timeout.
+    converge: an active ResolutionFailed condition (except on a Subscription
+    with an install plan of its own pending approval -- that condition is the
+    expected transient of the pending transition, not a breakage), or a
+    Failed InstallPlan referenced by a non-converged Subscription, raises
+    OLMException immediately rather than burning the timeout.
 
     While Subscriptions are unconverged, onPending (when supplied) is invoked
     on every poll with the current status dict and the 1-based poll number;
@@ -984,8 +986,17 @@ def waitForSubscriptionConvergence(
     while True:
         status = getNamespaceConvergenceStatus(dynClient, namespace)
 
+        # A Subscription with an install plan of its own pending approval
+        # commonly carries a transient ResolutionFailed condition while the
+        # plan awaits approval (the resolver cannot satisfy the transition
+        # until the plan is applied: "constraints not satisfiable ...
+        # clusterserviceversion X exists and is not referenced by a
+        # subscription"). That is the wait working, not a broken Subscription:
+        # only fail fast when the Subscription has nothing pending of its own
+        # (a bad channel generates no install plan at all).
+        pendingSubscriptions = {approval["subscription"] for approval in status["pendingApprovals"]}
         for entry in status["subscriptions"]:
-            if entry["resolutionError"]:
+            if entry["resolutionError"] and entry["name"] not in pendingSubscriptions:
                 raise OLMException(
                     f"Subscription {entry['name']} in {namespace} failed to resolve: {entry['resolutionError']}. "
                     f"Check 'oc get subscription {entry['name']} -n {namespace} -o yaml' and the health of the "
