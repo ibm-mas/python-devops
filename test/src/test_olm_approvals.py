@@ -938,7 +938,13 @@ class TestWaitForSubscriptionConvergence:
         to perform; it must keep waiting until the plan resolves the
         transition (the deadline still bounds a genuinely wedged state).
         """
-        conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable: clusterserviceversion test-operator.v1.0.0 exists and is not referenced by a subscription")]
+        conditions = [
+            makeCondition(
+                "ResolutionFailed",
+                "True",
+                "constraints not satisfiable: clusterserviceversion test-operator.v1.0.0 exists and is not referenced by a subscription",
+            )
+        ]
         transient = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", conditions=conditions)
         pendingPlan = makeInstallPlan(
             "install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
