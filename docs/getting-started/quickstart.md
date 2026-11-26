@@ -100,7 +100,7 @@ updateTektonDefinitions(dynClient, pipelinesNamespace, tektonYamlPath)
 
 # Launch upgrade pipeline
 print("Launching upgrade pipeline...")
-pipelineURL = launchUpgradePipeline(dynClient, instanceId)
+pipelineURL = launchUpgradePipeline(dynClient, {"mas_instance_id": instanceId})
 print(f"Pipeline launched successfully!")
 print(f"View pipeline run at: {pipelineURL}")
 ```

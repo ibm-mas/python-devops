@@ -15,7 +15,7 @@ from jinja2 import Environment, FileSystemLoader
 from kubernetes.dynamic.exceptions import ApiException
 from os import path
 
-from mas.devops.tekton import updateTektonDefinitions, launchUpdatePipeline
+from mas.devops.tekton import updateTektonDefinitions, launchUpdatePipeline, launchUpgradePipeline, launchAiServiceUpgradePipeline
 
 
 class TestUpdateTektonDefinitions:
@@ -325,3 +325,65 @@ class TestPipelineRunOlmApprovalParams:
         params = self._launchUpdate({})
         assert "olm_approval_mode" not in params
         assert "olm_approval_timeout" not in params
+
+
+class TestLaunchUpgradePipeline:
+    """Test suite for the params-only launchUpgradePipeline() signature.
+
+    ``params`` is the definitive list of PipelineRun params, rendered verbatim
+    (matching launchUpdatePipeline / launchRestorePipeline).  The upgrade TUI
+    writes the instance-selection field into params, so ``mas_instance_id``
+    arrives via params — the previous explicit-argument form raised
+    ``TypeError: render() got multiple values for keyword argument
+    'mas_instance_id'`` at the PipelineRun submission step.
+    """
+
+    @staticmethod
+    def _launchUpgrade(params):
+        with patch("mas.devops.tekton.applyResource") as mock_apply, patch("mas.devops.tekton.getConsoleURL", return_value="https://console"):
+            launchUpgradePipeline(dynClient=MagicMock(), params=params)
+        body = mock_apply.call_args.kwargs["body"]
+        return body, {p["name"]: p["value"] for p in body["spec"]["params"]}
+
+    def test_upgrade_pipelinerun_renders_params_verbatim(self):
+        """Every entry in params is rendered into the PipelineRun, keyed off mas_instance_id."""
+        body, params = self._launchUpgrade(
+            {
+                "mas_instance_id": "inst1",
+                "mas_channel": "9.0.x",
+                "skip_pre_check": "false",
+                "storage_class_rwo": "rwo-class",
+            }
+        )
+        assert body["metadata"]["name"].startswith("inst1-upgrade-")
+        assert params["mas_instance_id"] == "inst1"
+        assert params["mas_channel"] == "9.0.x"
+        assert params["skip_pre_check"] == "false"
+        assert params["storage_class_rwo"] == "rwo-class"
+
+    def test_upgrade_pipelinerun_minimal_params(self):
+        """Only mas_instance_id is required; the other upgrade params default in the pipeline."""
+        body, params = self._launchUpgrade({"mas_instance_id": "inst1"})
+        assert body["metadata"]["name"].startswith("inst1-upgrade-")
+        assert params["mas_instance_id"] == "inst1"
+        assert params["mas_channel"] == ""
+        assert "skip_pre_check" not in params
+        assert "storage_class_rwo" not in params
+
+    def test_aiservice_upgrade_pipelinerun_renders_params_verbatim(self):
+        """launchAiServiceUpgradePipeline renders params verbatim, keyed off aiservice_instance_id."""
+        with patch("mas.devops.tekton.applyResource") as mock_apply, patch("mas.devops.tekton.getConsoleURL", return_value="https://console"):
+            launchAiServiceUpgradePipeline(
+                dynClient=MagicMock(),
+                params={
+                    "aiservice_instance_id": "inst1",
+                    "aiservice_channel": "9.0.x",
+                    "skip_pre_check": "true",
+                },
+            )
+        body = mock_apply.call_args.kwargs["body"]
+        params = {p["name"]: p["value"] for p in body["spec"]["params"]}
+        assert body["metadata"]["name"].startswith("inst1-upgrade-")
+        assert params["aiservice_instance_id"] == "inst1"
+        assert params["aiservice_channel"] == "9.0.x"
+        assert params["skip_pre_check"] == "true"

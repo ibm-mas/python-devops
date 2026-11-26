@@ -1374,38 +1374,22 @@ def testCLI() -> None:
     # fi
 
 
-def launchUpgradePipeline(
-    dynClient: DynamicClient,
-    instanceId: str,
-    skipPreCheck: bool = False,
-    masChannel: str = "",
-    params: dict = {},
-) -> str:
+def launchUpgradePipeline(dynClient: DynamicClient, params: dict) -> str:
     """
     Create a PipelineRun to upgrade the chosen MAS instance
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): PipelineRun parameters. ``mas_instance_id`` is required;
+            ``mas_channel`` and ``skip_pre_check`` are optional (the pipeline's
+            own defaults apply when they are not set)
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
     """
+    instanceId = params["mas_instance_id"]
     namespace = f"mas-{instanceId}-pipelines"
-    timestamp = datetime.now().strftime("%y%m%d-%H%M")
-    # Create the PipelineRun
-    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
-    template = env.get_template("pipelinerun-upgrade.yml.j2")
-    renderedTemplate = template.render(
-        timestamp=timestamp,
-        mas_instance_id=instanceId,
-        skip_pre_check=skipPreCheck,
-        mas_channel=masChannel,
-        **params,
-    )
-    logger.debug(renderedTemplate)
-    pipelineRun = yaml.safe_load(renderedTemplate)
-    applyResource(
-        dynClient=dynClient,
-        apiVersion="tekton.dev/v1",
-        kind="PipelineRun",
-        body=pipelineRun,
-        namespace=namespace,
-    )
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-upgrade", params)
 
     pipelineURL = f"{getConsoleURL(dynClient)}/k8s/ns/mas-{instanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{instanceId}-upgrade-{timestamp}"
     return pipelineURL
@@ -1656,38 +1640,22 @@ def launchRestorePipeline(dynClient: DynamicClient, params: dict) -> str:
     return pipelineURL
 
 
-def launchAiServiceUpgradePipeline(
-    dynClient: DynamicClient,
-    aiserviceInstanceId: str,
-    skipPreCheck: bool = False,
-    aiserviceChannel: str = "",
-    params: dict = {},
-) -> str:
+def launchAiServiceUpgradePipeline(dynClient: DynamicClient, params: dict) -> str:
     """
     Create a PipelineRun to upgrade the chosen AI Service instance
+
+    Parameters:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        params (dict): PipelineRun parameters. ``aiservice_instance_id`` is
+            required; ``aiservice_channel`` and ``skip_pre_check`` are optional
+            (the pipeline's own defaults apply when they are not set)
+
+    Returns:
+        str: URL to the PipelineRun in the OpenShift console
     """
+    aiserviceInstanceId = params["aiservice_instance_id"]
     namespace = f"aiservice-{aiserviceInstanceId}-pipelines"
-    timestamp = datetime.now().strftime("%y%m%d-%H%M")
-    # Create the PipelineRun
-    templateDir = path.join(path.abspath(path.dirname(__file__)), "templates")
-    env = Environment(loader=FileSystemLoader(searchpath=templateDir))
-    template = env.get_template("pipelinerun-aiservice-upgrade.yml.j2")
-    renderedTemplate = template.render(
-        timestamp=timestamp,
-        aiservice_instance_id=aiserviceInstanceId,
-        skip_pre_check=skipPreCheck,
-        aiservice_channel=aiserviceChannel,
-        **params,
-    )
-    logger.debug(renderedTemplate)
-    pipelineRun = yaml.safe_load(renderedTemplate)
-    applyResource(
-        dynClient=dynClient,
-        apiVersion="tekton.dev/v1",
-        kind="PipelineRun",
-        body=pipelineRun,
-        namespace=namespace,
-    )
+    timestamp = launchPipelineRun(dynClient, namespace, "pipelinerun-aiservice-upgrade", params)
 
     pipelineURL = (
         f"{getConsoleURL(dynClient)}/k8s/ns/aiservice-{aiserviceInstanceId}-pipelines/tekton.dev~v1beta1~PipelineRun/{aiserviceInstanceId}-upgrade-{timestamp}"
