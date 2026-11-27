@@ -861,8 +861,8 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
             extended with subscriptions (list of per-Subscription dicts with
             name, package, channel, state, installedCSV, targetCSV,
             installPlanRef, converged (bool, or None when skipped), skipped,
-            skipReason and resolutionError), failedInstallPlans (names of
-            Failed-phase InstallPlans referenced by non-converged
+            skipReason, resolutionError and transitionInFlight), failedInstallPlans
+            (names of Failed-phase InstallPlans referenced by non-converged
             Subscriptions) and converged (bool, True when every non-skipped
             Subscription's installedCSV equals its channel head)
     """
@@ -887,10 +887,26 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
         installPlanRefName = getattr(getattr(subscription.status, "installPlanRef", None), "name", None)
         converged = None if skipReason is not None else (installedCSV == targetCSV)
 
+        # transitionInFlight: the referenced InstallPlan is not Failed and its
+        # CSV set includes the channel head, so OLM has already generated (and
+        # possibly approved and applied) the plan that carries this
+        # Subscription to its target. A ResolutionFailed condition in that
+        # window is the expected transient of the transition, not a breakage:
+        # the resolver cannot satisfy the upgrade until the plan has finished
+        # applying (the new CSV created, the old one garbage-collected), which
+        # can take minutes after approval. A stale referenced plan -- the
+        # Completed plan of the previous install, whose CSVs do not include
+        # the channel head -- does not count: a bad channel or a missing
+        # dependency generates no new plan at all, and must still fail fast.
+        transitionInFlight = False
         if converged is False and installPlanRefName is not None:
             referencedPlan = installPlansByName.get(installPlanRefName)
-            if referencedPlan is not None and getattr(referencedPlan.status, "phase", None) == "Failed":
-                failedInstallPlans.append(installPlanRefName)
+            if referencedPlan is not None:
+                planPhase = getattr(referencedPlan.status, "phase", None)
+                if planPhase == "Failed":
+                    failedInstallPlans.append(installPlanRefName)
+                elif targetCSV is not None and targetCSV in (getattr(referencedPlan.spec, "clusterServiceVersionNames", None) or []):
+                    transitionInFlight = True
 
         subscriptionStatuses.append(
             {
@@ -904,6 +920,10 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
                 "converged": converged,
                 "skipped": skipReason is not None,
                 "skipReason": skipReason,
+                # True when the referenced InstallPlan is carrying the
+                # Subscription to its channel head (see above): while set, a
+                # ResolutionFailed condition is transient, not fatal
+                "transitionInFlight": transitionInFlight,
                 # A missing manifest is itself a resolution failure: the skip
                 # wins and suppresses the error, so a removed catalog warns
                 # rather than fails the wait
@@ -945,11 +965,13 @@ def waitForSubscriptionConvergence(
     generated yet, is awaiting approval, or is still installing.
 
     Fails fast, in both approval modes, on Subscriptions that can never
-    converge: an active ResolutionFailed condition (except on a Subscription
-    with an install plan of its own pending approval -- that condition is the
-    expected transient of the pending transition, not a breakage), or a
-    Failed InstallPlan referenced by a non-converged Subscription, raises
-    OLMException immediately rather than burning the timeout.
+    converge: an active ResolutionFailed condition on a Subscription whose
+    transition to its channel head is not in flight (no install plan of its
+    own pending approval, and no referenced plan carrying it to the target --
+    while a plan is pending or applying, the condition is the expected
+    transient of the transition, not a breakage), or a Failed InstallPlan
+    referenced by a non-converged Subscription, raises OLMException
+    immediately rather than burning the timeout.
 
     While Subscriptions are unconverged, onPending (when supplied) is invoked
     on every poll with the current status dict and the 1-based poll number;
@@ -986,17 +1008,22 @@ def waitForSubscriptionConvergence(
     while True:
         status = getNamespaceConvergenceStatus(dynClient, namespace)
 
-        # A Subscription with an install plan of its own pending approval
-        # commonly carries a transient ResolutionFailed condition while the
-        # plan awaits approval (the resolver cannot satisfy the transition
-        # until the plan is applied: "constraints not satisfiable ...
-        # clusterserviceversion X exists and is not referenced by a
-        # subscription"). That is the wait working, not a broken Subscription:
-        # only fail fast when the Subscription has nothing pending of its own
-        # (a bad channel generates no install plan at all).
+        # A Subscription whose transition to its channel head is in flight --
+        # its own install plan pending approval, or already approved and still
+        # applying -- commonly carries a transient ResolutionFailed condition
+        # (the resolver cannot satisfy the transition until the plan is
+        # applied: "constraints not satisfiable ... clusterserviceversion X
+        # exists and is not referenced by a subscription"). The condition
+        # outlives the approval itself: it persists for as long as the plan
+        # takes to apply (new CSV created, old CSV garbage-collected,
+        # installedCSV updated). That is the wait working, not a broken
+        # Subscription: only fail fast when nothing of the Subscription's own
+        # is carrying it forward (a bad channel generates no install plan at
+        # all, and the stale plan of a previous install does not contain the
+        # channel head).
         pendingSubscriptions = {approval["subscription"] for approval in status["pendingApprovals"]}
         for entry in status["subscriptions"]:
-            if entry["resolutionError"] and entry["name"] not in pendingSubscriptions:
+            if entry["resolutionError"] and entry["name"] not in pendingSubscriptions and not entry["transitionInFlight"]:
                 raise OLMException(
                     f"Subscription {entry['name']} in {namespace} failed to resolve: {entry['resolutionError']}. "
                     f"Check 'oc get subscription {entry['name']} -n {namespace} -o yaml' and the health of the "

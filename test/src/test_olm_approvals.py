@@ -846,6 +846,62 @@ class TestGetNamespaceConvergenceStatus:
 
         assert status["failedInstallPlans"] == ["install-plan-1"]
 
+    def test_approved_plan_carrying_target_marks_transition_in_flight(self):
+        """After approval the plan leaves RequiresApproval but the transition is still applying.
+
+        The referenced plan is Completed and contains the channel head: OLM
+        has generated (and applied) the transition this Subscription is
+        waiting on, so a ResolutionFailed condition in this window is the
+        expected transient -- the resolver cannot satisfy the upgrade until
+        the old CSV is garbage-collected.
+        """
+        subscription = makeSubscription(
+            "test-operator",
+            "test-namespace",
+            "test-operator",
+            state="UpgradePending",
+            installedCSV="test-operator.v1.9.0",
+            installPlanRef="install-plan-1",
+            channel="stable",
+        )
+        completedPlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "Completed")
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[completedPlan]),
+            self._manifestHandler({"stable": "test-operator.v2.0.0"}),
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["subscriptions"][0]["transitionInFlight"] is True
+
+    def test_stale_plan_without_target_is_not_transition_in_flight(self):
+        """The Completed plan of a previous install does not excuse a resolution failure.
+
+        A bad channel or missing dependency generates no new plan, so the
+        referenced plan's CSVs contain the old version, not the channel
+        head -- the failure is real and must still fail fast.
+        """
+        subscription = makeSubscription(
+            "test-operator",
+            "test-namespace",
+            "test-operator",
+            state="UpgradePending",
+            installedCSV="test-operator.v1.9.0",
+            installPlanRef="install-plan-1",
+            channel="stable",
+        )
+        stalePlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v1.9.0"], "Completed")
+        client, _, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[stalePlan]),
+            self._manifestHandler({"stable": "test-operator.v2.0.0"}),
+        )
+
+        status = getNamespaceConvergenceStatus(client, "test-namespace")
+
+        assert status["subscriptions"][0]["transitionInFlight"] is False
+
     def test_pending_approval_info_is_included_unchanged(self):
         subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable")
         pendingPlan = makeInstallPlan(
@@ -963,6 +1019,82 @@ class TestWaitForSubscriptionConvergence:
         mockSleep.assert_called_once()
         assert subscriptionAPI.get.call_count == 2
         assert status["converged"] is True
+
+    def test_transient_resolution_error_after_approval_keeps_waiting(self):
+        """The ResolutionFailed transient outlives the approval itself.
+
+        The moment a plan is approved it leaves RequiresApproval, but OLM
+        keeps the ResolutionFailed condition until the plan has finished
+        applying (new CSV created, old CSV garbage-collected, installedCSV
+        updated) -- minutes, not seconds, for a large operator. The fail-fast
+        must key on the transition being in flight (the referenced plan
+        contains the channel head), not on the plan still awaiting approval,
+        or every manual upgrade dies right after the human approves.
+        """
+        conditions = [
+            makeCondition(
+                "ResolutionFailed",
+                "True",
+                "constraints not satisfiable: clusterserviceversion test-operator.v1.9.0 exists and is not referenced by a subscription",
+            )
+        ]
+        transient = makeSubscription(
+            "test-operator",
+            "test-namespace",
+            "test-operator",
+            state="UpgradePending",
+            installedCSV="test-operator.v1.9.0",
+            installPlanRef="install-plan-1",
+            channel="stable",
+            conditions=conditions,
+        )
+        # Approved and applied (or applying): no longer RequiresApproval, so
+        # the pending-approval suppression alone does not cover this state
+        applyingPlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "Completed")
+        client, subscriptionAPI, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=ResponseSequence([[transient], [self._convergedSubscription()]])),
+            makeGetHandler(namespaceResponse=[applyingPlan]),
+            self._manifestHandler(),
+        )
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
+
+        mockSleep.assert_called_once()
+        assert subscriptionAPI.get.call_count == 2
+        assert status["converged"] is True
+
+    def test_stale_plan_resolution_error_fails_fast(self):
+        """A ResolutionFailed condition with no plan carrying the Subscription forward is a breakage.
+
+        The referenced Completed plan belongs to the previous install (its
+        CSVs do not include the channel head): no new plan was generated for
+        the wanted transition, so the resolver will never satisfy it.
+        """
+        conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
+        subscription = makeSubscription(
+            "test-operator",
+            "test-namespace",
+            "test-operator",
+            state="UpgradePending",
+            installedCSV="test-operator.v1.9.0",
+            installPlanRef="install-plan-1",
+            channel="stable",
+            conditions=conditions,
+        )
+        stalePlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v1.9.0"], "Completed")
+        client, subscriptionAPI, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=[stalePlan]),
+            self._manifestHandler(),
+        )
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            with pytest.raises(OLMException, match="failed to resolve: constraints not satisfiable"):
+                waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
+
+        mockSleep.assert_not_called()
+        assert subscriptionAPI.get.call_count == 1
 
     def test_failed_install_plan_fails_fast(self):
         subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", installPlanRef="install-plan-1")
