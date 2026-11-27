@@ -15,9 +15,11 @@ Provides functions to create and manage operator subscriptions and install
 plans, including support for manual install plan approval workflows.
 """
 
+import json
 import logging
+from datetime import datetime, timezone
 from time import sleep, time
-from os import path
+from os import environ, path
 from typing import Callable, Optional, Union
 
 from jinja2 import Environment, FileSystemLoader
@@ -29,6 +31,86 @@ import yaml
 from .ocp import applyResource, createNamespace
 
 logger = logging.getLogger(__name__)
+
+# The install plan approval modes OLM understands (an unset Subscription
+# defaults to Automatic server-side; "Mixed" is a namespace-level aggregate
+# reported by the approval status functions, not a valid input)
+VALID_APPROVAL_MODES = ("Automatic", "Manual")
+
+# Default per-wait budget for a human to grant approval (2 hours), in seconds
+DEFAULT_APPROVAL_TIMEOUT = 7200
+
+
+def resolveApprovalMode(explicit: Optional[str] = None, getenv: Callable = environ.get) -> Optional[str]:
+    """Resolve the effective install plan approval mode.
+
+    Single source of the flag > OLM_APPROVAL_MODE environment variable >
+    None precedence shared by the CLI and the ansible collection. The
+    explicit value passes through unvalidated: callers validate their own
+    task arguments or CLI flags (with their own naming in the error); the
+    environment variable is validated here because its name is the same for
+    every caller.
+
+    Args:
+        explicit (str, optional): The caller's own resolved value (task arg,
+            CLI flag); None when unset. Defaults to None.
+        getenv (Callable, optional): Environment lookup, injectable for
+            testing. Defaults to os.environ.get.
+
+    Returns:
+        str: The resolved mode ("Automatic" or "Manual"), or None when
+        neither the explicit value nor the environment variable is set
+        (callers then apply their own defaults)
+
+    Raises:
+        ValueError: When OLM_APPROVAL_MODE holds a value that is not
+            "Automatic" or "Manual" (the variable is named in the message)
+    """
+    if explicit is not None:
+        return explicit
+
+    envMode = getenv("OLM_APPROVAL_MODE")
+    if envMode:
+        if envMode not in VALID_APPROVAL_MODES:
+            raise ValueError(f"OLM_APPROVAL_MODE must be one of: {', '.join(VALID_APPROVAL_MODES)} (found '{envMode}')")
+        return envMode
+    return None
+
+
+def resolveApprovalTimeout(explicit: Optional[int] = None, getenv: Callable = environ.get) -> Optional[int]:
+    """Resolve the per-wait install plan approval timeout, in seconds.
+
+    Single source of the flag > OLM_APPROVAL_TIMEOUT environment variable >
+    None precedence shared by the CLI and the ansible collection. The
+    explicit value passes through unvalidated (callers convert and validate
+    their own task arguments or CLI flags); the environment variable is
+    validated here because its name is the same for every caller.
+
+    Args:
+        explicit (int, optional): The caller's own resolved value; None when
+            unset. Defaults to None.
+        getenv (Callable, optional): Environment lookup, injectable for
+            testing. Defaults to os.environ.get.
+
+    Returns:
+        int: The resolved timeout in seconds, or None when neither the
+        explicit value nor the environment variable is set (callers then
+        apply DEFAULT_APPROVAL_TIMEOUT)
+
+    Raises:
+        ValueError: When OLM_APPROVAL_TIMEOUT does not hold an integer
+            number of seconds (the variable is named in the message)
+    """
+    if explicit is not None:
+        return explicit
+
+    envTimeout = getenv("OLM_APPROVAL_TIMEOUT")
+    if envTimeout:
+        try:
+            return int(envTimeout)
+        except ValueError:
+            raise ValueError(f"OLM_APPROVAL_TIMEOUT must be an integer number of seconds (found '{envTimeout}')")
+    return None
 
 
 class OLMException(Exception):
@@ -360,6 +442,70 @@ def _describePendingInstallPlan(installPlanResource, subscriptions: list) -> dic
         "targetCSV": csvNames[-1] if csvNames else None,
         "created": str(created) if created is not None else None,
     }
+
+
+def formatInstallPlanApprovalCommand(approval: dict) -> str:
+    """The oc command a human runs to grant approval for a pending install plan.
+
+    The merge-patch shape is defined here, beside approveInstallPlan which
+    applies the same patch programmatically, so the two cannot drift.
+
+    Args:
+        approval (dict): Approval info dict as produced by
+            getPendingInstallPlans
+
+    Returns:
+        str: The ready-to-run oc patch command
+    """
+    patch = json.dumps({"spec": {"approved": True}}, separators=(",", ":"))
+    return f"oc patch installplan/{approval['installPlan']} -n {approval['namespace']} --type merge -p '{patch}'"
+
+
+def formatApproveCommands(pending: list) -> str:
+    """The indented, newline-joined approve commands for a list of pending plans.
+
+    Args:
+        pending (list): Approval info dicts as produced by
+            getPendingInstallPlans
+
+    Returns:
+        str: One indented oc patch command per line (empty string when the
+        list is empty)
+    """
+    return "\n".join(f"  {formatInstallPlanApprovalCommand(approval)}" for approval in pending)
+
+
+def formatInstallPlanApprovalNotice(approval: dict) -> list:
+    """Format the human-facing notice for one pending install plan.
+
+    Args:
+        approval (dict): Approval info dict as produced by
+            getPendingInstallPlans
+
+    Returns:
+        list: Lines of str: what is waiting, a summary of what the plan will
+        change, and how to grant approval
+    """
+    currentCSV = approval.get("currentCSV") or "(not installed)"
+    csvNames = ", ".join(approval.get("csvNames") or [])
+    return [
+        f"Waiting for manual approval of install plan {approval['installPlan']} in namespace {approval['namespace']}",
+        f"Install plan contents: {approval['package']} (subscription {approval['subscription']}): {currentCSV} -> {approval['targetCSV']}",
+        f"  CSVs to install: {csvNames} (plan created {approval.get('created')})",
+        f'To grant approval run "{formatInstallPlanApprovalCommand(approval)}" or use the OpenShift Console',
+    ]
+
+
+def formatUtcTimestamp(epoch: float) -> str:
+    """Format a POSIX timestamp as a human-readable UTC string.
+
+    Args:
+        epoch (float): Seconds since the epoch
+
+    Returns:
+        str: The timestamp formatted as "%Y-%m-%d %H:%M:%S UTC"
+    """
+    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
 def getPendingInstallPlans(dynClient: DynamicClient, namespace: Optional[str] = None) -> list:
@@ -948,6 +1094,52 @@ def _formatConvergenceTimeoutMessage(namespace: str, status: dict, timeout: int)
     return "\n".join(lines)
 
 
+def _raiseIfNamespaceUnresolvable(status: dict, namespace: str) -> None:
+    """Fail fast on Subscriptions in one namespace that can never converge.
+
+    The single implementation of the convergence fail-fast policy, shared by
+    waitForSubscriptionConvergence and waitForClusterConvergence so the two
+    waits can never disagree.
+
+    A Subscription whose transition to its channel head is in flight -- its
+    own install plan pending approval, or already approved and still
+    applying -- commonly carries a transient ResolutionFailed condition (the
+    resolver cannot satisfy the transition until the plan is applied:
+    "constraints not satisfiable ... clusterserviceversion X exists and is
+    not referenced by a subscription"). The condition outlives the approval
+    itself: it persists for as long as the plan takes to apply (new CSV
+    created, old CSV garbage-collected, installedCSV updated). That is the
+    wait working, not a broken Subscription: only fail fast when nothing of
+    the Subscription's own is carrying it forward (a bad channel generates
+    no install plan at all, and the stale plan of a previous install does
+    not contain the channel head).
+
+    Args:
+        status (dict): Namespace convergence status as produced by
+            getNamespaceConvergenceStatus
+        namespace (str): The namespace the status belongs to (for the error
+            messages)
+
+    Raises:
+        OLMException: When a Subscription has an active ResolutionFailed
+            condition with no transition of its own in flight, or a
+            referenced InstallPlan has Failed
+    """
+    pendingSubscriptions = {approval["subscription"] for approval in status["pendingApprovals"]}
+    for entry in status["subscriptions"]:
+        if entry["resolutionError"] and entry["name"] not in pendingSubscriptions and not entry["transitionInFlight"]:
+            raise OLMException(
+                f"Subscription {entry['name']} in {namespace} failed to resolve: {entry['resolutionError']}. "
+                f"Check 'oc get subscription {entry['name']} -n {namespace} -o yaml' and the health of the "
+                "catalog and operator-lifecycle-manager pods"
+            )
+    if status["failedInstallPlans"]:
+        raise OLMException(
+            f"InstallPlan(s) {', '.join(status['failedInstallPlans'])} have Failed in namespace {namespace}; "
+            f"check with 'oc describe installplan <name> -n {namespace}'"
+        )
+
+
 def waitForSubscriptionConvergence(
     dynClient: DynamicClient,
     namespace: str,
@@ -1008,32 +1200,9 @@ def waitForSubscriptionConvergence(
     while True:
         status = getNamespaceConvergenceStatus(dynClient, namespace)
 
-        # A Subscription whose transition to its channel head is in flight --
-        # its own install plan pending approval, or already approved and still
-        # applying -- commonly carries a transient ResolutionFailed condition
-        # (the resolver cannot satisfy the transition until the plan is
-        # applied: "constraints not satisfiable ... clusterserviceversion X
-        # exists and is not referenced by a subscription"). The condition
-        # outlives the approval itself: it persists for as long as the plan
-        # takes to apply (new CSV created, old CSV garbage-collected,
-        # installedCSV updated). That is the wait working, not a broken
-        # Subscription: only fail fast when nothing of the Subscription's own
-        # is carrying it forward (a bad channel generates no install plan at
-        # all, and the stale plan of a previous install does not contain the
-        # channel head).
-        pendingSubscriptions = {approval["subscription"] for approval in status["pendingApprovals"]}
-        for entry in status["subscriptions"]:
-            if entry["resolutionError"] and entry["name"] not in pendingSubscriptions and not entry["transitionInFlight"]:
-                raise OLMException(
-                    f"Subscription {entry['name']} in {namespace} failed to resolve: {entry['resolutionError']}. "
-                    f"Check 'oc get subscription {entry['name']} -n {namespace} -o yaml' and the health of the "
-                    "catalog and operator-lifecycle-manager pods"
-                )
-        if status["failedInstallPlans"]:
-            raise OLMException(
-                f"InstallPlan(s) {', '.join(status['failedInstallPlans'])} have Failed in namespace {namespace}; "
-                f"check with 'oc describe installplan <name> -n {namespace}'"
-            )
+        # Fail fast on Subscriptions that can never converge (shared with the
+        # cluster-wide wait, so the policy exists exactly once)
+        _raiseIfNamespaceUnresolvable(status, namespace)
 
         if status["converged"]:
             return status
@@ -1047,6 +1216,234 @@ def waitForSubscriptionConvergence(
 
         if timeout is not None and (time() - startTime) >= timeout:
             raise OLMTimeoutError(_formatConvergenceTimeoutMessage(namespace, status, timeout))
+
+        sleep(pollInterval)
+
+
+def raiseIfApprovalModeMismatch(pending: list, approvalMode: Optional[str]) -> None:
+    """Fail fast on pending install plans in a non-Manual approval context.
+
+    The single implementation of the approval mode mismatch policy: install
+    plans awaiting manual approval while the effective context is anything
+    other than Manual (including unset, which is an Automatic context) would
+    otherwise hang the calling role's readiness waits -- they fail fast here
+    with instructions instead.
+
+    Args:
+        pending (list): Approval info dicts as produced by
+            getPendingInstallPlans (empty list is a no-op)
+        approvalMode (str, optional): The effective approval mode of the
+            calling context; "Manual" (and the Mixed aggregate, which callers
+            map to Manual before invoking) disables the check
+
+    Raises:
+        OLMException: When pending is non-empty and approvalMode is not
+            "Manual"; the message names the scope (derived from the pending
+            plans), the approve commands, and the OLM_APPROVAL_MODE remedy
+    """
+    if len(pending) == 0 or approvalMode == "Manual":
+        return
+
+    namespaces = sorted({approval["namespace"] for approval in pending})
+    if len(namespaces) == 1:
+        scope = f"namespace {namespaces[0]}"
+    else:
+        scope = f"{len(namespaces)} namespace(s) ({', '.join(namespaces)})"
+    raise OLMException(
+        f"Install plans are waiting for manual approval in {scope}, but the effective "
+        f"approval mode is '{approvalMode or 'Automatic'}'. Either grant approval:\n{formatApproveCommands(pending)}\n"
+        "or set OLM_APPROVAL_MODE=Manual so that the automation waits for the approvals instead"
+    )
+
+
+def waitForClusterConvergence(
+    dynClient: DynamicClient,
+    timeout: Optional[int] = None,
+    pollInterval: int = 30,
+    approvalMode: Optional[str] = None,
+    onPending: Optional[Callable] = None,
+) -> dict:
+    """Wait for install plan approvals and Subscription convergence cluster-wide.
+
+    The gate for subscriptions that roll implicitly, e.g. after a catalog
+    digest update: every MAS installation's namespaces (and the shared
+    namespaces) get new install plans at once, so the human may approve them
+    in any order and the wait must not serialize the namespaces.
+
+    The flow:
+
+    1. Settle Subscription statuses cluster-wide
+       (waitForSubscriptionResolution) -- right after a catalog digest update
+       OLM may not have generated the new install plans yet, and a single
+       snapshot cannot distinguish "not generated yet" from "none coming".
+    2. Discover namespaces with install plans awaiting approval
+       (getPendingInstallPlans, pending-plan-based by design: unrelated
+       converged subscriptions in shared namespaces must not enter the scope).
+       Nothing pending -> no-op success (waited=False).
+    3. Fail fast when the approval context is not Manual
+       (raiseIfApprovalModeMismatch) -- pending plans under Automatic would
+       hang the caller; the error carries the approve commands and remedy.
+    4. Unified multi-namespace poll loop: each poll re-runs pending-plan
+       discovery (a namespace with a newly-pending plan joins the scope and
+       gets its deadline assigned then -- the second step of a multi-step
+       upgrade path lands here) and snapshots every in-scope namespace
+       (getNamespaceConvergenceStatus). A namespace leaves the scope only
+       when it has converged -- never merely because pending-plan discovery
+       no longer lists it (an approved plan can still be rolling out).
+    5. Fail fast (both modes, via _raiseIfNamespaceUnresolvable -- the same
+       policy as the single-namespace wait) on Subscriptions that can never
+       converge and on Failed install plans, rather than burning the
+       deadline.
+
+    Each namespace carries its own timeout budget, with the clock starting
+    when the namespace is first observed (gate start for the initially
+    discovered namespaces, first observation for late entrants): a namespace
+    the human approves last does not get a fresh full budget after the gate
+    spent hours on earlier ones. A namespace that converges and later
+    regresses (a new plan appears) keeps its original deadline.
+
+    While namespaces are outstanding, onPending (when supplied) is invoked
+    with the current cluster status and the 1-based poll number; raising
+    from the callback aborts the wait (the exception propagates), which is
+    the caller's escape hatch. The cluster status dict carries
+    pendingApprovals (the current cluster-wide pending list -- diff it
+    against seen plans for new-plan notices), statuses (namespace ->
+    convergence status), outstanding (the namespaces still being waited on)
+    and deadlines (namespace -> its deadline as a POSIX timestamp, or None
+    for no deadline). Poll 1 is fired right after discovery, before any
+    snapshot, so the caller can report the full scope up front.
+
+    Args:
+        dynClient (DynamicClient): OpenShift Dynamic Client
+        timeout (int, optional): Per-namespace approval budget in seconds,
+            measured from each namespace's first observation. None applies
+            no deadline. Defaults to None.
+        pollInterval (int, optional): Seconds between polls. Defaults to 30.
+        approvalMode (str, optional): The effective approval mode of the
+            calling context; anything other than "Manual" (including None)
+            makes pending install plans a fatal mismatch. Defaults to None.
+        onPending (Callable, optional): Callback invoked as
+            onPending(clusterStatus, pollCount) on every poll while
+            namespaces are outstanding. Defaults to None.
+
+    Returns:
+        dict: waited (bool, True only when install plans were observed
+        awaiting approval at some point), namespaces (sorted list of every
+        namespace that was ever in scope) and statuses (namespace -> final
+        convergence status)
+
+    Raises:
+        OLMException: On the approval mode mismatch, and on Subscriptions
+        that cannot converge (see _raiseIfNamespaceUnresolvable)
+        OLMTimeoutError: When a namespace's deadline expires; the message
+        lists the namespace's non-converged Subscriptions
+        (installedCSV -> targetCSV) and the approve commands
+    """
+    # 1. Settle: discovery below must not race OLM's re-resolution after a
+    # catalog digest update
+    waitForSubscriptionResolution(dynClient, None)
+
+    # 2. Discovery: pending-plan-based, never convergence-based
+    pending = getPendingInstallPlans(dynClient, None)
+    if len(pending) == 0:
+        return {"waited": False, "namespaces": [], "statuses": {}}
+
+    # 3. Approval mode mismatch: pending install plans in a non-Manual
+    # context fail fast with the approve commands and the remedy
+    raiseIfApprovalModeMismatch(pending, approvalMode)
+
+    waited = True
+
+    # Per-namespace deadline bookkeeping: the clock starts when the namespace
+    # is first observed (gate start for these, first observation for late
+    # entrants). None means no timeout. firstSeen is never cleared -- a
+    # namespace that converges and later regresses (a new plan appears) keeps
+    # its original deadline -- while scope is the live set of namespaces still
+    # being waited on.
+    firstSeen = {}
+    scope = set()
+
+    def enterScope(namespace):
+        if namespace not in firstSeen:
+            firstSeen[namespace] = time() + timeout if timeout is not None else None
+        scope.add(namespace)
+
+    for approval in pending:
+        enterScope(approval["namespace"])
+
+    statuses = {}
+    pollCount = 1
+    if onPending is not None:
+        onPending(
+            {
+                "pendingApprovals": pending,
+                "statuses": dict(statuses),
+                "outstanding": sorted(scope),
+                "deadlines": {namespace: firstSeen[namespace] for namespace in sorted(scope)},
+            },
+            pollCount,
+        )
+
+    while True:
+        # Re-discovery: namespaces with newly-pending plans join the scope
+        # (e.g. the second step of a multi-step upgrade path), and plans that
+        # appear mid-wait in a non-Manual context are the same mismatch as
+        # step 3, caught late
+        pending = getPendingInstallPlans(dynClient, None)
+        if len(pending) > 0:
+            raiseIfApprovalModeMismatch(pending, approvalMode)
+            for approval in pending:
+                enterScope(approval["namespace"])
+
+        # Snapshot every in-scope namespace and fail fast on Subscriptions
+        # that cannot converge (the shared single-namespace policy). A
+        # converged namespace leaves the live scope.
+        outstanding = []
+        for namespace in sorted(scope):
+            status = getNamespaceConvergenceStatus(dynClient, namespace)
+            statuses[namespace] = status
+            _raiseIfNamespaceUnresolvable(status, namespace)
+            if status["converged"]:
+                scope.discard(namespace)
+            else:
+                outstanding.append(namespace)
+
+        if len(outstanding) == 0:
+            return {"waited": waited, "namespaces": sorted(firstSeen), "statuses": statuses}
+
+        pollCount += 1
+        if onPending is not None:
+            # Shallow copy: the caller's captured cluster status must not
+            # change under it as later polls re-snapshot the namespaces
+            onPending(
+                {
+                    "pendingApprovals": pending,
+                    "statuses": dict(statuses),
+                    "outstanding": outstanding,
+                    "deadlines": {namespace: firstSeen[namespace] for namespace in sorted(scope)},
+                },
+                pollCount,
+            )
+
+        # Deadline expiry: name the namespace's non-converged Subscriptions
+        # and repeat the approve commands
+        now = time()
+        for namespace in outstanding:
+            if firstSeen[namespace] is not None and now >= firstSeen[namespace]:
+                current = getPendingInstallPlans(dynClient, namespace=namespace)
+                commands = formatApproveCommands(current)
+                lines = [
+                    f"Timed out waiting for install plan approval in namespace {namespace} "
+                    f"(deadline {formatUtcTimestamp(firstSeen[namespace])}). Still outstanding:"
+                ]
+                for entry in statuses[namespace]["subscriptions"]:
+                    if entry["converged"] is False:
+                        lines.append(f"  {entry['name']}: {entry['installedCSV'] or '(not installed)'} -> {entry['targetCSV']} (state: {entry['state']})")
+                    elif entry["skipped"]:
+                        lines.append(f"  {entry['name']}: skipped ({entry['skipReason']})")
+                if commands:
+                    lines.append(f"To grant approval run:\n{commands}")
+                raise OLMTimeoutError("\n".join(lines))
 
         sleep(pollInterval)
 

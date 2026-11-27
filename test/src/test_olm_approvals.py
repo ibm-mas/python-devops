@@ -31,6 +31,10 @@ from mas.devops.olm import (
     OLMTimeoutError,
     approveInstallPlan,
     applySubscription,
+    formatApproveCommands,
+    formatInstallPlanApprovalCommand,
+    formatInstallPlanApprovalNotice,
+    formatUtcTimestamp,
     getChannelHeadCSV,
     getClusterApprovalMode,
     getNamespaceApprovalStatus,
@@ -39,6 +43,9 @@ from mas.devops.olm import (
     getPendingInstallPlans,
     getSubscriptionApprovalMode,
     isApprovalRequired,
+    resolveApprovalMode,
+    resolveApprovalTimeout,
+    waitForClusterConvergence,
     waitForInstallPlanComplete,
     waitForNamespaceApprovals,
     waitForSubscriptionConvergence,
@@ -263,6 +270,33 @@ def buildDynClient(subscriptionHandler, installPlanHandler, packageManifestHandl
 
     client.resources.get.side_effect = resourcesGet
     return client, subscriptionAPI, installPlanAPI
+
+
+def makeNamespaceMapHandler(namespaceMap=None, allResponse=None, nameResponse=None):
+    """Build a Mock API get side effect dispatching namespace queries by the namespace's value.
+
+    The cluster-wide mocks for waitForClusterConvergence: unlike
+    makeGetHandler (one namespace-scoped response for every namespace
+    query), a query scoped to namespace X returns namespaceMap[X], so
+    several namespaces can coexist in one mock cluster. Cluster-wide
+    (kwargs-free) queries return allResponse; name queries return
+    nameResponse (raised instead when it is an Exception). Each response
+    may be a static value or a ResponseSequence for stateful responses.
+    """
+
+    def handler(*args, **kwargs):
+        if "label_selector" in kwargs:
+            return ResourceList([])
+        if "name" in kwargs:
+            result = _resolve(nameResponse, Mock())
+            if isinstance(result, Exception):
+                raise result
+            return result
+        if "namespace" in kwargs:
+            return ResourceList(_resolve((namespaceMap or {}).get(kwargs["namespace"]), []))
+        return ResourceList(_resolve(allResponse, []))
+
+    return handler
 
 
 @contextmanager
@@ -1898,6 +1932,335 @@ class TestWaitForNamespaceApprovals:
         with patch("mas.devops.olm.sleep"), patch("mas.devops.olm.time", side_effect=[0, 500]):
             with pytest.raises(OLMTimeoutError):
                 waitForNamespaceApprovals(client, "test-namespace", timeout=300)
+
+
+class TestResolveApprovalMode:
+    """Tests for resolveApprovalMode (explicit > OLM_APPROVAL_MODE env > None)."""
+
+    def test_explicit_value_takes_precedence_over_env(self):
+        assert resolveApprovalMode("Automatic", getenv=lambda name: "Manual") == "Automatic"
+
+    def test_env_used_when_explicit_unset(self):
+        assert resolveApprovalMode(getenv=lambda name: "Manual" if name == "OLM_APPROVAL_MODE" else None) == "Manual"
+
+    def test_none_when_neither_set(self):
+        assert resolveApprovalMode(getenv=lambda name: None) is None
+
+    def test_invalid_env_value_raises_naming_the_variable(self):
+        with pytest.raises(ValueError, match="OLM_APPROVAL_MODE must be one of: Automatic, Manual \\(found 'banana'\\)"):
+            resolveApprovalMode(getenv=lambda name: "banana")
+
+
+class TestResolveApprovalTimeout:
+    """Tests for resolveApprovalTimeout (explicit > OLM_APPROVAL_TIMEOUT env > None)."""
+
+    def test_explicit_value_takes_precedence_over_env(self):
+        assert resolveApprovalTimeout(300, getenv=lambda name: "600") == 300
+
+    def test_env_used_when_explicit_unset(self):
+        assert resolveApprovalTimeout(getenv=lambda name: "600" if name == "OLM_APPROVAL_TIMEOUT" else None) == 600
+
+    def test_none_when_neither_set(self):
+        assert resolveApprovalTimeout(getenv=lambda name: None) is None
+
+    def test_non_integer_env_value_raises_naming_the_variable(self):
+        with pytest.raises(ValueError, match="OLM_APPROVAL_TIMEOUT must be an integer number of seconds \\(found 'soon'\\)"):
+            resolveApprovalTimeout(getenv=lambda name: "soon")
+
+
+class TestApprovalNotices:
+    """Tests for the approval info formatting helpers."""
+
+    APPROVAL = {
+        "installPlan": "install-plan-1",
+        "namespace": "test-namespace",
+        "subscription": "test-operator",
+        "package": "test-operator",
+        "csvNames": ["test-operator.v2.0.0"],
+        "currentCSV": "test-operator.v1.0.0",
+        "targetCSV": "test-operator.v2.0.0",
+        "created": "2026-11-27T12:00:00Z",
+    }
+
+    def test_command_is_a_merge_patch(self):
+        assert (
+            formatInstallPlanApprovalCommand(self.APPROVAL)
+            == 'oc patch installplan/install-plan-1 -n test-namespace --type merge -p \'{"spec":{"approved":true}}\''
+        )
+
+    def test_commands_join_indented_one_per_line(self):
+        commands = formatApproveCommands([self.APPROVAL, dict(self.APPROVAL, installPlan="install-plan-2")])
+        assert commands == "\n".join(
+            [
+                '  oc patch installplan/install-plan-1 -n test-namespace --type merge -p \'{"spec":{"approved":true}}\'',
+                '  oc patch installplan/install-plan-2 -n test-namespace --type merge -p \'{"spec":{"approved":true}}\'',
+            ]
+        )
+
+    def test_empty_pending_formats_to_no_commands(self):
+        assert formatApproveCommands([]) == ""
+
+    def test_notice_contains_plan_package_and_csv_transition(self):
+        lines = formatInstallPlanApprovalNotice(self.APPROVAL)
+        assert lines[0] == "Waiting for manual approval of install plan install-plan-1 in namespace test-namespace"
+        assert "test-operator.v1.0.0 -> test-operator.v2.0.0" in lines[1]
+        assert "test-operator.v2.0.0" in lines[2]
+
+    def test_notice_handles_no_current_csv(self):
+        lines = formatInstallPlanApprovalNotice(dict(self.APPROVAL, currentCSV=None))
+        assert "(not installed) -> test-operator.v2.0.0" in lines[1]
+
+    def test_utc_timestamp_format(self):
+        assert formatUtcTimestamp(1764240000) == "2025-11-27 10:40:00 UTC"
+
+
+class TestWaitForClusterConvergence:
+    """Tests for the cluster-wide convergence wait in waitForClusterConvergence."""
+
+    def _manifestHandler(self, channels={"stable": "test-operator.v2.0.0"}):
+        return makeNamespaceMapHandler(nameResponse=makePackageManifest("test-operator", channels=channels))
+
+    def _client(self, subscriptionsByNamespace, installPlansByNamespace, installPlansClusterWide):
+        client, _, _ = buildDynClient(
+            makeNamespaceMapHandler(namespaceMap=subscriptionsByNamespace, allResponse=[]),
+            makeNamespaceMapHandler(namespaceMap=installPlansByNamespace, allResponse=installPlansClusterWide),
+            self._manifestHandler(),
+        )
+        return client
+
+    def _pendingPlan(self, namespace="ns-a", name="install-plan-1"):
+        return makeInstallPlan(name, namespace, ["test-operator.v2.0.0"], "RequiresApproval", ownerRefs=[makeOwnerRef("Subscription", "test-operator")])
+
+    def _convergedSubscription(self, namespace="ns-a", name="test-operator"):
+        return makeSubscription(name, namespace, "test-operator", state="AtLatestKnown", installedCSV="test-operator.v2.0.0", channel="stable")
+
+    def _unconvergedSubscription(self, namespace="ns-a", name="test-operator", **kwargs):
+        return makeSubscription(name, namespace, "test-operator", state="UpgradePending", installedCSV="test-operator.v1.0.0", channel="stable", **kwargs)
+
+    def test_no_pending_plans_is_a_noop(self):
+        client = self._client({}, {}, [])
+
+        with patch("mas.devops.olm.sleep"):
+            result = waitForClusterConvergence(client, approvalMode="Manual")
+
+        assert result == {"waited": False, "namespaces": [], "statuses": {}}
+
+    def test_non_manual_context_fails_fast_with_commands_and_remedy(self):
+        client = self._client({"ns-a": [self._unconvergedSubscription()]}, {"ns-a": [self._pendingPlan()]}, [self._pendingPlan()])
+
+        with patch("mas.devops.olm.sleep"):
+            with pytest.raises(OLMException) as excinfo:
+                waitForClusterConvergence(client, approvalMode=None)
+
+        message = str(excinfo.value)
+        # An unset mode is an Automatic context: fail fast with the approve
+        # command and the remedy
+        assert "waiting for manual approval in namespace ns-a" in message
+        assert "approval mode is 'Automatic'" in message
+        assert "oc patch installplan/install-plan-1" in message
+        assert "OLM_APPROVAL_MODE=Manual" in message
+
+    def test_manual_context_waits_until_converged(self):
+        client = self._client(
+            {"ns-a": ResponseSequence([[self._unconvergedSubscription()], [self._convergedSubscription()]])},
+            {"ns-a": [self._pendingPlan()]},
+            [self._pendingPlan()],
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            result = waitForClusterConvergence(client, approvalMode="Manual")
+
+        assert result["waited"] is True
+        assert result["namespaces"] == ["ns-a"]
+        assert result["statuses"]["ns-a"]["converged"] is True
+
+    def test_late_entrant_namespace_joins_the_scope(self):
+        # Discovery: poll 1 sees only ns-a's plan, poll 2 onward sees ns-b's
+        # too (the second step of a multi-step upgrade path)
+        planA = self._pendingPlan("ns-a", "install-plan-a")
+        planB = self._pendingPlan("ns-b", "install-plan-b")
+        client = self._client(
+            {
+                "ns-a": ResponseSequence(
+                    [[self._unconvergedSubscription("ns-a")], [self._convergedSubscription("ns-a")], [self._convergedSubscription("ns-a")]]
+                ),
+                "ns-b": ResponseSequence([[self._unconvergedSubscription("ns-b")], [self._convergedSubscription("ns-b")]]),
+            },
+            {"ns-a": [planA], "ns-b": [planB]},
+            ResponseSequence([[planA], [planA, planB]]),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            result = waitForClusterConvergence(client, approvalMode="Manual")
+
+        assert result["namespaces"] == ["ns-a", "ns-b"]
+        assert result["statuses"]["ns-a"]["converged"] is True
+        assert result["statuses"]["ns-b"]["converged"] is True
+
+    def test_namespace_leaves_scope_only_on_convergence(self):
+        # The plan leaves RequiresApproval (approved) after discovery but the
+        # subscription is still rolling out: the namespace must stay in scope
+        # until it converges, not until discovery stops listing it
+        plan = self._pendingPlan()
+        client = self._client(
+            {"ns-a": ResponseSequence([[self._unconvergedSubscription()], [self._convergedSubscription()]])},
+            {"ns-a": [plan]},
+            ResponseSequence([[plan], []]),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            result = waitForClusterConvergence(client, approvalMode="Manual")
+
+        assert result["waited"] is True
+        assert result["namespaces"] == ["ns-a"]
+        assert result["statuses"]["ns-a"]["converged"] is True
+
+    def test_transient_resolution_error_after_approval_keeps_waiting(self):
+        """The ResolutionFailed transient outlives the approval itself (cluster-wide).
+
+        The moment a plan is approved it leaves RequiresApproval, but OLM
+        keeps the ResolutionFailed condition until the plan has finished
+        applying. transitionInFlight -- the referenced plan contains the
+        channel head -- keeps the shared fail-fast from killing the wait.
+        """
+        conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
+        transient = makeSubscription(
+            "test-operator",
+            "ns-a",
+            "test-operator",
+            state="UpgradePending",
+            installedCSV="test-operator.v1.0.0",
+            installPlanRef="install-plan-1",
+            channel="stable",
+            conditions=conditions,
+        )
+        applyingPlan = makeInstallPlan(
+            "install-plan-1", "ns-a", ["test-operator.v2.0.0"], "Completed", ownerRefs=[makeOwnerRef("Subscription", "test-operator")]
+        )
+        pendingPlan = self._pendingPlan()
+        client = self._client(
+            {"ns-a": ResponseSequence([[transient], [self._convergedSubscription()]])},
+            {"ns-a": [applyingPlan]},
+            ResponseSequence([[pendingPlan], []]),
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            result = waitForClusterConvergence(client, approvalMode="Manual")
+
+        assert result["statuses"]["ns-a"]["converged"] is True
+
+    def test_unresolvable_subscription_fails_fast_naming_the_namespace(self):
+        conditions = [makeCondition("ResolutionFailed", "True", "no matching package in catalog")]
+        broken = makeSubscription("broken-operator", "ns-a", "test-operator", channel="stable", conditions=conditions)
+        healthy = self._unconvergedSubscription()
+        client = self._client(
+            {"ns-a": [healthy, broken]},
+            {"ns-a": [self._pendingPlan()]},
+            [self._pendingPlan()],
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            with pytest.raises(OLMException, match="broken-operator in ns-a failed to resolve: no matching package in catalog"):
+                waitForClusterConvergence(client, approvalMode="Manual")
+
+    def test_failed_install_plan_fails_fast_naming_the_plan(self):
+        watcher = makeSubscription(
+            "watching-operator",
+            "ns-a",
+            "test-operator",
+            state="UpgradePending",
+            installedCSV="test-operator.v1.0.0",
+            installPlanRef="install-plan-failed",
+            channel="stable",
+        )
+        healthy = self._unconvergedSubscription()
+        failedPlan = makeInstallPlan("install-plan-failed", "ns-a", ["test-operator.v2.0.0"], "Failed")
+        client = self._client(
+            {"ns-a": [healthy, watcher]},
+            {"ns-a": [self._pendingPlan(), failedPlan]},
+            [self._pendingPlan()],
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            with pytest.raises(OLMException, match="install-plan-failed"):
+                waitForClusterConvergence(client, approvalMode="Manual")
+
+    def test_mixed_namespace_is_not_fatal(self):
+        automaticSubscriber = makeSubscription(
+            "auto-operator", "ns-a", "test-operator", approval="Automatic", state="AtLatestKnown", installedCSV="test-operator.v2.0.0", channel="stable"
+        )
+        manualUnconverged = makeSubscription(
+            "test-operator", "ns-a", "test-operator", approval="Manual", state="UpgradePending", installedCSV="test-operator.v1.0.0", channel="stable"
+        )
+        manualConverged = makeSubscription(
+            "test-operator", "ns-a", "test-operator", approval="Manual", state="AtLatestKnown", installedCSV="test-operator.v2.0.0", channel="stable"
+        )
+        client = self._client(
+            {"ns-a": ResponseSequence([[manualUnconverged, automaticSubscriber], [manualConverged, automaticSubscriber]])},
+            {"ns-a": [self._pendingPlan()]},
+            [self._pendingPlan()],
+        )
+
+        with patch("mas.devops.olm.sleep"):
+            result = waitForClusterConvergence(client, approvalMode="Manual")
+
+        assert result["statuses"]["ns-a"]["approvalMode"] == "Mixed"
+        assert result["statuses"]["ns-a"]["converged"] is True
+
+    def test_deadline_expiry_lists_subscriptions_and_commands(self):
+        client = self._client(
+            {"ns-a": [self._unconvergedSubscription()]},
+            {"ns-a": [self._pendingPlan()]},
+            [self._pendingPlan()],
+        )
+
+        # timeout=0: the namespace's deadline expires on the first loop
+        # iteration. time() must return an increasing value past the deadline
+        # (firstSeen = entry time + 0)
+        with patch("mas.devops.olm.sleep"), patch("mas.devops.olm.time", side_effect=[0] * 20):
+            with pytest.raises(OLMTimeoutError) as excinfo:
+                waitForClusterConvergence(client, timeout=0, approvalMode="Manual")
+
+        message = str(excinfo.value)
+        assert "Timed out waiting for install plan approval in namespace ns-a" in message
+        assert "test-operator: test-operator.v1.0.0 -> test-operator.v2.0.0" in message
+        assert "To grant approval run:" in message
+        assert "oc patch installplan/install-plan-1" in message
+
+    def test_on_pending_receives_cluster_status_and_poll_numbers(self):
+        # The subscription sequence accounts for the discovery calls: initial
+        # discovery and the loop's re-discovery consume the first two
+        # snapshots, the loop's convergence snapshot the third (still
+        # unconverged -- poll 2 fires), the next iteration converges
+        client = self._client(
+            {
+                "ns-a": ResponseSequence(
+                    [[self._unconvergedSubscription()], [self._unconvergedSubscription()], [self._unconvergedSubscription()], [self._convergedSubscription()]]
+                )
+            },
+            {"ns-a": [self._pendingPlan()]},
+            [self._pendingPlan()],
+        )
+        calls = []
+
+        def onPending(clusterStatus, pollCount):
+            calls.append((clusterStatus, pollCount))
+
+        with patch("mas.devops.olm.sleep"):
+            waitForClusterConvergence(client, approvalMode="Manual", onPending=onPending)
+
+        # Poll 1 fires right after discovery (before any snapshot, statuses
+        # empty) so the caller can report the full scope up front; the loop
+        # fires poll 2 with the first snapshot
+        assert [pollCount for _, pollCount in calls] == [1, 2]
+        firstStatus, _ = calls[0]
+        assert firstStatus["outstanding"] == ["ns-a"]
+        assert firstStatus["deadlines"] == {"ns-a": None}
+        assert firstStatus["statuses"] == {}
+        assert firstStatus["pendingApprovals"][0]["installPlan"] == "install-plan-1"
+        secondStatus, _ = calls[1]
+        assert secondStatus["outstanding"] == ["ns-a"]
+        assert secondStatus["statuses"]["ns-a"]["converged"] is False
 
 
 # Made with Bob
