@@ -21,7 +21,7 @@ script_path = os.path.join(os.path.dirname(__file__), "../../bin/mas-devops-noti
 notify_slack = SourceFileLoader("notify_slack", script_path).load_module()
 
 
-@pytest.mark.skip(reason="Slack test account is currently disabled")
+@pytest.mark.slack
 def testSendMessage():
     response = SlackUtil.postMessageText("#bot-test", "mas-devops postMessageTest() unittest")
 
@@ -34,7 +34,7 @@ def testSendMessage():
     assert "ts" in response.data
 
 
-@pytest.mark.skip(reason="Slack test account is currently disabled")
+@pytest.mark.slack
 def testBroadcast():
     responses = SlackUtil.postMessageText(["#bot-test", "#bot-test"], "mas-devops postMessageText() broadcast unittest")
     assert len(responses) == 2
