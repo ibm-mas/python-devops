@@ -41,6 +41,16 @@ spec:
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
+{%- if olm_approval_mode is defined and olm_approval_mode != "" %}
+    # OLM install plan approval
+    # -------------------------------------------------------------------------
+    - name: olm_approval_mode
+      value: "{{ olm_approval_mode }}"
+{%- endif %}
+{%- if olm_approval_timeout is defined and olm_approval_timeout != "" %}
+    - name: olm_approval_timeout
+      value: "{{ olm_approval_timeout }}"
+{%- endif %}
 {%- if storage_class_rwo is defined and storage_class_rwo != "" %}
     - name: storage_class_rwo
       value: "{{ storage_class_rwo }}"

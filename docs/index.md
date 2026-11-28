@@ -48,7 +48,7 @@ createNamespace(dynamicClient, pipelinesNamespace)
 updateTektonDefinitions(dynamicClient, pipelinesNamespace, "/mascli/templates/ibm-mas-tekton.yaml")
 
 # Launch the upgrade pipeline and print the URL to view the pipeline run
-pipelineURL = launchUpgradePipeline(self.dynamicClient, instanceId)
+pipelineURL = launchUpgradePipeline(dynClient, {"mas_instance_id": instanceId})
 print(pipelineURL)
 ```
 

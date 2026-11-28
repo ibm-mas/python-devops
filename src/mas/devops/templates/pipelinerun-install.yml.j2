@@ -35,6 +35,17 @@ spec:
     - name: skip_pre_check
       value: "{{ skip_pre_check }}"
 {%- endif %}
+{%- if olm_approval_mode is defined and olm_approval_mode != "" %}
+
+    # OLM install plan approval
+    # -------------------------------------------------------------------------
+    - name: olm_approval_mode
+      value: "{{ olm_approval_mode }}"
+{%- endif %}
+{%- if olm_approval_timeout is defined and olm_approval_timeout != "" %}
+    - name: olm_approval_timeout
+      value: "{{ olm_approval_timeout }}"
+{%- endif %}
 {%- if image_pull_policy is defined and image_pull_policy != "" %}
 
     # Image Pull Policy

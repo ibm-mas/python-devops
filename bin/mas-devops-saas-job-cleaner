@@ -60,9 +60,7 @@ if __name__ == "__main__":
 
     ch = logging.StreamHandler()
     ch.setLevel(log_level)
-    chFormatter = logging.Formatter(
-        "%(asctime)-25s %(name)-50s [%(threadName)s] %(levelname)-8s %(message)s"
-    )
+    chFormatter = logging.Formatter("%(asctime)-25s %(name)-50s [%(threadName)s] %(levelname)-8s %(message)s")
     ch.setFormatter(chFormatter)
     logger.addHandler(ch)
 
