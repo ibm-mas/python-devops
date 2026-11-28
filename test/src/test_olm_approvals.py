@@ -880,23 +880,26 @@ class TestGetNamespaceConvergenceStatus:
 
         assert status["failedInstallPlans"] == ["install-plan-1"]
 
-    def test_approved_plan_carrying_target_marks_transition_in_flight(self):
-        """After approval the plan leaves RequiresApproval but the transition is still applying.
+    def test_converged_subscription_with_lingering_resolution_error(self):
+        """A Subscription that has reached its channel head may still carry a ResolutionFailed condition.
 
-        The referenced plan is Completed and contains the channel head: OLM
-        has generated (and applied) the transition this Subscription is
-        waiting on, so a ResolutionFailed condition in this window is the
-        expected transient -- the resolver cannot satisfy the upgrade until
-        the old CSV is garbage-collected.
+        This is the production shape that killed manual upgrades: after a
+        manual plan is applied OLM updates installedCSV to the channel head,
+        but the namespace-level resolver keeps reporting
+        constraints-not-satisfiable until the replaced CSV is
+        garbage-collected. The wait keys on convergence alone, so the
+        condition is simply carried in the status as a diagnostic.
         """
+        conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
         subscription = makeSubscription(
             "test-operator",
             "test-namespace",
             "test-operator",
-            state="UpgradePending",
-            installedCSV="test-operator.v1.9.0",
+            state="AtLatestKnown",
+            installedCSV="test-operator.v2.0.0",
             installPlanRef="install-plan-1",
             channel="stable",
+            conditions=conditions,
         )
         completedPlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "Completed")
         client, _, _ = buildDynClient(
@@ -907,34 +910,8 @@ class TestGetNamespaceConvergenceStatus:
 
         status = getNamespaceConvergenceStatus(client, "test-namespace")
 
-        assert status["subscriptions"][0]["transitionInFlight"] is True
-
-    def test_stale_plan_without_target_is_not_transition_in_flight(self):
-        """The Completed plan of a previous install does not excuse a resolution failure.
-
-        A bad channel or missing dependency generates no new plan, so the
-        referenced plan's CSVs contain the old version, not the channel
-        head -- the failure is real and must still fail fast.
-        """
-        subscription = makeSubscription(
-            "test-operator",
-            "test-namespace",
-            "test-operator",
-            state="UpgradePending",
-            installedCSV="test-operator.v1.9.0",
-            installPlanRef="install-plan-1",
-            channel="stable",
-        )
-        stalePlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v1.9.0"], "Completed")
-        client, _, _ = buildDynClient(
-            makeGetHandler(namespaceResponse=[subscription]),
-            makeGetHandler(namespaceResponse=[stalePlan]),
-            self._manifestHandler({"stable": "test-operator.v2.0.0"}),
-        )
-
-        status = getNamespaceConvergenceStatus(client, "test-namespace")
-
-        assert status["subscriptions"][0]["transitionInFlight"] is False
+        assert status["converged"] is True
+        assert status["subscriptions"][0]["resolutionError"] == "constraints not satisfiable"
 
     def test_pending_approval_info_is_included_unchanged(self):
         subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable")
@@ -1003,30 +980,42 @@ class TestWaitForSubscriptionConvergence:
         message = str(excinfo.value)
         assert "test-operator: (not installed) -> test-operator.v2.0.0" in message
 
-    def test_resolution_failed_fails_fast(self):
+    def test_resolution_error_keeps_waiting_and_is_reported_at_timeout(self):
+        """A ResolutionFailed condition is diagnostic, not a fail-fast trigger.
+
+        OLM's namespace-level resolver sets the condition on every
+        Subscription in a namespace whose resolution fails, transiently or
+        permanently -- distinguishing the two by shape means chasing OLM
+        internals that change between versions. The wait keys on convergence
+        alone: it keeps polling, and the condition is reported at the
+        deadline.
+        """
         conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
         subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", conditions=conditions)
         client, subscriptionAPI, _ = buildDynClient(makeGetHandler(namespaceResponse=[subscription]), makeGetHandler(), self._manifestHandler())
 
-        with patch("mas.devops.olm.sleep") as mockSleep:
-            with pytest.raises(OLMException, match="failed to resolve: constraints not satisfiable"):
+        # Two polls below the timeout (the wait survived the condition), the
+        # third past it
+        with patch("mas.devops.olm.sleep") as mockSleep, patch("mas.devops.olm.time", side_effect=[0, 10, 20, 700]):
+            with pytest.raises(OLMTimeoutError) as excinfo:
                 waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
 
-        # Fail fast: one snapshot, no polling
-        mockSleep.assert_not_called()
-        assert subscriptionAPI.get.call_count == 1
+        message = str(excinfo.value)
+        assert "test-operator: (not installed) -> test-operator.v2.0.0" in message
+        assert "resolution error: constraints not satisfiable" in message
+        mockSleep.assert_called()
+        assert subscriptionAPI.get.call_count == 3
 
     def test_transient_resolution_error_with_pending_plan_keeps_waiting(self):
-        """A ResolutionFailed condition on a Subscription with its own pending install plan is a transition state, not a breakage.
+        """A ResolutionFailed condition on a Subscription with a pending install plan keeps waiting.
 
         While an upgrade install plan awaits (manual) approval OLM's resolver
         reports "constraints not satisfiable ... clusterserviceversion X
         exists and is not referenced by a subscription" -- the old CSV is
-        installed, the Subscription now requires the new one, and the
-        transition cannot be satisfied until the plan is approved and
-        applied. Failing fast on that would abort the wait the gate exists
-        to perform; it must keep waiting until the plan resolves the
-        transition (the deadline still bounds a genuinely wedged state).
+        installed and the Subscription now requires the new one. That is the
+        transition in progress, not a breakage: the wait keys on convergence
+        and polls until the (approved) Subscription reaches its channel
+        head.
         """
         conditions = [
             makeCondition(
@@ -1060,10 +1049,9 @@ class TestWaitForSubscriptionConvergence:
         The moment a plan is approved it leaves RequiresApproval, but OLM
         keeps the ResolutionFailed condition until the plan has finished
         applying (new CSV created, old CSV garbage-collected, installedCSV
-        updated) -- minutes, not seconds, for a large operator. The fail-fast
-        must key on the transition being in flight (the referenced plan
-        contains the channel head), not on the plan still awaiting approval,
-        or every manual upgrade dies right after the human approves.
+        updated) -- minutes, not seconds, for a large operator. Since the
+        wait keys on convergence rather than on classifying the condition,
+        every manual upgrade survives this window.
         """
         conditions = [
             makeCondition(
@@ -1098,12 +1086,15 @@ class TestWaitForSubscriptionConvergence:
         assert subscriptionAPI.get.call_count == 2
         assert status["converged"] is True
 
-    def test_stale_plan_resolution_error_fails_fast(self):
-        """A ResolutionFailed condition with no plan carrying the Subscription forward is a breakage.
+    def test_stale_plan_resolution_error_keeps_waiting(self):
+        """A ResolutionFailed condition with a stale referenced plan is not fatal either.
 
         The referenced Completed plan belongs to the previous install (its
-        CSVs do not include the channel head): no new plan was generated for
-        the wanted transition, so the resolver will never satisfy it.
+        CSVs do not include the channel head), so nothing visible is
+        carrying the Subscription forward -- under the old shape-matching
+        fail-fast this shape was fatal. The wait keys on convergence alone:
+        it keeps polling (the deadline still bounds a genuinely wedged
+        state).
         """
         conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
         subscription = makeSubscription(
@@ -1118,17 +1109,58 @@ class TestWaitForSubscriptionConvergence:
         )
         stalePlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v1.9.0"], "Completed")
         client, subscriptionAPI, _ = buildDynClient(
-            makeGetHandler(namespaceResponse=[subscription]),
+            makeGetHandler(namespaceResponse=ResponseSequence([[subscription], [self._convergedSubscription()]])),
             makeGetHandler(namespaceResponse=[stalePlan]),
             self._manifestHandler(),
         )
 
         with patch("mas.devops.olm.sleep") as mockSleep:
-            with pytest.raises(OLMException, match="failed to resolve: constraints not satisfiable"):
-                waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
+
+        mockSleep.assert_called_once()
+        assert subscriptionAPI.get.call_count == 2
+        assert status["converged"] is True
+
+    def test_converged_subscription_with_lingering_resolution_error_succeeds(self):
+        """The production shape: converged, but the resolver still reports a failure.
+
+        After a manual plan is applied OLM updates installedCSV to the
+        channel head, but the namespace-level resolver keeps reporting
+        constraints-not-satisfiable until the replaced CSV is
+        garbage-collected. The wait condition is the convergence itself, so
+        the wait succeeds immediately -- the lingering condition is not
+        even looked at.
+        """
+        conditions = [
+            makeCondition(
+                "ResolutionFailed",
+                "True",
+                "constraints not satisfiable: clusterserviceversion test-operator.v1.9.0 exists and is not referenced by a subscription",
+            )
+        ]
+        converged = makeSubscription(
+            "test-operator",
+            "test-namespace",
+            "test-operator",
+            state="AtLatestKnown",
+            installedCSV="test-operator.v2.0.0",
+            installPlanRef="install-plan-1",
+            channel="stable",
+            conditions=conditions,
+        )
+        completedPlan = makeInstallPlan("install-plan-1", "test-namespace", ["test-operator.v2.0.0"], "Completed")
+        client, subscriptionAPI, _ = buildDynClient(
+            makeGetHandler(namespaceResponse=[converged]),
+            makeGetHandler(namespaceResponse=[completedPlan]),
+            self._manifestHandler(),
+        )
+
+        with patch("mas.devops.olm.sleep") as mockSleep:
+            status = waitForSubscriptionConvergence(client, "test-namespace", timeout=600, pollInterval=1)
 
         mockSleep.assert_not_called()
         assert subscriptionAPI.get.call_count == 1
+        assert status["converged"] is True
 
     def test_failed_install_plan_fails_fast(self):
         subscription = makeSubscription("test-operator", "test-namespace", "test-operator", channel="stable", installPlanRef="install-plan-1")
@@ -2120,8 +2152,8 @@ class TestWaitForClusterConvergence:
 
         The moment a plan is approved it leaves RequiresApproval, but OLM
         keeps the ResolutionFailed condition until the plan has finished
-        applying. transitionInFlight -- the referenced plan contains the
-        channel head -- keeps the shared fail-fast from killing the wait.
+        applying. The wait keys on convergence rather than on classifying
+        the condition, so the cluster-wide gate survives this window too.
         """
         conditions = [makeCondition("ResolutionFailed", "True", "constraints not satisfiable")]
         transient = makeSubscription(
@@ -2149,7 +2181,13 @@ class TestWaitForClusterConvergence:
 
         assert result["statuses"]["ns-a"]["converged"] is True
 
-    def test_unresolvable_subscription_fails_fast_naming_the_namespace(self):
+    def test_resolution_error_keeps_waiting_and_is_reported_at_deadline(self):
+        """A ResolutionFailed condition is diagnostic, not a fail-fast trigger (cluster-wide).
+
+        The wait keeps polling through the condition, and the deadline
+        expiry report carries it: the "why" is delivered once, at the
+        deadline, instead of being classified mid-wait.
+        """
         conditions = [makeCondition("ResolutionFailed", "True", "no matching package in catalog")]
         broken = makeSubscription("broken-operator", "ns-a", "test-operator", channel="stable", conditions=conditions)
         healthy = self._unconvergedSubscription()
@@ -2159,9 +2197,15 @@ class TestWaitForClusterConvergence:
             [self._pendingPlan()],
         )
 
-        with patch("mas.devops.olm.sleep"):
-            with pytest.raises(OLMException, match="broken-operator in ns-a failed to resolve: no matching package in catalog"):
-                waitForClusterConvergence(client, approvalMode="Manual")
+        # timeout=0: the namespace's deadline expires on the first loop
+        # iteration (see test_deadline_expiry_lists_subscriptions_and_commands)
+        with patch("mas.devops.olm.sleep"), patch("mas.devops.olm.time", side_effect=[0] * 20):
+            with pytest.raises(OLMTimeoutError) as excinfo:
+                waitForClusterConvergence(client, timeout=0, approvalMode="Manual")
+
+        message = str(excinfo.value)
+        assert "broken-operator: (not installed) -> test-operator.v2.0.0" in message
+        assert "resolution error: no matching package in catalog" in message
 
     def test_failed_install_plan_fails_fast_naming_the_plan(self):
         watcher = makeSubscription(

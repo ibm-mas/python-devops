@@ -965,9 +965,16 @@ def _subscriptionChannelHead(dynClient: DynamicClient, subscription, manifestCac
 def _subscriptionResolutionError(subscription) -> Optional[str]:
     """The message of a Subscription's ResolutionFailed condition, when active.
 
-    A Subscription that cannot resolve (bad channel, missing dependency,
-    catalog problem) will never converge; waiting for it only burns the
-    timeout. This is the fail-fast signal for that case.
+    Diagnostic payload for the convergence waits' timeout reports: OLM's
+    namespace-level resolver sets this condition on every Subscription in a
+    namespace whose resolution fails, and the failure is frequently
+    transient (most notably around manual approvals, where the condition
+    persists until the replaced CSV is garbage-collected -- even after the
+    Subscription itself has converged). It is deliberately never used as a
+    fail-fast signal: distinguishing transient from permanent resolution
+    failures by shape means chasing OLM internals that change between
+    versions, so the waits key on convergence alone and report this at the
+    deadline.
     """
     conditions = getattr(getattr(subscription, "status", None), "conditions", None) or []
     for condition in conditions:
@@ -989,10 +996,9 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
     Subscriptions with no derivable target (no PackageManifest, or the
     channel is absent from it) are skipped with a warning and never block:
     nothing can be approved for them, and a removed catalog must not wedge
-    installs. Note the ordering interaction with resolution errors: a missing
-    manifest is itself a resolution failure, so it is treated as a skip,
-    while a manifest present alongside a ResolutionFailed condition is a
-    hard error surfaced via the resolutionError field.
+    installs. A missing manifest is itself a resolution failure, so the skip
+    wins and suppresses the diagnostic: a removed catalog warns rather than
+    pollutes the timeout report.
 
     The namespace approval status (approvalMode, pendingApprovals, blocking)
     is included unchanged -- the pending InstallPlans are the human-facing
@@ -1007,7 +1013,7 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
             extended with subscriptions (list of per-Subscription dicts with
             name, package, channel, state, installedCSV, targetCSV,
             installPlanRef, converged (bool, or None when skipped), skipped,
-            skipReason, resolutionError and transitionInFlight), failedInstallPlans
+            skipReason and resolutionError), failedInstallPlans
             (names of Failed-phase InstallPlans referenced by non-converged
             Subscriptions) and converged (bool, True when every non-skipped
             Subscription's installedCSV equals its channel head)
@@ -1033,26 +1039,15 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
         installPlanRefName = getattr(getattr(subscription.status, "installPlanRef", None), "name", None)
         converged = None if skipReason is not None else (installedCSV == targetCSV)
 
-        # transitionInFlight: the referenced InstallPlan is not Failed and its
-        # CSV set includes the channel head, so OLM has already generated (and
-        # possibly approved and applied) the plan that carries this
-        # Subscription to its target. A ResolutionFailed condition in that
-        # window is the expected transient of the transition, not a breakage:
-        # the resolver cannot satisfy the upgrade until the plan has finished
-        # applying (the new CSV created, the old one garbage-collected), which
-        # can take minutes after approval. A stale referenced plan -- the
-        # Completed plan of the previous install, whose CSVs do not include
-        # the channel head -- does not count: a bad channel or a missing
-        # dependency generates no new plan at all, and must still fail fast.
-        transitionInFlight = False
+        # A Failed referenced InstallPlan is terminal for the transition it
+        # was carrying: the Subscription cannot reach its channel head
+        # through it, and OLM will not generate a replacement while the
+        # reference stands. The convergence waits fail fast on that (a stable
+        # phase, not a transient shape) rather than burn the deadline.
         if converged is False and installPlanRefName is not None:
             referencedPlan = installPlansByName.get(installPlanRefName)
-            if referencedPlan is not None:
-                planPhase = getattr(referencedPlan.status, "phase", None)
-                if planPhase == "Failed":
-                    failedInstallPlans.append(installPlanRefName)
-                elif targetCSV is not None and targetCSV in (getattr(referencedPlan.spec, "clusterServiceVersionNames", None) or []):
-                    transitionInFlight = True
+            if referencedPlan is not None and getattr(referencedPlan.status, "phase", None) == "Failed":
+                failedInstallPlans.append(installPlanRefName)
 
         subscriptionStatuses.append(
             {
@@ -1066,13 +1061,13 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
                 "converged": converged,
                 "skipped": skipReason is not None,
                 "skipReason": skipReason,
-                # True when the referenced InstallPlan is carrying the
-                # Subscription to its channel head (see above): while set, a
-                # ResolutionFailed condition is transient, not fatal
-                "transitionInFlight": transitionInFlight,
-                # A missing manifest is itself a resolution failure: the skip
-                # wins and suppresses the error, so a removed catalog warns
-                # rather than fails the wait
+                # Diagnostic only, never a wait condition: OLM sets
+                # ResolutionFailed on every Subscription in a namespace whose
+                # resolution fails, and the failure is often transient (a
+                # manual plan pending, applying, or the replaced CSV awaiting
+                # garbage collection -- the condition can even outlive the
+                # Subscription's convergence). The convergence waits report
+                # it at the deadline instead of acting on it mid-wait.
                 "resolutionError": None if skipReason is not None else _subscriptionResolutionError(subscription),
             }
         )
@@ -1084,55 +1079,50 @@ def getNamespaceConvergenceStatus(dynClient: DynamicClient, namespace: str) -> d
 
 
 def _formatConvergenceTimeoutMessage(namespace: str, status: dict, timeout: int) -> str:
-    """The actionable per-Subscription breakdown for a convergence timeout."""
+    """The actionable per-Subscription breakdown for a convergence timeout.
+
+    The resolution error, when present, is reported here: it is the "why" a
+    Subscription has not converged, delivered once at the deadline instead of
+    guessed at mid-wait.
+    """
     lines = [f"Timed out after {timeout}s waiting for Subscriptions in {namespace} to reach their channel head:"]
     for entry in status["subscriptions"]:
         if entry["converged"] is False:
             lines.append(f"  {entry['name']}: {entry['installedCSV'] or '(not installed)'} -> {entry['targetCSV']} (state: {entry['state']})")
+            if entry["resolutionError"]:
+                lines.append(f"    resolution error: {entry['resolutionError']}")
         elif entry["skipped"]:
             lines.append(f"  {entry['name']}: skipped ({entry['skipReason']})")
     return "\n".join(lines)
 
 
-def _raiseIfNamespaceUnresolvable(status: dict, namespace: str) -> None:
-    """Fail fast on Subscriptions in one namespace that can never converge.
+def _raiseIfFailedInstallPlans(status: dict, namespace: str) -> None:
+    """Fail fast on Failed InstallPlans referenced by non-converged Subscriptions.
 
     The single implementation of the convergence fail-fast policy, shared by
     waitForSubscriptionConvergence and waitForClusterConvergence so the two
-    waits can never disagree.
+    waits can never disagree. A Failed InstallPlan is the one stable,
+    non-transient breakage the waits act on immediately: the transition it
+    was carrying cannot complete, and OLM will not generate a replacement
+    while the Subscription still references it, so waiting can only burn the
+    deadline.
 
-    A Subscription whose transition to its channel head is in flight -- its
-    own install plan pending approval, or already approved and still
-    applying -- commonly carries a transient ResolutionFailed condition (the
-    resolver cannot satisfy the transition until the plan is applied:
-    "constraints not satisfiable ... clusterserviceversion X exists and is
-    not referenced by a subscription"). The condition outlives the approval
-    itself: it persists for as long as the plan takes to apply (new CSV
-    created, old CSV garbage-collected, installedCSV updated). That is the
-    wait working, not a broken Subscription: only fail fast when nothing of
-    the Subscription's own is carrying it forward (a bad channel generates
-    no install plan at all, and the stale plan of a previous install does
-    not contain the channel head).
+    Everything else about a not-yet-converged Subscription -- most notably an
+    active ResolutionFailed condition, which OLM's namespace-level resolver
+    sets on every Subscription in the namespace whenever resolution fails,
+    transiently or permanently -- is deliberately not acted on mid-wait: the
+    wait condition is the convergence itself, the deadline bounds it, and the
+    reason is reported at the deadline rather than classified live.
 
     Args:
         status (dict): Namespace convergence status as produced by
             getNamespaceConvergenceStatus
         namespace (str): The namespace the status belongs to (for the error
-            messages)
+            message)
 
     Raises:
-        OLMException: When a Subscription has an active ResolutionFailed
-            condition with no transition of its own in flight, or a
-            referenced InstallPlan has Failed
+        OLMException: When a referenced InstallPlan has Failed
     """
-    pendingSubscriptions = {approval["subscription"] for approval in status["pendingApprovals"]}
-    for entry in status["subscriptions"]:
-        if entry["resolutionError"] and entry["name"] not in pendingSubscriptions and not entry["transitionInFlight"]:
-            raise OLMException(
-                f"Subscription {entry['name']} in {namespace} failed to resolve: {entry['resolutionError']}. "
-                f"Check 'oc get subscription {entry['name']} -n {namespace} -o yaml' and the health of the "
-                "catalog and operator-lifecycle-manager pods"
-            )
     if status["failedInstallPlans"]:
         raise OLMException(
             f"InstallPlan(s) {', '.join(status['failedInstallPlans'])} have Failed in namespace {namespace}; "
@@ -1156,14 +1146,14 @@ def waitForSubscriptionConvergence(
     not converged is simply not done, whether its InstallPlan has not been
     generated yet, is awaiting approval, or is still installing.
 
-    Fails fast, in both approval modes, on Subscriptions that can never
-    converge: an active ResolutionFailed condition on a Subscription whose
-    transition to its channel head is not in flight (no install plan of its
-    own pending approval, and no referenced plan carrying it to the target --
-    while a plan is pending or applying, the condition is the expected
-    transient of the transition, not a breakage), or a Failed InstallPlan
-    referenced by a non-converged Subscription, raises OLMException
-    immediately rather than burning the timeout.
+    Fails fast, in both approval modes, on the one stable breakage: a Failed
+    InstallPlan referenced by a non-converged Subscription will never carry
+    it to the channel head, and OLM will not generate a replacement while
+    the reference stands, so it raises OLMException immediately rather than
+    burning the timeout. Anything else that has not converged yet -- an
+    install plan not generated, awaiting approval, applying, or a transient
+    resolver condition -- is simply waited on: the desired end state is all
+    that matters, and the deadline bounds how long the wait can take.
 
     While Subscriptions are unconverged, onPending (when supplied) is invoked
     on every poll with the current status dict and the 1-based poll number;
@@ -1188,11 +1178,11 @@ def waitForSubscriptionConvergence(
             this is the still-non-converged status at the point of the abort
 
     Raises:
-        OLMException: When a Subscription has an active ResolutionFailed
-            condition or a referenced InstallPlan has Failed
+        OLMException: When a referenced InstallPlan has Failed
         OLMTimeoutError: If the timeout expires with Subscriptions still
             unconverged (the message lists each one as
-            name: installedCSV -> targetCSV)
+            name: installedCSV -> targetCSV, with its resolution error when
+            OLM is reporting one)
     """
     startTime = time()
     pollCount = 0
@@ -1200,9 +1190,9 @@ def waitForSubscriptionConvergence(
     while True:
         status = getNamespaceConvergenceStatus(dynClient, namespace)
 
-        # Fail fast on Subscriptions that can never converge (shared with the
-        # cluster-wide wait, so the policy exists exactly once)
-        _raiseIfNamespaceUnresolvable(status, namespace)
+        # Fail fast on the one stable breakage (shared with the cluster-wide
+        # wait, so the policy exists exactly once)
+        _raiseIfFailedInstallPlans(status, namespace)
 
         if status["converged"]:
             return status
@@ -1290,10 +1280,9 @@ def waitForClusterConvergence(
        (getNamespaceConvergenceStatus). A namespace leaves the scope only
        when it has converged -- never merely because pending-plan discovery
        no longer lists it (an approved plan can still be rolling out).
-    5. Fail fast (both modes, via _raiseIfNamespaceUnresolvable -- the same
-       policy as the single-namespace wait) on Subscriptions that can never
-       converge and on Failed install plans, rather than burning the
-       deadline.
+    5. Fail fast (both modes, via _raiseIfFailedInstallPlans -- the same
+       policy as the single-namespace wait) on Failed install plans, the one
+       stable breakage, rather than burning the deadline.
 
     Each namespace carries its own timeout budget, with the clock starting
     when the namespace is first observed (gate start for the initially
@@ -1333,11 +1322,12 @@ def waitForClusterConvergence(
         convergence status)
 
     Raises:
-        OLMException: On the approval mode mismatch, and on Subscriptions
-        that cannot converge (see _raiseIfNamespaceUnresolvable)
+        OLMException: On the approval mode mismatch, and on Failed install
+        plans (see _raiseIfFailedInstallPlans)
         OLMTimeoutError: When a namespace's deadline expires; the message
         lists the namespace's non-converged Subscriptions
-        (installedCSV -> targetCSV) and the approve commands
+        (installedCSV -> targetCSV, with their resolution errors when OLM is
+        reporting any) and the approve commands
     """
     # 1. Settle: discovery below must not race OLM's re-resolution after a
     # catalog digest update
@@ -1395,14 +1385,14 @@ def waitForClusterConvergence(
             for approval in pending:
                 enterScope(approval["namespace"])
 
-        # Snapshot every in-scope namespace and fail fast on Subscriptions
-        # that cannot converge (the shared single-namespace policy). A
-        # converged namespace leaves the live scope.
+        # Snapshot every in-scope namespace and fail fast on Failed install
+        # plans (the shared single-namespace policy). A converged namespace
+        # leaves the live scope.
         outstanding = []
         for namespace in sorted(scope):
             status = getNamespaceConvergenceStatus(dynClient, namespace)
             statuses[namespace] = status
-            _raiseIfNamespaceUnresolvable(status, namespace)
+            _raiseIfFailedInstallPlans(status, namespace)
             if status["converged"]:
                 scope.discard(namespace)
             else:
@@ -1439,6 +1429,8 @@ def waitForClusterConvergence(
                 for entry in statuses[namespace]["subscriptions"]:
                     if entry["converged"] is False:
                         lines.append(f"  {entry['name']}: {entry['installedCSV'] or '(not installed)'} -> {entry['targetCSV']} (state: {entry['state']})")
+                        if entry["resolutionError"]:
+                            lines.append(f"    resolution error: {entry['resolutionError']}")
                     elif entry["skipped"]:
                         lines.append(f"  {entry['name']}: skipped ({entry['skipReason']})")
                 if commands:

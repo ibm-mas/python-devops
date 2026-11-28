@@ -103,9 +103,12 @@ status above extended with `subscriptions` (per-Subscription dicts with `name`, 
 `channel`, `state`, `installedCSV`, `targetCSV`, `installPlanRef`, `converged` — `None`
 when skipped, `skipped`, `skipReason`, `resolutionError`), `failedInstallPlans` and
 `converged`. Subscriptions with no derivable target (no PackageManifest, or the channel is
-absent from it) are skipped with a warning and never block. Subscriptions with an active
-`ResolutionFailed` condition, or referencing a Failed InstallPlan, fail the wait
-immediately with `OLMException` in both modes rather than burning the timeout.
+absent from it) are skipped with a warning and never block. Subscriptions referencing a
+Failed InstallPlan fail the wait immediately with `OLMException` in both modes rather than
+burning the timeout — the one stable breakage. An active `ResolutionFailed` condition is
+never acted on mid-wait (OLM sets it on every Subscription in a namespace whose resolution
+fails, transiently or permanently); it is reported in the timeout error as the reason a
+Subscription did not converge.
 
 ## API Reference
 
